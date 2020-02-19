@@ -19,17 +19,15 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 	"github.com/gardener/gardener-extensions/pkg/controller"
-	"github.com/gardener/gardener-extensions/pkg/util"
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
 
+	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -79,20 +77,22 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 	return nil
 }
 
-// EnsureETCDStatefulSet ensures that the etcd stateful sets conform to the provider requirements.
-func (e *ensurer) EnsureETCDStatefulSet(ctx context.Context, ectx genericmutator.EnsurerContext, ss *appsv1.StatefulSet) error {
-	e.ensureVolumeClaimTemplates(&ss.Spec, ss.Name)
-	return nil
-}
+// EnsureETCD ensures that the etcd conform to the provider requirements.
+func (e *ensurer) EnsureETCD(ctx context.Context, ectx genericmutator.EnsurerContext, etcd *druidv1alpha1.Etcd) error {
+	capacity := resource.MustParse("20Gi")
+	class := ""
 
-func (e *ensurer) ensureVolumeClaimTemplates(spec *appsv1.StatefulSetSpec, name string) {
-	t := e.getVolumeClaimTemplate(name)
-	spec.VolumeClaimTemplates = extensionswebhook.EnsurePVCWithName(spec.VolumeClaimTemplates, *t)
-}
-
-func (e *ensurer) getVolumeClaimTemplate(name string) *corev1.PersistentVolumeClaim {
-	if name == v1beta1constants.ETCDMain {
-		return controlplane.GetETCDVolumeClaimTemplate(controlplane.EtcdMainVolumeClaimTemplateName, e.etcdStorage.ClassName, e.etcdStorage.Capacity)
+	if etcd.Name == v1beta1constants.ETCDMain && e.etcdStorage != nil {
+		if e.etcdStorage.Capacity != nil {
+			capacity = *e.etcdStorage.Capacity
+		}
+		if e.etcdStorage.ClassName != nil {
+			class = *e.etcdStorage.ClassName
+		}
 	}
-	return controlplane.GetETCDVolumeClaimTemplate(name, nil, util.QuantityPtr(resource.MustParse("20Gi")))
+
+	etcd.Spec.StorageClass = &class
+	etcd.Spec.StorageCapacity = &capacity
+
+	return nil
 }
