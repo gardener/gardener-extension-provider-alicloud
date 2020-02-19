@@ -1,0 +1,20 @@
+apiVersion: {{ include "networkpolicyversion" . }}
+kind: NetworkPolicy
+metadata:
+  annotations:
+    gardener.cloud/description: |
+      Allows Egress from pods labeled with 'networking.gardener.cloud/to-alicloud-networks=allowed'
+      to Alicloud CloudProvider's specific IPs. Currently, only consider 100.96.0.0/11.
+  name: allow-to-alicloud-networks
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      networking.gardener.cloud/to-alicloud-networks: allowed
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 100.96.0.0/11
+  policyTypes:
+  - Egress
+  ingress: []
