@@ -134,8 +134,10 @@ var _ = Describe("Actuator", func() {
 					region          = "region"
 					infra           = extensionsv1alpha1.Infrastructure{
 						Spec: extensionsv1alpha1.InfrastructureSpec{
-							ProviderConfig: &runtime.RawExtension{
-								Raw: configYAML,
+							DefaultSpec: extensionsv1alpha1.DefaultSpec{
+								ProviderConfig: &runtime.RawExtension{
+									Raw: configYAML,
+								},
 							},
 							Region: region,
 							SecretRef: corev1.SecretReference{
