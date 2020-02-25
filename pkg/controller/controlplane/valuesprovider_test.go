@@ -60,15 +60,17 @@ var _ = Describe("ValuesProvider", func() {
 					Name:      v1beta1constants.SecretNameCloudProvider,
 					Namespace: namespace,
 				},
-				ProviderConfig: &runtime.RawExtension{
-					Raw: encode(&apisalicloud.ControlPlaneConfig{
-						Zone: "eu-central-1a",
-						CloudControllerManager: &apisalicloud.CloudControllerManagerConfig{
-							FeatureGates: map[string]bool{
-								"CustomResourceValidation": true,
+				DefaultSpec: extensionsv1alpha1.DefaultSpec{
+					ProviderConfig: &runtime.RawExtension{
+						Raw: encode(&apisalicloud.ControlPlaneConfig{
+							Zone: "eu-central-1a",
+							CloudControllerManager: &apisalicloud.CloudControllerManagerConfig{
+								FeatureGates: map[string]bool{
+									"CustomResourceValidation": true,
+								},
 							},
-						},
-					}),
+						}),
+					},
 				},
 				InfrastructureProviderStatus: &runtime.RawExtension{
 					Raw: encode(&apisalicloud.InfrastructureStatus{

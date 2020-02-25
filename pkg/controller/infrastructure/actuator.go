@@ -445,7 +445,7 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 	if err != nil {
 		return err
 	}
-	// SLBs created by Alicloud CCM do not have assocation with VPCs, so can only be iterated to check
+	// SLBs created by Alicloud CCM do not have association with VPCs, so can only be iterated to check
 	// if one SLB is related to this specific Shoot.
 	for _, loadBalancerID := range loadBalancerIDs {
 		vServerGroupName, err := shootAlicloudSLBClient.GetFirstVServerGroupName(ctx, infra.Spec.Region, loadBalancerID)
