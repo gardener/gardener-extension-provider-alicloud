@@ -24,8 +24,6 @@ const (
 
 	// InfraRelease is the name of the alicloud-infra chart.
 	InfraRelease = "alicloud-infra"
-	// ETCDBackupRestoreImageName is the name of the etcd backup and restore image.
-	ETCDBackupRestoreImageName = "etcd-backup-restore"
 
 	// MachineControllerManagerImageName is the name of the MachineControllerManager image.
 	MachineControllerManagerImageName = "machine-controller-manager"
