@@ -31,6 +31,7 @@ var _ = Describe("Terraform", func() {
 	var (
 		ctrl *gomock.Controller
 	)
+
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 	})
@@ -38,39 +39,75 @@ var _ = Describe("Terraform", func() {
 		ctrl.Finish()
 	})
 
+	var (
+		accessKeyID     = "accessKeyID"
+		accessKeySecret = "accessKeySecret"
+		credentials     = alicloud.Credentials{
+			AccessKeyID:     accessKeyID,
+			AccessKeySecret: accessKeySecret,
+		}
+
+		purpose   = "purpose"
+		namespace = "namespace"
+		name      = "name"
+	)
+
 	Describe("#NewTerraformer", func() {
-		It("should create a new terraformer and initialize it with the credentials", func() {
+		It("should create a new terraformer", func() {
 			var (
-				factory         = mockterraformer.NewMockFactory(ctrl)
-				tf              = mockterraformer.NewMockTerraformer(ctrl)
-				config          rest.Config
-				accessKeyID     = "accessKeyID"
-				accessKeySecret = "accessKeySecret"
-				credentials     = alicloud.Credentials{
-					AccessKeyID:     accessKeyID,
-					AccessKeySecret: accessKeySecret,
-				}
-				purpose   = "purpose"
-				namespace = "namespace"
-				name      = "name"
+				factory = mockterraformer.NewMockFactory(ctrl)
+				tf      = mockterraformer.NewMockTerraformer(ctrl)
+				config  rest.Config
 			)
 
 			gomock.InOrder(
 				factory.EXPECT().
 					NewForConfig(gomock.Any(), &config, purpose, namespace, name, imagevector.TerraformerImage()).
 					Return(tf, nil),
-				tf.EXPECT().SetVariablesEnvironment(map[string]string{
-					TerraformVarAccessKeyID:     accessKeyID,
-					TerraformVarAccessKeySecret: accessKeySecret,
-				}).Return(tf),
-				tf.EXPECT().SetActiveDeadlineSeconds(int64(630)).Return(tf),
+				tf.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(tf),
 				tf.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(tf),
 				tf.EXPECT().SetDeadlinePod(15*time.Minute).Return(tf),
 			)
 
-			actual, err := NewTerraformer(factory, &config, &credentials, purpose, namespace, name)
+			actual, err := NewTerraformer(factory, &config, purpose, namespace, name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actual).To(BeIdenticalTo(tf))
+		})
+	})
+
+	Describe("#NewTerraformerWithAuth", func() {
+		It("should create a new terraformer and initialize it with the credentials", func() {
+			var (
+				factory = mockterraformer.NewMockFactory(ctrl)
+				tf      = mockterraformer.NewMockTerraformer(ctrl)
+				config  rest.Config
+			)
+
+			gomock.InOrder(
+				factory.EXPECT().
+					NewForConfig(gomock.Any(), &config, purpose, namespace, name, imagevector.TerraformerImage()).
+					Return(tf, nil),
+				tf.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(tf),
+				tf.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(tf),
+				tf.EXPECT().SetDeadlinePod(15*time.Minute).Return(tf),
+				tf.EXPECT().SetVariablesEnvironment(map[string]string{
+					TerraformVarAccessKeyID:     accessKeyID,
+					TerraformVarAccessKeySecret: accessKeySecret,
+				}).Return(tf),
+			)
+
+			actual, err := NewTerraformerWithAuth(factory, &config, purpose, namespace, name, &credentials)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actual).To(BeIdenticalTo(tf))
+		})
+	})
+
+	Describe("#NewTerraformer", func() {
+		It("should generate the correct map", func() {
+			Expect(TerraformVariablesEnvironmentFromCredentials(&credentials)).To(Equal(map[string]string{
+				TerraformVarAccessKeyID:     accessKeyID,
+				TerraformVarAccessKeySecret: accessKeySecret,
+			}))
 		})
 	})
 })

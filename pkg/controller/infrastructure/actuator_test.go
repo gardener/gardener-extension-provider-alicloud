@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
@@ -28,6 +29,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 	mockinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/controller/infrastructure"
+
 	"github.com/gardener/gardener-extensions/pkg/controller"
 	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
 	mockchartrenderer "github.com/gardener/gardener-extensions/pkg/mock/gardener-extensions/gardener/chartrenderer"
@@ -37,8 +39,6 @@ import (
 	realterraformer "github.com/gardener/gardener-extensions/pkg/terraformer"
 	"github.com/gardener/gardener-extensions/pkg/util/chart"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	"github.com/golang/mock/gomock"
@@ -191,13 +191,14 @@ var _ = Describe("Actuator", func() {
 					terraformerFactory.EXPECT().NewForConfig(gomock.Any(), &restConfig, TerraformerPurpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 						Return(terraformer, nil),
 
+					terraformer.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(terraformer),
+					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
+					terraformer.EXPECT().SetDeadlinePod(15*time.Minute).Return(terraformer),
+
 					terraformer.EXPECT().SetVariablesEnvironment(map[string]string{
 						common.TerraformVarAccessKeyID:     accessKeyID,
 						common.TerraformVarAccessKeySecret: accessKeySecret,
 					}).Return(terraformer),
-					terraformer.EXPECT().SetActiveDeadlineSeconds(int64(630)).Return(terraformer),
-					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
-					terraformer.EXPECT().SetDeadlinePod(15*time.Minute).Return(terraformer),
 
 					alicloudClientFactory.EXPECT().NewVPC(region, accessKeyID, accessKeySecret).Return(vpcClient, nil),
 
