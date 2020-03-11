@@ -27,6 +27,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
+
 	extensioncontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	commonext "github.com/gardener/gardener-extensions/pkg/controller/common"
 	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
@@ -35,7 +36,6 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/terraformer"
 	"github.com/gardener/gardener-extensions/pkg/util"
 	chartutil "github.com/gardener/gardener-extensions/pkg/util/chart"
-
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/flow"
 	"github.com/go-logr/logr"
@@ -205,7 +205,7 @@ func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, conf
 }
 
 func (a *actuator) newTerraformer(infra *extensionsv1alpha1.Infrastructure, credentials *alicloud.Credentials) (terraformer.Terraformer, error) {
-	return common.NewTerraformer(a.terraformerFactory, a.RESTConfig(), credentials, TerraformerPurpose, infra.Namespace, infra.Name)
+	return common.NewTerraformerWithAuth(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra.Namespace, infra.Name, credentials)
 }
 
 func (a *actuator) extractStatus(tf terraformer.Terraformer, infraConfig *alicloudv1alpha1.InfrastructureConfig, machineImages []alicloudv1alpha1.MachineImage) (*alicloudv1alpha1.InfrastructureStatus, error) {
@@ -471,12 +471,20 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 
 // Delete implements infrastructure.Actuator.
 func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	_, credentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
+	tf, err := common.NewTerraformer(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra.Namespace, infra.Name)
 	if err != nil {
 		return err
 	}
 
-	tf, err := a.newTerraformer(infra, credentials)
+	// If the Terraform state is empty then we can exit early as we didn't create anything. Though, we clean up potentially
+	// created configmaps/secrets related to the Terraformer.
+	stateIsEmpty := tf.IsStateEmpty()
+	if stateIsEmpty {
+		a.logger.Info("exiting early as infrastructure state is empty - nothing to do")
+		return tf.CleanupConfiguration(ctx)
+	}
+
+	_, credentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
 	if err != nil {
 		return err
 	}
@@ -501,7 +509,7 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 
 		_ = g.Add(flow.Task{
 			Name:         "Destroying Shoot infrastructure",
-			Fn:           flow.SimpleTaskFn(tf.Destroy),
+			Fn:           flow.SimpleTaskFn(tf.SetVariablesEnvironment(common.TerraformVariablesEnvironmentFromCredentials(credentials)).Destroy),
 			Dependencies: flow.NewTaskIDs(destroyServiceLoadBalancers),
 		})
 

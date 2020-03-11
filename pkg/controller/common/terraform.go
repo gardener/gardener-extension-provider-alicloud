@@ -19,8 +19,8 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
-	"github.com/gardener/gardener-extensions/pkg/terraformer"
 
+	"github.com/gardener/gardener-extensions/pkg/terraformer"
 	"github.com/gardener/gardener/pkg/logger"
 	"k8s.io/client-go/rest"
 )
@@ -30,21 +30,34 @@ const (
 	TerraformVarAccessKeySecret = "TF_VAR_ACCESS_KEY_SECRET"
 )
 
-// NewTerraformer creates a new Terraformer and initializes it with the credentials.
-func NewTerraformer(factory terraformer.Factory, config *rest.Config, credentials *alicloud.Credentials, purpose, namespace, name string) (terraformer.Terraformer, error) {
+// NewTerraformer creates a new Terraformer.
+func NewTerraformer(factory terraformer.Factory, config *rest.Config, purpose, namespace, name string) (terraformer.Terraformer, error) {
 	tf, err := factory.NewForConfig(logger.NewLogger("info"), config, purpose, namespace, name, imagevector.TerraformerImage())
 	if err != nil {
 		return nil, err
 	}
 
-	variablesEnvironment := map[string]string{
+	return tf.
+		SetTerminationGracePeriodSeconds(630).
+		SetDeadlineCleaning(5 * time.Minute).
+		SetDeadlinePod(15 * time.Minute), nil
+}
+
+// NewTerraformerWithAuth creates a new Terraformer and initializes it with the credentials.
+func NewTerraformerWithAuth(factory terraformer.Factory, config *rest.Config, purpose, namespace, name string, credentials *alicloud.Credentials) (terraformer.Terraformer, error) {
+	tf, err := NewTerraformer(factory, config, purpose, namespace, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return tf.SetVariablesEnvironment(TerraformVariablesEnvironmentFromCredentials(credentials)), nil
+}
+
+// TerraformVariablesEnvironmentFromCredentials computes the Terraformer variables environment from the
+// given ServiceAccount.
+func TerraformVariablesEnvironmentFromCredentials(credentials *alicloud.Credentials) map[string]string {
+	return map[string]string{
 		TerraformVarAccessKeyID:     credentials.AccessKeyID,
 		TerraformVarAccessKeySecret: credentials.AccessKeySecret,
 	}
-
-	return tf.
-		SetVariablesEnvironment(variablesEnvironment).
-		SetActiveDeadlineSeconds(630).
-		SetDeadlineCleaning(5 * time.Minute).
-		SetDeadlinePod(15 * time.Minute), nil
 }

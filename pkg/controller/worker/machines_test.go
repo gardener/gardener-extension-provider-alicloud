@@ -24,16 +24,17 @@ import (
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	apiv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
+
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/common"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator"
 	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
 	mockkubernetes "github.com/gardener/gardener-extensions/pkg/mock/gardener/client/kubernetes"
-
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/client/kubernetes"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -434,12 +435,12 @@ var _ = Describe("Machines", func() {
 
 					chartApplier.
 						EXPECT().
-						ApplyChart(
+						Apply(
 							context.TODO(),
 							filepath.Join(alicloud.InternalChartsPath, "machineclass"),
 							namespace,
 							"machineclass",
-							machineClasses,
+							kubernetes.Values(machineClasses),
 							nil,
 						).
 						Return(nil)
@@ -604,7 +605,7 @@ func useDefaultMachineClass(def map[string]interface{}, keyValues ...interface{}
 func addNameAndSecretToMachineClass(class map[string]interface{}, alicloudAccessKeyID, alicloudAccessKeySecret, name string) {
 	class["name"] = name
 	class["labels"] = map[string]string{
-		v1beta1constants.GardenPurpose: genericworkeractuator.GardenPurposeMachineClass,
+		v1beta1constants.GardenerPurpose: genericworkeractuator.GardenPurposeMachineClass,
 	}
 	class["secret"].(map[string]interface{})[alicloud.AccessKeyID] = alicloudAccessKeyID
 	class["secret"].(map[string]interface{})[alicloud.AccessKeySecret] = alicloudAccessKeySecret
