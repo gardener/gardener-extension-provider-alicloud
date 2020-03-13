@@ -21,6 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,6 +56,19 @@ func (m *mutator) Mutate(ctx context.Context, obj runtime.Object) error {
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
 			return m.mutateLBService(ctx, x)
 		}
+	case *appsv1.Deployment:
+		if x.Name == "metrics-server" {
+			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
+			return m.mutateMetricsServerDeployment(ctx, x)
+		}
+	}
+	return nil
+}
+
+func (m *mutator) mutateMetricsServerDeployment(ctx context.Context, dep *appsv1.Deployment) error {
+	ps := &dep.Spec.Template.Spec
+	if c := extensionswebhook.ContainerWithName(ps.Containers, "metrics-server"); c != nil {
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--kubelet-preferred-address-types=", "InternalIP")
 	}
 	return nil
 }
