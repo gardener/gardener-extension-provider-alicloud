@@ -16,6 +16,7 @@ package shoot
 
 import (
 	"context"
+
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -54,7 +55,7 @@ var _ = Describe("Mutator", func() {
 	)
 	Describe("#MutateMetricsServerDeployment", func() {
 		It("should modify existing elements of metrics-server deployment", func() {
-			err := mutator.Mutate(context.TODO(), dep)
+			err := mutator.Mutate(context.TODO(), dep, nil)
 			c := extensionswebhook.ContainerWithName(dep.Spec.Template.Spec.Containers, "metrics-server")
 			Expect(c).To(Not(BeNil()))
 			Expect(c.Command).To(ContainElement("--kubelet-preferred-address-types=InternalIP"))

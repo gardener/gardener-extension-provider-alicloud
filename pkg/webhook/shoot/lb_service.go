@@ -20,8 +20,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (m *mutator) mutateLBService(ctx context.Context, svc *corev1.Service) error {
-	svc.Spec.ExternalTrafficPolicy = "Local"
+func (m *mutator) mutateLBService(ctx context.Context, new, old *corev1.Service) error {
+	new.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
+
+	// Do not overwrite '.spec.healthCheckNodePort'
+	if old != nil &&
+		old.Spec.ExternalTrafficPolicy == corev1.ServiceExternalTrafficPolicyTypeLocal &&
+		new.Spec.HealthCheckNodePort == 0 {
+		new.Spec.HealthCheckNodePort = old.Spec.HealthCheckNodePort
+	}
 
 	return nil
 }

@@ -42,8 +42,8 @@ type ensurer struct {
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, dep *appsv1.Deployment) error {
-	ps := &dep.Spec.Template.Spec
+func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, new, old *appsv1.Deployment) error {
+	ps := &new.Spec.Template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		cluster, err := ectx.GetCluster(ctx)
 		if err != nil {
@@ -51,7 +51,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 		}
 		ver, err := semver.NewVersion(cluster.Shoot.Spec.Kubernetes.Version)
 		if err != nil {
-			return fmt.Errorf("Can not parse shoot k8s cluster version: %v", err)
+			return fmt.Errorf("cannot parse shoot k8s cluster version: %v", err)
 		}
 		ensureKubeAPIServerCommandLineArgs(c, ver)
 	}
@@ -59,8 +59,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, dep *appsv1.Deployment) error {
-	ps := &dep.Spec.Template.Spec
+func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, new, old *appsv1.Deployment) error {
+	ps := &new.Spec.Template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-controller-manager"); c != nil {
 		ensureKubeControllerManagerCommandLineArgs(c)
 	}
@@ -107,13 +107,13 @@ func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
-func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, ectx genericmutator.EnsurerContext, opts []*unit.UnitOption) ([]*unit.UnitOption, error) {
-	if opt := extensionswebhook.UnitOptionWithSectionAndName(opts, "Service", "ExecStart"); opt != nil {
+func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, ectx genericmutator.EnsurerContext, new, old []*unit.UnitOption) ([]*unit.UnitOption, error) {
+	if opt := extensionswebhook.UnitOptionWithSectionAndName(new, "Service", "ExecStart"); opt != nil {
 		command := extensionswebhook.DeserializeCommandLine(opt.Value)
 		command = ensureKubeletCommandLineArgs(command)
 		opt.Value = extensionswebhook.SerializeCommandLine(command, 1, " \\\n    ")
 	}
-	return opts, nil
+	return new, nil
 }
 
 func ensureKubeletCommandLineArgs(command []string) []string {
@@ -124,10 +124,10 @@ func ensureKubeletCommandLineArgs(command []string) []string {
 }
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
-func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, ectx genericmutator.EnsurerContext, kubeletConfig *kubeletconfigv1beta1.KubeletConfiguration) error {
+func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, ectx genericmutator.EnsurerContext, new, old *kubeletconfigv1beta1.KubeletConfiguration) error {
 	// Ensure CSI-related feature gates
-	if kubeletConfig.FeatureGates == nil {
-		kubeletConfig.FeatureGates = make(map[string]bool)
+	if new.FeatureGates == nil {
+		new.FeatureGates = make(map[string]bool)
 	}
 	cluster, err := ectx.GetCluster(ctx)
 	if err != nil {
@@ -143,10 +143,10 @@ func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, ectx genericmu
 
 	if ver.LessThan(kVersion16) {
 		if ver.LessThan(kVersion14) {
-			kubeletConfig.FeatureGates["CSINodeInfo"] = true
-			kubeletConfig.FeatureGates["CSIDriverRegistry"] = true
+			new.FeatureGates["CSINodeInfo"] = true
+			new.FeatureGates["CSIDriverRegistry"] = true
 		} else {
-			kubeletConfig.FeatureGates["ExpandCSIVolumes"] = true
+			new.FeatureGates["ExpandCSIVolumes"] = true
 		}
 	}
 

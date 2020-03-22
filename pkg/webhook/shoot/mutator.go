@@ -40,8 +40,8 @@ func NewMutator() extensionswebhook.Mutator {
 }
 
 // Mutate mutates resources.
-func (m *mutator) Mutate(ctx context.Context, obj runtime.Object) error {
-	acc, err := meta.Accessor(obj)
+func (m *mutator) Mutate(ctx context.Context, new, old runtime.Object) error {
+	acc, err := meta.Accessor(new)
 	if err != nil {
 		return errors.Wrapf(err, "could not create accessor during webhook")
 	}
@@ -50,11 +50,20 @@ func (m *mutator) Mutate(ctx context.Context, obj runtime.Object) error {
 		return nil
 	}
 
-	switch x := obj.(type) {
+	switch x := new.(type) {
 	case *corev1.Service:
 		if x.Name == "vpn-shoot" || x.Name == "addons-nginx-ingress-controller" {
+			var oldSvc *corev1.Service
+			if old != nil {
+				var ok bool
+				oldSvc, ok = old.(*corev1.Service)
+				if !ok {
+					return errors.Wrapf(err, "could not cast old object to corev1.Service")
+				}
+			}
+
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateLBService(ctx, x)
+			return m.mutateLBService(ctx, x, oldSvc)
 		}
 	case *appsv1.Deployment:
 		if x.Name == "metrics-server" {
