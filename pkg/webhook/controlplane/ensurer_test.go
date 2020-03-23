@@ -102,12 +102,12 @@ var _ = Describe("Ensurer", func() {
 			// Call EnsureKubeAPIServerDeployment method and check the result
 			// 1.13
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext13, dep)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext13, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{"CSINodeInfo=true", "CSIDriverRegistry=true"})
 			// 1.14
 			dep = apidep()
-			err = ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext14, dep)
+			err = ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext14, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{"ExpandCSIVolumes=true", "ExpandInUsePersistentVolumes=true"})
 
@@ -144,12 +144,12 @@ var _ = Describe("Ensurer", func() {
 			// Call EnsureKubeAPIServerDeployment method and check the result
 			// 1.13
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext13, dep)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext13, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{"CSINodeInfo=true", "CSIDriverRegistry=true"})
 			// 1.14
 			dep = apidep()
-			err = ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext14, dep)
+			err = ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext14, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{"ExpandCSIVolumes=true", "ExpandInUsePersistentVolumes=true"})
 		})
@@ -178,7 +178,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext13, dep)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext13, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -208,7 +208,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext13, dep)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext13, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -242,7 +242,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeletServiceUnitOptions method and check the result
-			opts, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), eContext13, oldUnitOptions)
+			opts, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), eContext13, oldUnitOptions, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(opts).To(Equal(newUnitOptions))
 		})
@@ -281,11 +281,11 @@ var _ = Describe("Ensurer", func() {
 
 			// Call EnsureKubeletConfiguration method and check the result
 			// 13
-			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext13, oldKubeletConfig13)
+			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext13, oldKubeletConfig13, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(oldKubeletConfig13).To(Equal(newKubeletConfig13))
 			// 14
-			err = ensurer.EnsureKubeletConfiguration(context.TODO(), eContext14, oldKubeletConfig14)
+			err = ensurer.EnsureKubeletConfiguration(context.TODO(), eContext14, oldKubeletConfig14, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(oldKubeletConfig14).To(Equal(newKubeletConfig14))
 		})
