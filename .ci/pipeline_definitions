@@ -12,6 +12,11 @@ gardener-extension-provider-alicloud:
             image: 'eu.gcr.io/gardener-project/gardener/extensions/provider-alicloud'
             dockerfile: 'Dockerfile'
             target: gardener-extension-provider-alicloud
+          gardener-extension-provider-alicloud:
+            registry: 'gcr-readwrite'
+            image: 'eu.gcr.io/gardener-project/gardener/extensions/validator-alicloud'
+            dockerfile: 'Dockerfile'
+            target: gardener-extension-validator-alicloud
     steps: ~
   jobs:
     head-update:
@@ -44,4 +49,6 @@ gardener-extension-provider-alicloud:
         publish:
           dockerimages:
             gardener-extension-provider-alicloud:
+              tag_as_latest: true
+            gardener-extension-validator-alicloud:
               tag_as_latest: true

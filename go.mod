@@ -33,6 +33,7 @@ require (
 	k8s.io/helm v2.16.1+incompatible
 	k8s.io/klog v1.0.0
 	k8s.io/kubelet v0.0.0-20190918162654-250a1838aa2c
+	k8s.io/utils v0.0.0-20191218082557-f07c713de883
 	sigs.k8s.io/controller-runtime v0.4.0
 )
 
