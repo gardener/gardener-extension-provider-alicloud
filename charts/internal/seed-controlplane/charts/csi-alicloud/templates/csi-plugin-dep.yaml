@@ -94,7 +94,6 @@ spec:
       - name: csi-provisioner
         image: {{ index .Values.images "csi-provisioner" }}
         args:
-        - "--provisioner=diskplugin.csi.alibabacloud.com"
         - "--csi-address=$(CSI_ENDPOINT)"
         - "--kubeconfig=/var/lib/csi-provisioner/kubeconfig"
         - "--feature-gates=Topology=True"
@@ -103,6 +102,8 @@ spec:
         - "--leader-election-type=leases"
         - "--leader-election-namespace=kube-system"
         - "--volume-name-prefix=pv-{{ .Values.persistentVolumePrefix }}"
+{{- else }}
+        - "--provisioner=diskplugin.csi.alibabacloud.com"
 {{- end }}
 {{- if .Values.provisionerResources }}
         resources:
