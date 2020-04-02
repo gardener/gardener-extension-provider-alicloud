@@ -170,6 +170,29 @@ var _ = Describe("Shoot validation", func() {
 					})),
 				))
 			})
+
+			It("should forbid because worker setting maximum > 0 and minimum = 0", func() {
+				workers[0].Maximum = 1
+				workers[0].Minimum = 0
+
+				errorList := ValidateWorkers(workers, alicloudZones, field.NewPath("workers"))
+
+				Expect(errorList).To(ConsistOf(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":  Equal(field.ErrorTypeForbidden),
+						"Field": Equal("workers[0].minimum"),
+					})),
+				))
+			})
+
+			It("should pass because worker setting maximum = 0 and minimum = 0", func() {
+				workers[0].Maximum = 0
+				workers[0].Minimum = 0
+
+				errorList := ValidateWorkers(workers, alicloudZones, field.NewPath("workers"))
+
+				Expect(errorList).To(BeEmpty())
+			})
 		})
 
 		Describe("#ValidateWorkersUpdate", func() {

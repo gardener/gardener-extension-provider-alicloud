@@ -59,6 +59,10 @@ func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *
 			continue
 		}
 
+		if worker.Maximum != 0 && worker.Minimum == 0 {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i).Child("minimum"), "minimum value must be >= 1 if maximum value > 0 (cluster-autoscaler cannot handle min=0)"))
+		}
+
 		allErrs = append(allErrs, validateZones(worker.Zones, alicloudZones, fldPath.Index(i).Child("zones"))...)
 	}
 
