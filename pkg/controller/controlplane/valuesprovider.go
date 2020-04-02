@@ -362,6 +362,9 @@ func getControlPlaneChartValues(
 				"checksum/secret-cloudprovider":            checksums[v1beta1constants.SecretNameCloudProvider],
 				"checksum/configmap-cloud-provider-config": checksums[alicloud.CloudProviderConfigName],
 			},
+			"podLabels": map[string]interface{}{
+				v1beta1constants.LabelPodMaintenanceRestart: "true",
+			},
 		},
 		"csi-alicloud": map[string]interface{}{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
