@@ -30,7 +30,6 @@ var _ = Describe("Helper", func() {
 		purpose      api.Purpose = "foo"
 		purposeWrong api.Purpose = "baz"
 	)
-
 	DescribeTable("#FindVSwitchForPurposeAndZone",
 		func(vswitches []api.VSwitch, purpose api.Purpose, zone string, expectedVSwitch *api.VSwitch, expectErr bool) {
 			subnet, err := FindVSwitchForPurposeAndZone(vswitches, purpose, zone)
@@ -42,6 +41,18 @@ var _ = Describe("Helper", func() {
 		Entry("entry not found (no purpose)", []api.VSwitch{{ID: "bar", Purpose: purposeWrong, Zone: "europe"}}, purpose, "europe", nil, true),
 		Entry("entry not found (no zone)", []api.VSwitch{{ID: "bar", Purpose: purposeWrong, Zone: "europe"}}, purpose, "asia", nil, true),
 		Entry("entry exists", []api.VSwitch{{ID: "bar", Purpose: purposeWrong, Zone: "europe"}}, purposeWrong, "europe", &api.VSwitch{ID: "bar", Purpose: purposeWrong, Zone: "europe"}, false),
+	)
+
+	DescribeTable("#FindVSwitchForPurpose",
+		func(vswitches []api.VSwitch, purpose api.Purpose, expectedVSwitch *api.VSwitch, expectErr bool) {
+			subnet, err := FindVSwitchForPurpose(vswitches, purpose)
+			expectResults(subnet, expectedVSwitch, err, expectErr)
+		},
+
+		Entry("list is nil", nil, purpose, nil, true),
+		Entry("empty list", []api.VSwitch{}, purpose, nil, true),
+		Entry("entry not found (no purpose)", []api.VSwitch{{ID: "bar", Purpose: purposeWrong, Zone: "europe"}}, purpose, nil, true),
+		Entry("entry exists", []api.VSwitch{{ID: "bar", Purpose: purposeWrong, Zone: "europe"}}, purposeWrong, &api.VSwitch{ID: "bar", Purpose: purposeWrong, Zone: "europe"}, false),
 	)
 
 	DescribeTable("#FindSecurityGroupByPurpose",

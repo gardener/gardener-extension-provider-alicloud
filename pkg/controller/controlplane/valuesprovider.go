@@ -120,17 +120,6 @@ var controlPlaneSecrets = &secrets.Secrets{
 	},
 }
 
-var configChart = &chart.Chart{
-	Name: "cloud-provider-config",
-	Path: filepath.Join(alicloud.InternalChartsPath, "cloud-provider-config"),
-	Objects: []*chart.Object{
-		{
-			Type: &corev1.ConfigMap{},
-			Name: alicloud.CloudProviderConfigName,
-		},
-	},
-}
-
 var controlPlaneChart = &chart.Chart{
 	Name: "seed-controlplane",
 	Path: filepath.Join(alicloud.InternalChartsPath, "seed-controlplane"),
@@ -141,6 +130,7 @@ var controlPlaneChart = &chart.Chart{
 			Objects: []*chart.Object{
 				{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 				{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
+				{Type: &corev1.Secret{}, Name: "cloud-provider-config"},
 				{Type: &corev1.ConfigMap{}, Name: "cloud-controller-manager-monitoring-config"},
 			},
 		},
@@ -224,36 +214,6 @@ type valuesProvider struct {
 	logger logr.Logger
 }
 
-// GetConfigChartValues returns the values for the config chart applied by the generic actuator.
-func (vp *valuesProvider) GetConfigChartValues(
-	ctx context.Context,
-	cp *extensionsv1alpha1.ControlPlane,
-	cluster *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
-	// Decode providerConfig
-	cpConfig := &apisalicloud.ControlPlaneConfig{}
-	if cp.Spec.ProviderConfig != nil {
-		if _, _, err := vp.Decoder().Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
-			return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", util.ObjectName(cp))
-		}
-	}
-
-	// Decode infrastructureProviderStatus
-	infraStatus := &apisalicloud.InfrastructureStatus{}
-	if _, _, err := vp.Decoder().Decode(cp.Spec.InfrastructureProviderStatus.Raw, nil, infraStatus); err != nil {
-		return nil, errors.Wrapf(err, "could not decode infrastructureProviderStatus of controlplane '%s'", util.ObjectName(cp))
-	}
-
-	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not read credentials from secret referred by controlplane '%s'", util.ObjectName(cp))
-	}
-
-	// Get config chart values
-	return getConfigChartValues(cpConfig, infraStatus, cp, credentials)
-}
-
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
 func (vp *valuesProvider) GetControlPlaneChartValues(
 	ctx context.Context,
@@ -269,9 +229,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 			return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", util.ObjectName(cp))
 		}
 	}
-
+	// TODO: Remove this code in next version. Delete old config
+	if err := vp.deleteCloudProviderConfig(ctx, cp.Namespace); err != nil {
+		return nil, err
+	}
 	// Get control plane chart values
-	return getControlPlaneChartValues(cpConfig, cp, cluster, checksums, scaledDown)
+	return vp.getControlPlaneChartValues(ctx, cpConfig, cp, cluster, checksums, scaledDown)
 }
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
@@ -308,17 +271,26 @@ type cloudConfig struct {
 	}
 }
 
-// getConfigChartValues collects and returns the configuration chart values.
-func getConfigChartValues(
-	cpConfig *apisalicloud.ControlPlaneConfig,
-	infraStatus *apisalicloud.InfrastructureStatus,
+func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
+	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
-	credentials *alicloud.Credentials,
-) (map[string]interface{}, error) {
-	// Find first vswitch with purpose "nodes" in the specified zone
-	vswitch, err := helper.FindVSwitchForPurposeAndZone(infraStatus.VPC.VSwitches, apisalicloud.PurposeNodes, cpConfig.Zone)
+) (string, error) {
+	// Decode infrastructureProviderStatus
+	infraStatus := &apisalicloud.InfrastructureStatus{}
+	if _, _, err := vp.Decoder().Decode(cp.Spec.InfrastructureProviderStatus.Raw, nil, infraStatus); err != nil {
+		return "", errors.Wrapf(err, "could not decode infrastructureProviderStatus of controlplane '%s'", util.ObjectName(cp))
+	}
+
+	// Get credentials from the referenced secret
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not determine vswitch from infrastructureProviderStatus of controlplane '%s'", util.ObjectName(cp))
+		return "", errors.Wrapf(err, "could not read credentials from secret referred by controlplane '%s'", util.ObjectName(cp))
+	}
+
+	// Find first vswitch with purpose "nodes"
+	vswitch, err := helper.FindVSwitchForPurpose(infraStatus.VPC.VSwitches, apisalicloud.PurposeNodes)
+	if err != nil {
+		return "", errors.Wrapf(err, "could not determine vswitch from infrastructureProviderStatus of controlplane '%s'", util.ObjectName(cp))
 	}
 
 	// Initialize cloud config
@@ -334,23 +306,25 @@ func getConfigChartValues(
 
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not marshal cloud config to JSON for controlplane '%s'", util.ObjectName(cp))
+		return "", errors.Wrapf(err, "could not marshal cloud config to JSON for controlplane '%s'", util.ObjectName(cp))
 	}
 
-	// Collect config chart values
-	return map[string]interface{}{
-		"cloudConfig": string(cfgJSON),
-	}, nil
+	return string(cfgJSON), nil
 }
 
 // getControlPlaneChartValues collects and returns the control plane chart values.
-func getControlPlaneChartValues(
+func (vp *valuesProvider) getControlPlaneChartValues(
+	ctx context.Context,
 	cpConfig *apisalicloud.ControlPlaneConfig,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 	checksums map[string]string,
 	scaledDown bool,
 ) (map[string]interface{}, error) {
+	ccmConfig, err := vp.getCloudControllerManagerConfigFileContent(ctx, cp)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not build cloud controller config file content for controlplain '%s", util.ObjectName(cp))
+	}
 	values := map[string]interface{}{
 		"alicloud-cloud-controller-manager": map[string]interface{}{
 			"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
@@ -359,12 +333,12 @@ func getControlPlaneChartValues(
 			"podNetwork":        extensionscontroller.GetPodNetwork(cluster),
 			"podAnnotations": map[string]interface{}{
 				"checksum/secret-cloud-controller-manager": checksums["cloud-controller-manager"],
-				"checksum/secret-cloudprovider":            checksums[v1beta1constants.SecretNameCloudProvider],
-				"checksum/configmap-cloud-provider-config": checksums[alicloud.CloudProviderConfigName],
+				"checksum/secret-cloud-provider-config":    checksums["cloud-provider-config"],
 			},
 			"podLabels": map[string]interface{}{
 				v1beta1constants.LabelPodMaintenanceRestart: "true",
 			},
+			"cloudConfig": ccmConfig,
 		},
 		"csi-alicloud": map[string]interface{}{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),

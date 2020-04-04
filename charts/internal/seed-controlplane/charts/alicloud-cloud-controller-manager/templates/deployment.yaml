@@ -81,8 +81,6 @@ spec:
           mountPath: /var/lib/cloud-controller-manager
         - name: cloud-provider-config
           mountPath: /etc/kubernetes/cloudprovider
-        - name: cloudprovider
-          mountPath: /srv/cloudprovider
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -92,8 +90,5 @@ spec:
         secret:
           secretName: cloud-controller-manager
       - name: cloud-provider-config
-        configMap:
-          name: cloud-provider-config
-      - name: cloudprovider
         secret:
-          secretName: cloudprovider
+          secretName: cloud-provider-config

@@ -70,15 +70,10 @@ An example `ControlPlaneConfig` for the Alicloud extension looks as follows:
 ```yaml
 apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
 kind: ControlPlaneConfig
-zone: eu-central-1a
 cloudControllerManager:
   featureGates:
     CustomResourceValidation: true
 ```
-
-The `zone` field tells the cloud-controller-manager in which zone it should mainly operate.
-You can still create clusters in multiple availability zones, however, the cloud-controller-manager requires one "main" zone.
-:warning: You always have to specify this field!
 
 The `cloudControllerManager.featureGates` contains a map of explicitly enabled or disabled feature gates.
 For production usage it's not recommend to use this field at all as you can enable alpha features or disable beta/stable features, potentially impacting the cluster stability.
@@ -112,7 +107,6 @@ spec:
     controlPlaneConfig:
       apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
       kind: ControlPlaneConfig
-      zone: eu-central-1a
     workers:
     - name: worker-xoluy
       machine:

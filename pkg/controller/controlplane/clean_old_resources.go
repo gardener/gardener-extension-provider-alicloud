@@ -10,29 +10,24 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations under the License.
+// limitations under the License.package controlplane
 
-package v1alpha1
+package controlplane
 
 import (
+	"context"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+func (vp *valuesProvider) deleteCloudProviderConfig(ctx context.Context, ns string) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Name:      "cloud-provider-config",
+		},
+	}
 
-// ControlPlaneConfig contains configuration settings for the control plane.
-type ControlPlaneConfig struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// CloudControllerManager contains configuration settings for the cloud-controller-manager.
-	// +optional
-	CloudControllerManager *CloudControllerManagerConfig `json:"cloudControllerManager,omitempty"`
-}
-
-// CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
-type CloudControllerManagerConfig struct {
-	// FeatureGates contains information about enabled feature gates.
-	// +optional
-	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+	return client.IgnoreNotFound(vp.Client().Delete(ctx, cm))
 }

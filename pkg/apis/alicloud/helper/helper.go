@@ -32,6 +32,18 @@ func FindVSwitchForPurposeAndZone(vswitches []api.VSwitch, purpose api.Purpose, 
 	return nil, fmt.Errorf("no vswitch with purpose %q in zone %q found", purpose, zone)
 }
 
+// FindVSwitchForPurpose takes a list of vswitches and tries to find the first entry
+// whose purpose matches with the given purpose. If no such entry is found then
+// an error will be returned.
+func FindVSwitchForPurpose(vswitches []api.VSwitch, purpose api.Purpose) (*api.VSwitch, error) {
+	for _, vswitch := range vswitches {
+		if vswitch.Purpose == purpose {
+			return &vswitch, nil
+		}
+	}
+	return nil, fmt.Errorf("no vswitch with purpose %q found", purpose)
+}
+
 // FindSecurityGroupByPurpose takes a list of security groups and tries to find the first entry
 // whose purpose matches with the given purpose. If no such entry is found then an error will be
 // returned.

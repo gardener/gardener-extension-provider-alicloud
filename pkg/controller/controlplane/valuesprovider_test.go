@@ -63,7 +63,6 @@ var _ = Describe("ValuesProvider", func() {
 				DefaultSpec: extensionsv1alpha1.DefaultSpec{
 					ProviderConfig: &runtime.RawExtension{
 						Raw: encode(&apisalicloud.ControlPlaneConfig{
-							Zone: "eu-central-1a",
 							CloudControllerManager: &apisalicloud.CloudControllerManagerConfig{
 								FeatureGates: map[string]bool{
 									"CustomResourceValidation": true,
@@ -106,6 +105,14 @@ var _ = Describe("ValuesProvider", func() {
 			},
 		}
 
+		// TODO remove cpMap in next version
+		cpConfigmap = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace,
+				Name:      "cloud-provider-config",
+			},
+		}
+
 		cpSecretKey = client.ObjectKey{Namespace: namespace, Name: v1beta1constants.SecretNameCloudProvider}
 		cpSecret    = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -121,16 +128,12 @@ var _ = Describe("ValuesProvider", func() {
 
 		checksums = map[string]string{
 			v1beta1constants.SecretNameCloudProvider: "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
-			alicloud.CloudProviderConfigName:         "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
+			"cloud-provider-config":                  "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
 			"cloud-controller-manager":               "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
 			"csi-attacher":                           "2da58ad61c401a2af779a909d22fb42eed93a1524cbfdab974ceedb413fcb914",
 			"csi-provisioner":                        "f75b42d40ab501428c383dfb2336cb1fc892bbee1fc1d739675171e4acc4d911",
 			"csi-snapshotter":                        "bf417dd97dc3e8c2092bb5b2ba7b0f1093ebc4bb5952091ee554cf5b7ea74508",
 			"csi-resizer":                            "5df115bd53f09da2d6d27bfb048c14dabd14a66608cfdba5ecd2d0687889cc6a",
-		}
-
-		configChartValues = map[string]interface{}{
-			"cloudConfig": `{"Global":{"KubernetesClusterTag":"test","clusterID":"test","uid":"","vpcid":"vpc-1234","region":"eu-central-1","zoneid":"eu-central-1a","vswitchid":"vswitch-acbd1234","accessKeyID":"Zm9v","accessKeySecret":"YmFy"}}`,
 		}
 
 		controlPlaneChartValues = map[string]interface{}{
@@ -141,12 +144,12 @@ var _ = Describe("ValuesProvider", func() {
 				"podNetwork":        cidr,
 				"podAnnotations": map[string]interface{}{
 					"checksum/secret-cloud-controller-manager": "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
-					"checksum/secret-cloudprovider":            "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
-					"checksum/configmap-cloud-provider-config": "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
+					"checksum/secret-cloud-provider-config":    "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
 				},
 				"podLabels": map[string]interface{}{
 					"maintenance.gardener.cloud/restart": "true",
 				},
+				"cloudConfig": "{\"Global\":{\"KubernetesClusterTag\":\"test\",\"clusterID\":\"test\",\"uid\":\"\",\"vpcid\":\"vpc-1234\",\"region\":\"eu-central-1\",\"zoneid\":\"eu-central-1a\",\"vswitchid\":\"vswitch-acbd1234\",\"accessKeyID\":\"Zm9v\",\"accessKeySecret\":\"YmFy\"}}",
 				"featureGates": map[string]bool{
 					"CustomResourceValidation": true,
 				},
@@ -188,31 +191,17 @@ var _ = Describe("ValuesProvider", func() {
 		ctrl.Finish()
 	})
 
-	Describe("#GetConfigChartValues", func() {
-		It("should return correct config chart values", func() {
+	Describe("#GetControlPlaneChartValues", func() {
+		It("should return correct control plane chart values", func() {
 			// Create mock client
 			client := mockclient.NewMockClient(ctrl)
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
-
+			client.EXPECT().Delete(context.TODO(), cpConfigmap).DoAndReturn(clientDeleteSuccess())
 			// Create valuesProvider
 			vp := NewValuesProvider(logger)
 			err := vp.(inject.Scheme).InjectScheme(scheme)
 			Expect(err).NotTo(HaveOccurred())
 			err = vp.(inject.Client).InjectClient(client)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Call GetConfigChartValues method and check the result
-			values, err := vp.GetConfigChartValues(context.TODO(), cp, cluster)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(values).To(Equal(configChartValues))
-		})
-	})
-
-	Describe("#GetControlPlaneChartValues", func() {
-		It("should return correct control plane chart values", func() {
-			// Create valuesProvider
-			vp := NewValuesProvider(logger)
-			err := vp.(inject.Scheme).InjectScheme(scheme)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Call GetControlPlaneChartValues method and check the result
@@ -233,7 +222,7 @@ var _ = Describe("ValuesProvider", func() {
 			err := vp.(inject.Client).InjectClient(client)
 			Expect(err).NotTo(HaveOccurred())
 
-			// Call GetControlPlaneChartValues method and check the result
+			// Call GetControlPlaneShootChartValues method and check the result
 			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, checksums)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneShootChartValues))
@@ -244,6 +233,12 @@ var _ = Describe("ValuesProvider", func() {
 func encode(obj runtime.Object) []byte {
 	data, _ := json.Marshal(obj)
 	return data
+}
+
+func clientDeleteSuccess() interface{} {
+	return func(ctx context.Context, cm runtime.Object) error {
+		return nil
+	}
 }
 
 func clientGet(result runtime.Object) interface{} {
