@@ -40,6 +40,7 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/Masterminds/goutils v1.1.0 h1:zukEsf/1JZwCMgHiK3GZftabmxiCw4apj3a28RPBiVg=
 github.com/Masterminds/goutils v1.1.0/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
+github.com/Masterminds/semver v1.4.2/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=
 github.com/Masterminds/semver v1.5.0 h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3QEww=
 github.com/Masterminds/semver v1.5.0/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=
 github.com/Masterminds/sprig v2.22.0+incompatible h1:z4yfnGrZ7netVz+0EDJ0Wi+5VZCSYp4Z0m2dk6cEM60=
@@ -132,10 +133,14 @@ github.com/gardener/controller-manager-library v0.1.1-0.20191212112146-917449ad7
 github.com/gardener/controller-manager-library v0.1.1-0.20191212112146-917449ad760c/go.mod h1:v6cbldxmpL2fYBEB2lSnq3LSEPwIHus9En6iIhwNE1k=
 github.com/gardener/etcd-druid v0.1.3 h1:uiPKUHubieRziHR7lr7I0WzIglf2aNVWf94Gm5NK7rc=
 github.com/gardener/etcd-druid v0.1.3/go.mod h1:/A8kSp7DSo7oOhsOhD9Se/xF6BOD9TQJMawf6k7AOsU=
+github.com/gardener/etcd-druid v0.1.12 h1:tNYlN4tW0/TPVzNQBuB1+kWoVEORrvvR5wcCxFCCvNE=
+github.com/gardener/etcd-druid v0.1.12/go.mod h1:yZrUQY9clD8/ZXK+MmEq8OS1TaKJeipV0u4kHHrwWeY=
 github.com/gardener/external-dns-management v0.7.3 h1:SAW9ur2mjZ+x89xbmcplJgqNUmFGYIZLI2E+PaBhhG0=
 github.com/gardener/external-dns-management v0.7.3/go.mod h1:Y3om11E865x4aQ7cmcHjknb8RMgCO153huRb/SvP+9o=
-github.com/gardener/gardener v1.1.1-0.20200330051317-a326f96cf32b h1:MkEDp9PdrZPkIAPGj6oNcKl0fBaOcJ1ddKsAA7bVWnI=
 github.com/gardener/gardener v1.1.1-0.20200330051317-a326f96cf32b/go.mod h1:lGAx5NkFDWoC4hPIL+lHJamafBxmOt5MrHq9hGtp5VI=
+github.com/gardener/gardener v1.1.2/go.mod h1:CP9I0tCDVXTLPkJv/jUtXVUh948kSNKEGUg0haLz9gk=
+github.com/gardener/gardener v1.2.0 h1:VMCwCUHQataXSrbe9BlijzgtLWczpUyoTqa81T0dqOs=
+github.com/gardener/gardener v1.2.0/go.mod h1:qAAWQ3+Ijkc46bCOubjtRHeF7xd7Nn7/dzEShQF/TJ0=
 github.com/gardener/gardener-extensions v1.5.1-0.20200402091828-df061f8dae06 h1:ZMAxjMWvydRD1ndHAFfa/ItQp4JEy9OPsVmNc1gc0og=
 github.com/gardener/gardener-extensions v1.5.1-0.20200402091828-df061f8dae06/go.mod h1:+0MkNqbRaTvPMfEe/MoS31L5FM8W32WYvhpH4Y53Y5s=
 github.com/gardener/gardener-resource-manager v0.10.0 h1:6OUKoWI3oha42F0oJN8OEo3UR+D3onOCel4Th+zgotU=
@@ -826,6 +831,7 @@ k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8
 k8s.io/gengo v0.0.0-20190822140433-26a664648505/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/gengo v0.0.0-20190826232639-a874a240740c h1:HH5z+xQGPLMQ2MlS+UVaOaSFgaEqGw1Zb007B9yjZEY=
 k8s.io/gengo v0.0.0-20190826232639-a874a240740c/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
+k8s.io/helm v2.14.2+incompatible/go.mod h1:LZzlS4LQBHfciFOurYBFkCMTaZ0D1l+p0teMg7TSULI=
 k8s.io/helm v2.16.1+incompatible h1:L+k810plJlaGWEw1EszeT4deK8XVaKxac1oGcuB+WDc=
 k8s.io/helm v2.16.1+incompatible/go.mod h1:LZzlS4LQBHfciFOurYBFkCMTaZ0D1l+p0teMg7TSULI=
 k8s.io/klog v0.0.0-20181102134211-b9b56d5dfc92/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
