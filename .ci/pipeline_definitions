@@ -17,7 +17,6 @@ gardener-extension-provider-alicloud:
             image: 'eu.gcr.io/gardener-project/gardener/extensions/validator-alicloud'
             dockerfile: 'Dockerfile'
             target: gardener-extension-validator-alicloud
-    steps: ~
   jobs:
     head-update:
       traits:

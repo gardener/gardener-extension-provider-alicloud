@@ -20,7 +20,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 
-	"github.com/gardener/gardener-extensions/pkg/terraformer"
+	"github.com/gardener/gardener/extensions/pkg/terraformer"
 	"github.com/gardener/gardener/pkg/logger"
 	"k8s.io/client-go/rest"
 )

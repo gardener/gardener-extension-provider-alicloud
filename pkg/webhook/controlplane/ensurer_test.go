@@ -18,10 +18,10 @@ import (
 	"context"
 	"testing"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
-	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/test"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/test"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 
 	"github.com/coreos/go-systemd/unit"

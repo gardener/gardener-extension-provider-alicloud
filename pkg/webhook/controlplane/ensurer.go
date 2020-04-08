@@ -18,8 +18,8 @@ import (
 	"context"
 	"fmt"
 
-	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/unit"

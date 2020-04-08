@@ -17,7 +17,7 @@ package shoot
 import (
 	"context"
 
-	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
