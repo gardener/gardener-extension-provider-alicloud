@@ -17,7 +17,7 @@ package shoot
 import (
 	"context"
 
-	"github.com/gardener/gardener-extensions/pkg/webhook"
+	"github.com/gardener/gardener/extensions/pkg/webhook"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"

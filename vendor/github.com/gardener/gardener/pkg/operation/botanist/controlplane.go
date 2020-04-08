@@ -404,7 +404,17 @@ func (b *Botanist) DestroyControlPlaneExposure(ctx context.Context) error {
 // destroyControlPlane deletes the `ControlPlane` extension resource with the following name in the shoot namespace
 // in the seed cluster, and it waits for a maximum of 10m until it is deleted.
 func (b *Botanist) destroyControlPlane(ctx context.Context, name string) error {
-	return client.IgnoreNotFound(b.K8sSeedClient.Client().Delete(ctx, &extensionsv1alpha1.ControlPlane{ObjectMeta: metav1.ObjectMeta{Namespace: b.Shoot.SeedNamespace, Name: name}}))
+	obj := &extensionsv1alpha1.ControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: b.Shoot.SeedNamespace,
+			Name:      name},
+	}
+
+	if err := common.ConfirmDeletion(ctx, b.K8sSeedClient.Client(), obj); err != nil {
+		return err
+	}
+
+	return client.IgnoreNotFound(b.K8sSeedClient.Client().Delete(ctx, obj))
 }
 
 // WaitUntilControlPlaneExposureReady waits until the control plane resource with purpose `exposure` has been reconciled successfully.
@@ -471,7 +481,7 @@ func (b *Botanist) waitUntilControlPlaneDeleted(ctx context.Context, name string
 		b.Logger.Infof("Waiting for control plane to be deleted...")
 		return retry.MinorError(gardencorev1beta1helper.WrapWithLastError(fmt.Errorf("control plane is not yet deleted"), lastError))
 	}); err != nil {
-		message := fmt.Sprintf("Failed to delete control plane")
+		message := "Failed to delete control plane"
 		if lastError != nil {
 			return gardencorev1beta1helper.DetermineError(errors.New(lastError.Description), fmt.Sprintf("%s: %s", message, lastError.Description))
 		}

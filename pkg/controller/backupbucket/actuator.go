@@ -18,7 +18,7 @@ import (
 	"context"
 
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	"github.com/gardener/gardener-extensions/pkg/controller/backupbucket"
+	"github.com/gardener/gardener/extensions/pkg/controller/backupbucket"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"

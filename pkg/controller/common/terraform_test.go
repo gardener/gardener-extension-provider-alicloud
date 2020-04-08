@@ -19,7 +19,7 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
-	mockterraformer "github.com/gardener/gardener-extensions/pkg/mock/gardener-extensions/terraformer"
+	mockterraformer "github.com/gardener/gardener/pkg/mock/gardener/extensions/terraformer"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
