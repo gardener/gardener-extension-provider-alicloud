@@ -1,7 +1,7 @@
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: garden.sapcloud.io:kube-system:csi-snapshotter
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-snapshotter
 rules:
 - apiGroups: [""]
   resources: ["persistentvolumes"]
@@ -37,13 +37,13 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: garden.sapcloud.io:csi-snapshotter
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:csi-snapshotter
 subjects:
 - kind: User
   name: system:csi-snapshotter
 roleRef:
   kind: ClusterRole
-  name: garden.sapcloud.io:kube-system:csi-snapshotter
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-snapshotter
   apiGroup: rbac.authorization.k8s.io
 ---
 {{- if semverCompare ">= 1.14" .Values.kubernetesVersion }}
