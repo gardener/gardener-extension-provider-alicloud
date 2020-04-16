@@ -71,7 +71,6 @@ func main() {
 			APIVersion: v1alpha1.SchemeGroupVersion.String(),
 			Kind:       reflect.TypeOf(v1alpha1.ControlPlaneConfig{}).Name(),
 		},
-		Zone: *zone,
 	}
 
 	if err := generator.MarshalAndWriteConfig(*infrastructureProviderConfigPath, infra); err != nil {

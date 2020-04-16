@@ -16,3 +16,4 @@ resources:
   limits:
     cpu: 250m
     memory: 300Mi
+cloudConfig: json-values

@@ -48,9 +48,9 @@ type AddOptions struct {
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return controlplane.Add(mgr, controlplane.AddArgs{
-		Actuator: genericactuator.NewActuator(alicloud.Name, controlPlaneSecrets, nil, configChart, controlPlaneChart, controlPlaneShootChart,
+		Actuator: genericactuator.NewActuator(alicloud.Name, controlPlaneSecrets, nil, nil, controlPlaneChart, controlPlaneShootChart,
 			storageClassChart, nil, NewValuesProvider(logger), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-			imagevector.ImageVector(), alicloud.CloudProviderConfigName, opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),
+			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(opts.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,

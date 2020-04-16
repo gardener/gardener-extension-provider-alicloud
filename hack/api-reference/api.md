@@ -97,17 +97,6 @@ string
 </tr>
 <tr>
 <td>
-<code>zone</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Zone is the Alicloud zone</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>cloudControllerManager</code></br>
 <em>
 <a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.CloudControllerManagerConfig">
