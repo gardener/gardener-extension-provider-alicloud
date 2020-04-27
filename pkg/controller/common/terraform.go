@@ -15,6 +15,8 @@
 package common
 
 import (
+	"encoding/json"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -28,7 +30,20 @@ import (
 const (
 	TerraformVarAccessKeyID     = "TF_VAR_ACCESS_KEY_ID"
 	TerraformVarAccessKeySecret = "TF_VAR_ACCESS_KEY_SECRET"
+	TerraformProvider           = "provider.alicloud"
 )
+
+type tfState struct {
+	Resources []tfStateResource `json:"resources"`
+}
+
+type tfStateResource struct {
+	Mode      string        `json:"mode"`
+	Type      string        `json:"type"`
+	Name      string        `json:"name"`
+	Provider  string        `json:"provider"`
+	Instances []interface{} `json:"instances"`
+}
 
 // NewTerraformer creates a new Terraformer.
 func NewTerraformer(factory terraformer.Factory, config *rest.Config, purpose, namespace, name string) (terraformer.Terraformer, error) {
@@ -60,4 +75,32 @@ func TerraformVariablesEnvironmentFromCredentials(credentials *alicloud.Credenti
 		TerraformVarAccessKeyID:     credentials.AccessKeyID,
 		TerraformVarAccessKeySecret: credentials.AccessKeySecret,
 	}
+}
+
+// IsStateEmpty checks the Terraformer state: 1. is empty or not; 2. contains resources or not
+func IsStateEmpty(tf terraformer.Terraformer) (bool, error) {
+	stateConfigMap, err := tf.GetState()
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, err
+	}
+
+	if len(stateConfigMap) == 0 {
+		return true, nil
+	}
+
+	var state tfState
+	if err := json.Unmarshal(stateConfigMap, &state); err != nil {
+		return false, err
+	}
+
+	for _, res := range state.Resources {
+		if res.Provider == TerraformProvider && len(res.Instances) > 0 {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

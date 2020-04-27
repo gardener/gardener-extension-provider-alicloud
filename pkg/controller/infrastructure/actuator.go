@@ -478,9 +478,12 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 
 	// If the Terraform state is empty then we can exit early as we didn't create anything. Though, we clean up potentially
 	// created configmaps/secrets related to the Terraformer.
-	stateIsEmpty := tf.IsStateEmpty()
+	stateIsEmpty, err := common.IsStateEmpty(tf)
+	if err != nil {
+		return err
+	}
 	if stateIsEmpty {
-		a.logger.Info("exiting early as infrastructure state is empty - nothing to do")
+		a.logger.Info("exiting early as infrastructure state is empty or contains no resources - nothing to do")
 		return tf.CleanupConfiguration(ctx)
 	}
 
