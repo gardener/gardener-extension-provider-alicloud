@@ -7,7 +7,7 @@ metadata:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: garden.sapcloud.io:psp:kube-system:csi-disk-plugin-alicloud
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:psp:kube-system:csi-disk-plugin-alicloud
 rules:
 - apiGroups: [""]
   resources: ["nodes"]
@@ -25,7 +25,7 @@ rules:
   - policy
   - extensions
   resourceNames:
-  - gardener.kube-system.csi-disk-plugin-alicloud
+  - {{ include "csi-disk-plugin.extensionsGroup" . }}.kube-system.csi-disk-plugin-alicloud
   resources:
   - podsecuritypolicies
   verbs:
@@ -34,12 +34,12 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: garden.sapcloud.io:psp:csi-disk-plugin-alicloud
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:psp:csi-disk-plugin-alicloud
 subjects:
 - kind: ServiceAccount
   name: csi-disk-plugin-alicloud
   namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: garden.sapcloud.io:psp:kube-system:csi-disk-plugin-alicloud
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:psp:kube-system:csi-disk-plugin-alicloud
   apiGroup: rbac.authorization.k8s.io

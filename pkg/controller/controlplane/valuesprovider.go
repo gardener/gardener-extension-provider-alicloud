@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"path/filepath"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -28,6 +27,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/util"
 
+	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
@@ -163,31 +163,31 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &appsv1.DaemonSet{}, Name: "csi-disk-plugin-alicloud"},
 				{Type: &corev1.Secret{}, Name: "csi-diskplugin-alicloud"},
 				{Type: &corev1.ServiceAccount{}, Name: "csi-disk-plugin-alicloud"},
-				{Type: &rbacv1.ClusterRole{}, Name: "garden.sapcloud.io:psp:kube-system:csi-disk-plugin-alicloud"},
-				{Type: &rbacv1.ClusterRoleBinding{}, Name: "garden.sapcloud.io:psp:csi-disk-plugin-alicloud"},
-				{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "gardener.kube-system.csi-disk-plugin-alicloud"},
+				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":psp:kube-system:csi-disk-plugin-alicloud"},
+				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":psp:csi-disk-plugin-alicloud"},
+				{Type: &policyv1beta1.PodSecurityPolicy{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ".kube-system.csi-disk-plugin-alicloud"},
 				// csi-attacher
 				{Type: &corev1.ServiceAccount{}, Name: "csi-attacher"},
-				{Type: &rbacv1.ClusterRole{}, Name: "garden.sapcloud.io:kube-system:csi-attacher"},
-				{Type: &rbacv1.ClusterRoleBinding{}, Name: "garden.sapcloud.io:csi-attacher"},
+				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-attacher"},
+				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":csi-attacher"},
 				{Type: &rbacv1.Role{}, Name: "csi-attacher"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-attacher"},
 				// csi-provisioner
 				{Type: &corev1.ServiceAccount{}, Name: "csi-provisioner"},
-				{Type: &rbacv1.ClusterRole{}, Name: "garden.sapcloud.io:kube-system:csi-provisioner"},
-				{Type: &rbacv1.ClusterRoleBinding{}, Name: "garden.sapcloud.io:csi-provisioner"},
+				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-provisioner"},
+				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":csi-provisioner"},
 				{Type: &rbacv1.Role{}, Name: "csi-provisioner"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-provisioner"},
 				// csi-snapshotter
 				{Type: &corev1.ServiceAccount{}, Name: "csi-snapshotter"},
-				{Type: &rbacv1.ClusterRole{}, Name: "garden.sapcloud.io:kube-system:csi-snapshotter"},
-				{Type: &rbacv1.ClusterRoleBinding{}, Name: "garden.sapcloud.io:csi-snapshotter"},
+				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-snapshotter"},
+				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":csi-snapshotter"},
 				{Type: &rbacv1.Role{}, Name: "csi-snapshotter"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-snapshotter"},
 				// csi-resizer
 				{Type: &corev1.ServiceAccount{}, Name: "csi-resizer"},
-				{Type: &rbacv1.ClusterRole{}, Name: "garden.sapcloud.io:kube-system:csi-resizer"},
-				{Type: &rbacv1.ClusterRoleBinding{}, Name: "garden.sapcloud.io:csi-resizer"},
+				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-resizer"},
+				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":csi-resizer"},
 				{Type: &rbacv1.Role{}, Name: "csi-resizer"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-resizer"},
 			},

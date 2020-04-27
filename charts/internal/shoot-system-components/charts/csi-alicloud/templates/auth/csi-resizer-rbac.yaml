@@ -13,7 +13,7 @@
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: garden.sapcloud.io:kube-system:csi-resizer
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-resizer
 rules:
   # The following rule should be uncommented for plugins that require secrets
   # for provisioning.
@@ -37,13 +37,13 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: garden.sapcloud.io:csi-resizer
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:csi-resizer
 subjects:
 - kind: User
   name: system:csi-resizer
 roleRef:
   kind: ClusterRole
-  name: garden.sapcloud.io:kube-system:csi-resizer
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-resizer
   apiGroup: rbac.authorization.k8s.io
 
 ---

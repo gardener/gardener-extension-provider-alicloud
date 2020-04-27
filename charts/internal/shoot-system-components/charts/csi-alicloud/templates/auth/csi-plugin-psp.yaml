@@ -1,7 +1,7 @@
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: gardener.kube-system.csi-disk-plugin-alicloud
+  name: {{ include "csi-disk-plugin.extensionsGroup" . }}.kube-system.csi-disk-plugin-alicloud
 spec:
   privileged: true
   allowPrivilegeEscalation: true
