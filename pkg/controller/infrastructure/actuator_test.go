@@ -31,6 +31,7 @@ import (
 	mockinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/controller/infrastructure"
 
 	"github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	realterraformer "github.com/gardener/gardener/extensions/pkg/terraformer"
 	"github.com/gardener/gardener/extensions/pkg/util/chart"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -91,89 +92,134 @@ var _ = Describe("Actuator", func() {
 	})
 
 	Context("Actuator", func() {
+		var (
+			ctx                      context.Context
+			logger                   *logr.MockLogger
+			newAlicloudClientFactory *mockalicloudclient.MockClientFactory
+			alicloudClientFactory    *mockalicloudclient.MockFactory
+			vpcClient                *mockalicloudclient.MockVPC
+			terraformerFactory       *mockterraformer.MockFactory
+			terraformer              *mockterraformer.MockTerraformer
+			shootECSClient           *mockalicloudclient.MockECS
+			shootSTSClient           *mockalicloudclient.MockSTS
+			chartRendererFactory     *mockchartrenderer.MockFactory
+			terraformChartOps        *mockinfrastructure.MockTerraformChartOps
+			actuator                 infrastructure.Actuator
+			c                        *mockclient.MockClient
+			initializer              *mockterraformer.MockInitializer
+			restConfig               rest.Config
+
+			chartRenderer *mockgardenerchartrenderer.MockInterface
+
+			cidr   string
+			config alicloudv1alpha1.InfrastructureConfig
+
+			configYAML      []byte
+			secretNamespace string
+			secretName      string
+			region          string
+			infra           extensionsv1alpha1.Infrastructure
+			accessKeyID     string
+			accessKeySecret string
+			cluster         controller.Cluster
+
+			initializerValues InitializerValues
+			chartValues       map[string]interface{}
+
+			mainContent      string
+			variablesContent string
+			tfVarsContent    string
+
+			vpcID           string
+			vpcCIDRString   string
+			natGatewayID    string
+			securityGroupID string
+			keyPairName     string
+			rawState        *realterraformer.RawState
+		)
+
 		Describe("#Reconcile", func() {
-			It("should correctly reconcile the infrastructure", func() {
-				var (
-					ctx                      = context.TODO()
-					logger                   = logr.NewMockLogger(ctrl)
-					newAlicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)
-					alicloudClientFactory    = mockalicloudclient.NewMockFactory(ctrl)
-					vpcClient                = mockalicloudclient.NewMockVPC(ctrl)
-					terraformerFactory       = mockterraformer.NewMockFactory(ctrl)
-					terraformer              = mockterraformer.NewMockTerraformer(ctrl)
-					shootECSClient           = mockalicloudclient.NewMockECS(ctrl)
-					shootSTSClient           = mockalicloudclient.NewMockSTS(ctrl)
-					chartRendererFactory     = mockchartrenderer.NewMockFactory(ctrl)
-					terraformChartOps        = mockinfrastructure.NewMockTerraformChartOps(ctrl)
-					actuator                 = NewActuatorWithDeps(
-						logger,
-						newAlicloudClientFactory,
-						alicloudClientFactory,
-						terraformerFactory,
-						chartRendererFactory,
-						terraformChartOps,
-						nil,
-					)
-					c           = mockclient.NewMockClient(ctrl)
-					initializer = mockterraformer.NewMockInitializer(ctrl)
-					restConfig  rest.Config
-
-					chartRenderer = mockgardenerchartrenderer.NewMockInterface(ctrl)
-
-					cidr   = "192.168.0.0/16"
-					config = alicloudv1alpha1.InfrastructureConfig{
-						Networks: alicloudv1alpha1.Networks{
-							VPC: alicloudv1alpha1.VPC{
-								CIDR: &cidr,
-							},
-						},
-					}
-					configYAML      = ExpectEncode(runtime.Encode(serializer, &config))
-					secretNamespace = "secretns"
-					secretName      = "secret"
-					region          = "region"
-					infra           = extensionsv1alpha1.Infrastructure{
-						Spec: extensionsv1alpha1.InfrastructureSpec{
-							DefaultSpec: extensionsv1alpha1.DefaultSpec{
-								ProviderConfig: &runtime.RawExtension{
-									Raw: configYAML,
-								},
-							},
-							Region: region,
-							SecretRef: corev1.SecretReference{
-								Namespace: secretNamespace,
-								Name:      secretName,
-							},
-						},
-					}
-					accessKeyID     = "accessKeyID"
-					accessKeySecret = "accessKeySecret"
-					cluster         = controller.Cluster{
-						Shoot: &gardencorev1beta1.Shoot{
-							Spec: gardencorev1beta1.ShootSpec{
-								Region: region,
-							},
-						},
-					}
-
-					initializerValues = InitializerValues{}
-					chartValues       = map[string]interface{}{}
-
-					mainContent      = "main"
-					variablesContent = "variables"
-					tfVarsContent    = "tfVars"
-
-					vpcID           = "vpcID"
-					vpcCIDRString   = "vpcCIDR"
-					natGatewayID    = "natGatewayID"
-					securityGroupID = "sgID"
-					keyPairName     = "keyPairName"
-					rawState        = &realterraformer.RawState{
-						Data:     "",
-						Encoding: "none",
-					}
+			BeforeEach(func() {
+				ctx = context.TODO()
+				logger = logr.NewMockLogger(ctrl)
+				newAlicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)
+				alicloudClientFactory = mockalicloudclient.NewMockFactory(ctrl)
+				vpcClient = mockalicloudclient.NewMockVPC(ctrl)
+				terraformerFactory = mockterraformer.NewMockFactory(ctrl)
+				terraformer = mockterraformer.NewMockTerraformer(ctrl)
+				shootECSClient = mockalicloudclient.NewMockECS(ctrl)
+				shootSTSClient = mockalicloudclient.NewMockSTS(ctrl)
+				chartRendererFactory = mockchartrenderer.NewMockFactory(ctrl)
+				terraformChartOps = mockinfrastructure.NewMockTerraformChartOps(ctrl)
+				actuator = NewActuatorWithDeps(
+					logger,
+					newAlicloudClientFactory,
+					alicloudClientFactory,
+					terraformerFactory,
+					chartRendererFactory,
+					terraformChartOps,
+					nil,
 				)
+				c = mockclient.NewMockClient(ctrl)
+				initializer = mockterraformer.NewMockInitializer(ctrl)
 
+				chartRenderer = mockgardenerchartrenderer.NewMockInterface(ctrl)
+
+				cidr = "192.168.0.0/16"
+				config = alicloudv1alpha1.InfrastructureConfig{
+					Networks: alicloudv1alpha1.Networks{
+						VPC: alicloudv1alpha1.VPC{
+							CIDR: &cidr,
+						},
+					},
+				}
+				configYAML = ExpectEncode(runtime.Encode(serializer, &config))
+				secretNamespace = "secretns"
+				secretName = "secret"
+				region = "region"
+				infra = extensionsv1alpha1.Infrastructure{
+					Spec: extensionsv1alpha1.InfrastructureSpec{
+						DefaultSpec: extensionsv1alpha1.DefaultSpec{
+							ProviderConfig: &runtime.RawExtension{
+								Raw: configYAML,
+							},
+						},
+						Region: region,
+						SecretRef: corev1.SecretReference{
+							Namespace: secretNamespace,
+							Name:      secretName,
+						},
+					},
+				}
+				accessKeyID = "accessKeyID"
+				accessKeySecret = "accessKeySecret"
+				cluster = controller.Cluster{
+					Shoot: &gardencorev1beta1.Shoot{
+						Spec: gardencorev1beta1.ShootSpec{
+							Region: region,
+						},
+					},
+				}
+
+				initializerValues = InitializerValues{}
+				chartValues = map[string]interface{}{}
+
+				mainContent = "main"
+				variablesContent = "variables"
+				tfVarsContent = "tfVars"
+
+				vpcID = "vpcID"
+				vpcCIDRString = "vpcCIDR"
+				natGatewayID = "natGatewayID"
+				securityGroupID = "sgID"
+				keyPairName = "keyPairName"
+			})
+
+			It("should correctly reconcile the infrastructure", func() {
+				rawState = &realterraformer.RawState{
+					Data:     "",
+					Encoding: "none",
+				}
 				describeNATGatewaysReq := vpc.CreateDescribeNatGatewaysRequest()
 				describeNATGatewaysReq.VpcId = vpcID
 
@@ -233,7 +279,7 @@ var _ = Describe("Actuator", func() {
 						},
 					}, nil),
 
-					terraformerFactory.EXPECT().DefaultInitializer(c, mainContent, variablesContent, []byte(tfVarsContent), "").Return(initializer),
+					terraformerFactory.EXPECT().DefaultInitializer(c, mainContent, variablesContent, []byte(tfVarsContent), gomock.AssignableToTypeOf(realterraformer.CreateState)).Return(initializer),
 
 					terraformer.EXPECT().InitializeWith(initializer).Return(terraformer),
 
@@ -260,7 +306,7 @@ var _ = Describe("Actuator", func() {
 							TerraformerOutputKeySecurityGroupID: securityGroupID,
 							TerraformerOutputKeyKeyPairName:     keyPairName,
 						}, nil),
-					terraformer.EXPECT().GetRawState(context.TODO()).Return(rawState, nil),
+					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
 					c.EXPECT().Status().Return(c),
 					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: infra.Namespace, Name: infra.Name}, &infra),
 
@@ -272,6 +318,129 @@ var _ = Describe("Actuator", func() {
 				ExpectInject(inject.ConfigInto(&restConfig, actuator))
 
 				Expect(actuator.Reconcile(ctx, &infra, &cluster)).To(Succeed())
+				Expect(infra.Status.ProviderStatus.Object).To(Equal(&alicloudv1alpha1.InfrastructureStatus{
+					TypeMeta: StatusTypeMeta,
+					VPC: alicloudv1alpha1.VPCStatus{
+						ID: vpcID,
+						SecurityGroups: []alicloudv1alpha1.SecurityGroup{
+							{
+								Purpose: alicloudv1alpha1.PurposeNodes,
+								ID:      securityGroupID,
+							},
+						},
+					},
+					KeyPairName: keyPairName,
+				}))
+			})
+
+			It("should correctly restore the infrastructure", func() {
+				state := "some data"
+				rawState = &realterraformer.RawState{
+					Data:     "c29tZSBkYXRh",
+					Encoding: "base64",
+				}
+				rawStateInBytes, _ := rawState.Marshal()
+				infra.Status.State = &runtime.RawExtension{
+					Raw: rawStateInBytes,
+				}
+				describeNATGatewaysReq := vpc.CreateDescribeNatGatewaysRequest()
+				describeNATGatewaysReq.VpcId = vpcID
+
+				gomock.InOrder(
+					chartRendererFactory.EXPECT().NewForConfig(&restConfig).Return(chartRenderer, nil),
+
+					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: secretNamespace, Name: secretName}, gomock.AssignableToTypeOf(&corev1.Secret{})).
+						SetArg(2, corev1.Secret{
+							Data: map[string][]byte{
+								alicloud.AccessKeyID:     []byte(accessKeyID),
+								alicloud.AccessKeySecret: []byte(accessKeySecret),
+							},
+						}),
+
+					terraformerFactory.EXPECT().NewForConfig(gomock.Any(), &restConfig, TerraformerPurpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
+						Return(terraformer, nil),
+
+					terraformer.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(terraformer),
+					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
+					terraformer.EXPECT().SetDeadlinePod(15*time.Minute).Return(terraformer),
+
+					terraformer.EXPECT().SetVariablesEnvironment(map[string]string{
+						common.TerraformVarAccessKeyID:     accessKeyID,
+						common.TerraformVarAccessKeySecret: accessKeySecret,
+					}).Return(terraformer),
+
+					alicloudClientFactory.EXPECT().NewVPC(region, accessKeyID, accessKeySecret).Return(vpcClient, nil),
+
+					terraformer.EXPECT().GetStateOutputVariables(TerraformerOutputKeyVPCID).
+						Return(map[string]string{
+							TerraformerOutputKeyVPCID: vpcID,
+						}, nil),
+
+					vpcClient.EXPECT().DescribeNatGateways(describeNATGatewaysReq).Return(&vpc.DescribeNatGatewaysResponse{
+						NatGateways: vpc.NatGateways{
+							NatGateway: []vpc.NatGateway{
+								{
+									NatGatewayId: natGatewayID,
+								},
+							},
+						},
+					}, nil),
+
+					terraformChartOps.EXPECT().ComputeCreateVPCInitializerValues(&config, alicloudclient.DefaultInternetChargeType).Return(&initializerValues),
+					terraformChartOps.EXPECT().ComputeChartValues(&infra, &config, &initializerValues).Return(chartValues),
+
+					chartRenderer.EXPECT().Render(
+						alicloud.InfraChartPath,
+						alicloud.InfraRelease,
+						infra.Namespace,
+						chartValues,
+					).Return(&chartrenderer.RenderedChart{
+						Manifests: []manifest.Manifest{
+							mkManifest(chart.TerraformMainTFFilename, mainContent),
+							mkManifest(chart.TerraformVariablesTFFilename, variablesContent),
+							mkManifest(chart.TerraformTFVarsFilename, tfVarsContent),
+						},
+					}, nil),
+
+					terraformerFactory.EXPECT().DefaultInitializer(c, mainContent, variablesContent, []byte(tfVarsContent), realterraformer.CreateOrUpdateState{State: &state}).Return(initializer),
+
+					terraformer.EXPECT().InitializeWith(initializer).Return(terraformer),
+
+					terraformer.EXPECT().Apply(),
+
+					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: secretNamespace, Name: secretName}, gomock.AssignableToTypeOf(&corev1.Secret{})).
+						SetArg(2, corev1.Secret{
+							Data: map[string][]byte{
+								alicloud.AccessKeyID:     []byte(accessKeyID),
+								alicloud.AccessKeySecret: []byte(accessKeySecret),
+							},
+						}),
+					logger.EXPECT().Info("Creating Alicloud ECS client for Shoot", "infrastructure", infra.Name),
+					newAlicloudClientFactory.EXPECT().NewECSClient(ctx, region, accessKeyID, accessKeySecret).Return(shootECSClient, nil),
+					logger.EXPECT().Info("Creating Alicloud STS client for Shoot", "infrastructure", infra.Name),
+					newAlicloudClientFactory.EXPECT().NewSTSClient(ctx, region, accessKeyID, accessKeySecret).Return(shootSTSClient, nil),
+					shootSTSClient.EXPECT().GetAccountIDFromCallerIdentity(ctx).Return("", nil),
+					logger.EXPECT().Info("Sharing customized image with Shoot's Alicloud account from Seed", "infrastructure", infra.Name),
+
+					terraformer.EXPECT().GetStateOutputVariables(TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID, TerraformerOutputKeyKeyPairName).
+						Return(map[string]string{
+							TerraformerOutputKeyVPCID:           vpcID,
+							TerraformerOutputKeyVPCCIDR:         vpcCIDRString,
+							TerraformerOutputKeySecurityGroupID: securityGroupID,
+							TerraformerOutputKeyKeyPairName:     keyPairName,
+						}, nil),
+					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
+					c.EXPECT().Status().Return(c),
+					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: infra.Namespace, Name: infra.Name}, &infra),
+
+					c.EXPECT().Update(ctx, &infra),
+				)
+
+				ExpectInject(inject.ClientInto(c, actuator))
+				ExpectInject(inject.SchemeInto(scheme, actuator))
+				ExpectInject(inject.ConfigInto(&restConfig, actuator))
+
+				Expect(actuator.Restore(ctx, &infra, &cluster)).To(Succeed())
 				Expect(infra.Status.ProviderStatus.Object).To(Equal(&alicloudv1alpha1.InfrastructureStatus{
 					TypeMeta: StatusTypeMeta,
 					VPC: alicloudv1alpha1.VPCStatus{
