@@ -159,6 +159,16 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					"Detail": Equal("must be valid canonical CIDR"),
 				}))
 			})
+
+			It("should allow specifying eip id", func() {
+				ipAllocID := "eip-ufxsdckfgitzcz"
+				infrastructureConfig.Networks.Zones[0].NatGateway = &apisalicloud.NatGatewayConfig{
+					EIPAllocationID: &ipAllocID,
+				}
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services)
+				Expect(errorList).To(BeEmpty())
+			})
 		})
 	})
 
@@ -167,7 +177,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			Expect(ValidateInfrastructureConfigUpdate(infrastructureConfig, infrastructureConfig)).To(BeEmpty())
 		})
 
-		It("should forbid changing the network section", func() {
+		It("should forbid changing the VPC section", func() {
 			newInfrastructureConfig := infrastructureConfig.DeepCopy()
 			newCIDR := "1.2.3.4/5"
 			newInfrastructureConfig.Networks.VPC.CIDR = &newCIDR
@@ -178,6 +188,30 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				"Type":  Equal(field.ErrorTypeInvalid),
 				"Field": Equal("networks.vpc"),
 			}))))
+		})
+
+		It("should forbid changing the worker CIRD section", func() {
+			newInfrastructureConfig := infrastructureConfig.DeepCopy()
+			newInfrastructureConfig.Networks.Zones[0].Workers = "10.225.3.0/24"
+
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+
+			Expect(errorList).To(HaveLen(1))
+			Expect(errorList).To(ConsistOfFields(Fields{
+				"Type":  Equal(field.ErrorTypeInvalid),
+				"Field": Equal("networks.zones"),
+			}))
+		})
+
+		It("should allow changing nat gateway by specifying eip id", func() {
+			newInfrastructureConfig := infrastructureConfig.DeepCopy()
+			ipAllocID := "eip-ufxsdckfgitzcz"
+			newInfrastructureConfig.Networks.Zones[0].NatGateway = &apisalicloud.NatGatewayConfig{
+				EIPAllocationID: &ipAllocID,
+			}
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+
+			Expect(errorList).To(BeEmpty())
 		})
 	})
 })

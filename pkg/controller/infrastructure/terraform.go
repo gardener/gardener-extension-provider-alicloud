@@ -64,12 +64,21 @@ func (terraformOps) ComputeChartValues(
 		if workersCIDR == "" {
 			workersCIDR = zone.Worker
 		}
-		zones = append(zones, map[string]interface{}{
+
+		zoneConfig := map[string]interface{}{
 			"name": zone.Name,
 			"cidr": map[string]interface{}{
 				"workers": string(workersCIDR),
 			},
-		})
+		}
+
+		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil && *zone.NatGateway.EIPAllocationID != "" {
+			zoneConfig["natGateway"] = map[string]interface{}{
+				"eipAllocationID": *zone.NatGateway.EIPAllocationID,
+			}
+		}
+
+		zones = append(zones, zoneConfig)
 	}
 
 	return map[string]interface{}{
