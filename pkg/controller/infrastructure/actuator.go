@@ -30,7 +30,6 @@ import (
 
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	commonext "github.com/gardener/gardener/extensions/pkg/controller/common"
-	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	extensionschartrenderer "github.com/gardener/gardener/extensions/pkg/gardener/chartrenderer"
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
@@ -406,10 +405,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 
 	if err := tf.InitializeWith(initializer).Apply(); err != nil {
 		a.logger.Error(err, "failed to apply the terraform config", "infrastructure", infra.Name)
-		return &controllererrors.RequeueAfterError{
-			Cause:        err,
-			RequeueAfter: 30 * time.Second,
-		}
+		return err
 	}
 
 	machineImages, err := a.shareCustomizedImages(ctx, infra, cluster)
