@@ -404,8 +404,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 	}
 
 	if err := tf.InitializeWith(initializer).Apply(); err != nil {
-		a.logger.Error(err, "failed to apply the terraform config", "infrastructure", infra.Name)
-		return err
+		return errors.Wrapf(err, "failed to apply the terraform config")
 	}
 
 	machineImages, err := a.shareCustomizedImages(ctx, infra, cluster)
