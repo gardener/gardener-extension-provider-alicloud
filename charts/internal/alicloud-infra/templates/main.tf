@@ -14,11 +14,6 @@ resource "alicloud_key_pair" "publickey" {
 resource "alicloud_vpc" "vpc" {
   name       = "{{ required "clusterName is required" .Values.clusterName }}-vpc"
   cidr_block = "{{ required "vpc.cidr is required" .Values.vpc.cidr }}"
-
-  timeouts {
-    create = "5m"
-    delete = "5m"
-  }
 }
 
 resource "alicloud_nat_gateway" "nat_gateway" {
@@ -37,11 +32,6 @@ resource "alicloud_vswitch" "vsw_z{{ $index }}" {
   vpc_id            = "{{ required "vpc.id is required" $.Values.vpc.id }}"
   cidr_block        = "{{ required "zone.cidr.workers is required" $zone.cidr.workers }}"
   availability_zone = "{{ required "zone.name is required" $zone.name }}"
-
-  timeouts {
-    create = "5m"
-    delete = "5m"
-  }
 }
 
 // Create a new EIP.
