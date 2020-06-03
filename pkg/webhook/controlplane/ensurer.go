@@ -113,6 +113,24 @@ func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, ectx gene
 		command = ensureKubeletCommandLineArgs(command)
 		opt.Value = extensionswebhook.SerializeCommandLine(command, 1, " \\\n    ")
 	}
+
+	/*
+	 * # Set environment PROVIDER_ID to /var/lib/kubelet/extra_args
+	 *
+	 * grep -sq PROVIDER_ID /var/lib/kubelet/extra_args
+	 * if [ $? -ne 0 ]; then
+	 *   META_EP=http://100.100.100.200/latest/meta-data
+	 *   PROVIDER_ID=`wget -qO- $META_EP/region-id $META_EP/region-id`.`wget -qO- $META_EP/region-id $META_EP/instance-id`
+	 *   echo PROVIDER_ID=$PROVIDER_ID >> /var/lib/kubelet/extra_args
+	 *   echo PROVIDER_ID=$PROVIDER_ID has been written to /var/lib/kubelet/extra_args
+	 * fi
+	 */
+	new = extensionswebhook.EnsureUnitOption(new, &unit.UnitOption{
+		Section: "Service",
+		Name:    "ExecStartPre",
+		//This doesn't work: /bin/sh -c "$(echo  Z3JlcCAtc3EgUFJPVklERVJfSUQgL2V0Yy9lbnZpcm9ubWVudAppZiBbICQ.... | base64 -d)"
+		Value: `/bin/sh -c "echo Z3JlcCAtc3EgUFJPVklERVJfSUQgL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmlmIFsgJD8gLW5lIDAgXTsgdGhlbgpNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQpQUk9WSURFUl9JRD1gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZGAuYHdnZXQgLXFPLSAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKZWNobyBQUk9WSURFUl9JRD0kUFJPVklERVJfSUQgPj4gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmVjaG8gUFJPVklERVJfSUQ9JFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmZpCg==| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`,
+	})
 	return new, nil
 }
 
