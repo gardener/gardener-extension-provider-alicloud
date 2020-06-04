@@ -51,6 +51,7 @@ resource "alicloud_snat_entry" "snat_z{{ $index }}" {
   snat_table_id     = "{{ required "snatTableID is required" $.Values.vpc.snatTableID }}"
   source_vswitch_id = "${alicloud_vswitch.vsw_z{{ $index }}.id}"
   snat_ip           = "${alicloud_eip.eip_natgw_z{{ $index }}.ip_address}"
+  depends_on        = [alicloud_eip_association.eip_natgw_asso_z{{ $index }}]
 }
 
 // Output
