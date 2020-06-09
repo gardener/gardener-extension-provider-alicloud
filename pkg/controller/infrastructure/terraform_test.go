@@ -110,8 +110,12 @@ var _ = Describe("TerraformChartOps", func() {
 					},
 				}
 
-				zone1Name   = "zone1"
-				zone1Worker = "192.168.0.0/16"
+				zone1Name       = "zone1"
+				zone1Worker     = "192.168.0.0/16"
+				zone1EipAllocID = "eip-ufxsdckfgitzcz"
+				zone1NatGateway = v1alpha1.NatGatewayConfig{
+					EIPAllocationID: &zone1EipAllocID,
+				}
 
 				zone2Name   = "zone2"
 				zone2Worker = "192.169.0.0/16"
@@ -120,8 +124,9 @@ var _ = Describe("TerraformChartOps", func() {
 					Networks: v1alpha1.Networks{
 						Zones: []v1alpha1.Zone{
 							{
-								Name:    zone1Name,
-								Workers: zone1Worker,
+								Name:       zone1Name,
+								Workers:    zone1Worker,
+								NatGateway: &zone1NatGateway,
 							},
 							{
 								Name:    zone2Name,
@@ -136,7 +141,8 @@ var _ = Describe("TerraformChartOps", func() {
 				natGatewayID       = "natGatewayID"
 				sNATTableIDs       = "sNATTableIDs"
 				internetChargeType = "internetChargeType"
-				values             = InitializerValues{
+
+				values = InitializerValues{
 					CreateVPC:          true,
 					VPCCIDR:            vpcCIDR,
 					VPCID:              vpcID,
@@ -167,6 +173,9 @@ var _ = Describe("TerraformChartOps", func() {
 						"name": zone1Name,
 						"cidr": map[string]interface{}{
 							"workers": zone1Worker,
+						},
+						"natGateway": map[string]interface{}{
+							"eipAllocationID": zone1EipAllocID,
 						},
 					},
 					{

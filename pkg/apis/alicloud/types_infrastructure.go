@@ -94,6 +94,14 @@ type Zone struct {
 	Worker string
 	// Workers specifies the worker CIDR to use.
 	Workers string
+	// NatGatewayConfig specifies configuration for the NAT gateway in this zone.
+	NatGateway *NatGatewayConfig
+}
+
+// NatGatewayConfig specifies configuration for the NAT gateway in this zone.
+type NatGatewayConfig struct {
+	// EIPAllocationID specifies the EIP to bind on NatGateway.
+	EIPAllocationID *string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

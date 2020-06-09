@@ -23,10 +23,8 @@ resource "alicloud_nat_gateway" "nat_gateway" {
 }
 {{- end }}
 
-
 // Loop zones
-{{ range $index, $zone := .Values.zones }}
-
+{{ range $index, $zone := .Values.zones -}}
 resource "alicloud_vswitch" "vsw_z{{ $index }}" {
   name              = "{{ required "clusterName is required" $.Values.clusterName }}-{{ required "zone.name is required" $zone.name }}-vsw"
   vpc_id            = "{{ required "vpc.id is required" $.Values.vpc.id }}"
@@ -34,6 +32,30 @@ resource "alicloud_vswitch" "vsw_z{{ $index }}" {
   availability_zone = "{{ required "zone.name is required" $zone.name }}"
 }
 
+{{- $createEip := true }}
+{{ if $zone.natGateway -}}
+{{ if $zone.natGateway.eipAllocationID }}
+// specify EIP id
+data "alicloud_eips" "eip_natgw_ds{{ $index }}" {
+  ids = ["{{ $zone.natGateway.eipAllocationID }}"]
+}
+
+resource "alicloud_eip_association" "eip_natgw_asso_z{{ $index }}" {
+  allocation_id = "${data.alicloud_eips.eip_natgw_ds{{ $index }}.eips.0.id}"
+  instance_id   = "{{ required "natGatewayID is required" $.Values.vpc.natGatewayID }}"
+}
+
+resource "alicloud_snat_entry" "snat_z{{ $index }}" {
+  snat_table_id     = "{{ required "snatTableID is required" $.Values.vpc.snatTableID }}"
+  source_vswitch_id = "${alicloud_vswitch.vsw_z{{ $index }}.id}"
+  snat_ip           = "${data.alicloud_eips.eip_natgw_ds{{ $index }}.eips.0.ip_address}"
+  depends_on        = [alicloud_eip_association.eip_natgw_asso_z{{ $index }}]
+}
+{{- $createEip = false }}
+{{- end }}
+{{- end }}
+
+{{- if $createEip }}
 // Create a new EIP.
 resource "alicloud_eip" "eip_natgw_z{{ $index }}" {
   name                 = "{{ required "clusterName is required" $.Values.clusterName }}-eip-natgw-z{{ $index }}"
@@ -53,13 +75,14 @@ resource "alicloud_snat_entry" "snat_z{{ $index }}" {
   snat_ip           = "${alicloud_eip.eip_natgw_z{{ $index }}.ip_address}"
   depends_on        = [alicloud_eip_association.eip_natgw_asso_z{{ $index }}]
 }
+{{- end }}
 
 // Output
 output "{{ $.Values.outputKeys.vswitchNodesPrefix }}{{ $index }}" {
   value = "${alicloud_vswitch.vsw_z{{ $index }}.id}"
 }
 
-{{end}}
+{{ end }}
 // End of loop zones
 
 resource "alicloud_security_group" "sg" {
