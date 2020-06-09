@@ -79,6 +79,30 @@ The `cloudControllerManager.featureGates` contains a map of explicitly enabled o
 For production usage it's not recommend to use this field at all as you can enable alpha features or disable beta/stable features, potentially impacting the cluster stability.
 If you don't want to configure anything for the `cloudControllerManager` simply omit the key in the YAML specification.
 
+## `WorkerConfig`
+
+The Alicloud extension does not support a specific `WorkerConfig` yet, however, it supports additional data volumes (plus encryption) per machine.
+By default (if not stated otherwise), all the disks are unencrypted.
+Please note that it is currently only possible to encrypt data disks (system disk is unsupported).
+For each data volume, you have to specify a name.
+The following YAML is a snippet of a `Shoot` resource:
+
+```yaml
+spec:
+  provider:
+    workers:
+    - name: cpu-worker
+      ...
+      volume:
+        type: cloud_efficiency
+        size: 20Gi
+      dataVolumes:
+      - name: kubelet-dir
+        type: cloud_efficiency
+        size: 25Gi
+        encrypted: true
+```
+
 ## Example `Shoot` manifest (one availability zone)
 
 Please find below an example `Shoot` manifest for one availability zone:

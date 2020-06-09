@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
@@ -26,7 +27,9 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
+	"github.com/gardener/gardener/pkg/utils"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -99,7 +102,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	for _, pool := range w.worker.Spec.Pools {
 		zoneLen := int32(len(pool.Zones))
 
-		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster)
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, computeAdditionalHashData(pool)...)
 		if err != nil {
 			return err
 		}
@@ -114,7 +117,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			ID:      machineImageID,
 		})
 
-		volumeSize, err := worker.DiskSize(pool.Volume.Size)
+		disks, err := computeDisks(w.worker.Namespace, pool)
 		if err != nil {
 			return err
 		}
@@ -126,21 +129,13 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				return err
 			}
 
-			systemDisk := map[string]interface{}{
-				"size": volumeSize,
-			}
-			if pool.Volume.Type != nil {
-				systemDisk["category"] = *pool.Volume.Type
-			}
-
-			machineClassSpec := map[string]interface{}{
+			machineClassSpec := utils.MergeMaps(map[string]interface{}{
 				"imageID":                 machineImageID,
 				"instanceType":            pool.MachineType,
 				"region":                  w.worker.Spec.Region,
 				"zoneID":                  zone,
 				"securityGroupID":         nodesSecurityGroup.ID,
 				"vSwitchID":               nodesVSwitch.ID,
-				"systemDisk":              systemDisk,
 				"instanceChargeType":      "PostPaid",
 				"internetChargeType":      "PayByTraffic",
 				"internetMaxBandwidthIn":  5,
@@ -154,7 +149,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 					"userData": string(pool.UserData),
 				},
 				"keyPairName": infrastructureStatus.KeyPairName,
-			}
+			}, disks)
 
 			var (
 				deploymentName = fmt.Sprintf("%s-%s-%s", w.worker.Namespace, pool.Name, zone)
@@ -190,4 +185,67 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	w.machineImages = machineImages
 
 	return nil
+}
+
+func computeDisks(namespace string, pool extensionsv1alpha1.WorkerPool) (map[string]interface{}, error) {
+	// handle root disk
+	volumeSize, err := worker.DiskSize(pool.Volume.Size)
+	if err != nil {
+		return nil, err
+	}
+	systemDisk := map[string]interface{}{
+		"size": volumeSize,
+	}
+	if pool.Volume.Type != nil {
+		systemDisk["category"] = *pool.Volume.Type
+	}
+
+	disks := map[string]interface{}{
+		"systemDisk": systemDisk,
+	}
+
+	var dataDisks []map[string]interface{}
+	if dataVolumes := pool.DataVolumes; len(dataVolumes) > 0 {
+		for _, vol := range pool.DataVolumes {
+			volumeSize, err := worker.DiskSize(vol.Size)
+			if err != nil {
+				return nil, err
+			}
+			dataDisk := map[string]interface{}{
+				"name":               *vol.Name,
+				"size":               volumeSize,
+				"deleteWithInstance": true,
+				"description":        fmt.Sprintf("%s-datavol-%s", namespace, *vol.Name),
+			}
+			if vol.Type != nil {
+				dataDisk["category"] = *vol.Type
+			}
+			if vol.Encrypted != nil {
+				dataDisk["encrypted"] = *vol.Encrypted
+			}
+			dataDisks = append(dataDisks, dataDisk)
+		}
+
+		disks["dataDisks"] = dataDisks
+	}
+
+	return disks, nil
+}
+
+func computeAdditionalHashData(pool extensionsv1alpha1.WorkerPool) []string {
+	var additionalData []string
+
+	for _, dv := range pool.DataVolumes {
+		additionalData = append(additionalData, dv.Size)
+
+		if dv.Type != nil {
+			additionalData = append(additionalData, *dv.Type)
+		}
+
+		if dv.Encrypted != nil {
+			additionalData = append(additionalData, strconv.FormatBool(*dv.Encrypted))
+		}
+	}
+
+	return additionalData
 }

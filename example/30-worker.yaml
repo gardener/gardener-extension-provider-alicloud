@@ -96,5 +96,10 @@ spec:
     volume:
       type: cloud_efficiency
       size: 30Gi
+  # dataVolumes:
+  # - name: kubelet-dir
+  #   type: cloud_efficiency
+  #   size: 36Gi
+  #   encrypted: false
     zones:
     - cn-beijing-f

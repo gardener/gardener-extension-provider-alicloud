@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
@@ -104,8 +105,16 @@ var _ = Describe("Machines", func() {
 				securityGroupID string
 				keyName         string
 
-				volumeType string
-				volumeSize int
+				volumeType           string
+				volumeSize           int
+				dataVolume1Name      string
+				dataVolume1Size      int
+				dataVolume1Type      string
+				dataVolume1Encrypted bool
+				dataVolume2Name      string
+				dataVolume2Size      int
+				dataVolume2Type      string
+				dataVolume2Encrypted bool
 
 				namePool1           string
 				minPool1            int32
@@ -161,6 +170,14 @@ var _ = Describe("Machines", func() {
 
 				volumeType = "normal"
 				volumeSize = 20
+				dataVolume1Name = "d1"
+				dataVolume1Size = 21
+				dataVolume1Type = "special"
+				dataVolume1Encrypted = false
+				dataVolume2Name = "d2"
+				dataVolume2Size = 22
+				dataVolume2Type = "superspecial"
+				dataVolume2Encrypted = true
 
 				namePool1 = "pool-1"
 				minPool1 = 5
@@ -281,6 +298,20 @@ var _ = Describe("Machines", func() {
 									Type: &volumeType,
 									Size: fmt.Sprintf("%dGi", volumeSize),
 								},
+								DataVolumes: []extensionsv1alpha1.Volume{
+									{
+										Name:      &dataVolume1Name,
+										Size:      fmt.Sprintf("%dGi", dataVolume1Size),
+										Type:      &dataVolume1Type,
+										Encrypted: &dataVolume1Encrypted,
+									},
+									{
+										Name:      &dataVolume2Name,
+										Size:      fmt.Sprintf("%dGi", dataVolume2Size),
+										Type:      &dataVolume2Type,
+										Encrypted: &dataVolume2Encrypted,
+									},
+								},
 								Zones: []string{
 									zone1,
 									zone2,
@@ -316,7 +347,7 @@ var _ = Describe("Machines", func() {
 				_ = apiv1alpha1.AddToScheme(scheme)
 				decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
 
-				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster)
+				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster, fmt.Sprintf("%dGi", dataVolume1Size), dataVolume1Type, strconv.FormatBool(dataVolume1Encrypted), fmt.Sprintf("%dGi", dataVolume2Size), dataVolume2Type, strconv.FormatBool(dataVolume2Encrypted))
 				workerPoolHash2, _ = worker.WorkerPoolHash(w.Spec.Pools[1], cluster)
 
 				workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, clusterWithoutImages)
@@ -354,11 +385,44 @@ var _ = Describe("Machines", func() {
 						"keyPairName": keyName,
 					}
 
+					dataDisksPool1 := []map[string]interface{}{
+						{
+							"name":               dataVolume1Name,
+							"size":               dataVolume1Size,
+							"deleteWithInstance": true,
+							"category":           dataVolume1Type,
+							"encrypted":          dataVolume1Encrypted,
+							"description":        namespace + "-datavol-" + dataVolume1Name,
+						},
+						{
+							"name":               dataVolume2Name,
+							"size":               dataVolume2Size,
+							"deleteWithInstance": true,
+							"category":           dataVolume2Type,
+							"encrypted":          dataVolume2Encrypted,
+							"description":        namespace + "-datavol-" + dataVolume2Name,
+						},
+					}
+
 					var (
-						machineClassPool1Zone1 = useDefaultMachineClass(defaultMachineClass, "vSwitchID", vswitchZone1, "zoneID", zone1)
-						machineClassPool1Zone2 = useDefaultMachineClass(defaultMachineClass, "vSwitchID", vswitchZone2, "zoneID", zone2)
-						machineClassPool2Zone1 = useDefaultMachineClass(defaultMachineClass, "vSwitchID", vswitchZone1, "zoneID", zone1)
-						machineClassPool2Zone2 = useDefaultMachineClass(defaultMachineClass, "vSwitchID", vswitchZone2, "zoneID", zone2)
+						machineClassPool1Zone1 = useDefaultMachineClass(defaultMachineClass,
+							"vSwitchID", vswitchZone1,
+							"zoneID", zone1,
+							"dataDisks", dataDisksPool1,
+						)
+						machineClassPool1Zone2 = useDefaultMachineClass(defaultMachineClass,
+							"vSwitchID", vswitchZone2,
+							"zoneID", zone2,
+							"dataDisks", dataDisksPool1,
+						)
+						machineClassPool2Zone1 = useDefaultMachineClass(defaultMachineClass,
+							"vSwitchID", vswitchZone1,
+							"zoneID", zone1,
+						)
+						machineClassPool2Zone2 = useDefaultMachineClass(defaultMachineClass,
+							"vSwitchID", vswitchZone2,
+							"zoneID", zone2,
+						)
 
 						machineClassNamePool1Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool1, zone1)
 						machineClassNamePool1Zone2 = fmt.Sprintf("%s-%s-%s", namespace, namePool1, zone2)
