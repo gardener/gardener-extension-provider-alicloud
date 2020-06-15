@@ -18,12 +18,11 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener/extensions/pkg/util"
 
-	"github.com/gardener/gardener/pkg/apis/core"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-func decodeControlPlaneConfig(decoder runtime.Decoder, cp *core.ProviderConfig, fldPath *field.Path) (*alicloud.ControlPlaneConfig, error) {
+func decodeControlPlaneConfig(decoder runtime.Decoder, cp *runtime.RawExtension, fldPath *field.Path) (*alicloud.ControlPlaneConfig, error) {
 	controlPlaneConfig := &alicloud.ControlPlaneConfig{}
 	if err := util.Decode(decoder, cp.Raw, controlPlaneConfig); err != nil {
 		return nil, field.Invalid(fldPath, string(cp.Raw), "isn't a supported version")
@@ -32,7 +31,7 @@ func decodeControlPlaneConfig(decoder runtime.Decoder, cp *core.ProviderConfig, 
 	return controlPlaneConfig, nil
 }
 
-func decodeInfrastructureConfig(decoder runtime.Decoder, infra *core.ProviderConfig, fldPath *field.Path) (*alicloud.InfrastructureConfig, error) {
+func decodeInfrastructureConfig(decoder runtime.Decoder, infra *runtime.RawExtension, fldPath *field.Path) (*alicloud.InfrastructureConfig, error) {
 	infraConfig := &alicloud.InfrastructureConfig{}
 	if err := util.Decode(decoder, infra.Raw, infraConfig); err != nil {
 		return nil, field.Invalid(fldPath, string(infra.Raw), "isn't a supported version")
@@ -41,7 +40,7 @@ func decodeInfrastructureConfig(decoder runtime.Decoder, infra *core.ProviderCon
 	return infraConfig, nil
 }
 
-func checkAndDecodeInfrastructureConfig(decoder runtime.Decoder, config *core.ProviderConfig, fldPath *field.Path) (*alicloud.InfrastructureConfig, error) {
+func checkAndDecodeInfrastructureConfig(decoder runtime.Decoder, config *runtime.RawExtension, fldPath *field.Path) (*alicloud.InfrastructureConfig, error) {
 	if config == nil {
 		return nil, field.Required(fldPath, "InfrastructureConfig must be set for Alicloud shoots")
 	}
