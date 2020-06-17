@@ -16,6 +16,7 @@ package validation
 
 import (
 	"fmt"
+	"regexp"
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/gardener/gardener/pkg/apis/core/validation"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
+	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
@@ -36,6 +38,13 @@ func ValidateNetworking(networking core.Networking, fldPath *field.Path) field.E
 
 	return allErrs
 }
+
+const (
+	maxDataDiskCount        = 64
+	dataDiskNameFmt  string = `[a-zA-Z][a-zA-Z0-9\.\-_:]+`
+)
+
+var dataDiskNameRegexp = regexp.MustCompile("^" + dataDiskNameFmt + "$")
 
 // ValidateWorkers validates the workers of a Shoot.
 func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *field.Path) field.ErrorList {
@@ -51,6 +60,22 @@ func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *
 			allErrs = append(allErrs, field.Required(fldPath.Index(i).Child("volume"), "must not be nil"))
 		} else {
 			allErrs = append(allErrs, validateVolume(worker.Volume, fldPath.Index(i).Child("volume"))...)
+			if worker.Volume.Encrypted != nil {
+				allErrs = append(allErrs, field.NotSupported(fldPath.Index(i).Child("volume").Child("encrypted"), *worker.Volume.Encrypted, nil))
+			}
+		}
+
+		if length := len(worker.DataVolumes); length > maxDataDiskCount {
+			allErrs = append(allErrs, field.TooMany(fldPath.Index(i).Child("dataVolumes"), length, maxDataDiskCount))
+		}
+		for j, volume := range worker.DataVolumes {
+			dataVolPath := fldPath.Index(i).Child("dataVolumes").Index(j)
+			if volume.Name != nil && !dataDiskNameRegexp.MatchString(*volume.Name) {
+				allErrs = append(allErrs, field.Invalid(dataVolPath.Child("name"), *volume.Name, utilvalidation.RegexError(fmt.Sprintf("disk name given: %s does not match the expected pattern", *volume.Name), dataDiskNameFmt)))
+			} else if volume.Name != nil && len(*volume.Name) > 64 {
+				allErrs = append(allErrs, field.TooLong(dataVolPath.Child("name"), *volume.Name, 64))
+			}
+			allErrs = append(allErrs, validateVolume(&volume, dataVolPath)...)
 		}
 
 		if len(worker.Zones) == 0 {
