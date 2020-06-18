@@ -125,6 +125,15 @@ func (c *storageClient) CreateBucketIfNotExists(ctx context.Context, bucketName 
 		}
 	}
 
+	encryptionRule := oss.ServerEncryptionRule{
+		SSEDefault: oss.SSEDefaultRule{
+			SSEAlgorithm: string(oss.AESAlgorithm),
+		},
+	}
+	if err := c.client.SetBucketEncryption(bucketName, encryptionRule, expirationOption); err != nil {
+		return err
+	}
+
 	rules := []oss.LifecycleRule{
 		{
 			Prefix: "",
