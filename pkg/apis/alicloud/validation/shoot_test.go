@@ -126,10 +126,10 @@ var _ = Describe("Shoot validation", func() {
 				workers[0].Volume.Type = nil
 				workers[0].Volume.VolumeSize = ""
 				workers[0].Volume.Encrypted = pointer.BoolPtr(false)
-				workers[0].DataVolumes = []core.Volume{
+				workers[0].DataVolumes = []core.DataVolume{
 					{},
-					{Name: pointer.StringPtr("too-long-data-volume-name-exceeding-the-maximum-limit-of-64-charts"), VolumeSize: "24Gi", Type: pointer.StringPtr("some-type")},
-					{Name: pointer.StringPtr("regex/fails"), VolumeSize: "24Gi", Type: pointer.StringPtr("some-type")},
+					{Name: "too-long-data-volume-name-exceeding-the-maximum-limit-of-64-charts", VolumeSize: "24Gi", Type: pointer.StringPtr("some-type")},
+					{Name: "regex/fails", VolumeSize: "24Gi", Type: pointer.StringPtr("some-type")},
 				}
 
 				errorList := ValidateWorkers(workers, alicloudZones, field.NewPath("workers"))
@@ -146,6 +146,10 @@ var _ = Describe("Shoot validation", func() {
 					PointTo(MatchFields(IgnoreExtras, Fields{
 						"Type":  Equal(field.ErrorTypeNotSupported),
 						"Field": Equal("workers[0].volume.encrypted"),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":  Equal(field.ErrorTypeInvalid),
+						"Field": Equal("workers[0].dataVolumes[0].name"),
 					})),
 					PointTo(MatchFields(IgnoreExtras, Fields{
 						"Type":  Equal(field.ErrorTypeRequired),

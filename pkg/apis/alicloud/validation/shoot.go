@@ -70,12 +70,12 @@ func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *
 		}
 		for j, volume := range worker.DataVolumes {
 			dataVolPath := fldPath.Index(i).Child("dataVolumes").Index(j)
-			if volume.Name != nil && !dataDiskNameRegexp.MatchString(*volume.Name) {
-				allErrs = append(allErrs, field.Invalid(dataVolPath.Child("name"), *volume.Name, utilvalidation.RegexError(fmt.Sprintf("disk name given: %s does not match the expected pattern", *volume.Name), dataDiskNameFmt)))
-			} else if volume.Name != nil && len(*volume.Name) > 64 {
-				allErrs = append(allErrs, field.TooLong(dataVolPath.Child("name"), *volume.Name, 64))
+			if !dataDiskNameRegexp.MatchString(volume.Name) {
+				allErrs = append(allErrs, field.Invalid(dataVolPath.Child("name"), volume.Name, utilvalidation.RegexError(fmt.Sprintf("disk name given: %s does not match the expected pattern", volume.Name), dataDiskNameFmt)))
+			} else if len(volume.Name) > 64 {
+				allErrs = append(allErrs, field.TooLong(dataVolPath.Child("name"), volume.Name, 64))
 			}
-			allErrs = append(allErrs, validateVolume(&volume, dataVolPath)...)
+			allErrs = append(allErrs, validateDataVolume(&volume, dataVolPath)...)
 		}
 
 		if len(worker.Zones) == 0 {
@@ -120,11 +120,19 @@ func validateZones(zones []string, allowedZones sets.String, fldPath *field.Path
 }
 
 func validateVolume(vol *core.Volume, fldPath *field.Path) field.ErrorList {
+	return validateVolumeFunc(vol.Type, vol.VolumeSize, fldPath)
+}
+
+func validateDataVolume(vol *core.DataVolume, fldPath *field.Path) field.ErrorList {
+	return validateVolumeFunc(vol.Type, vol.VolumeSize, fldPath)
+}
+
+func validateVolumeFunc(volumeType *string, size string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	if vol.Type == nil {
+	if volumeType == nil {
 		allErrs = append(allErrs, field.Required(fldPath.Child("type"), "must not be empty"))
 	}
-	if vol.VolumeSize == "" {
+	if size == "" {
 		allErrs = append(allErrs, field.Required(fldPath.Child("size"), "must not be empty"))
 	}
 	return allErrs
