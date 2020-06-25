@@ -5,3 +5,4 @@ credential:
   accessKeyID: keyID
   accessKeySecret: secret
 kubernetesVersion: v1.14.0
+vpaEnabled: false
