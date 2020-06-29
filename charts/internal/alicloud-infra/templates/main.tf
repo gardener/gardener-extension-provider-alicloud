@@ -1,6 +1,6 @@
 provider "alicloud" {
-  access_key = "${var.ACCESS_KEY_ID}"
-  secret_key = "${var.ACCESS_KEY_SECRET}"
+  access_key = var.ACCESS_KEY_ID
+  secret_key = var.ACCESS_KEY_SECRET
   region = "{{ required "alicloud.region is required" .Values.alicloud.region }}"
 }
 
@@ -17,7 +17,7 @@ resource "alicloud_vpc" "vpc" {
 }
 
 resource "alicloud_nat_gateway" "nat_gateway" {
-  vpc_id = "{{ required "vpc.id is required" .Values.vpc.id }}"
+  vpc_id = {{ required "vpc.id is required" .Values.vpc.id }}
   specification   = "Small"
   name   = "{{ required "clusterName is required" .Values.clusterName }}-natgw"
 }
@@ -27,7 +27,7 @@ resource "alicloud_nat_gateway" "nat_gateway" {
 {{ range $index, $zone := .Values.zones -}}
 resource "alicloud_vswitch" "vsw_z{{ $index }}" {
   name              = "{{ required "clusterName is required" $.Values.clusterName }}-{{ required "zone.name is required" $zone.name }}-vsw"
-  vpc_id            = "{{ required "vpc.id is required" $.Values.vpc.id }}"
+  vpc_id            = {{ required "vpc.id is required" $.Values.vpc.id }}
   cidr_block        = "{{ required "zone.cidr.workers is required" $zone.cidr.workers }}"
   availability_zone = "{{ required "zone.name is required" $zone.name }}"
 }
@@ -41,14 +41,14 @@ data "alicloud_eips" "eip_natgw_ds{{ $index }}" {
 }
 
 resource "alicloud_eip_association" "eip_natgw_asso_z{{ $index }}" {
-  allocation_id = "${data.alicloud_eips.eip_natgw_ds{{ $index }}.eips.0.id}"
-  instance_id   = "{{ required "natGatewayID is required" $.Values.vpc.natGatewayID }}"
+  allocation_id = data.alicloud_eips.eip_natgw_ds{{ $index }}.eips.0.id
+  instance_id   = {{ required "natGatewayID is required" $.Values.vpc.natGatewayID }}
 }
 
 resource "alicloud_snat_entry" "snat_z{{ $index }}" {
-  snat_table_id     = "{{ required "snatTableID is required" $.Values.vpc.snatTableID }}"
-  source_vswitch_id = "${alicloud_vswitch.vsw_z{{ $index }}.id}"
-  snat_ip           = "${data.alicloud_eips.eip_natgw_ds{{ $index }}.eips.0.ip_address}"
+  snat_table_id     = {{ required "snatTableID is required" $.Values.vpc.snatTableID }}
+  source_vswitch_id = alicloud_vswitch.vsw_z{{ $index }}.id
+  snat_ip           = data.alicloud_eips.eip_natgw_ds{{ $index }}.eips.0.ip_address
   depends_on        = [alicloud_eip_association.eip_natgw_asso_z{{ $index }}]
 }
 {{- $createEip = false }}
@@ -65,21 +65,21 @@ resource "alicloud_eip" "eip_natgw_z{{ $index }}" {
 }
 
 resource "alicloud_eip_association" "eip_natgw_asso_z{{ $index }}" {
-  allocation_id = "${alicloud_eip.eip_natgw_z{{ $index }}.id}"
-  instance_id   = "{{ required "natGatewayID is required" $.Values.vpc.natGatewayID }}"
+  allocation_id = alicloud_eip.eip_natgw_z{{ $index }}.id
+  instance_id   = {{ required "natGatewayID is required" $.Values.vpc.natGatewayID }}
 }
 
 resource "alicloud_snat_entry" "snat_z{{ $index }}" {
-  snat_table_id     = "{{ required "snatTableID is required" $.Values.vpc.snatTableID }}"
-  source_vswitch_id = "${alicloud_vswitch.vsw_z{{ $index }}.id}"
-  snat_ip           = "${alicloud_eip.eip_natgw_z{{ $index }}.ip_address}"
+  snat_table_id     = {{ required "snatTableID is required" $.Values.vpc.snatTableID }}
+  source_vswitch_id = alicloud_vswitch.vsw_z{{ $index }}.id
+  snat_ip           = alicloud_eip.eip_natgw_z{{ $index }}.ip_address
   depends_on        = [alicloud_eip_association.eip_natgw_asso_z{{ $index }}]
 }
 {{- end }}
 
 // Output
 output "{{ $.Values.outputKeys.vswitchNodesPrefix }}{{ $index }}" {
-  value = "${alicloud_vswitch.vsw_z{{ $index }}.id}"
+  value = alicloud_vswitch.vsw_z{{ $index }}.id
 }
 
 {{ end }}
@@ -87,7 +87,7 @@ output "{{ $.Values.outputKeys.vswitchNodesPrefix }}{{ $index }}" {
 
 resource "alicloud_security_group" "sg" {
   name   = "{{ required "clusterName is required" .Values.clusterName }}-sg"
-  vpc_id = "{{ required "vpc.id is required" .Values.vpc.id }}"
+  vpc_id = {{ required "vpc.id is required" .Values.vpc.id }}
 }
 
 resource "alicloud_security_group_rule" "allow_k8s_tcp_in" {
@@ -96,7 +96,7 @@ resource "alicloud_security_group_rule" "allow_k8s_tcp_in" {
   policy            = "accept"
   port_range        = "30000/32767"
   priority          = 1
-  security_group_id = "${alicloud_security_group.sg.id}"
+  security_group_id = alicloud_security_group.sg.id
   cidr_ip           = "0.0.0.0/0"
 }
 
@@ -106,7 +106,7 @@ resource "alicloud_security_group_rule" "allow_all_internal_tcp_in" {
   policy            = "accept"
   port_range        = "1/65535"
   priority          = 1
-  security_group_id = "${alicloud_security_group.sg.id}"
+  security_group_id = alicloud_security_group.sg.id
   cidr_ip           = "{{ required "pod is required" .Values.vpc.cidr }}"
 }
 
@@ -116,7 +116,7 @@ resource "alicloud_security_group_rule" "allow_all_internal_udp_in" {
   policy            = "accept"
   port_range        = "1/65535"
   priority          = 1
-  security_group_id = "${alicloud_security_group.sg.id}"
+  security_group_id = alicloud_security_group.sg.id
   cidr_ip           = "{{ required "pod is required" .Values.vpc.cidr }}"
 }
 
@@ -135,11 +135,11 @@ resource "null_resource" "outputs" {
 //=====================================================================
 
 output "{{ .Values.outputKeys.securityGroupID }}" {
-  value = "${alicloud_security_group.sg.id}"
+  value = alicloud_security_group.sg.id
 }
 
 output "{{ .Values.outputKeys.vpcID }}" {
-  value = "{{ required "vpc.id is required" .Values.vpc.id }}"
+  value = {{ required "vpc.id is required" .Values.vpc.id }}
 }
 
 output "{{ .Values.outputKeys.vpcCIDR }}" {
@@ -147,5 +147,5 @@ output "{{ .Values.outputKeys.vpcCIDR }}" {
 }
 
 output "{{ .Values.outputKeys.keyPairName }}" {
-  value = "${alicloud_key_pair.publickey.key_name}"
+  value = alicloud_key_pair.publickey.key_name
 }

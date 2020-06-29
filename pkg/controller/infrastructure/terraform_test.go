@@ -15,6 +15,8 @@
 package infrastructure_test
 
 import (
+	"strconv"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 
@@ -85,10 +87,10 @@ var _ = Describe("TerraformChartOps", func() {
 
 			Expect(ops.ComputeUseVPCInitializerValues(&config, &info)).To(Equal(&InitializerValues{
 				CreateVPC:    false,
-				VPCID:        id,
+				VPCID:        strconv.Quote(id),
 				VPCCIDR:      cidr,
-				NATGatewayID: natGatewayID,
-				SNATTableIDs: sNATTableIDs,
+				NATGatewayID: strconv.Quote(natGatewayID),
+				SNATTableIDs: strconv.Quote(sNATTableIDs),
 			}))
 		})
 	})

@@ -15,6 +15,8 @@
 package infrastructure
 
 import (
+	"strconv"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -43,10 +45,10 @@ func (terraformOps) ComputeCreateVPCInitializerValues(config *v1alpha1.Infrastru
 func (terraformOps) ComputeUseVPCInitializerValues(config *v1alpha1.InfrastructureConfig, info *VPCInfo) *InitializerValues {
 	return &InitializerValues{
 		CreateVPC:          false,
-		VPCID:              *config.Networks.VPC.ID,
+		VPCID:              strconv.Quote(*config.Networks.VPC.ID),
 		VPCCIDR:            info.CIDR,
-		NATGatewayID:       info.NATGatewayID,
-		SNATTableIDs:       info.SNATTableIDs,
+		NATGatewayID:       strconv.Quote(info.NATGatewayID),
+		SNATTableIDs:       strconv.Quote(info.SNATTableIDs),
 		InternetChargeType: info.InternetChargeType,
 	}
 }

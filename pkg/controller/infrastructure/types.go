@@ -36,11 +36,11 @@ const (
 	TerraformerOutputKeyVSwitchNodesPrefix = "vswitch_id_z"
 
 	// TerraformDefaultVPCID is the default value for the VPC ID in the chart.
-	TerraformDefaultVPCID = "${alicloud_vpc.vpc.id}"
+	TerraformDefaultVPCID = "alicloud_vpc.vpc.id"
 	// TerraformDefaultNATGatewayID is the default value for the NAT gateway ID in the chart.
-	TerraformDefaultNATGatewayID = "${alicloud_nat_gateway.nat_gateway.id}"
+	TerraformDefaultNATGatewayID = "alicloud_nat_gateway.nat_gateway.id"
 	// TerraformDefaultSNATTableIDs is the default value for the SNAT table IDs in the chart.
-	TerraformDefaultSNATTableIDs = "${alicloud_nat_gateway.nat_gateway.snat_table_ids}"
+	TerraformDefaultSNATTableIDs = "alicloud_nat_gateway.nat_gateway.snat_table_ids"
 )
 
 // VPCInfo contains info about an existing VPC.
