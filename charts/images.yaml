@@ -51,6 +51,15 @@ images:
   repository: quay.io/k8scsi/csi-snapshotter
   tag: v1.2.2
   targetVersion: ">= 1.14"
+- name: csi-snapshotter
+  sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
+  repository: quay.io/k8scsi/csi-snapshotter
+  tag: v2.1.1
+  targetVersion: ">= 1.17"
+- name: csi-snapshot-controller
+  sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
+  repository: quay.io/k8scsi/snapshot-controller
+  tag: v2.1.1
 - name: csi-resizer
   sourceRepository: https://github.com/kubernetes-csi/external-resizer
   repository: quay.io/k8scsi/csi-resizer

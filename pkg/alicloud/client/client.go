@@ -17,9 +17,9 @@ package client
 import (
 	"context"
 	"fmt"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
-
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
@@ -27,6 +27,9 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	alicloudvpc "github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	"github.com/gardener/gardener/pkg/client/kubernetes"
+	snapshoterv1alpha1 "github.com/kubernetes-csi/external-snapshotter/pkg/apis/volumesnapshot/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -318,4 +321,100 @@ func (c *slbClient) DeleteLoadBalancer(ctx context.Context, region, loadBalancer
 	request.LoadBalancerId = loadBalancerID
 	_, err := c.client.DeleteLoadBalancer(request)
 	return err
+}
+
+type shootClient struct {
+	client client.Client
+}
+
+// NewShootClient creates a new shoot client with given secret
+func NewShootClient(ctx context.Context, secret *corev1.Secret) (*shootClient, error) {
+	clientInt, err := kubernetes.NewClientFromSecretObject(secret)
+	if err != nil {
+		return nil, fmt.Errorf("new client from secret object error: %s", err)
+	}
+
+	return &shootClient{
+		client: clientInt.Client(),
+	}, nil
+}
+
+// DeleteVolumeSnapshotCRD deletes old volume snapshot CRDs
+func (sClient *shootClient) DeleteVolumeSnapshotCRD(ctx context.Context) error {
+	var err error
+
+	volumeSnapshotClass := &apiextensionsv1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: alicloud.CRDVolumeSnapshotClasses,
+		},
+	}
+	err = client.IgnoreNotFound(sClient.client.Delete(ctx, volumeSnapshotClass))
+	if err != nil {
+		return fmt.Errorf("delete CRD %s error: %s", alicloud.CRDVolumeSnapshotClasses, err)
+	}
+
+	volumeSnapshot := &apiextensionsv1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: alicloud.CRDVolumeSnapshots,
+		},
+	}
+	err = client.IgnoreNotFound(sClient.client.Delete(ctx, volumeSnapshot))
+	if err != nil {
+		return fmt.Errorf("delete CRD %s error: %s", alicloud.CRDVolumeSnapshots, err)
+	}
+
+	volumeSnapshotContent := &apiextensionsv1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: alicloud.CRDVolumeSnapshotContents,
+		},
+	}
+	err = client.IgnoreNotFound(sClient.client.Delete(ctx, volumeSnapshotContent))
+	if err != nil {
+		return fmt.Errorf("delete CRD %s error: %s", alicloud.CRDVolumeSnapshotContents, err)
+	}
+
+	return nil
+}
+
+// HasVolumeSnapshotCRO checks if CRO of old version volume snapshot CRDs exist
+func (sClient *shootClient) HasVolumeSnapshotCRO(ctx context.Context) (bool, error) {
+	var err error
+
+	// list CRO of volume snapshot class
+	volumeSnapshotClassList := &snapshoterv1alpha1.VolumeSnapshotList{}
+	err = sClient.client.List(ctx, volumeSnapshotClassList, &client.ListOptions{
+		Namespace: metav1.NamespaceAll,
+	})
+	if err != nil {
+		return false, fmt.Errorf("list CRO of %s error: %s", alicloud.CRDVolumeSnapshotClasses, err)
+	}
+	if len(volumeSnapshotClassList.Items) > 0 {
+		return true, nil
+	}
+
+	// list CRO of volume snapshot
+	volumeSnapshotList := &snapshoterv1alpha1.VolumeSnapshotList{}
+	err = sClient.client.List(ctx, volumeSnapshotList, &client.ListOptions{
+		Namespace: metav1.NamespaceAll,
+	})
+	if err != nil {
+		return false, fmt.Errorf("list CRO of %s error: %s", alicloud.CRDVolumeSnapshots, err)
+	}
+	if len(volumeSnapshotList.Items) > 0 {
+		return true, nil
+	}
+
+	// list CRO of volume snapshot content
+	volumeSnapshotContentList := &snapshoterv1alpha1.VolumeSnapshotContentList{}
+	err = sClient.client.List(ctx, volumeSnapshotContentList, &client.ListOptions{
+		Namespace: metav1.NamespaceAll,
+	})
+	if err != nil {
+		return false, fmt.Errorf("list CRO of %s error: %s", alicloud.CRDVolumeSnapshotContents, err)
+	}
+	if len(volumeSnapshotContentList.Items) > 0 {
+		return true, nil
+	}
+
+	return false, nil
 }

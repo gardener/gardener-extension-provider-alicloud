@@ -16,7 +16,12 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
+	extensionclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener/pkg/operation/common"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -30,4 +35,34 @@ func (vp *valuesProvider) deleteCloudProviderConfig(ctx context.Context, ns stri
 	}
 
 	return client.IgnoreNotFound(vp.Client().Delete(ctx, cm))
+}
+
+func (vp *valuesProvider) deleteVolumeSnapshotCRD(ctx context.Context, ns string) error {
+	secret := &corev1.Secret{}
+	err := vp.Client().Get(ctx, kutil.Key(ns, common.KubecfgSecretName), secret)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	shootClient, err := extensionclient.NewShootClient(ctx, secret)
+	if err != nil {
+		return err
+	}
+
+	hasSnapshotCRO, err := shootClient.HasVolumeSnapshotCRO(ctx)
+	if err != nil {
+		return err
+	}
+	if hasSnapshotCRO {
+		return fmt.Errorf("cannot delete volume snapshot CRDs because related CROs exist")
+	}
+
+	if err = shootClient.DeleteVolumeSnapshotCRD(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -18,12 +18,14 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"path/filepath"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 
+	"github.com/Masterminds/semver"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -117,6 +119,19 @@ var controlPlaneSecrets = &secrets.Secrets{
 					APIServerURL: v1beta1constants.DeploymentNameKubeAPIServer,
 				},
 			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:         "csi-snapshot-controller",
+					CommonName:   "system:csi-snapshot-controller",
+					Organization: []string{user.SystemPrivilegedGroup},
+					CertType:     secrets.ClientCert,
+					SigningCA:    cas[v1beta1constants.SecretNameCACluster],
+				},
+				KubeConfigRequest: &secrets.KubeConfigRequest{
+					ClusterName:  clusterName,
+					APIServerURL: v1beta1constants.DeploymentNameKubeAPIServer,
+				},
+			},
 		}
 	},
 }
@@ -136,10 +151,18 @@ var controlPlaneChart = &chart.Chart{
 			},
 		},
 		{
-			Name:   "csi-alicloud",
-			Images: []string{alicloud.CSIAttacherImageName, alicloud.CSIProvisionerImageName, alicloud.CSISnapshotterImageName, alicloud.CSIResizerImageName, alicloud.CSIPluginImageName},
+			Name: "csi-alicloud",
+			Images: []string{
+				alicloud.CSIAttacherImageName,
+				alicloud.CSIProvisionerImageName,
+				alicloud.CSISnapshotterImageName,
+				alicloud.CSIResizerImageName,
+				alicloud.CSIPluginImageName,
+				alicloud.CSISnapshotControllerImageName,
+			},
 			Objects: []*chart.Object{
 				{Type: &appsv1.Deployment{}, Name: "csi-plugin-controller"},
+				{Type: &appsv1.Deployment{}, Name: "csi-snapshot-controller"},
 			},
 		},
 	},
@@ -181,11 +204,19 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &rbacv1.Role{}, Name: "csi-provisioner"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-provisioner"},
 				// csi-snapshotter
+				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotClasses},
+				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotContents},
+				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshots},
 				{Type: &corev1.ServiceAccount{}, Name: "csi-snapshotter"},
 				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-snapshotter"},
 				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":csi-snapshotter"},
 				{Type: &rbacv1.Role{}, Name: "csi-snapshotter"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-snapshotter"},
+				// csi-snapshot-controller
+				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-snapshot-controller"},
+				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":csi-snapshot-controller"},
+				{Type: &rbacv1.Role{}, Name: "csi-snapshot-controller"},
+				{Type: &rbacv1.RoleBinding{}, Name: "csi-snapshot-controller"},
 				// csi-resizer
 				{Type: &corev1.ServiceAccount{}, Name: "csi-resizer"},
 				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-resizer"},
@@ -234,6 +265,20 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	// TODO: Remove this code in next version. Delete old config
 	if err := vp.deleteCloudProviderConfig(ctx, cp.Namespace); err != nil {
 		return nil, err
+	}
+	// TODO: Remove this code in next version. Delete old volume snapshot CRDs
+	c, err := semver.NewConstraint(">= 1.17")
+	if err != nil {
+		return nil, errors.Wrapf(err, "semver cannot parse constraint")
+	}
+	v, err := semver.NewVersion(cluster.Shoot.Spec.Kubernetes.Version)
+	if err != nil {
+		return nil, errors.Wrapf(err, "semver cannot parse version '%s'", cluster.Shoot.Spec.Kubernetes.Version)
+	}
+	if c.Check(v) {
+		if err := vp.deleteVolumeSnapshotCRD(ctx, cp.Namespace); err != nil {
+			return nil, err
+		}
 	}
 	// Get control plane chart values
 	return vp.getControlPlaneChartValues(ctx, cpConfig, cp, cluster, checksums, scaledDown)
@@ -343,17 +388,24 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"cloudConfig": ccmConfig,
 		},
 		"csi-alicloud": map[string]interface{}{
-			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
-			"kubernetesVersion":      cluster.Shoot.Spec.Kubernetes.Version,
-			"regionID":               cp.Spec.Region,
-			"snapshotPrefix":         cluster.Shoot.Name,
-			"persistentVolumePrefix": cluster.Shoot.Name,
-			"podAnnotations": map[string]interface{}{
-				"checksum/secret-csi-attacher":    checksums["csi-attacher"],
-				"checksum/secret-csi-provisioner": checksums["csi-provisioner"],
-				"checksum/secret-csi-snapshotter": checksums["csi-snapshotter"],
-				"checksum/secret-csi-resizer":     checksums["csi-resizer"],
-				"checksum/secret-cloudprovider":   checksums[v1beta1constants.SecretNameCloudProvider],
+			"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
+			"regionID":          cp.Spec.Region,
+			"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+			"csiPluginController": map[string]interface{}{
+				"snapshotPrefix":         cluster.Shoot.Name,
+				"persistentVolumePrefix": cluster.Shoot.Name,
+				"podAnnotations": map[string]interface{}{
+					"checksum/secret-csi-attacher":    checksums["csi-attacher"],
+					"checksum/secret-csi-provisioner": checksums["csi-provisioner"],
+					"checksum/secret-csi-snapshotter": checksums["csi-snapshotter"],
+					"checksum/secret-csi-resizer":     checksums["csi-resizer"],
+					"checksum/secret-cloudprovider":   checksums[v1beta1constants.SecretNameCloudProvider],
+				},
+			},
+			"csiSnapshotController": map[string]interface{}{
+				"podAnnotations": map[string]interface{}{
+					"checksum/secret-csi-snapshot-controller": checksums["csi-snapshot-controller"],
+				},
 			},
 		},
 	}

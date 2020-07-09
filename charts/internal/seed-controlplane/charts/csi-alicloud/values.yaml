@@ -1,47 +1,63 @@
-replicas: 1
-images:
-  csi-attacher: image-repository:image-tag
-  csi-provisioner: image-repository:image-tag
-  csi-plugin-alicloud: image-repository:image-tag
-  csi-snapshotter: image-repository:image-tag
-  csi-resizer: image-repository:image-tag
-regionID: shanghai-cn
-snapshotPrefix: ""
-persistentVolumePrefix: ""
-podAnnotations: {}
-attacherResources:
-  requests:
-    cpu: 10m
-    memory: 32Mi
-  limits:
-    cpu: 30m
-    memory: 50Mi
-provisionerResources:
-  requests:
-    cpu: 10m
-    memory: 32Mi
-  limits:
-    cpu: 30m
-    memory: 50Mi
-snapshotterResources:
-  requests:
-    cpu: 10m
-    memory: 32Mi
-  limits:
-    cpu: 30m
-    memory: 50Mi
-resizerResources:
-  requests:
-    cpu: 10m
-    memory: 32Mi
-  limits:
-    cpu: 30m
-    memory: 50Mi
-diskpluginResources:
-  requests:
-    cpu: 20m
-    memory: 50Mi
-  limits:
-    cpu: 50m
-    memory: 80Mi
 kubernetesVersion: v1.14.0
+regionID: shanghai-cn
+replicas: 1
+
+images:
+  csi-attacher: repository:tag
+  csi-provisioner: repository:tag
+  csi-plugin-alicloud: repository:tag
+  csi-snapshotter: repository:tag
+  csi-snapshot-controller: repository:tag
+  csi-resizer: repository:tag
+
+csiPluginController:
+  snapshotPrefix: ""
+  persistentVolumePrefix: ""
+  podAnnotations: {}
+  podResources:
+    diskPlugin:
+      requests:
+        cpu: 20m
+        memory: 50Mi
+      limits:
+        cpu: 50m
+        memory: 80Mi
+    attacher:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 30m
+        memory: 50Mi
+    provisioner:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 30m
+        memory: 50Mi
+    snapshotter:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 30m
+        memory: 50Mi
+    resizer:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 30m
+        memory: 50Mi
+
+csiSnapshotController:
+  podAnnotations: {}
+  podResources:
+    snapshotController:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 30m
+        memory: 50Mi
