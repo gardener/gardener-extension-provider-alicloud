@@ -100,6 +100,9 @@ var _ = Describe("ValuesProvider", func() {
 					},
 					Kubernetes: gardencorev1beta1.Kubernetes{
 						Version: "1.14.0",
+						VerticalPodAutoscaler: &gardencorev1beta1.VerticalPodAutoscaler{
+							Enabled: true,
+						},
 					},
 				},
 			},
@@ -177,6 +180,7 @@ var _ = Describe("ValuesProvider", func() {
 					"accessKeySecret": "YmFy",
 				},
 				"kubernetesVersion": "1.14.0",
+				"vpaEnabled":        true,
 			},
 		}
 

@@ -298,15 +298,15 @@ var _ = Describe("Machines", func() {
 									Type: &volumeType,
 									Size: fmt.Sprintf("%dGi", volumeSize),
 								},
-								DataVolumes: []extensionsv1alpha1.Volume{
+								DataVolumes: []extensionsv1alpha1.DataVolume{
 									{
-										Name:      &dataVolume1Name,
+										Name:      dataVolume1Name,
 										Size:      fmt.Sprintf("%dGi", dataVolume1Size),
 										Type:      &dataVolume1Type,
 										Encrypted: &dataVolume1Encrypted,
 									},
 									{
-										Name:      &dataVolume2Name,
+										Name:      dataVolume2Name,
 										Size:      fmt.Sprintf("%dGi", dataVolume2Size),
 										Type:      &dataVolume2Type,
 										Encrypted: &dataVolume2Encrypted,

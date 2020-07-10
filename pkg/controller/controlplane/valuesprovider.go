@@ -23,12 +23,13 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
+
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/util"
-
-	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
 	"github.com/gardener/gardener/pkg/utils/secrets"
@@ -166,6 +167,7 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":psp:kube-system:csi-disk-plugin-alicloud"},
 				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":psp:csi-disk-plugin-alicloud"},
 				{Type: &policyv1beta1.PodSecurityPolicy{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ".kube-system.csi-disk-plugin-alicloud"},
+				{Type: extensionscontroller.GetVerticalPodAutoscalerObject(), Name: "csi-diskplugin-alicloud"},
 				// csi-attacher
 				{Type: &corev1.ServiceAccount{}, Name: "csi-attacher"},
 				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-attacher"},
@@ -375,6 +377,7 @@ func getControlPlaneShootChartValues(
 				"accessKeySecret": base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret)),
 			},
 			"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
+			"vpaEnabled":        gardencorev1beta1helper.ShootWantsVerticalPodAutoscaler(cluster.Shoot),
 		},
 	}
 

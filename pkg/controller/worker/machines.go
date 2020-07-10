@@ -212,10 +212,10 @@ func computeDisks(namespace string, pool extensionsv1alpha1.WorkerPool) (map[str
 				return nil, err
 			}
 			dataDisk := map[string]interface{}{
-				"name":               *vol.Name,
+				"name":               vol.Name,
 				"size":               volumeSize,
 				"deleteWithInstance": true,
-				"description":        fmt.Sprintf("%s-datavol-%s", namespace, *vol.Name),
+				"description":        fmt.Sprintf("%s-datavol-%s", namespace, vol.Name),
 			}
 			if vol.Type != nil {
 				dataDisk["category"] = *vol.Type
