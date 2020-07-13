@@ -57,10 +57,14 @@ config:
     storage:
       className: gardener.cloud-fast
       capacity: 25Gi
-# machineImageOwnerSecret:
-#   name: machine-image-owner
-#   accessKeyID: ZHVtbXk=
-#   accessKeySecret: ZHVtbXk=
+#  machineImageOwnerSecret:
+#    name: machine-image-owner
+#    accessKeyID: ZHVtbXk=
+#    accessKeySecret: ZHVtbXk=
+#  whitelistedImageIDs:
+#  - image-id1
+#  - image-id2
+#  ...
 
 gardener:
   seed:

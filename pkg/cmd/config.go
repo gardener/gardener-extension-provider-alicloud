@@ -82,6 +82,12 @@ func (c *Config) ApplyMachineImageOwnerSecretRef(secretRef **corev1.SecretRefere
 	}
 }
 
+func (c *Config) ApplyWhitelistedImageIDs(whitelistedImageIDs *[]string) {
+	if c.Config.WhitelistedImageIDs != nil {
+		*whitelistedImageIDs = c.Config.WhitelistedImageIDs
+	}
+}
+
 // ApplyETCDStorage sets the given etcd storage configuration to that of this Config.
 func (c *Config) ApplyETCDStorage(etcdStorage *config.ETCDStorage) {
 	*etcdStorage = c.Config.ETCD.Storage
