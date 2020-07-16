@@ -69,10 +69,8 @@ spec:
         - "--csi-address=$(CSI_ENDPOINT)"
         - "--kubeconfig=/var/lib/csi-attacher/kubeconfig"
         - "--leader-election"
-{{- if semverCompare ">= 1.14" .Values.kubernetesVersion }}
+{{- if semverCompare "1.13.x" .Values.kubernetesVersion }}
         - "--leader-election-type=leases"
-{{- else }}
-        - "--leader-election-identity=$(MY_NAME)"
 {{- end }}
         - "--leader-election-namespace=kube-system"
         env:

@@ -19,7 +19,7 @@ images:
 - name: csi-attacher
   sourceRepository: https://github.com/kubernetes-csi/external-attacher
   repository: quay.io/k8scsi/csi-attacher
-  tag: v1.2.1
+  tag: v2.2.0
   targetVersion: ">= 1.14"
 - name: csi-node-driver-registrar
   sourceRepository: https://github.com/kubernetes-csi/node-driver-registrar
@@ -29,7 +29,7 @@ images:
 - name: csi-node-driver-registrar
   sourceRepository: https://github.com/kubernetes-csi/node-driver-registrar
   repository: quay.io/k8scsi/csi-node-driver-registrar
-  tag: v1.1.0
+  tag: v1.3.0
   targetVersion: ">= 1.14"
 - name: csi-provisioner
   sourceRepository: https://github.com/kubernetes-csi/external-provisioner
@@ -39,7 +39,7 @@ images:
 - name: csi-provisioner
   sourceRepository: https://github.com/kubernetes-csi/external-provisioner
   repository: quay.io/k8scsi/csi-provisioner
-  tag: v1.3.1
+  tag: v1.6.0
   targetVersion: ">= 1.14"
 - name: csi-snapshotter
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
@@ -55,7 +55,19 @@ images:
   sourceRepository: https://github.com/kubernetes-csi/external-resizer
   repository: quay.io/k8scsi/csi-resizer
   tag: v0.3.0
+  targetVersion: 1.13.x
+- name: csi-resizer
+  sourceRepository: https://github.com/kubernetes-csi/external-resizer
+  repository: quay.io/k8scsi/csi-resizer
+  tag: v0.5.0
+  targetVersion: ">= 1.14"
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/AliyunContainerService/csi-plugin
   repository: registry.eu-central-1.aliyuncs.com/gardener-de/csi-plugin-alicloud
   tag: v1.13.2-3
+  targetVersion: 1.13.x
+- name: csi-plugin-alicloud
+  sourceRepository: https://github.com/AliyunContainerService/csi-plugin
+  repository: registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin
+  tag: v1.14.8.38-fe611ad1-aliyun
+  targetVersion: ">= 1.14"
