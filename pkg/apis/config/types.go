@@ -35,6 +35,8 @@ type ControllerConfiguration struct {
 	// MachineImageOwnerSecretRef is the secret reference which contains credential of AliCloud subaccount for customized images.
 	// We currently assume multiple customized images should always be under this account.
 	MachineImageOwnerSecretRef *corev1.SecretReference
+	// WhitelistedImageIDs specifies an array of image IDs that will bypass image sharing.
+	WhitelistedImageIDs []string
 	// ETCD is the etcd configuration.
 	ETCD ETCD
 	// HealthCheckConfig is the config for the health check controller

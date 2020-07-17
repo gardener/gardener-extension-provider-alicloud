@@ -73,6 +73,17 @@ We currently assume multiple customized images should always be under this accou
 </tr>
 <tr>
 <td>
+<code>whitelistedImageIDs</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>WhitelistedImageIDs specifies an array of image IDs that will bypass image sharing.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>etcd</code></br>
 <em>
 <a href="#alicloud.provider.extensions.config.gardener.cloud/v1alpha1.ETCD">

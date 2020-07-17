@@ -41,6 +41,11 @@ func (in *ControllerConfiguration) DeepCopyInto(out *ControllerConfiguration) {
 		*out = new(v1.SecretReference)
 		**out = **in
 	}
+	if in.WhitelistedImageIDs != nil {
+		in, out := &in.WhitelistedImageIDs, &out.WhitelistedImageIDs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	in.ETCD.DeepCopyInto(&out.ETCD)
 	if in.HealthCheckConfig != nil {
 		in, out := &in.HealthCheckConfig, &out.HealthCheckConfig

@@ -58,7 +58,7 @@ var StatusTypeMeta = func() metav1.TypeMeta {
 }()
 
 // NewActuator instantiates an actuator with the default dependencies.
-func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference) infrastructure.Actuator {
+func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, whitelistedImageIDs []string) infrastructure.Actuator {
 	return NewActuatorWithDeps(
 		log.Log.WithName("infrastructure-actuator"),
 		alicloudclient.NewClientFactory(),
@@ -67,6 +67,7 @@ func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference) infrastruct
 		extensionschartrenderer.DefaultFactory(),
 		DefaultTerraformOps(),
 		machineImageOwnerSecretRef,
+		whitelistedImageIDs,
 	)
 }
 
@@ -79,6 +80,7 @@ func NewActuatorWithDeps(
 	chartRendererFactory extensionschartrenderer.Factory,
 	terraformChartOps TerraformChartOps,
 	machineImageOwnerSecretRef *corev1.SecretReference,
+	whitelistedImageIDs []string,
 ) infrastructure.Actuator {
 	a := &actuator{
 		logger:                     logger,
@@ -88,6 +90,7 @@ func NewActuatorWithDeps(
 		terraformerFactory:         terraformerFactory,
 		terraformChartOps:          terraformChartOps,
 		machineImageOwnerSecretRef: machineImageOwnerSecretRef,
+		whitelistedImageIDs:        whitelistedImageIDs,
 	}
 
 	return a
@@ -104,6 +107,7 @@ type actuator struct {
 	terraformChartOps     TerraformChartOps
 
 	machineImageOwnerSecretRef *corev1.SecretReference
+	whitelistedImageIDs        []string
 }
 
 // InjectAPIReader implements inject.APIReader and instantiates actuator.alicloudECSClient.
@@ -292,6 +296,17 @@ func appendMachineImage(machineImages []alicloudv1alpha1.MachineImage, machineIm
 	return machineImages
 }
 
+func (a *actuator) isWhitelistedImageID(imageID string) bool {
+	if a.whitelistedImageIDs != nil {
+		for _, whitelistedImageID := range a.whitelistedImageIDs {
+			if imageID == whitelistedImageID {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // shareCustomizedImages checks whether Shoot's Alicloud account has permissions to use the customized images. If it can't
 // access them, these images will be shared with it from Seed's Alicloud account. The list of images that worker use will be
 // returned.
@@ -349,6 +364,13 @@ func (a *actuator) shareCustomizedImages(ctx context.Context, infra *extensionsv
 			Version: *worker.Machine.Image.Version,
 			ID:      imageID,
 		})
+
+		// if this is a whitelisted machine image, we no longer need to check if it exists in cloud provider account, and
+		// we don't need to share the image to that account either.
+		if a.isWhitelistedImageID(imageID) {
+			a.logger.Info("Skipping image sharing for whitelisted image", "imageID", imageID)
+			continue
+		}
 
 		exists, err := shootAlicloudECSClient.CheckIfImageExists(ctx, imageID)
 		if err != nil {

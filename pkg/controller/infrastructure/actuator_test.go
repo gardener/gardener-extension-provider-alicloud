@@ -159,6 +159,7 @@ var _ = Describe("Actuator", func() {
 					chartRendererFactory,
 					terraformChartOps,
 					nil,
+					nil,
 				)
 				c = mockclient.NewMockClient(ctrl)
 				initializer = mockterraformer.NewMockInitializer(ctrl)

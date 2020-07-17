@@ -36,13 +36,15 @@ type AddOptions struct {
 	IgnoreOperationAnnotation bool
 	// MachineImageOwnerSecretRef is the secret reference which contains credential of AliCloud subaccount for customized images.
 	MachineImageOwnerSecretRef *corev1.SecretReference
+	// WhitelistedImageIDs specifies an array of image IDs that will bypass image sharing.
+	WhitelistedImageIDs []string
 }
 
 // AddToManagerWithOptions adds a controller with the given AddOptions to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, options AddOptions) error {
 	return infrastructure.Add(mgr, infrastructure.AddArgs{
-		Actuator:          NewActuator(options.MachineImageOwnerSecretRef),
+		Actuator:          NewActuator(options.MachineImageOwnerSecretRef, options.WhitelistedImageIDs),
 		ControllerOptions: options.Controller,
 		Predicates:        infrastructure.DefaultPredicates(options.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,

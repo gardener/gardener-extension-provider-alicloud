@@ -100,6 +100,15 @@ machineImageOwnerSecret:
 
 As a result, a Secret named `machine-image-owner` by default will be created in namespace of Alicloud provider extension.
 
+Operators can also configure a whitelist of machine image IDs that are not to be shared with end-users as below:
+
+```yaml
+whitelistedImageIDs:
+- <image_id_1>
+- <image_id_2>
+- <image_id_3>
+```
+
 ## Example `ControllerRegistration` manifest for enabling customized machine images
 
 ```yaml
@@ -118,6 +127,10 @@ spec:
           machineImageOwnerSecret:
             accessKeyID: <base64_encoded_access_key_id>
             accessKeySecret: <base64_encoded_access_key_secret>
+          whitelistedImageIDs:
+          - <image_id_1>
+          - <image_id_2>
+          ...
           machineImages:
           - name: customized_coreos
             regions:
