@@ -47,6 +47,10 @@ var _ = Describe("InfrastructureConfig validation", func() {
 						Name:    "zone1",
 						Workers: "10.250.3.0/24",
 					},
+					{
+						Name:    "zone2",
+						Workers: "10.250.4.0/24",
+					},
 				},
 			},
 		}
@@ -108,6 +112,10 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					"Type":   Equal(field.ErrorTypeInvalid),
 					"Field":  Equal("networks.zones[0].workers"),
 					"Detail": Equal(`must be a subset of "networks.vpc.cidr" ("10.0.0.0/8")`),
+				}, Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("networks.zones[1].workers"),
+					"Detail": Equal(`must be a subset of "" ("1.1.1.1/32")`),
 				}))
 			})
 
@@ -199,8 +207,31 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			Expect(errorList).To(HaveLen(1))
 			Expect(errorList).To(ConsistOfFields(Fields{
 				"Type":  Equal(field.ErrorTypeInvalid),
+				"Field": Equal("networks.zones[0]"),
+			}))
+		})
+
+		It("should forbid removing zone in zones section", func() {
+			newInfrastructureConfig := infrastructureConfig.DeepCopy()
+			newInfrastructureConfig.Networks.Zones = newInfrastructureConfig.Networks.Zones[1:]
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+
+			Expect(errorList).To(HaveLen(1))
+			Expect(errorList).To(ConsistOfFields(Fields{
+				"Type":  Equal(field.ErrorTypeForbidden),
 				"Field": Equal("networks.zones"),
 			}))
+		})
+
+		It("should allow appending zone in zones section", func() {
+			newInfrastructureConfig := infrastructureConfig.DeepCopy()
+			newInfrastructureConfig.Networks.Zones = append(newInfrastructureConfig.Networks.Zones, apisalicloud.Zone{
+				Name:    "zone3",
+				Workers: "10.250.4.0/24",
+			})
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+
+			Expect(errorList).To(BeEmpty())
 		})
 
 		It("should allow changing nat gateway by specifying eip id", func() {

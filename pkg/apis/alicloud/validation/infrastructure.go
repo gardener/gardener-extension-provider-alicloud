@@ -98,33 +98,29 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, node
 func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.InfrastructureConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	var (
-		newZonesWithoutNatGatewayConfig = make([]apisalicloud.Zone, 0, len(newConfig.Networks.Zones))
-		oldZonesWithoutNatGatewayConfig = make([]apisalicloud.Zone, 0, len(oldConfig.Networks.Zones))
-
-		networksPath = field.NewPath("networks")
-	)
-
-	for i, zone := range newConfig.Networks.Zones {
-		newZonesWithoutNatGatewayConfig = append(newZonesWithoutNatGatewayConfig, apisalicloud.Zone{
-			Name:    zone.Name,
-			Worker:  zone.Worker,
-			Workers: zone.Workers,
-		})
-
-		allErrs = append(allErrs, ValidateNatGatewayConfig(zone.NatGateway, networksPath.Child("zones").Index(i).Child("natGateway"))...)
-	}
-
-	for _, zone := range oldConfig.Networks.Zones {
-		oldZonesWithoutNatGatewayConfig = append(oldZonesWithoutNatGatewayConfig, apisalicloud.Zone{
-			Name:    zone.Name,
-			Worker:  zone.Worker,
-			Workers: zone.Workers,
-		})
-	}
-
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.Networks.VPC, oldConfig.Networks.VPC, field.NewPath("networks").Child("vpc"))...)
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newZonesWithoutNatGatewayConfig, oldZonesWithoutNatGatewayConfig, field.NewPath("networks").Child("zones"))...)
+	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, field.NewPath("networks").Child("zones"))...)
+
+	return allErrs
+}
+
+func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(newZones) < len(oldZones) {
+		allErrs = append(allErrs, field.Forbidden(fldPath, "zones cannot be removed"))
+		return allErrs
+	}
+
+	for i := range oldZones {
+		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Name, newZones[i].Name, fldPath.Index(i))...)
+		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Workers, newZones[i].Workers, fldPath.Index(i))...)
+		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Worker, fldPath.Index(i))...)
+	}
+
+	for i, zone := range newZones {
+		allErrs = append(allErrs, ValidateNatGatewayConfig(zone.NatGateway, fldPath.Index(i).Child("natGateway"))...)
+	}
 
 	return allErrs
 }
