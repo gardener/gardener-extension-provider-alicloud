@@ -39,6 +39,8 @@ networks:
   zones:
   - name: eu-central-1a
     workers: 10.250.1.0/24
+  # natGateway:
+    # eipAllocationID: eip-ufxsdg122elmszcg
 ```
 
 The `networks.vpc` section describes whether you want to create the shoot cluster in an already existing VPC or whether to create a new one:
@@ -59,6 +61,13 @@ You can freely choose these CIDR and it is your responsibility to properly desig
 If you want to use multiple availability zones then add a second, third, ... entry to the `networks.zones[]` list and properly specify the AZ name in `networks.zones[].name`.
 
 Apart from the VPC and the subnets the Alicloud extension will also create a NAT gateway (only if a new VPC is created), a key pair, elastic IPs, VSwitches, a SNAT table entry, and security groups.
+
+By default, the Alicloud extension will create a corresponding Elastic IP that it attaches to this NAT gateway and which is used for egress traffic. 
+The `networks.zones[].natGateway.eipAllocationID` field allows you to specify the Elastic IP Allocation ID of an existing Elastic IP allocation in case you want to bring your own.
+If provided, no new Elastic IP will be created and, instead, the Elastic IP specified by you will be used.
+
+⚠️ If you change this field for an already existing infrastructure then it will disrupt egress traffic while Alicloud applies this change, because the NAT gateway must be recreated with the new Elastic IP association.
+Also, please note that the existing Elastic IP will be permanently deleted if it was earlier created by the Alicloud extension. 
 
 ## `ControlPlaneConfig`
 
