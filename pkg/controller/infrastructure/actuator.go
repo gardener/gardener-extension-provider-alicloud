@@ -27,16 +27,15 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
-
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	commonext "github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
-	extensionschartrenderer "github.com/gardener/gardener/extensions/pkg/gardener/chartrenderer"
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
-	"github.com/gardener/gardener/extensions/pkg/util"
-	chartutil "github.com/gardener/gardener/extensions/pkg/util/chart"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	extensionschartrenderer "github.com/gardener/gardener/pkg/chartrenderer"
 	"github.com/gardener/gardener/pkg/utils/flow"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -194,7 +193,7 @@ func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, conf
 		return nil, err
 	}
 
-	files, err := chartutil.ExtractTerraformFiles(release)
+	files, err := terraformer.ExtractTerraformFiles(release)
 	if err != nil {
 		return nil, err
 	}
@@ -347,7 +346,7 @@ func (a *actuator) shareCustomizedImages(ctx context.Context, infra *extensionsv
 			if providerStatus := infra.Status.ProviderStatus; providerStatus != nil {
 				infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 				if _, _, err := a.Decoder().Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
-					return nil, errors.Wrapf(err, "could not decode infrastructure status of infrastructure '%s'", util.ObjectName(infra))
+					return nil, errors.Wrapf(err, "could not decode infrastructure status of infrastructure '%s'", kutil.ObjectName(infra))
 				}
 
 				machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version)

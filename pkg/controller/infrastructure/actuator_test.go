@@ -33,13 +33,12 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	realterraformer "github.com/gardener/gardener/extensions/pkg/terraformer"
-	"github.com/gardener/gardener/extensions/pkg/util/chart"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	mockchartrenderer "github.com/gardener/gardener/pkg/mock/gardener/chartrenderer"
 	mockgardenerchartrenderer "github.com/gardener/gardener/pkg/mock/gardener/chartrenderer"
-	mockchartrenderer "github.com/gardener/gardener/pkg/mock/gardener/extensions/gardener/chartrenderer"
 	mockterraformer "github.com/gardener/gardener/pkg/mock/gardener/extensions/terraformer"
 	"github.com/gardener/gardener/pkg/mock/go-logr/logr"
 	"github.com/golang/mock/gomock"
@@ -274,9 +273,9 @@ var _ = Describe("Actuator", func() {
 						chartValues,
 					).Return(&chartrenderer.RenderedChart{
 						Manifests: []manifest.Manifest{
-							mkManifest(chart.TerraformMainTFFilename, mainContent),
-							mkManifest(chart.TerraformVariablesTFFilename, variablesContent),
-							mkManifest(chart.TerraformTFVarsFilename, tfVarsContent),
+							mkManifest(realterraformer.MainKey, mainContent),
+							mkManifest(realterraformer.VariablesKey, variablesContent),
+							mkManifest(realterraformer.TFVarsKey, tfVarsContent),
 						},
 					}, nil),
 
@@ -397,9 +396,9 @@ var _ = Describe("Actuator", func() {
 						chartValues,
 					).Return(&chartrenderer.RenderedChart{
 						Manifests: []manifest.Manifest{
-							mkManifest(chart.TerraformMainTFFilename, mainContent),
-							mkManifest(chart.TerraformVariablesTFFilename, variablesContent),
-							mkManifest(chart.TerraformTFVarsFilename, tfVarsContent),
+							mkManifest(realterraformer.MainKey, mainContent),
+							mkManifest(realterraformer.VariablesKey, variablesContent),
+							mkManifest(realterraformer.TFVarsKey, tfVarsContent),
 						},
 					}, nil),
 
