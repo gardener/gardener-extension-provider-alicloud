@@ -16,8 +16,9 @@ package common
 
 import (
 	"encoding/json"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
