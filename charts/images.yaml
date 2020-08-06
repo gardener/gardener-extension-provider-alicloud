@@ -68,6 +68,6 @@ images:
   targetVersion: 1.13.x
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/AliyunContainerService/csi-plugin
-  repository: registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin
-  tag: v1.14.8.38-fe611ad1-aliyun
+  repository: registry.eu-central-1.aliyuncs.com/gardener-de/csi-plugin-alicloud
+  tag: v1.14.8 # the upstream image is using non-semver tags which is causing issues in the CI/CD pipelines of Gardener, thus the image is replicated and tagged with semver version in another registry.
   targetVersion: ">= 1.14"
