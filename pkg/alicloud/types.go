@@ -37,6 +37,8 @@ const (
 	CSIProvisionerImageName = "csi-provisioner"
 	// CSISnapshotterImageName is the name of the CSI snapshotter image.
 	CSISnapshotterImageName = "csi-snapshotter"
+	// CSISnapshotControllerImageName is the name of the CSI snapshot controller image.
+	CSISnapshotControllerImageName = "csi-snapshot-controller"
 	// CSIResizerImageName is the name of the CSI resizer image.
 	CSIResizerImageName = "csi-resizer"
 
@@ -62,6 +64,13 @@ const (
 	CloudControllerManagerName = "cloud-controller-manager"
 	// CsiPluginController is the a constant for the name of the CSI Plugin controller
 	CsiPluginController = "csi-plugin-controller"
+
+	// CRDVolumeSnapshotClasses is a constant for the name of VolumeSnapshotClasses CRD
+	CRDVolumeSnapshotClasses = "volumesnapshotclasses.snapshot.storage.k8s.io"
+	// CRDVolumeSnapshotContents is a constant for the name of VolumeSnapshotContents CRD
+	CRDVolumeSnapshotContents = "volumesnapshotcontents.snapshot.storage.k8s.io"
+	// CRDVolumeSnapshots is a constant for the name of CRDVolumeSnapshots CRD
+	CRDVolumeSnapshots = "volumesnapshots.snapshot.storage.k8s.io"
 )
 
 var (
