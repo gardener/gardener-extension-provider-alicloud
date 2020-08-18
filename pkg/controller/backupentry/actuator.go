@@ -49,7 +49,7 @@ func (a *actuator) GetETCDSecretData(ctx context.Context, be *extensionsv1alpha1
 }
 
 func (a *actuator) Delete(ctx context.Context, be *extensionsv1alpha1.BackupEntry) error {
-	cli, err := alicloudclient.NewStorageClientFromSecretRef(ctx, a.client, &be.Spec.SecretRef, be.Spec.Region)
+	cli, err := alicloudclient.NewClientFactory().NewStorageClientFromSecretRef(ctx, a.client, &be.Spec.SecretRef, be.Spec.Region)
 	if err != nil {
 		return err
 	}

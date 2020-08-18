@@ -20,37 +20,37 @@ import (
 	"net/http"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
-	alicloudvpc "github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// FactoryFunc is a function that implements the Factory interface. Used for consuming the
-// `alicloudvpc.NewClientWithAccessKey` function.
-type FactoryFunc func(region, accessKeyID, accessKeySecret string) (*alicloudvpc.Client, error)
-
-// NewVPC implements Factory.
-func (f FactoryFunc) NewVPC(region, accessKeyID, accessKeySecret string) (VPC, error) {
-	return f(region, accessKeyID, accessKeySecret)
+// ComputeStorageEndpoint computes the OSS storage endpoint based on the given region.
+func ComputeStorageEndpoint(region string) string {
+	return fmt.Sprintf("https://oss-%s.aliyuncs.com/", region)
 }
 
-// DefaultFactory instantiates a default Factory.
-func DefaultFactory() Factory {
-	return FactoryFunc(alicloudvpc.NewClientWithAccessKey)
+type clientFactory struct {
 }
 
+// NewClientFactory creates a new clientFactory instance that can be used to instantiate Alicloud clients
+func NewClientFactory() ClientFactory {
+	return &clientFactory{}
+}
+
+// storageClient defines the struct of OSS client
 type storageClient struct {
 	client *oss.Client
 }
 
 // NewStorageClientFromSecretRef creates a new Alicloud storage Client using the credentials from <secretRef>.
-func NewStorageClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (Storage, error) {
+func (f *clientFactory) NewStorageClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (Storage, error) {
 	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, client, secretRef)
 	if err != nil {
 		return nil, err
@@ -169,33 +169,13 @@ func (c *storageClient) DeleteBucketIfExists(ctx context.Context, bucketName str
 	return nil
 }
 
-// ComputeStorageEndpoint computes the OSS storage endpoint based on the given region.
-func ComputeStorageEndpoint(region string) string {
-	return fmt.Sprintf("https://oss-%s.aliyuncs.com/", region)
-}
-
-type clientFactory struct {
-}
-
-// NewClientFactory creates a new clientFactory instance that can be used to instantiate Alicloud clients
-func NewClientFactory() ClientFactory {
-	return &clientFactory{}
-}
-
+// escClient defines the struct of ECS client
 type ecsClient struct {
 	client *ecs.Client
 }
 
-type stsClient struct {
-	client *sts.Client
-}
-
-type slbClient struct {
-	client *slb.Client
-}
-
 // NewECSClient creates a new ECS client with given region, AccessKeyID, and AccessKeySecret
-func (f *clientFactory) NewECSClient(ctx context.Context, region, accessKeyID, accessKeySecret string) (ECS, error) {
+func (f *clientFactory) NewECSClient(region, accessKeyID, accessKeySecret string) (ECS, error) {
 	client, err := ecs.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 	if err != nil {
 		return nil, err
@@ -229,8 +209,13 @@ func (c *ecsClient) ShareImageToAccount(ctx context.Context, regionID, imageID, 
 	return err
 }
 
+// stsClient defines the struct of STS client
+type stsClient struct {
+	client *sts.Client
+}
+
 // NewSTSClient creates a new STS client with given region, AccessKeyID, and AccessKeySecret
-func (f *clientFactory) NewSTSClient(ctx context.Context, region, accessKeyID, accessKeySecret string) (STS, error) {
+func (f *clientFactory) NewSTSClient(region, accessKeyID, accessKeySecret string) (STS, error) {
 	client, err := sts.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 	if err != nil {
 		return nil, err
@@ -252,8 +237,13 @@ func (c *stsClient) GetAccountIDFromCallerIdentity(ctx context.Context) (string,
 	return response.AccountId, nil
 }
 
+// slbClient defines the struct of SLB client
+type slbClient struct {
+	client *slb.Client
+}
+
 // NewSLBClient creates a new SLB client with given region, AccessKeyID, and AccessKeySecret
-func (f *clientFactory) NewSLBClient(ctx context.Context, region, accessKeyID, accessKeySecret string) (SLB, error) {
+func (f *clientFactory) NewSLBClient(region, accessKeyID, accessKeySecret string) (SLB, error) {
 	client, err := slb.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 	if err != nil {
 		return nil, err
@@ -318,4 +308,33 @@ func (c *slbClient) DeleteLoadBalancer(ctx context.Context, region, loadBalancer
 	request.LoadBalancerId = loadBalancerID
 	_, err := c.client.DeleteLoadBalancer(request)
 	return err
+}
+
+// vpcClient defines the struct of VPC client
+type vpcClient struct {
+	client *vpc.Client
+}
+
+// NewSLBClient creates a new SLB client with given region, AccessKeyID, and AccessKeySecret
+func (f *clientFactory) NewVPCClient(region, accessKeyID, accessKeySecret string) (VPC, error) {
+	client, err := vpc.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &vpcClient{
+		client: client,
+	}, nil
+}
+
+func (c *vpcClient) DescribeVpcs(req *vpc.DescribeVpcsRequest) (*vpc.DescribeVpcsResponse, error) {
+	return c.client.DescribeVpcs(req)
+}
+
+func (c *vpcClient) DescribeNatGateways(req *vpc.DescribeNatGatewaysRequest) (*vpc.DescribeNatGatewaysResponse, error) {
+	return c.client.DescribeNatGateways(req)
+}
+
+func (c *vpcClient) DescribeEipAddresses(req *vpc.DescribeEipAddressesRequest) (*vpc.DescribeEipAddressesResponse, error) {
+	return c.client.DescribeEipAddresses(req)
 }
