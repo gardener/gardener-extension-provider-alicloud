@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shoot
+package utils
 
 import (
-	"context"
-
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (m *mutator) mutateLBService(ctx context.Context, new, old *corev1.Service) error {
+func MutateLBService(new, old *corev1.Service) error {
 	new.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
 
 	// Do not overwrite '.spec.healthCheckNodePort'

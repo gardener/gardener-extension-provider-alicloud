@@ -17,8 +17,8 @@ package shoot
 import (
 	"context"
 
+	webhookutils "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/utils"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -63,7 +63,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old runtime.Object) error {
 			}
 
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateLBService(ctx, x, oldSvc)
+			return webhookutils.MutateLBService(x, oldSvc)
 		}
 	case *appsv1.Deployment:
 		if x.Name == "metrics-server" {

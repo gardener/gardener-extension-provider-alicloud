@@ -17,7 +17,10 @@ package controlplaneexposure
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+	webhookutils "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/utils"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
@@ -52,6 +55,11 @@ type ensurer struct {
 func (e *ensurer) InjectClient(client client.Client) error {
 	e.client = client
 	return nil
+}
+
+// EnsureKubeAPIServerService ensures that the kube-apiserver service conforms to the provider requirements.
+func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, ectx genericmutator.EnsurerContext, new, old *corev1.Service) error {
+	return webhookutils.MutateLBService(new, old)
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
