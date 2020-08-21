@@ -17,28 +17,22 @@ package client
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	alicloudvpc "github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 )
 
 // DefaultInternetChargeType is used for EIP
 const DefaultInternetChargeType = "PayByTraffic"
 
-// VPC is the interface to the Alicloud VPC service.
-type VPC interface {
-	// DescribeVpcs describes the VPCs for the request.
-	DescribeVpcs(req *alicloudvpc.DescribeVpcsRequest) (*alicloudvpc.DescribeVpcsResponse, error)
-	// DescribeNatGateways describes the NAT gateways for the request.
-	DescribeNatGateways(req *alicloudvpc.DescribeNatGatewaysRequest) (*alicloudvpc.DescribeNatGatewaysResponse, error)
-	// DescribeEipAddresses describes the EIP addresses for the request.
-	DescribeEipAddresses(req *alicloudvpc.DescribeEipAddressesRequest) (*alicloudvpc.DescribeEipAddressesResponse, error)
-}
-
 // ClientFactory is the new factory to instantiate Alicloud clients.
-// TODO: move VPC to this new factory.
 type ClientFactory interface {
-	NewECSClient(ctx context.Context, region, accessKeyID, accessKeySecret string) (ECS, error)
-	NewSTSClient(ctx context.Context, region, accessKeyID, accessKeySecret string) (STS, error)
-	NewSLBClient(ctx context.Context, region, accessKeyID, accessKeySecret string) (SLB, error)
+	NewECSClient(region, accessKeyID, accessKeySecret string) (ECS, error)
+	NewSTSClient(region, accessKeyID, accessKeySecret string) (STS, error)
+	NewSLBClient(region, accessKeyID, accessKeySecret string) (SLB, error)
+	NewVPCClient(region, accessKeyID, accessKeySecret string) (VPC, error)
+	NewStorageClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (Storage, error)
 }
 
 // STS is an interface which must be implemented by alicloud sts clients.
@@ -59,10 +53,14 @@ type SLB interface {
 	DeleteLoadBalancer(ctx context.Context, region, loadBalancerID string) error
 }
 
-// Factory is the factory to instantiate Alicloud clients.
-type Factory interface {
-	// NewVPC creates a new VPC client from the given credentials and region.
-	NewVPC(region, accessKeyID, accessKeySecret string) (VPC, error)
+// VPC is an interface which must be implemented by alicloud vpc clients.
+type VPC interface {
+	// DescribeVpcs describes the VPCs for the request.
+	DescribeVpcs(req *alicloudvpc.DescribeVpcsRequest) (*alicloudvpc.DescribeVpcsResponse, error)
+	// DescribeNatGateways describes the NAT gateways for the request.
+	DescribeNatGateways(req *alicloudvpc.DescribeNatGatewaysRequest) (*alicloudvpc.DescribeNatGatewaysResponse, error)
+	// DescribeEipAddresses describes the EIP addresses for the request.
+	DescribeEipAddresses(req *alicloudvpc.DescribeEipAddressesRequest) (*alicloudvpc.DescribeEipAddressesResponse, error)
 }
 
 // Storage is an interface which must be implemented by alicloud oss storage clients.

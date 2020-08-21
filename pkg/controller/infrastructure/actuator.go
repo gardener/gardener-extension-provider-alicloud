@@ -61,7 +61,6 @@ func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, whitelisted
 	return NewActuatorWithDeps(
 		log.Log.WithName("infrastructure-actuator"),
 		alicloudclient.NewClientFactory(),
-		alicloudclient.DefaultFactory(),
 		terraformer.DefaultFactory(),
 		extensionschartrenderer.DefaultFactory(),
 		DefaultTerraformOps(),
@@ -74,7 +73,6 @@ func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, whitelisted
 func NewActuatorWithDeps(
 	logger logr.Logger,
 	newClientFactory alicloudclient.ClientFactory,
-	alicloudClientFactory alicloudclient.Factory,
 	terraformerFactory terraformer.Factory,
 	chartRendererFactory extensionschartrenderer.Factory,
 	terraformChartOps TerraformChartOps,
@@ -85,7 +83,6 @@ func NewActuatorWithDeps(
 		logger:                     logger,
 		ChartRendererContext:       commonext.NewChartRendererContext(chartRendererFactory),
 		newClientFactory:           newClientFactory,
-		alicloudClientFactory:      alicloudClientFactory,
 		terraformerFactory:         terraformerFactory,
 		terraformChartOps:          terraformChartOps,
 		machineImageOwnerSecretRef: machineImageOwnerSecretRef,
@@ -99,11 +96,10 @@ type actuator struct {
 	logger logr.Logger
 	commonext.ChartRendererContext
 
-	alicloudECSClient     alicloudclient.ECS
-	newClientFactory      alicloudclient.ClientFactory
-	alicloudClientFactory alicloudclient.Factory
-	terraformerFactory    terraformer.Factory
-	terraformChartOps     TerraformChartOps
+	alicloudECSClient  alicloudclient.ECS
+	newClientFactory   alicloudclient.ClientFactory
+	terraformerFactory terraformer.Factory
+	terraformChartOps  TerraformChartOps
 
 	machineImageOwnerSecretRef *corev1.SecretReference
 	whitelistedImageIDs        []string
@@ -124,7 +120,7 @@ func (a *actuator) InjectAPIReader(reader client.Reader) error {
 		if err != nil {
 			return err
 		}
-		a.alicloudECSClient, err = a.newClientFactory.NewECSClient(context.Background(), "", seedCloudProviderCredentials.AccessKeyID, seedCloudProviderCredentials.AccessKeySecret)
+		a.alicloudECSClient, err = a.newClientFactory.NewECSClient("", seedCloudProviderCredentials.AccessKeyID, seedCloudProviderCredentials.AccessKeySecret)
 		return err
 	}
 	return nil
@@ -157,12 +153,13 @@ func (a *actuator) fetchEIPInternetChargeType(vpcClient alicloudclient.VPC, tf t
 }
 
 func (a *actuator) getInitializerValues(
+	ctx context.Context,
 	tf terraformer.Terraformer,
 	infra *extensionsv1alpha1.Infrastructure,
 	config *alicloudv1alpha1.InfrastructureConfig,
 	credentials *alicloud.Credentials,
 ) (*InitializerValues, error) {
-	vpcClient, err := a.alicloudClientFactory.NewVPC(infra.Spec.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
+	vpcClient, err := a.newClientFactory.NewVPCClient(infra.Spec.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
 	if err != nil {
 		return nil, err
 	}
@@ -319,12 +316,12 @@ func (a *actuator) shareCustomizedImages(ctx context.Context, infra *extensionsv
 		return nil, err
 	}
 	a.logger.Info("Creating Alicloud ECS client for Shoot", "infrastructure", infra.Name)
-	shootAlicloudECSClient, err := a.newClientFactory.NewECSClient(ctx, infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
+	shootAlicloudECSClient, err := a.newClientFactory.NewECSClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
 	if err != nil {
 		return nil, err
 	}
 	a.logger.Info("Creating Alicloud STS client for Shoot", "infrastructure", infra.Name)
-	shootAlicloudSTSClient, err := a.newClientFactory.NewSTSClient(ctx, infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
+	shootAlicloudSTSClient, err := a.newClientFactory.NewSTSClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +411,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return err
 	}
 
-	initializerValues, err := a.getInitializerValues(tf, infra, config, credentials)
+	initializerValues, err := a.getInitializerValues(ctx, tf, infra, config, credentials)
 	if err != nil {
 		return err
 	}
@@ -460,7 +457,7 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 		return err
 	}
 	a.logger.Info("Creating Alicloud SLB client for Shoot", "infrastructure", infra.Name)
-	shootAlicloudSLBClient, err := a.newClientFactory.NewSLBClient(ctx, infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
+	shootAlicloudSLBClient, err := a.newClientFactory.NewSLBClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
 	if err != nil {
 		return err
 	}
