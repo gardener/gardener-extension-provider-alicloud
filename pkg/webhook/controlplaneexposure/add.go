@@ -20,6 +20,7 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
+	corev1 "k8s.io/api/core/v1"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -47,7 +48,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 	return controlplane.New(mgr, controlplane.Args{
 		Kind:     controlplane.KindSeed,
 		Provider: alicloud.Type,
-		Types:    []runtime.Object{&appsv1.Deployment{}, &druidv1alpha1.Etcd{}},
+		Types:    []runtime.Object{&appsv1.Deployment{}, &druidv1alpha1.Etcd{}, &corev1.Service{}},
 		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, logger), nil, nil, nil, logger),
 	})
 }
