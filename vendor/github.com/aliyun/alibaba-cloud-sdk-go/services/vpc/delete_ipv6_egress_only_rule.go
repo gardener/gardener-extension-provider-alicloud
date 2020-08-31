@@ -96,6 +96,7 @@ func CreateDeleteIpv6EgressOnlyRuleRequest() (request *DeleteIpv6EgressOnlyRuleR
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DeleteIpv6EgressOnlyRule", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

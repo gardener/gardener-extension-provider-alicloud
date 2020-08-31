@@ -95,6 +95,7 @@ func CreateCancelExpressCloudConnectionRequest() (request *CancelExpressCloudCon
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "CancelExpressCloudConnection", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

@@ -104,6 +104,7 @@ func CreateCreateBandwidthPackageRequest() (request *CreateBandwidthPackageReque
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "CreateBandwidthPackage", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

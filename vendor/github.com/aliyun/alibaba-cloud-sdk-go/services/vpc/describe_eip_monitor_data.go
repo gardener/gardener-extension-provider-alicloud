@@ -99,6 +99,7 @@ func CreateDescribeEipMonitorDataRequest() (request *DescribeEipMonitorDataReque
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeEipMonitorData", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

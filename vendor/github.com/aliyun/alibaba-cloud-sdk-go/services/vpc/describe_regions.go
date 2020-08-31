@@ -97,6 +97,7 @@ func CreateDescribeRegionsRequest() (request *DescribeRegionsRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeRegions", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

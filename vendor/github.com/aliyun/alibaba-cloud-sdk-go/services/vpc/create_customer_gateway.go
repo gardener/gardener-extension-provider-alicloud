@@ -84,6 +84,7 @@ type CreateCustomerGatewayRequest struct {
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
 	Name                 string           `position:"Query" name:"Name"`
+	Asn                  string           `position:"Query" name:"Asn"`
 }
 
 // CreateCustomerGatewayResponse is the response struct for api CreateCustomerGateway
@@ -103,6 +104,7 @@ func CreateCreateCustomerGatewayRequest() (request *CreateCustomerGatewayRequest
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "CreateCustomerGateway", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

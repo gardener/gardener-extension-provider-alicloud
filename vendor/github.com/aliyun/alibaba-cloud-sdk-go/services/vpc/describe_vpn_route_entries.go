@@ -79,6 +79,7 @@ type DescribeVpnRouteEntriesRequest struct {
 	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
 	PageNumber           requests.Integer `position:"Query" name:"PageNumber"`
 	PageSize             requests.Integer `position:"Query" name:"PageSize"`
+	RouteEntryType       string           `position:"Query" name:"RouteEntryType"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	VpnGatewayId         string           `position:"Query" name:"VpnGatewayId"`
@@ -101,6 +102,7 @@ func CreateDescribeVpnRouteEntriesRequest() (request *DescribeVpnRouteEntriesReq
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeVpnRouteEntries", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

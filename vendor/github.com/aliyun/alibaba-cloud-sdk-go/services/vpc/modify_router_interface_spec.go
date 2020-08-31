@@ -98,6 +98,7 @@ func CreateModifyRouterInterfaceSpecRequest() (request *ModifyRouterInterfaceSpe
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "ModifyRouterInterfaceSpec", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

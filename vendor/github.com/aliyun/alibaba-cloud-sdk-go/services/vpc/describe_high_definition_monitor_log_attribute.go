@@ -101,6 +101,7 @@ func CreateDescribeHighDefinitionMonitorLogAttributeRequest() (request *Describe
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeHighDefinitionMonitorLogAttribute", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

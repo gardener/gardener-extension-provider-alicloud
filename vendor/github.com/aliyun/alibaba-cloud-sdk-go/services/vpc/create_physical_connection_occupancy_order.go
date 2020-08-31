@@ -100,6 +100,7 @@ func CreateCreatePhysicalConnectionOccupancyOrderRequest() (request *CreatePhysi
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "CreatePhysicalConnectionOccupancyOrder", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

@@ -99,6 +99,7 @@ func CreateCreateSslVpnClientCertRequest() (request *CreateSslVpnClientCertReque
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "CreateSslVpnClientCert", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

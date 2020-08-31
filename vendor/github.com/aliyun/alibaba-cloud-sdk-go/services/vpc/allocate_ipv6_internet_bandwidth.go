@@ -101,6 +101,7 @@ func CreateAllocateIpv6InternetBandwidthRequest() (request *AllocateIpv6Internet
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "AllocateIpv6InternetBandwidth", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

@@ -97,6 +97,7 @@ func CreateDeleteIPv6TranslatorEntryRequest() (request *DeleteIPv6TranslatorEntr
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DeleteIPv6TranslatorEntry", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

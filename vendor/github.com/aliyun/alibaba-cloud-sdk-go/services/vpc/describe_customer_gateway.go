@@ -92,6 +92,7 @@ type DescribeCustomerGatewayResponse struct {
 	Name              string `json:"Name" xml:"Name"`
 	Description       string `json:"Description" xml:"Description"`
 	CreateTime        int64  `json:"CreateTime" xml:"CreateTime"`
+	Asn               int    `json:"Asn" xml:"Asn"`
 }
 
 // CreateDescribeCustomerGatewayRequest creates a request to invoke DescribeCustomerGateway API
@@ -100,6 +101,7 @@ func CreateDescribeCustomerGatewayRequest() (request *DescribeCustomerGatewayReq
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeCustomerGateway", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

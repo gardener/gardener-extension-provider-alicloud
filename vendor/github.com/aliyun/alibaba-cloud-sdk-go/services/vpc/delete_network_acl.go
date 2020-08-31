@@ -95,6 +95,7 @@ func CreateDeleteNetworkAclRequest() (request *DeleteNetworkAclRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DeleteNetworkAcl", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

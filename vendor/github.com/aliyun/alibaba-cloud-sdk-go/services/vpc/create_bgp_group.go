@@ -82,6 +82,7 @@ type CreateBgpGroupRequest struct {
 	Description          string           `position:"Query" name:"Description"`
 	PeerAsn              requests.Integer `position:"Query" name:"PeerAsn"`
 	IsFakeAsn            requests.Boolean `position:"Query" name:"IsFakeAsn"`
+	IpVersion            string           `position:"Query" name:"IpVersion"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
@@ -103,6 +104,7 @@ func CreateCreateBgpGroupRequest() (request *CreateBgpGroupRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "CreateBgpGroup", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

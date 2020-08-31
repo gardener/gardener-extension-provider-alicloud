@@ -96,6 +96,7 @@ func CreateModifyCommonBandwidthPackageSpecRequest() (request *ModifyCommonBandw
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "ModifyCommonBandwidthPackageSpec", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

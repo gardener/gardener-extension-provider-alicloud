@@ -98,6 +98,7 @@ func CreateModifyFlowLogAttributeRequest() (request *ModifyFlowLogAttributeReque
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "ModifyFlowLogAttribute", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

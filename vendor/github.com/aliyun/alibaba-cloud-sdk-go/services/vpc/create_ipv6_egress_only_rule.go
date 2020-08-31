@@ -101,6 +101,7 @@ func CreateCreateIpv6EgressOnlyRuleRequest() (request *CreateIpv6EgressOnlyRuleR
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "CreateIpv6EgressOnlyRule", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

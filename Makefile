@@ -35,6 +35,11 @@ ifeq ($(WEBHOOK_CONFIG_MODE), service)
   WEBHOOK_PARAM := --webhook-config-namespace=$(EXTENSION_NAMESPACE)
 endif
 
+REGION                 := eu-central-1
+ACCESS_KEY_ID_FILE     := .kube-secrets/alicloud/access_key_id.secret
+ACCESS_KEY_SECRET_FILE := .kube-secrets/alicloud/access_key_secret.secret
+VPC_ID_FILE            := .kube-secrets/alicloud/vpc_id.secret
+
 #########################################
 # Rules for local development scenarios #
 #########################################
@@ -140,3 +145,13 @@ verify: check format test
 
 .PHONY: verify-extended
 verify-extended: install-requirements check-generate check format test-cov test-clean
+
+.PHONY: integration-test-infra
+integration-test-infra:
+	@go test -timeout=0 -mod=vendor ./test/integration/infrastructure \
+		--v -ginkgo.v -ginkgo.progress \
+		--kubeconfig=${KUBECONFIG} \
+		--access-key-id='$(shell cat $(ACCESS_KEY_ID_FILE))' \
+		--access-key-secret='$(shell cat $(ACCESS_KEY_SECRET_FILE))' \
+		--region=$(REGION) \
+		--vpc-id='$(shell cat $(VPC_ID_FILE))'
