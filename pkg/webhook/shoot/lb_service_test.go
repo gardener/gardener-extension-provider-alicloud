@@ -40,14 +40,20 @@ var _ = Describe("Mutator", func() {
 				Name:      "vpn-shoot",
 				Namespace: metav1.NamespaceSystem,
 			},
-			Spec: corev1.ServiceSpec{ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster},
+			Spec: corev1.ServiceSpec{
+				Type:                  corev1.ServiceTypeLoadBalancer,
+				ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster,
+			},
 		}
 		nginxIngressSvc = &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "addons-nginx-ingress-controller",
 				Namespace: metav1.NamespaceSystem,
 			},
-			Spec: corev1.ServiceSpec{ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster},
+			Spec: corev1.ServiceSpec{
+				Type:                  corev1.ServiceTypeLoadBalancer,
+				ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster,
+			},
 		}
 		otherSvc = &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{

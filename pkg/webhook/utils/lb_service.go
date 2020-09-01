@@ -18,7 +18,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// MutateLBService mutates ServiceExternalTrafficPolicyTypeLocal of LoadBalancer type service
 func MutateLBService(new, old *corev1.Service) error {
+	if new.Spec.Type != corev1.ServiceTypeLoadBalancer {
+		return nil
+	}
+
 	new.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
 
 	// Do not overwrite '.spec.healthCheckNodePort'
