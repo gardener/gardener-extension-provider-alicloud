@@ -62,9 +62,8 @@ var _ = Describe("Ensurer", func() {
 
 		dummyContext = genericmutator.NewEnsurerContext(nil, nil)
 
-		svcKey = client.ObjectKey{Namespace: namespace, Name: v1beta1constants.DeploymentNameKubeAPIServer}
-		svc    *corev1.Service
-
+		svcKey  = client.ObjectKey{Namespace: namespace, Name: v1beta1constants.DeploymentNameKubeAPIServer}
+		svc     *corev1.Service
 		cluster = &extensionsv1alpha1.Cluster{
 			Spec: extensionsv1alpha1.ClusterSpec{
 				Shoot: runtime.RawExtension{
@@ -82,6 +81,7 @@ var _ = Describe("Ensurer", func() {
 				Namespace: namespace,
 			},
 			Spec: corev1.ServiceSpec{
+				Type:                  corev1.ServiceTypeLoadBalancer,
 				ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster,
 			},
 			Status: corev1.ServiceStatus{
@@ -203,20 +203,31 @@ var _ = Describe("Ensurer", func() {
 	Describe("#EnsureKubeAPIServerService", func() {
 		It("should set ExternalTrafficPolicy to Local for kube-apiserver service", func() {
 			ensurer := NewEnsurer(etcdStorage, logger)
-			err := ensurer.EnsureKubeAPIServerService(context.TODO(), dummyContext, svc, nil)
+			newSvc := svc.DeepCopy()
+			err := ensurer.EnsureKubeAPIServerService(context.TODO(), dummyContext, newSvc, nil)
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(svc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
+			Expect(newSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
 		})
-
-		It("should not overwrite .spec.healthCheckNodePort for kube-apiserver service", func() {
-			oldVpnSvc := svc.DeepCopy()
-			oldVpnSvc.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
-			oldVpnSvc.Spec.HealthCheckNodePort = 31279
+		It("should not set ExternalTrafficPolicy to Local for kube-apiserver service with APIServerSNI enabled", func() {
 			ensurer := NewEnsurer(etcdStorage, logger)
-			err := ensurer.EnsureKubeAPIServerService(context.TODO(), dummyContext, svc, oldVpnSvc)
+			newSvc := svc.DeepCopy()
+			newSvc.Spec.Type = corev1.ServiceTypeClusterIP
+			newSvc.Spec.ExternalTrafficPolicy = ""
+			err := ensurer.EnsureKubeAPIServerService(context.TODO(), dummyContext, newSvc, nil)
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(svc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
-			Expect(svc.Spec.HealthCheckNodePort).To(Equal(int32(31279)))
+			Expect(string(newSvc.Spec.ExternalTrafficPolicy)).To(Equal(""))
+		})
+		It("should set .spec.healthCheckNodePort for new kube-apiserver service", func() {
+			oldSvc := svc.DeepCopy()
+			oldSvc.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
+			oldSvc.Spec.HealthCheckNodePort = 31279
+
+			newSvc := svc.DeepCopy()
+			ensurer := NewEnsurer(etcdStorage, logger)
+			err := ensurer.EnsureKubeAPIServerService(context.TODO(), dummyContext, newSvc, oldSvc)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(newSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
+			Expect(newSvc.Spec.HealthCheckNodePort).To(Equal(int32(31279)))
 		})
 	})
 
