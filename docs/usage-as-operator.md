@@ -1,12 +1,16 @@
 # Using the Alicloud provider extension with Gardener as operator
 
-The [`core.gardener.cloud/v1alpha1.CloudProfile` resource](https://github.com/gardener/gardener/blob/master/example/30-cloudprofile.yaml) declares a `providerConfig` field that is meant to contain provider-specific configuration.
+The [`core.gardener.cloud/v1beta1.CloudProfile` resource](https://github.com/gardener/gardener/blob/master/example/30-cloudprofile.yaml) declares a `providerConfig` field that is meant to contain provider-specific configuration.
+The [`core.gardener.cloud/v1beta1.Seed` resource](https://github.com/gardener/gardener/blob/master/example/50-seed.yaml) is structured similarly.
+Additionally, it allows configuring settings for the backups of the main etcds' data of shoot clusters control planes running in this seed cluster.
 
-In this document we are describing how this configuration looks like for Alicloud and provide an example `CloudProfile` manifest with minimal configuration that you can use to allow creating Alicloud shoot clusters.
+This document explains the necessary configuration for this provider extension. In addition, this document also describes how to enable the use of customized machine images for Alicloud.
 
-In addition, this document also describes how to enable the use of customized machine images for Alicloud.
+## `CloudProfile` resource
 
-## `CloudProfileConfig`
+This section describes, how the configuration for `CloudProfile` looks like for Alicloud by providing an example `CloudProfile` manifest with minimal configuration that can be used to allow the creation of Alicloud shoot clusters.
+
+### `CloudProfileConfig`
 
 The cloud profile configuration contains information about the real machine image IDs in the Alicloud environment (AMIs).
 You have to map every version that you specify in `.spec.machineImages[].versions` here such that the Alicloud extension knows the AMI for every version you want to offer.
@@ -25,7 +29,7 @@ machineImages:
       id: coreos_2023_4_0_64_30G_alibase_20190319.vhd
 ```
 
-## Example `CloudProfile` manifest
+### Example `CloudProfile` manifest
 
 Please find below an example `CloudProfile` manifest:
 
@@ -109,7 +113,7 @@ whitelistedImageIDs:
 - <image_id_3>
 ```
 
-## Example `ControllerRegistration` manifest for enabling customized machine images
+### Example `ControllerRegistration` manifest for enabling customized machine images
 
 ```yaml
 apiVersion: core.gardener.cloud/v1beta1
@@ -159,3 +163,40 @@ spec:
   - kind: Worker
     type: alicloud
 ```
+
+## `Seed` resource
+
+This provider extension does not support any provider configuration for the `Seed`'s `.spec.provider.providerConfig` field.
+However, it supports to managing of backup infrastructure, i.e., you can specify a configuration for the `.spec.backup` field.
+
+### Backup configuration
+
+A Seed of type `alicloud` can be configured to perform backups for the main etcds' of the shoot clusters control planes using Alicloud [Object Storage Service](https://www.alibabacloud.com/help/doc-detail/31817.htm).
+
+The location/region where the backups will be stored defaults to the region of the Seed (`spec.provider.region`).
+
+Please find below an example `Seed` manifest (partly) that configures backups using Alicloud Object Storage Service.
+
+```yaml
+---
+apiVersion: core.gardener.cloud/v1beta1
+kind: Seed
+metadata:
+  name: my-seed
+spec:
+  provider:
+    type: alicloud
+    region: cn-shanghai
+  backup:
+    provider: alicloud
+    secretRef:
+      name: backup-credentials
+      namespace: garden
+  ...
+```
+An example of the referenced secret containing the credentials for the Alicloud Object Storage Service can be found in the [example folder](https://github.com/gardener/gardener-extension-provider-alicloud/blob/master/example/30-etcd-backup-secret.yaml).
+
+#### Permissions for Alicloud Object Storage Service
+
+Please make sure the RAM user associated with the provided AccessKey pair has the following permission. 
+- AliyunOSSFullAccess
