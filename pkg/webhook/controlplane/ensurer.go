@@ -135,6 +135,11 @@ func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, ectx gene
 }
 
 func ensureKubeletCommandLineArgs(command []string) []string {
+	// TODO: Figure out how to provide the provider-id via the kubelet config file (as of Kubernetes 1.19 the kubelet config
+	// offers a new `providerID` field which can be used, and it's expected that `--provider-id` will be deprecated eventually).
+	// Today, the problem is that the provider ID is determined dynamically using the script above, but the kubelet config cannot
+	// reference environment variables like it's possible today with the CLI parameters.
+	// See https://github.com/kubernetes/kubernetes/pull/90494
 	command = extensionswebhook.EnsureStringWithPrefix(command, "--provider-id=", "${PROVIDER_ID}")
 	command = extensionswebhook.EnsureStringWithPrefix(command, "--cloud-provider=", "external")
 	command = extensionswebhook.EnsureStringWithPrefix(command, "--enable-controller-attach-detach=", "true")
