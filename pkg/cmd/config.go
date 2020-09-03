@@ -93,6 +93,13 @@ func (c *Config) ApplyETCDStorage(etcdStorage *config.ETCDStorage) {
 	*etcdStorage = c.Config.ETCD.Storage
 }
 
+// ApplyKubeAPIServer sets the given KubeAPIServer configuration to that of this Config.
+func (c *Config) ApplyKubeAPIServer(apiServer *config.KubeAPIServer) {
+	if c.Config.KubeAPIServer != nil {
+		*apiServer = *c.Config.KubeAPIServer
+	}
+}
+
 // ApplyETCDBackup sets the given etcd backup configuration to that of this Config.
 func (c *Config) ApplyETCDBackup(etcdBackup *config.ETCDBackup) {
 	*etcdBackup = c.Config.ETCD.Backup

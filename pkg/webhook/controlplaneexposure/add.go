@@ -38,6 +38,8 @@ var (
 type AddOptions struct {
 	// ETCDStorage is the etcd storage configuration.
 	ETCDStorage config.ETCDStorage
+	// KubeAPIServer is the KubeAPIServer configuration.
+	KubeAPIServer config.KubeAPIServer
 }
 
 var logger = log.Log.WithName("alicloud-controlplaneexposure-webhook")
@@ -49,7 +51,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 		Kind:     controlplane.KindSeed,
 		Provider: alicloud.Type,
 		Types:    []runtime.Object{&appsv1.Deployment{}, &druidv1alpha1.Etcd{}, &corev1.Service{}},
-		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, logger), nil, nil, nil, logger),
+		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, &opts.KubeAPIServer, logger), nil, nil, nil, logger),
 	})
 }
 

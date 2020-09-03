@@ -22,6 +22,10 @@ data:
       name: {{ .Values.config.machineImageOwnerSecret.name }}
       namespace: {{ .Release.Namespace }}
 {{- end }}
+{{- if .Values.config.kubeAPIServer }}
+    kubeAPIServer:
+      mutateExternalTrafficPolicy: {{ .Values.config.kubeAPIServer.mutateExternalTrafficPolicy }}
+{{- end}}
 {{- if .Values.config.whitelistedImageIDs }}
     whitelistedImageIDs:
     {{- range .Values.config.whitelistedImageIDs }}
