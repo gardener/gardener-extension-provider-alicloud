@@ -39,11 +39,19 @@ type ControllerConfiguration struct {
 	MachineImageOwnerSecretRef *corev1.SecretReference `json:"machineImageOwnerSecretRef,omitempty"`
 	// WhitelistedImageIDs specifies an array of image IDs that will bypass image sharing.
 	WhitelistedImageIDs []string `json:"whitelistedImageIDs,omitempty"`
+	// KubeAPIServer is the KubeAPIServer configuration.
+	KubeAPIServer *KubeAPIServer `json:"kubeAPIServer,omitempty"`
 	// ETCD is the etcd configuration.
 	ETCD ETCD `json:"etcd"`
 	// HealthCheckConfig is the config for the health check controller
 	// +optional
 	HealthCheckConfig *healthcheckconfigv1alpha1.HealthCheckConfig `json:"healthCheckConfig,omitempty"`
+}
+
+// KubeAPIServer is a KubeAPIServer configuration.
+type KubeAPIServer struct {
+	// MutateExternalTrafficPolicy specifies whether to mutate KubeAPIServer Service's ExternalTrafficPolicy to Local
+	MutateExternalTrafficPolicy bool `json:"mutateExternalTrafficPolicy"`
 }
 
 // ETCD is an etcd configuration.

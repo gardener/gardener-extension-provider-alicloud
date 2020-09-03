@@ -57,8 +57,8 @@ var _ = Describe("Ensurer", func() {
 			ClassName: pointer.StringPtr("gardener.cloud-fast"),
 			Capacity:  utils.QuantityPtr(resource.MustParse("25Gi")),
 		}
-
-		ctrl *gomock.Controller
+		kubeAPIServer = &config.KubeAPIServer{MutateExternalTrafficPolicy: true}
+		ctrl          *gomock.Controller
 
 		dummyContext = genericmutator.NewEnsurerContext(nil, nil)
 
@@ -123,7 +123,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 
 			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), dummyContext, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
@@ -155,7 +155,7 @@ var _ = Describe("Ensurer", func() {
 			c.EXPECT().Get(context.TODO(), svcKey, &corev1.Service{}).DoAndReturn(clientGet(svc))
 
 			// Create ensurer
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 			err := ensurer.(inject.Client).InjectClient(c)
 			Expect(err).To(Not(HaveOccurred()))
 
@@ -190,7 +190,7 @@ var _ = Describe("Ensurer", func() {
 			c.EXPECT().Get(context.TODO(), svcKey, &corev1.Service{}).DoAndReturn(clientGet(svc))
 
 			// Create ensurer
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 			err := ensurer.(inject.Client).InjectClient(c)
 			Expect(err).To(Not(HaveOccurred()))
 
@@ -202,14 +202,21 @@ var _ = Describe("Ensurer", func() {
 	})
 	Describe("#EnsureKubeAPIServerService", func() {
 		It("should set ExternalTrafficPolicy to Local for kube-apiserver service", func() {
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 			newSvc := svc.DeepCopy()
 			err := ensurer.EnsureKubeAPIServerService(context.TODO(), dummyContext, newSvc, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(newSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
 		})
+		It("should not set ExternalTrafficPolicy to Local for kube-apiserver service when MutateKubeAPIServerService is disabled", func() {
+			ensurer := NewEnsurer(etcdStorage, &config.KubeAPIServer{}, logger)
+			newSvc := svc.DeepCopy()
+			err := ensurer.EnsureKubeAPIServerService(context.TODO(), dummyContext, newSvc, nil)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(newSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeCluster))
+		})
 		It("should not set ExternalTrafficPolicy to Local for kube-apiserver service with APIServerSNI enabled", func() {
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 			newSvc := svc.DeepCopy()
 			newSvc.Spec.Type = corev1.ServiceTypeClusterIP
 			newSvc.Spec.ExternalTrafficPolicy = ""
@@ -223,7 +230,7 @@ var _ = Describe("Ensurer", func() {
 			oldSvc.Spec.HealthCheckNodePort = 31279
 
 			newSvc := svc.DeepCopy()
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 			err := ensurer.EnsureKubeAPIServerService(context.TODO(), dummyContext, newSvc, oldSvc)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(newSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
@@ -240,7 +247,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 
 			// Call EnsureETCDStatefulSet method and check the result
 			err := ensurer.EnsureETCD(context.TODO(), dummyContext, etcd, nil)
@@ -260,7 +267,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 
 			// Call EnsureETCDStatefulSet method and check the result
 			err := ensurer.EnsureETCD(context.TODO(), dummyContext, etcd, nil)
@@ -276,7 +283,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 
 			// Call EnsureETCDStatefulSet method and check the result
 			err := ensurer.EnsureETCD(context.TODO(), dummyContext, etcd, nil)
@@ -296,7 +303,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(etcdStorage, logger)
+			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, logger)
 
 			// Call EnsureETCDStatefulSet method and check the result
 			err := ensurer.EnsureETCD(context.TODO(), dummyContext, etcd, nil)
