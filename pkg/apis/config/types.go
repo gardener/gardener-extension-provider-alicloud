@@ -37,10 +37,18 @@ type ControllerConfiguration struct {
 	MachineImageOwnerSecretRef *corev1.SecretReference
 	// WhitelistedImageIDs specifies an array of image IDs that will bypass image sharing.
 	WhitelistedImageIDs []string
+	// KubeAPIServer is the KubeAPIServer configuration.
+	KubeAPIServer *KubeAPIServer
 	// ETCD is the etcd configuration.
 	ETCD ETCD
 	// HealthCheckConfig is the config for the health check controller
 	HealthCheckConfig *healthcheckconfig.HealthCheckConfig
+}
+
+// KubeAPIServer is a KubeAPIServer configuration.
+type KubeAPIServer struct {
+	// MutateExternalTrafficPolicy specifies whether to mutate KubeAPIServer Service's ExternalTrafficPolicy to Local
+	MutateExternalTrafficPolicy bool
 }
 
 // ETCD is an etcd configuration.

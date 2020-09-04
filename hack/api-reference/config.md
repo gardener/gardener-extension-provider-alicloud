@@ -84,6 +84,19 @@ We currently assume multiple customized images should always be under this accou
 </tr>
 <tr>
 <td>
+<code>kubeAPIServer</code></br>
+<em>
+<a href="#alicloud.provider.extensions.config.gardener.cloud/v1alpha1.KubeAPIServer">
+KubeAPIServer
+</a>
+</em>
+</td>
+<td>
+<p>KubeAPIServer is the KubeAPIServer configuration.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>etcd</code></br>
 <em>
 <a href="#alicloud.provider.extensions.config.gardener.cloud/v1alpha1.ETCD">
@@ -228,6 +241,36 @@ k8s.io/apimachinery/pkg/api/resource.Quantity
 <td>
 <em>(Optional)</em>
 <p>Capacity is the storage capacity used in etcd-main volume claims.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="alicloud.provider.extensions.config.gardener.cloud/v1alpha1.KubeAPIServer">KubeAPIServer
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#alicloud.provider.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration</a>)
+</p>
+<p>
+<p>KubeAPIServer is a KubeAPIServer configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mutateExternalTrafficPolicy</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>MutateExternalTrafficPolicy specifies whether to mutate KubeAPIServer Service&rsquo;s ExternalTrafficPolicy to Local</p>
 </td>
 </tr>
 </tbody>
