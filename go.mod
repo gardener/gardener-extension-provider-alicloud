@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/ahmetb/gen-crd-api-reference-docs v0.1.5
-	github.com/aliyun/alibaba-cloud-sdk-go v1.60.340
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.442
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.1+incompatible
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/frankban/quicktest v1.9.0 // indirect
@@ -20,7 +20,7 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/pierrec/lz4 v2.5.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.5.0 // indirect
+	github.com/sirupsen/logrus v1.5.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/ulikunitz/xz v0.5.7 // indirect

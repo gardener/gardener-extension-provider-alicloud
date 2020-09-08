@@ -79,6 +79,7 @@ type CreateRouteEntryRequest struct {
 	ResourceOwnerId      requests.Integer               `position:"Query" name:"ResourceOwnerId"`
 	RouteEntryName       string                         `position:"Query" name:"RouteEntryName"`
 	ClientToken          string                         `position:"Query" name:"ClientToken"`
+	Description          string                         `position:"Query" name:"Description"`
 	NextHopId            string                         `position:"Query" name:"NextHopId"`
 	NextHopType          string                         `position:"Query" name:"NextHopType"`
 	RouteTableId         string                         `position:"Query" name:"RouteTableId"`
@@ -109,6 +110,7 @@ func CreateCreateRouteEntryRequest() (request *CreateRouteEntryRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "CreateRouteEntry", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

@@ -105,6 +105,7 @@ func CreateDescribeNetworkAclsRequest() (request *DescribeNetworkAclsRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeNetworkAcls", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

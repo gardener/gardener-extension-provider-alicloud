@@ -107,6 +107,7 @@ func CreateDescribeRouteTablesRequest() (request *DescribeRouteTablesRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeRouteTables", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

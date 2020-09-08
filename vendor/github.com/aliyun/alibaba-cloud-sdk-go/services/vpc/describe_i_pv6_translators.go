@@ -108,6 +108,7 @@ func CreateDescribeIPv6TranslatorsRequest() (request *DescribeIPv6TranslatorsReq
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeIPv6Translators", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

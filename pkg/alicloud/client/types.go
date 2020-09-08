@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	alicloudvpc "github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 )
 
 // DefaultInternetChargeType is used for EIP
@@ -56,11 +56,11 @@ type SLB interface {
 // VPC is an interface which must be implemented by alicloud vpc clients.
 type VPC interface {
 	// DescribeVpcs describes the VPCs for the request.
-	DescribeVpcs(req *alicloudvpc.DescribeVpcsRequest) (*alicloudvpc.DescribeVpcsResponse, error)
+	DescribeVpcs(req *vpc.DescribeVpcsRequest) (*vpc.DescribeVpcsResponse, error)
 	// DescribeNatGateways describes the NAT gateways for the request.
-	DescribeNatGateways(req *alicloudvpc.DescribeNatGatewaysRequest) (*alicloudvpc.DescribeNatGatewaysResponse, error)
+	DescribeNatGateways(req *vpc.DescribeNatGatewaysRequest) (*vpc.DescribeNatGatewaysResponse, error)
 	// DescribeEipAddresses describes the EIP addresses for the request.
-	DescribeEipAddresses(req *alicloudvpc.DescribeEipAddressesRequest) (*alicloudvpc.DescribeEipAddressesResponse, error)
+	DescribeEipAddresses(req *vpc.DescribeEipAddressesRequest) (*vpc.DescribeEipAddressesResponse, error)
 }
 
 // Storage is an interface which must be implemented by alicloud oss storage clients.

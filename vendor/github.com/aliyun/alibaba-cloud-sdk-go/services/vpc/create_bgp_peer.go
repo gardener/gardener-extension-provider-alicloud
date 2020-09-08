@@ -80,6 +80,8 @@ type CreateBgpPeerRequest struct {
 	ClientToken          string           `position:"Query" name:"ClientToken"`
 	BgpGroupId           string           `position:"Query" name:"BgpGroupId"`
 	PeerIpAddress        string           `position:"Query" name:"PeerIpAddress"`
+	BfdMultiHop          requests.Integer `position:"Query" name:"BfdMultiHop"`
+	IpVersion            string           `position:"Query" name:"IpVersion"`
 	EnableBfd            requests.Boolean `position:"Query" name:"EnableBfd"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
@@ -99,6 +101,7 @@ func CreateCreateBgpPeerRequest() (request *CreateBgpPeerRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "CreateBgpPeer", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

@@ -99,6 +99,7 @@ func CreateModifyIPv6TranslatorBandwidthRequest() (request *ModifyIPv6Translator
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "ModifyIPv6TranslatorBandwidth", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

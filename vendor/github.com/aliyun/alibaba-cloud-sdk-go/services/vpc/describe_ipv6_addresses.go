@@ -109,6 +109,7 @@ func CreateDescribeIpv6AddressesRequest() (request *DescribeIpv6AddressesRequest
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeIpv6Addresses", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

@@ -101,6 +101,7 @@ func CreateDescribeBgpNetworksRequest() (request *DescribeBgpNetworksRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeBgpNetworks", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

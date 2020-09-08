@@ -81,6 +81,9 @@ type ModifyExpressCloudConnectionAttributeRequest struct {
 	EccId                string           `position:"Query" name:"EccId"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
+	CeIp                 string           `position:"Query" name:"CeIp"`
+	BgpAs                string           `position:"Query" name:"BgpAs"`
+	PeIp                 string           `position:"Query" name:"PeIp"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
 	Name                 string           `position:"Query" name:"Name"`
 }
@@ -97,6 +100,7 @@ func CreateModifyExpressCloudConnectionAttributeRequest() (request *ModifyExpres
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "ModifyExpressCloudConnectionAttribute", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

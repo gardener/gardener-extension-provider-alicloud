@@ -96,6 +96,7 @@ func CreateDeleteIpv6InternetBandwidthRequest() (request *DeleteIpv6InternetBand
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DeleteIpv6InternetBandwidth", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

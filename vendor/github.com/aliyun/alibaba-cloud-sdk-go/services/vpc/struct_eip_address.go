@@ -47,6 +47,8 @@ type EipAddress struct {
 	Mode                          string                               `json:"Mode" xml:"Mode"`
 	DeletionProtection            bool                                 `json:"DeletionProtection" xml:"DeletionProtection"`
 	SecondLimited                 bool                                 `json:"SecondLimited" xml:"SecondLimited"`
+	SegmentInstanceId             string                               `json:"SegmentInstanceId" xml:"SegmentInstanceId"`
+	Netmode                       string                               `json:"Netmode" xml:"Netmode"`
 	AvailableRegions              AvailableRegions                     `json:"AvailableRegions" xml:"AvailableRegions"`
 	OperationLocks                OperationLocksInDescribeEipAddresses `json:"OperationLocks" xml:"OperationLocks"`
 	Tags                          TagsInDescribeEipAddresses           `json:"Tags" xml:"Tags"`

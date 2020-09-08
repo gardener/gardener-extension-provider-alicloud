@@ -106,6 +106,7 @@ func CreateDescribeIpv6GatewayAttributeRequest() (request *DescribeIpv6GatewayAt
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "DescribeIpv6GatewayAttribute", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

@@ -96,6 +96,7 @@ type DescribeNetworkInterfacesRequest struct {
 	PrimaryIpAddress     string                          `position:"Query" name:"PrimaryIpAddress"`
 	MaxResults           requests.Integer                `position:"Query" name:"MaxResults"`
 	NetworkInterfaceId   *[]string                       `position:"Query" name:"NetworkInterfaceId"  type:"Repeated"`
+	Status               string                          `position:"Query" name:"Status"`
 }
 
 // DescribeNetworkInterfacesTag is a repeated param struct in DescribeNetworkInterfacesRequest
@@ -121,6 +122,7 @@ func CreateDescribeNetworkInterfacesRequest() (request *DescribeNetworkInterface
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Ecs", "2014-05-26", "DescribeNetworkInterfaces", "ecs", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

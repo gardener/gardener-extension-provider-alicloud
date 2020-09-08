@@ -98,6 +98,7 @@ func CreateModifyVSwitchAttributeRequest() (request *ModifyVSwitchAttributeReque
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "ModifyVSwitchAttribute", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

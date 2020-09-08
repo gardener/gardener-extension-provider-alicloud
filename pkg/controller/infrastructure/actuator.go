@@ -425,9 +425,12 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return errors.Wrapf(err, "failed to apply the terraform config")
 	}
 
-	machineImages, err := a.shareCustomizedImages(ctx, infra, cluster)
-	if err != nil {
-		return errors.Wrapf(err, "failed to share the machine images")
+	var machineImages []alicloudv1alpha1.MachineImage
+	if cluster.Shoot != nil {
+		machineImages, err = a.shareCustomizedImages(ctx, infra, cluster)
+		if err != nil {
+			return errors.Wrapf(err, "failed to share the machine images")
+		}
 	}
 
 	status, err := a.extractStatus(tf, config, machineImages)

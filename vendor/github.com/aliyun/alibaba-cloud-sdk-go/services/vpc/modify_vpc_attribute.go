@@ -83,6 +83,7 @@ type ModifyVpcAttributeRequest struct {
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
+	Ipv6CidrBlock        string           `position:"Query" name:"Ipv6CidrBlock"`
 	VpcId                string           `position:"Query" name:"VpcId"`
 	CidrBlock            string           `position:"Query" name:"CidrBlock"`
 }
@@ -99,6 +100,7 @@ func CreateModifyVpcAttributeRequest() (request *ModifyVpcAttributeRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "ModifyVpcAttribute", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

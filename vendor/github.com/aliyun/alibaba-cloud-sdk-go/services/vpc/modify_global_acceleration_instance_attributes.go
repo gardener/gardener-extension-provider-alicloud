@@ -97,6 +97,7 @@ func CreateModifyGlobalAccelerationInstanceAttributesRequest() (request *ModifyG
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "ModifyGlobalAccelerationInstanceAttributes", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 

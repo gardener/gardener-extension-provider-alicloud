@@ -97,6 +97,7 @@ func CreateAssociateRouteTableRequest() (request *AssociateRouteTableRequest) {
 		RpcRequest: &requests.RpcRequest{},
 	}
 	request.InitWithApiInfo("Vpc", "2016-04-28", "AssociateRouteTable", "vpc", "openAPI")
+	request.Method = requests.POST
 	return
 }
 
