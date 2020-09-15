@@ -43,6 +43,7 @@ type STS interface {
 // ECS is an interface which must be implemented by alicloud ecs clients.
 type ECS interface {
 	CheckIfImageExists(ctx context.Context, imageID string) (bool, error)
+	CheckIfImagePublic(ctx context.Context, imageID string) (bool, error)
 	ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error
 }
 

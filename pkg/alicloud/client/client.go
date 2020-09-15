@@ -198,6 +198,24 @@ func (c *ecsClient) CheckIfImageExists(ctx context.Context, imageID string) (boo
 	return response.TotalCount > 0, nil
 }
 
+// CheckIfImagePublic checks whether given imageID can is public image
+func (c *ecsClient) CheckIfImagePublic(ctx context.Context, imageID string) (bool, error) {
+	request := ecs.CreateDescribeImagesRequest()
+	request.ImageOwnerAlias = "system"
+	request.SetScheme("HTTPS")
+	response, err := c.client.DescribeImages(request)
+	if err != nil {
+		return false, err
+	}
+
+	for _, image := range response.Images.Image {
+		if image.ImageId == imageID || image.ImageName == imageID {
+			return true, nil
+		}
+	}
+	return response.TotalCount > 0, nil
+}
+
 // ShareImageToAccount shares the given image to target account from current client
 func (c *ecsClient) ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error {
 	request := ecs.CreateModifyImageSharePermissionRequest()

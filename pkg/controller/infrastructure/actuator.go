@@ -368,6 +368,14 @@ func (a *actuator) shareCustomizedImages(ctx context.Context, infra *extensionsv
 			continue
 		}
 
+		isPublic, err := shootAlicloudECSClient.CheckIfImagePublic(ctx, imageID)
+		if err != nil {
+			return nil, err
+		}
+		if isPublic {
+			continue
+		}
+
 		exists, err := shootAlicloudECSClient.CheckIfImageExists(ctx, imageID)
 		if err != nil {
 			return nil, err
