@@ -18,7 +18,7 @@ import (
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 
-	. "github.com/gardener/gardener/pkg/utils/validation/gomega"
+	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"

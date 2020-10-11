@@ -54,6 +54,7 @@ var _ = Describe("Machines", func() {
 	var (
 		ctrl         *gomock.Controller
 		c            *mockclient.MockClient
+		statusWriter *mockclient.MockStatusWriter
 		chartApplier *mockkubernetes.MockChartApplier
 	)
 
@@ -61,6 +62,7 @@ var _ = Describe("Machines", func() {
 		ctrl = gomock.NewController(GinkgoT())
 
 		c = mockclient.NewMockClient(ctrl)
+		statusWriter = mockclient.NewMockStatusWriter(ctrl)
 		chartApplier = mockkubernetes.NewMockChartApplier(ctrl)
 	})
 
@@ -519,9 +521,8 @@ var _ = Describe("Machines", func() {
 					err := workerDelegate.DeployMachineClasses(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
-					// Test workerDelegate.GetMachineImages()
-					machineImages, err := workerDelegate.GetMachineImages(context.TODO())
-					Expect(machineImages).To(Equal(&apiv1alpha1.WorkerStatus{
+					// Test workerDelegate.UpdateMachineDeployments()
+					expectedImages := &apiv1alpha1.WorkerStatus{
 						TypeMeta: metav1.TypeMeta{
 							APIVersion: apiv1alpha1.SchemeGroupVersion.String(),
 							Kind:       "WorkerStatus",
@@ -533,7 +534,19 @@ var _ = Describe("Machines", func() {
 								ID:      machineImageID,
 							},
 						},
-					}))
+					}
+
+					workerWithExpectedImages := w.DeepCopy()
+					workerWithExpectedImages.Status.ProviderStatus = &runtime.RawExtension{
+						Object: expectedImages,
+					}
+
+					ctx := context.TODO()
+					c.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&extensionsv1alpha1.Worker{})).Return(nil)
+					c.EXPECT().Status().Return(statusWriter)
+					statusWriter.EXPECT().Update(ctx, workerWithExpectedImages).Return(nil)
+
+					err = workerDelegate.UpdateMachineImagesStatus(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					// Test workerDelegate.GenerateMachineDeployments()

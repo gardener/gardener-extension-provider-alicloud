@@ -33,7 +33,7 @@ import (
 )
 
 var (
-	// Scheme is a scheme with the types relevant for OpenStack actuators.
+	// Scheme is a scheme with the types relevant for Alicloud actuators.
 	Scheme *runtime.Scheme
 
 	decoder runtime.Decoder
