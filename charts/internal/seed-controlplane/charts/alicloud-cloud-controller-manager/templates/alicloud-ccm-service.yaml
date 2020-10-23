@@ -11,7 +11,7 @@ spec:
   clusterIP: None
   ports:
     - name: metrics
-      port: 10253
+      port: 10258
       protocol: TCP
   selector:
     app: kubernetes
