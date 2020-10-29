@@ -19,21 +19,36 @@ import (
 	"regexp"
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-
 	"github.com/gardener/gardener/pkg/apis/core"
 	"github.com/gardener/gardener/pkg/apis/core/validation"
+	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
+// AliCloudVPCCidr is the IPV4 CIDR used within AliCloud.
+// For example: the meta service endpoint is 100.100.100.200.
+// This CIDR can be accessed by any machines which is running with AliCloud VPC.
+const AliCloudVPCCidr = "100.64.0.0/10"
+
 // ValidateNetworking validates the network settings of a Shoot.
 func ValidateNetworking(networking core.Networking, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if networking.Nodes == nil {
-		allErrs = append(allErrs, field.Required(fldPath.Child("nodes"), "a nodes CIDR must be provided for Alicloud shoots"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("nodes"), "a nodes CIDR must be provided for AliCloud shoots"))
+	} else {
+		if cidrvalidation.NetworksIntersect(*networking.Nodes, AliCloudVPCCidr) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("nodes"), *networking.Nodes, "must not overlap with 100.64.0.0/10 because 10.64.0.0/10 is reserved by AliCloud"))
+		}
+	}
+	if cidrvalidation.NetworksIntersect(*networking.Pods, AliCloudVPCCidr) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("pods"), *networking.Pods, "must not overlap with 100.64.0.0/10 because 10.64.0.0/10 is reserved by AliCloud"))
+	}
+	if cidrvalidation.NetworksIntersect(*networking.Services, AliCloudVPCCidr) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("services"), *networking.Services, "must not overlap with 100.64.0.0/10 because 10.64.0.0/10 is reserved by AliCloud"))
 	}
 
 	return allErrs

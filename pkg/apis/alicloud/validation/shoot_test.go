@@ -18,7 +18,6 @@ import (
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 	"github.com/gardener/gardener/pkg/apis/core"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -28,27 +27,55 @@ import (
 
 var _ = Describe("Shoot validation", func() {
 	Describe("#ValidateNetworking", func() {
-		var networkingPath = field.NewPath("spec", "networking")
+		var (
+			networkingPath *field.Path
+			networking     core.Networking
+		)
+
+		BeforeEach(func() {
+			networkingPath = field.NewPath("spec", "networking")
+			networking = core.Networking{
+				Nodes:    pointer.StringPtr("10.252.0.0/16"),
+				Pods:     pointer.StringPtr("192.168.0.0/16"),
+				Services: pointer.StringPtr("172.16.0.0/16"),
+			}
+		})
 
 		It("should return no error because nodes CIDR was provided", func() {
-			networking := core.Networking{
-				Nodes: pointer.StringPtr("1.2.3.4/5"),
-			}
-
 			errorList := ValidateNetworking(networking, networkingPath)
-
 			Expect(errorList).To(BeEmpty())
 		})
 
 		It("should return an error because no nodes CIDR was provided", func() {
-			networking := core.Networking{}
+			networking.Nodes = nil
 
 			errorList := ValidateNetworking(networking, networkingPath)
-
 			Expect(errorList).To(ConsistOf(
 				PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":  Equal(field.ErrorTypeRequired),
 					"Field": Equal("spec.networking.nodes"),
+				})),
+			))
+		})
+
+		It("should return errors because CIDR overlaps with 100.64.0.0/10", func() {
+			networking.Nodes = pointer.StringPtr("100.100.0.0/16")
+			networking.Services = pointer.StringPtr("100.101.0.0/16")
+			networking.Pods = pointer.StringPtr("100.102.0.0/16")
+			errorList := ValidateNetworking(networking, networkingPath)
+
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("spec.networking.nodes"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("spec.networking.services"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("spec.networking.pods"),
 				})),
 			))
 		})
