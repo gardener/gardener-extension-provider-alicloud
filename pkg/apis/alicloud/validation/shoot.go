@@ -28,9 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-// AliCloudVPCCidr is the IPV4 CIDR used within AliCloud.
+// AliCloudVPCCidr is a IPV4 CIDR used within AliCloud.
 // For example: the meta service endpoint is 100.100.100.200.
-// This CIDR can be accessed by any machines which is running with AliCloud VPC.
+// This CIDR can be accessed by any machine which is running with AliCloud VPC.
 const AliCloudVPCCidr = "100.64.0.0/10"
 
 // ValidateNetworking validates the network settings of a Shoot.
