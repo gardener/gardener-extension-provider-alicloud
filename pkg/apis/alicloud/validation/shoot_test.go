@@ -27,41 +27,25 @@ import (
 
 var _ = Describe("Shoot validation", func() {
 	Describe("#ValidateNetworking", func() {
-		var (
-			networkingPath *field.Path
-			networking     core.Networking
-		)
+		var networkingPath = field.NewPath("spec", "networking")
 
-		BeforeEach(func() {
-			networkingPath = field.NewPath("spec", "networking")
-			networking = core.Networking{
+		It("should return no error because network settings are correct", func() {
+			networking := core.Networking{
 				Nodes:    pointer.StringPtr("10.252.0.0/16"),
 				Pods:     pointer.StringPtr("192.168.0.0/16"),
 				Services: pointer.StringPtr("172.16.0.0/16"),
 			}
-		})
 
-		It("should return no error because nodes CIDR was provided", func() {
 			errorList := ValidateNetworking(networking, networkingPath)
 			Expect(errorList).To(BeEmpty())
 		})
 
-		It("should return an error because no nodes CIDR was provided", func() {
-			networking.Nodes = nil
-
-			errorList := ValidateNetworking(networking, networkingPath)
-			Expect(errorList).To(ConsistOf(
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":  Equal(field.ErrorTypeRequired),
-					"Field": Equal("spec.networking.nodes"),
-				})),
-			))
-		})
-
 		It("should return errors because CIDR overlaps with 100.64.0.0/10", func() {
-			networking.Nodes = pointer.StringPtr("100.100.0.0/16")
-			networking.Services = pointer.StringPtr("100.101.0.0/16")
-			networking.Pods = pointer.StringPtr("100.102.0.0/16")
+			networking := core.Networking{
+				Nodes:    pointer.StringPtr("100.100.0.0/16"),
+				Pods:     pointer.StringPtr("100.101.0.0/16"),
+				Services: pointer.StringPtr("100.102.0.0/16"),
+			}
 			errorList := ValidateNetworking(networking, networkingPath)
 
 			Expect(errorList).To(ConsistOf(
@@ -76,6 +60,56 @@ var _ = Describe("Shoot validation", func() {
 				PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":  Equal(field.ErrorTypeInvalid),
 					"Field": Equal("spec.networking.pods"),
+				})),
+			))
+		})
+
+		It("should return errors because CIDR is nil", func() {
+			networking := core.Networking{
+				Nodes:    nil,
+				Pods:     nil,
+				Services: nil,
+			}
+
+			errorList := ValidateNetworking(networking, networkingPath)
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("spec.networking.nodes"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("spec.networking.pods"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("spec.networking.services"),
+				})),
+			))
+		})
+
+		It("should forbid updating networking CIDR", func() {
+			oldNetworking := core.Networking{
+				Nodes:    pointer.StringPtr("10.252.0.0/16"),
+				Pods:     pointer.StringPtr("192.168.0.0/16"),
+				Services: pointer.StringPtr("172.16.0.0/16"),
+			}
+
+			newNetworking := core.Networking{
+				Nodes:    pointer.StringPtr("10.250.0.0/16"),
+				Pods:     pointer.StringPtr("192.168.0.0/16"),
+				Services: pointer.StringPtr("172.17.0.0/16"),
+			}
+
+			errorList := ValidateNetworkingUpdate(oldNetworking, newNetworking, networkingPath)
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("spec.networking.nodes"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("spec.networking.services"),
 				})),
 			))
 		})
