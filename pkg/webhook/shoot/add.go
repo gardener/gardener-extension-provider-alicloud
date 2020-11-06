@@ -15,6 +15,7 @@
 package shoot
 
 import (
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/extensions/pkg/webhook/shoot"
 
@@ -31,7 +32,10 @@ var (
 )
 
 // AddOptions are options to apply when adding the Alicloud shoot webhook to the manager.
-type AddOptions struct{}
+type AddOptions struct {
+	// Service is the service configuration
+	Service config.Service
+}
 
 var logger = log.Log.WithName("alicloud-shoot-webhook")
 
@@ -40,7 +44,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 	logger.Info("Adding webhook to manager")
 	return shoot.New(mgr, shoot.Args{
 		Types:   []runtime.Object{&corev1.Service{}, &appsv1.Deployment{}},
-		Mutator: NewMutator(),
+		Mutator: NewMutator(&opts.Service),
 	})
 }
 

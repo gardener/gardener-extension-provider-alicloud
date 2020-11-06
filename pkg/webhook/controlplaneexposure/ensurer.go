@@ -37,10 +37,11 @@ import (
 )
 
 // NewEnsurer creates a new controlplaneexposure ensurer.
-func NewEnsurer(etcdStorage *config.ETCDStorage, kubeAPIServer *config.KubeAPIServer, logger logr.Logger) genericmutator.Ensurer {
+func NewEnsurer(etcdStorage *config.ETCDStorage, kubeAPIServer *config.KubeAPIServer, service *config.Service, logger logr.Logger) genericmutator.Ensurer {
 	return &ensurer{
 		etcdStorage:   etcdStorage,
 		kubeAPIServer: kubeAPIServer,
+		service:       service,
 		logger:        logger.WithName("alicloud-controlplaneexposure-ensurer"),
 	}
 }
@@ -49,6 +50,7 @@ type ensurer struct {
 	genericmutator.NoopEnsurer
 	etcdStorage   *config.ETCDStorage
 	kubeAPIServer *config.KubeAPIServer
+	service       *config.Service
 	client        client.Client
 	logger        logr.Logger
 }
@@ -62,8 +64,10 @@ func (e *ensurer) InjectClient(client client.Client) error {
 // EnsureKubeAPIServerService ensures that the kube-apiserver service conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, ectx genericmutator.EnsurerContext, new, old *corev1.Service) error {
 	if e.kubeAPIServer.MutateExternalTrafficPolicy {
-		return webhookutils.MutateLBService(new, old)
+		webhookutils.MutateExternalTrafficPolicy(new, old)
 	}
+
+	webhookutils.MutateAnnotation(new, old, e.service.BackendLoadBalancerSpec)
 
 	return nil
 }

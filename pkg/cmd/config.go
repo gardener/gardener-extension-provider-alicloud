@@ -100,6 +100,11 @@ func (c *Config) ApplyKubeAPIServer(apiServer *config.KubeAPIServer) {
 	}
 }
 
+// ApplyService sets the given service configuration to that of this Config.
+func (c *Config) ApplyService(service *config.Service) {
+	*service = c.Config.Service
+}
+
 // ApplyETCDBackup sets the given etcd backup configuration to that of this Config.
 func (c *Config) ApplyETCDBackup(etcdBackup *config.ETCDBackup) {
 	*etcdBackup = c.Config.ETCD.Backup

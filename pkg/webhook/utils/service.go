@@ -16,14 +16,18 @@ package utils
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MutateLBService mutates ServiceExternalTrafficPolicyTypeLocal of LoadBalancer type service
-func MutateLBService(new, old *corev1.Service) error {
-	if new.Spec.Type != corev1.ServiceTypeLoadBalancer {
-		return nil
-	}
+const (
+	AlicloudLoadBalancerSpecAnnotationKey = "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-spec"
+)
 
+// MutateExternalTrafficPolicy mutates ServiceExternalTrafficPolicyType to Local of LoadBalancer type service
+func MutateExternalTrafficPolicy(new, old *corev1.Service) {
+	if new.Spec.Type != corev1.ServiceTypeLoadBalancer {
+		return
+	}
 	new.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
 
 	// Do not overwrite '.spec.healthCheckNodePort'
@@ -32,6 +36,11 @@ func MutateLBService(new, old *corev1.Service) error {
 		new.Spec.HealthCheckNodePort == 0 {
 		new.Spec.HealthCheckNodePort = old.Spec.HealthCheckNodePort
 	}
+}
 
-	return nil
+// MutateAnnotation mutates annotation of LoadBalancer type service
+func MutateAnnotation(new, old *corev1.Service, loadBalancerSpec string) {
+	if new.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		metav1.SetMetaDataAnnotation(&new.ObjectMeta, AlicloudLoadBalancerSpecAnnotationKey, loadBalancerSpec)
+	}
 }
