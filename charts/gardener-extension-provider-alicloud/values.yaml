@@ -74,6 +74,8 @@ config:
 #  - image-id1
 #  - image-id2
 #  ...
+  service:
+    backendLoadBalancerSpec: slb.s1.small
 
 gardener:
   seed:

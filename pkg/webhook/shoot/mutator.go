@@ -17,6 +17,8 @@ package shoot
 import (
 	"context"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+
 	webhookutils "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/utils"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/go-logr/logr"
@@ -29,13 +31,15 @@ import (
 )
 
 type mutator struct {
-	logger logr.Logger
+	logger  logr.Logger
+	service *config.Service
 }
 
 // NewMutator creates a new Mutator that mutates resources in the shoot cluster.
-func NewMutator() extensionswebhook.Mutator {
+func NewMutator(service *config.Service) extensionswebhook.Mutator {
 	return &mutator{
-		logger: log.Log.WithName("shoot-mutator"),
+		logger:  log.Log.WithName("shoot-mutator"),
+		service: service,
 	}
 }
 
@@ -63,21 +67,21 @@ func (m *mutator) Mutate(ctx context.Context, new, old runtime.Object) error {
 			}
 
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return webhookutils.MutateLBService(x, oldSvc)
+			webhookutils.MutateAnnotation(x, oldSvc, m.service.BackendLoadBalancerSpec)
+			webhookutils.MutateExternalTrafficPolicy(x, oldSvc)
 		}
 	case *appsv1.Deployment:
 		if x.Name == "metrics-server" {
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateMetricsServerDeployment(ctx, x)
+			m.mutateMetricsServerDeployment(ctx, x)
 		}
 	}
 	return nil
 }
 
-func (m *mutator) mutateMetricsServerDeployment(ctx context.Context, dep *appsv1.Deployment) error {
+func (m *mutator) mutateMetricsServerDeployment(ctx context.Context, dep *appsv1.Deployment) {
 	ps := &dep.Spec.Template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "metrics-server"); c != nil {
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--kubelet-preferred-address-types=", "InternalIP")
 	}
-	return nil
 }

@@ -39,6 +39,8 @@ type ControllerConfiguration struct {
 	WhitelistedImageIDs []string
 	// KubeAPIServer is the KubeAPIServer configuration.
 	KubeAPIServer *KubeAPIServer
+	// Service is the service configuration
+	Service Service
 	// ETCD is the etcd configuration.
 	ETCD ETCD
 	// HealthCheckConfig is the config for the health check controller
@@ -49,6 +51,12 @@ type ControllerConfiguration struct {
 type KubeAPIServer struct {
 	// MutateExternalTrafficPolicy specifies whether to mutate KubeAPIServer Service's ExternalTrafficPolicy to Local
 	MutateExternalTrafficPolicy bool
+}
+
+// LoadBalancerService specifies Service configuration
+type Service struct {
+	// BackendLoadBalancerSpec specifies the type of backend Alicloud load balancer, default is slb.s1.small.
+	BackendLoadBalancerSpec string
 }
 
 // ETCD is an etcd configuration.
