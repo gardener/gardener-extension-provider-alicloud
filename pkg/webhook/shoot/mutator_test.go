@@ -17,6 +17,7 @@ package shoot
 import (
 	"context"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +29,9 @@ import (
 
 var _ = Describe("Mutator", func() {
 	var (
-		mutator = NewMutator()
+		service = &config.Service{BackendLoadBalancerSpec: "slb.s1.small"}
+
+		mutator = NewMutator(service)
 		dep     = &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{Name: "metrics-server"},
 			Spec: appsv1.DeploymentSpec{

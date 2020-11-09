@@ -29,6 +29,7 @@ import (
 	alicloudinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	alicloudworker "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
 	alicloudcontrolplaneexposure "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplaneexposure"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/shoot"
 	genericcontrolplaneactuator "github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
@@ -159,6 +160,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			configFileOpts.Completed().ApplyWhitelistedImageIDs(&alicloudinfrastructure.DefaultAddOptions.WhitelistedImageIDs)
 			configFileOpts.Completed().ApplyETCDStorage(&alicloudcontrolplaneexposure.DefaultAddOptions.ETCDStorage)
 			configFileOpts.Completed().ApplyKubeAPIServer(&alicloudcontrolplaneexposure.DefaultAddOptions.KubeAPIServer)
+			configFileOpts.Completed().ApplyService(&alicloudcontrolplaneexposure.DefaultAddOptions.Service)
+			configFileOpts.Completed().ApplyService(&shoot.DefaultAddOptions.Service)
 			configFileOpts.Completed().ApplyHealthCheckConfig(&healthcheck.DefaultAddOptions.HealthCheckConfig)
 			healthCheckCtrlOpts.Completed().Apply(&healthcheck.DefaultAddOptions.Controller)
 			backupBucketCtrlOpts.Completed().Apply(&alicloudbackupbucket.DefaultAddOptions.Controller)

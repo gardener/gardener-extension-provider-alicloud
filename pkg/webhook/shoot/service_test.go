@@ -17,6 +17,8 @@ package shoot
 import (
 	"context"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+
 	"github.com/gardener/gardener/extensions/pkg/webhook"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,13 +29,14 @@ import (
 var _ = Describe("Mutator", func() {
 	var (
 		mutator         webhook.Mutator
+		serviceConfig   = &config.Service{BackendLoadBalancerSpec: "slb.s1.small"}
 		vpnSvc          *corev1.Service
 		nginxIngressSvc *corev1.Service
 		otherSvc        *corev1.Service
 	)
 
 	BeforeEach(func() {
-		mutator = NewMutator()
+		mutator = NewMutator(serviceConfig)
 
 		vpnSvc = &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
