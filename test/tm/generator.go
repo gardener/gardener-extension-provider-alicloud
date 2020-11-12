@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	"github.com/go-logr/logr"
 
 	"github.com/gardener/gardener/extensions/test/tm/generator"
 	"github.com/pkg/errors"
@@ -29,20 +30,40 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-var (
-	infrastructureProviderConfigPath = flag.String("infrastructure-provider-config-filepath", "", "filepath to the provider specific infrastructure config")
-	controlplaneProviderConfigPath   = flag.String("controlplane-provider-config-filepath", "", "filepath to the provider specific controlplane config")
-
-	networkVPCCidr    = flag.String("network-vpc-cidr", "10.250.0.0/16", "vpc network cidr")
-	networkWorkerCidr = flag.String("network-worker-cidr", "10.250.0.0/19", "worker network cidr")
-
-	zone = flag.String("zone", "", "cloudprovider zone fo the shoot")
+const (
+	defaultNetworkVPCCIDR    = "10.250.0.0/16"
+	defaultNetworkWorkerCidr = "10.250.0.0/19"
 )
 
+var (
+	cfg    *GeneratorConfig
+	logger logr.Logger
+)
+
+type GeneratorConfig struct {
+	networkVPCCidr                   string
+	networkWorkerCidr                string
+	infrastructureProviderConfigPath string
+	controlplaneProviderConfigPath   string
+	zone                             string
+}
+
+func addFlags() {
+	cfg = &GeneratorConfig{}
+	flag.StringVar(&cfg.infrastructureProviderConfigPath, "infrastructure-provider-config-filepath", "", "filepath to the provider specific infrastructure config")
+	flag.StringVar(&cfg.controlplaneProviderConfigPath, "controlplane-provider-config-filepath", "", "filepath to the provider specific controlplane config")
+
+	flag.StringVar(&cfg.networkVPCCidr, "network-vpc-cidr", "", "vpc network cidr")
+	flag.StringVar(&cfg.networkWorkerCidr, "network-worker-cidr", "", "worker network cidr")
+
+	flag.StringVar(&cfg.zone, "zone", "", "cloudprovider zone fo the shoot")
+}
+
 func main() {
-	log.SetLogger(zap.Logger(false))
-	logger := log.Log.WithName("alicloud-generator")
+	addFlags()
 	flag.Parse()
+	log.SetLogger(zap.Logger(false))
+	logger = log.Log.WithName("alicloud-generator")
 	if err := validate(); err != nil {
 		logger.Error(err, "error validating input flags")
 		os.Exit(1)
@@ -55,12 +76,12 @@ func main() {
 		},
 		Networks: v1alpha1.Networks{
 			VPC: v1alpha1.VPC{
-				CIDR: networkVPCCidr,
+				CIDR: &cfg.networkVPCCidr,
 			},
 			Zones: []v1alpha1.Zone{
 				{
-					Name:    *zone,
-					Workers: *networkWorkerCidr,
+					Name:    cfg.zone,
+					Workers: cfg.networkWorkerCidr,
 				},
 			},
 		},
@@ -73,32 +94,35 @@ func main() {
 		},
 	}
 
-	if err := generator.MarshalAndWriteConfig(*infrastructureProviderConfigPath, infra); err != nil {
+	if err := generator.MarshalAndWriteConfig(cfg.infrastructureProviderConfigPath, infra); err != nil {
 		logger.Error(err, "unable to write infrastructure config")
 		os.Exit(1)
 	}
-	if err := generator.MarshalAndWriteConfig(*controlplaneProviderConfigPath, cp); err != nil {
+	if err := generator.MarshalAndWriteConfig(cfg.controlplaneProviderConfigPath, cp); err != nil {
 		logger.Error(err, "unable to write infrastructure config")
 		os.Exit(1)
 	}
-	logger.Info("successfully written alicloud provider configuration", "infra", *infrastructureProviderConfigPath, "controlplane", *controlplaneProviderConfigPath)
+	logger.Info("successfully written alicloud provider configuration", "infra", cfg.infrastructureProviderConfigPath, "controlplane", cfg.controlplaneProviderConfigPath)
 }
 
 func validate() error {
-	if err := generator.ValidateString(infrastructureProviderConfigPath); err != nil {
+	if err := generator.ValidateString(&cfg.infrastructureProviderConfigPath); err != nil {
 		return errors.Wrap(err, "error validating infrastructure provider config path")
 	}
-	if err := generator.ValidateString(controlplaneProviderConfigPath); err != nil {
+	if err := generator.ValidateString(&cfg.controlplaneProviderConfigPath); err != nil {
 		return errors.Wrap(err, "error validating controlplane provider config path")
 	}
-	if err := generator.ValidateString(networkVPCCidr); err != nil {
-		return errors.Wrap(err, "error validating VPC CIDR")
-	}
-	if err := generator.ValidateString(networkWorkerCidr); err != nil {
-		return errors.Wrap(err, "error validating worker CIDR")
-	}
-	if err := generator.ValidateString(zone); err != nil {
+	if err := generator.ValidateString(&cfg.zone); err != nil {
 		return errors.Wrap(err, "error validating zone")
+	}
+	//Optional Parameters
+	if err := generator.ValidateString(&cfg.networkVPCCidr); err != nil {
+		logger.Info("Parameter network-vpc-cidr is not set, using default.", "value", defaultNetworkVPCCIDR)
+		cfg.networkVPCCidr = defaultNetworkVPCCIDR
+	}
+	if err := generator.ValidateString(&cfg.networkWorkerCidr); err != nil {
+		logger.Info("Parameter network-worker-cidr is not set, using default.", "value", defaultNetworkWorkerCidr)
+		cfg.networkWorkerCidr = defaultNetworkWorkerCidr
 	}
 	return nil
 }
