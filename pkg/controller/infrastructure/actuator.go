@@ -484,6 +484,10 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 		slices := strings.Split(vServerGroupName, "/")
 		clusterID := slices[len(slices)-1]
 		if clusterID == infra.Namespace {
+			err = shootAlicloudSLBClient.SetLoadBalancerDeleteProtection(ctx, infra.Spec.Region, loadBalancerID, false)
+			if err != nil {
+				return err
+			}
 			err = shootAlicloudSLBClient.DeleteLoadBalancer(ctx, infra.Spec.Region, loadBalancerID)
 			if err != nil {
 				return err

@@ -51,6 +51,7 @@ type SLB interface {
 	GetLoadBalancerIDs(ctx context.Context, region string) ([]string, error)
 	GetFirstVServerGroupName(ctx context.Context, region, loadBalancerID string) (string, error)
 	DeleteLoadBalancer(ctx context.Context, region, loadBalancerID string) error
+	SetLoadBalancerDeleteProtection(ctx context.Context, region, loadBalancerID string, protection bool) error
 }
 
 // VPC is an interface which must be implemented by alicloud vpc clients.
