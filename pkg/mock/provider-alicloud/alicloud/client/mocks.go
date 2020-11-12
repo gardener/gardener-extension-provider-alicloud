@@ -270,6 +270,20 @@ func (mr *MockSLBMockRecorder) GetLoadBalancerIDs(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLoadBalancerIDs", reflect.TypeOf((*MockSLB)(nil).GetLoadBalancerIDs), arg0, arg1)
 }
 
+// SetLoadBalancerDeleteProtection mocks base method.
+func (m *MockSLB) SetLoadBalancerDeleteProtection(arg0 context.Context, arg1, arg2 string, arg3 bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetLoadBalancerDeleteProtection", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetLoadBalancerDeleteProtection indicates an expected call of SetLoadBalancerDeleteProtection.
+func (mr *MockSLBMockRecorder) SetLoadBalancerDeleteProtection(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerDeleteProtection", reflect.TypeOf((*MockSLB)(nil).SetLoadBalancerDeleteProtection), arg0, arg1, arg2, arg3)
+}
+
 // MockVPC is a mock of VPC interface.
 type MockVPC struct {
 	ctrl     *gomock.Controller

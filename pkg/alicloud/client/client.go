@@ -300,13 +300,30 @@ func (c *slbClient) GetFirstVServerGroupName(ctx context.Context, region, loadBa
 	return response.VServerGroups.VServerGroup[0].VServerGroupName, nil
 }
 
-// DeleteLoadBalancer deletes the LoadBalancer with given region and loadBalancerID
+// DeleteLoadBalancer deletes the LoadBalancer with given region and loadBalancerID.
 func (c *slbClient) DeleteLoadBalancer(ctx context.Context, region, loadBalancerID string) error {
 	request := slb.CreateDeleteLoadBalancerRequest()
 	request.SetScheme("HTTPS")
 	request.RegionId = region
 	request.LoadBalancerId = loadBalancerID
 	_, err := c.client.DeleteLoadBalancer(request)
+	return err
+}
+
+// SetLoadBalancerDeleteProtection sets the protection flag of load balancer with given loadBalancerID.
+func (c *slbClient) SetLoadBalancerDeleteProtection(ctx context.Context, region, loadBalancerID string, protection bool) error {
+	request := slb.CreateSetLoadBalancerDeleteProtectionRequest()
+
+	if protection {
+		request.DeleteProtection = "on"
+	} else {
+		request.DeleteProtection = "off"
+	}
+	request.SetScheme("HTTPS")
+	request.RegionId = region
+	request.LoadBalancerId = loadBalancerID
+	_, err := c.client.SetLoadBalancerDeleteProtection(request)
+
 	return err
 }
 
