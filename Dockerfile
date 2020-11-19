@@ -1,12 +1,12 @@
 ############# builder
-FROM golang:1.14.9 AS builder
+FROM  mirror.gcr.io/library/golang:1.14.9 AS builder
 
 WORKDIR /go/src/github.com/gardener/gardener-extension-provider-alicloud
 COPY . .
 RUN make install
 
 ############# base
-FROM alpine:3.12.0 AS base
+FROM mirror.gcr.io/library/alpine:3.12.0 AS base
 
 ############# gardener-extension-provider-alicloud
 FROM base AS gardener-extension-provider-alicloud
