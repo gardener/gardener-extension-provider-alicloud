@@ -18,14 +18,15 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/gardener/gardener/extensions/pkg/terraformer"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/logger"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/rest"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
-
-	"github.com/gardener/gardener/extensions/pkg/terraformer"
-	"github.com/gardener/gardener/pkg/logger"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -47,8 +48,8 @@ type tfStateResource struct {
 }
 
 // NewTerraformer creates a new Terraformer.
-func NewTerraformer(factory terraformer.Factory, config *rest.Config, purpose, namespace, name string) (terraformer.Terraformer, error) {
-	tf, err := factory.NewForConfig(logger.NewLogger("info"), config, purpose, namespace, name, imagevector.TerraformerImage())
+func NewTerraformer(factory terraformer.Factory, config *rest.Config, purpose string, infra *extensionsv1alpha1.Infrastructure) (terraformer.Terraformer, error) {
+	tf, err := factory.NewForConfig(logger.NewLogger("info"), config, purpose, infra.Namespace, infra.Name, imagevector.TerraformerImage())
 	if err != nil {
 		return nil, err
 	}
@@ -60,22 +61,34 @@ func NewTerraformer(factory terraformer.Factory, config *rest.Config, purpose, n
 }
 
 // NewTerraformerWithAuth creates a new Terraformer and initializes it with the credentials.
-func NewTerraformerWithAuth(factory terraformer.Factory, config *rest.Config, purpose, namespace, name string, credentials *alicloud.Credentials) (terraformer.Terraformer, error) {
-	tf, err := NewTerraformer(factory, config, purpose, namespace, name)
+func NewTerraformerWithAuth(factory terraformer.Factory, config *rest.Config, purpose string, infra *extensionsv1alpha1.Infrastructure) (terraformer.Terraformer, error) {
+	tf, err := NewTerraformer(factory, config, purpose, infra)
 	if err != nil {
 		return nil, err
 	}
 
-	return tf.SetVariablesEnvironment(TerraformVariablesEnvironmentFromCredentials(credentials)), nil
+	return tf.SetEnvVars(TerraformerEnvVars(infra.Spec.SecretRef)...), nil
 }
 
-// TerraformVariablesEnvironmentFromCredentials computes the Terraformer variables environment from the
-// given ServiceAccount.
-func TerraformVariablesEnvironmentFromCredentials(credentials *alicloud.Credentials) map[string]string {
-	return map[string]string{
-		TerraformVarAccessKeyID:     credentials.AccessKeyID,
-		TerraformVarAccessKeySecret: credentials.AccessKeySecret,
-	}
+// TerraformerEnvVars computes the Terraformer environment variables from the given secret ref.
+func TerraformerEnvVars(secretRef corev1.SecretReference) []corev1.EnvVar {
+	return []corev1.EnvVar{{
+		Name: TerraformVarAccessKeyID,
+		ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: secretRef.Name,
+			},
+			Key: alicloud.AccessKeyID,
+		}},
+	}, {
+		Name: TerraformVarAccessKeySecret,
+		ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: secretRef.Name,
+			},
+			Key: alicloud.AccessKeySecret,
+		}},
+	}}
 }
 
 // IsStateEmpty checks the Terraformer state: 1. is empty or not; 2. contains resources or not
