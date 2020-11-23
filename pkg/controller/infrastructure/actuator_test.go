@@ -20,16 +20,6 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
-	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
-	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
-	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
-	mockinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/controller/infrastructure"
-
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	realterraformer "github.com/gardener/gardener/extensions/pkg/terraformer"
@@ -51,6 +41,15 @@ import (
 	"k8s.io/helm/pkg/manifest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
+	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
+	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
+	mockinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/controller/infrastructure"
 )
 
 func ExpectInject(ok bool, err error) {
@@ -238,10 +237,7 @@ var _ = Describe("Actuator", func() {
 					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
 					terraformer.EXPECT().SetDeadlinePod(15*time.Minute).Return(terraformer),
 
-					terraformer.EXPECT().SetVariablesEnvironment(map[string]string{
-						common.TerraformVarAccessKeyID:     accessKeyID,
-						common.TerraformVarAccessKeySecret: accessKeySecret,
-					}).Return(terraformer),
+					terraformer.EXPECT().SetEnvVars(gomock.Any()).Return(terraformer),
 
 					alicloudClientFactory.EXPECT().NewVPCClient(region, accessKeyID, accessKeySecret).Return(vpcClient, nil),
 
@@ -361,10 +357,7 @@ var _ = Describe("Actuator", func() {
 					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
 					terraformer.EXPECT().SetDeadlinePod(15*time.Minute).Return(terraformer),
 
-					terraformer.EXPECT().SetVariablesEnvironment(map[string]string{
-						common.TerraformVarAccessKeyID:     accessKeyID,
-						common.TerraformVarAccessKeySecret: accessKeySecret,
-					}).Return(terraformer),
+					terraformer.EXPECT().SetEnvVars(gomock.Any()).Return(terraformer),
 
 					alicloudClientFactory.EXPECT().NewVPCClient(region, accessKeyID, accessKeySecret).Return(vpcClient, nil),
 

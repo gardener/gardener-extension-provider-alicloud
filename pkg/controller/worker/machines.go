@@ -39,6 +39,11 @@ func (w *workerDelegate) MachineClassKind() string {
 	return "AlicloudMachineClass"
 }
 
+// MachineClass yields a newly initialized AlicloudMachineClass object.
+func (w *workerDelegate) MachineClass() runtime.Object {
+	return &machinev1alpha1.AlicloudMachineClass{}
+}
+
 // MachineClassList yields a newly initialized AlicloudMachineClassList object.
 func (w *workerDelegate) MachineClassList() runtime.Object {
 	return &machinev1alpha1.AlicloudMachineClassList{}

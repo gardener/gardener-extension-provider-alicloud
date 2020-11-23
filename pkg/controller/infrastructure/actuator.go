@@ -198,10 +198,6 @@ func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, conf
 	return a.terraformerFactory.DefaultInitializer(a.Client(), files.Main, files.Variables, files.TFVars, stateInitializer), nil
 }
 
-func (a *actuator) newTerraformer(infra *extensionsv1alpha1.Infrastructure, credentials *alicloud.Credentials) (terraformer.Terraformer, error) {
-	return common.NewTerraformerWithAuth(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra.Namespace, infra.Name, credentials)
-}
-
 func (a *actuator) extractStatus(tf terraformer.Terraformer, infraConfig *alicloudv1alpha1.InfrastructureConfig, machineImages []alicloudv1alpha1.MachineImage) (*alicloudv1alpha1.InfrastructureStatus, error) {
 	outputVarKeys := []string{
 		TerraformerOutputKeyVPCID,
@@ -406,7 +402,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return err
 	}
 
-	tf, err := a.newTerraformer(infra, credentials)
+	tf, err := common.NewTerraformerWithAuth(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
 	if err != nil {
 		return err
 	}
@@ -499,7 +495,7 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 
 // Delete implements infrastructure.Actuator.
 func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	tf, err := common.NewTerraformer(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra.Namespace, infra.Name)
+	tf, err := common.NewTerraformer(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
 	if err != nil {
 		return err
 	}
@@ -518,11 +514,6 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 	if stateIsEmpty {
 		a.logger.Info("exiting early as infrastructure state is empty or contains no resources - nothing to do")
 		return tf.CleanupConfiguration(ctx)
-	}
-
-	_, credentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
-	if err != nil {
-		return err
 	}
 
 	configExists, err := tf.ConfigExists()
@@ -545,7 +536,7 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 
 		_ = g.Add(flow.Task{
 			Name:         "Destroying Shoot infrastructure",
-			Fn:           flow.SimpleTaskFn(tf.SetVariablesEnvironment(common.TerraformVariablesEnvironmentFromCredentials(credentials)).Destroy),
+			Fn:           flow.SimpleTaskFn(tf.SetEnvVars(common.TerraformerEnvVars(infra.Spec.SecretRef)...).Destroy),
 			Dependencies: flow.NewTaskIDs(destroyServiceLoadBalancers),
 		})
 
@@ -560,7 +551,7 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 
 // Migrate implements infrastructure.Actuator.
 func (a *actuator) Migrate(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	tf, err := common.NewTerraformer(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra.Namespace, infra.Name)
+	tf, err := common.NewTerraformer(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
 	if err != nil {
 		return err
 	}

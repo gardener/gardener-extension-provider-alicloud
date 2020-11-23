@@ -23,12 +23,6 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/matchers"
-	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
-	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/gardener/gardener/test/framework"
@@ -45,6 +39,13 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/matchers"
+	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
+	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 )
 
 const (
@@ -145,7 +146,9 @@ var _ = Describe("Infrastructure tests", func() {
 		Expect(cfg).ToNot(BeNil())
 
 		By("setup manager")
-		mgr, err := manager.New(cfg, manager.Options{})
+		mgr, err := manager.New(cfg, manager.Options{
+			MetricsBindAddress: "0",
+		})
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(extensionsv1alpha1.AddToScheme(mgr.GetScheme())).To(Succeed())
