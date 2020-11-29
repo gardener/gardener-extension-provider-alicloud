@@ -18,7 +18,9 @@ spec:
     metadata:
       annotations:
         checksum/secret-cloud-provider-config: {{ include (print $.Template.BasePath "/secret-config.yaml") . | sha256sum }}
+{{- if .Values.podAnnotations }}
 {{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
       labels:
         garden.sapcloud.io/role: controlplane
         app: kubernetes
