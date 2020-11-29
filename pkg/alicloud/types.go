@@ -19,8 +19,6 @@ import "path/filepath"
 const (
 	// Name is the name of the Alicloud provider.
 	Name = "provider-alicloud"
-	// StorageProviderName is the name of the Alicloud storage provider.
-	StorageProviderName = "OSS"
 
 	// InfraRelease is the name of the alicloud-infra chart.
 	InfraRelease = "alicloud-infra"
