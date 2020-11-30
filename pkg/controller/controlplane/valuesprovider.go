@@ -262,10 +262,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 			return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", kutil.ObjectName(cp))
 		}
 	}
-	// TODO: Remove this code in next version. Delete old config
-	if err := vp.deleteCloudProviderConfig(ctx, cp.Namespace); err != nil {
-		return nil, err
-	}
+
 	// Get control plane chart values
 	return vp.getControlPlaneChartValues(ctx, cpConfig, cp, cluster, checksums, scaledDown)
 }

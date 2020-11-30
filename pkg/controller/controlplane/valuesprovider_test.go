@@ -108,14 +108,6 @@ var _ = Describe("ValuesProvider", func() {
 			},
 		}
 
-		// TODO remove cpMap in next version
-		cpConfigmap = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      "cloud-provider-config",
-			},
-		}
-
 		cpSecretKey = client.ObjectKey{Namespace: namespace, Name: v1beta1constants.SecretNameCloudProvider}
 		cpSecret    = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -210,7 +202,6 @@ var _ = Describe("ValuesProvider", func() {
 			// Create mock client
 			client := mockclient.NewMockClient(ctrl)
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
-			client.EXPECT().Delete(context.TODO(), cpConfigmap).DoAndReturn(clientDeleteSuccess())
 			// Create valuesProvider
 			vp := NewValuesProvider(logger)
 			err := vp.(inject.Scheme).InjectScheme(scheme)
@@ -247,12 +238,6 @@ var _ = Describe("ValuesProvider", func() {
 func encode(obj runtime.Object) []byte {
 	data, _ := json.Marshal(obj)
 	return data
-}
-
-func clientDeleteSuccess() interface{} {
-	return func(ctx context.Context, cm runtime.Object) error {
-		return nil
-	}
 }
 
 func clientGet(result runtime.Object) interface{} {
