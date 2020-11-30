@@ -4,8 +4,16 @@ metadata:
   generateName: tm-extension-alicloud-
   namespace: default
 spec:
-
   ttlSecondsAfterFinished: 172800 # 2 days
+  {{- if .Values.revision }}
+  locationSets:
+  - default: true
+    name: provider-alicloud
+    locations:
+    - type: git
+      repo: https://github.com/gardener/gardener-extension-provider-alicloud.git
+      revision: {{ .Values.revision }}
+  {{- end }}
 
   config:
   - name: ACCESS_KEY_ID
