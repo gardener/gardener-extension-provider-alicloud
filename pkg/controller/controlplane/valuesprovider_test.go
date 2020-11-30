@@ -131,7 +131,6 @@ var _ = Describe("ValuesProvider", func() {
 
 		checksums = map[string]string{
 			v1beta1constants.SecretNameCloudProvider: "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
-			"cloud-provider-config":                  "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
 			"cloud-controller-manager":               "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
 			"csi-attacher":                           "2da58ad61c401a2af779a909d22fb42eed93a1524cbfdab974ceedb413fcb914",
 			"csi-provisioner":                        "f75b42d40ab501428c383dfb2336cb1fc892bbee1fc1d739675171e4acc4d911",
@@ -148,7 +147,6 @@ var _ = Describe("ValuesProvider", func() {
 				"podNetwork":        cidr,
 				"podAnnotations": map[string]interface{}{
 					"checksum/secret-cloud-controller-manager": "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
-					"checksum/secret-cloud-provider-config":    "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
 				},
 				"podLabels": map[string]interface{}{
 					"maintenance.gardener.cloud/restart": "true",

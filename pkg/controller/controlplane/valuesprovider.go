@@ -366,7 +366,6 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"podNetwork":        extensionscontroller.GetPodNetwork(cluster),
 			"podAnnotations": map[string]interface{}{
 				"checksum/secret-cloud-controller-manager": checksums["cloud-controller-manager"],
-				"checksum/secret-cloud-provider-config":    checksums["cloud-provider-config"],
 			},
 			"podLabels": map[string]interface{}{
 				v1beta1constants.LabelPodMaintenanceRestart: "true",
