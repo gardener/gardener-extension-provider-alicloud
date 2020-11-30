@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 )
@@ -35,6 +36,7 @@ var _ = Describe("Terraform", func() {
 
 		purpose string
 		infra   *extensionsv1alpha1.Infrastructure
+		logger  = log.Log.WithName("test")
 	)
 
 	BeforeEach(func() {
@@ -76,7 +78,7 @@ var _ = Describe("Terraform", func() {
 				tf.EXPECT().SetDeadlinePod(15*time.Minute).Return(tf),
 			)
 
-			actual, err := NewTerraformer(factory, &config, purpose, infra)
+			actual, err := NewTerraformer(logger, factory, &config, purpose, infra)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actual).To(BeIdenticalTo(tf))
 		})
@@ -100,7 +102,7 @@ var _ = Describe("Terraform", func() {
 				tf.EXPECT().SetEnvVars(TerraformerEnvVars(infra.Spec.SecretRef)).Return(tf),
 			)
 
-			actual, err := NewTerraformerWithAuth(factory, &config, purpose, infra)
+			actual, err := NewTerraformerWithAuth(logger, factory, &config, purpose, infra)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actual).To(BeIdenticalTo(tf))
 		})

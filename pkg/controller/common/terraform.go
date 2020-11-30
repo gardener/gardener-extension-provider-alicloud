@@ -15,12 +15,13 @@
 package common
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/logger"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/rest"
@@ -48,8 +49,9 @@ type tfStateResource struct {
 }
 
 // NewTerraformer creates a new Terraformer.
-func NewTerraformer(factory terraformer.Factory, config *rest.Config, purpose string, infra *extensionsv1alpha1.Infrastructure) (terraformer.Terraformer, error) {
-	tf, err := factory.NewForConfig(logger.NewLogger("info"), config, purpose, infra.Namespace, infra.Name, imagevector.TerraformerImage())
+func NewTerraformer(logger logr.Logger, factory terraformer.Factory, config *rest.Config, purpose string, infra *extensionsv1alpha1.Infrastructure) (terraformer.Terraformer, error) {
+
+	tf, err := factory.NewForConfig(logger, config, purpose, infra.Namespace, infra.Name, imagevector.TerraformerImage())
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +63,8 @@ func NewTerraformer(factory terraformer.Factory, config *rest.Config, purpose st
 }
 
 // NewTerraformerWithAuth creates a new Terraformer and initializes it with the credentials.
-func NewTerraformerWithAuth(factory terraformer.Factory, config *rest.Config, purpose string, infra *extensionsv1alpha1.Infrastructure) (terraformer.Terraformer, error) {
-	tf, err := NewTerraformer(factory, config, purpose, infra)
+func NewTerraformerWithAuth(logger logr.Logger, factory terraformer.Factory, config *rest.Config, purpose string, infra *extensionsv1alpha1.Infrastructure) (terraformer.Terraformer, error) {
+	tf, err := NewTerraformer(logger, factory, config, purpose, infra)
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +94,8 @@ func TerraformerEnvVars(secretRef corev1.SecretReference) []corev1.EnvVar {
 }
 
 // IsStateEmpty checks the Terraformer state: 1. is empty or not; 2. contains resources or not
-func IsStateEmpty(tf terraformer.Terraformer) (bool, error) {
-	stateConfigMap, err := tf.GetState()
+func IsStateEmpty(ctx context.Context, tf terraformer.Terraformer) (bool, error) {
+	stateConfigMap, err := tf.GetState(ctx)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return true, nil
