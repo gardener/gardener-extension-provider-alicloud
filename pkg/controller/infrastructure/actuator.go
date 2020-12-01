@@ -27,6 +27,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
+
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	commonext "github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
@@ -35,7 +36,6 @@ import (
 	extensionschartrenderer "github.com/gardener/gardener/pkg/chartrenderer"
 	"github.com/gardener/gardener/pkg/utils/flow"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -140,8 +140,8 @@ func (a *actuator) getConfigAndCredentialsForInfra(ctx context.Context, infra *e
 	return config, credentials, nil
 }
 
-func (a *actuator) fetchEIPInternetChargeType(vpcClient alicloudclient.VPC, tf terraformer.Terraformer) (string, error) {
-	stateVariables, err := tf.GetStateOutputVariables(TerraformerOutputKeyVPCID)
+func (a *actuator) fetchEIPInternetChargeType(ctx context.Context, vpcClient alicloudclient.VPC, tf terraformer.Terraformer) (string, error) {
+	stateVariables, err := tf.GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID)
 	if err != nil {
 		if apierrors.IsNotFound(err) || terraformer.IsVariablesNotFoundError(err) {
 			return alicloudclient.DefaultInternetChargeType, nil
@@ -165,7 +165,7 @@ func (a *actuator) getInitializerValues(
 	}
 
 	if config.Networks.VPC.ID == nil {
-		internetChargeType, err := a.fetchEIPInternetChargeType(vpcClient, tf)
+		internetChargeType, err := a.fetchEIPInternetChargeType(ctx, vpcClient, tf)
 		if err != nil {
 			return nil, err
 		}
@@ -198,7 +198,7 @@ func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, conf
 	return a.terraformerFactory.DefaultInitializer(a.Client(), files.Main, files.Variables, files.TFVars, stateInitializer), nil
 }
 
-func (a *actuator) extractStatus(tf terraformer.Terraformer, infraConfig *alicloudv1alpha1.InfrastructureConfig, machineImages []alicloudv1alpha1.MachineImage) (*alicloudv1alpha1.InfrastructureStatus, error) {
+func (a *actuator) extractStatus(ctx context.Context, tf terraformer.Terraformer, infraConfig *alicloudv1alpha1.InfrastructureConfig, machineImages []alicloudv1alpha1.MachineImage) (*alicloudv1alpha1.InfrastructureStatus, error) {
 	outputVarKeys := []string{
 		TerraformerOutputKeyVPCID,
 		TerraformerOutputKeyVPCCIDR,
@@ -210,7 +210,7 @@ func (a *actuator) extractStatus(tf terraformer.Terraformer, infraConfig *aliclo
 		outputVarKeys = append(outputVarKeys, fmt.Sprintf("%s%d", TerraformerOutputKeyVSwitchNodesPrefix, zoneIndex))
 	}
 
-	vars, err := tf.GetStateOutputVariables(outputVarKeys...)
+	vars, err := tf.GetStateOutputVariables(ctx, outputVarKeys...)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +402,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return err
 	}
 
-	tf, err := common.NewTerraformerWithAuth(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
+	tf, err := common.NewTerraformerWithAuth(a.logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
 	if err != nil {
 		return err
 	}
@@ -417,7 +417,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return err
 	}
 
-	if err := tf.InitializeWith(initializer).Apply(); err != nil {
+	if err := tf.InitializeWith(ctx, initializer).Apply(ctx); err != nil {
 		return errors.Wrapf(err, "failed to apply the terraform config")
 	}
 
@@ -429,7 +429,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		}
 	}
 
-	status, err := a.extractStatus(tf, config, machineImages)
+	status, err := a.extractStatus(ctx, tf, config, machineImages)
 	if err != nil {
 		return err
 	}
@@ -495,7 +495,9 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 
 // Delete implements infrastructure.Actuator.
 func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	tf, err := common.NewTerraformer(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
+	logger := a.logger.WithValues("infrastructure", kutil.KeyFromObject(infra), "operation", "delete")
+
+	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
 	if err != nil {
 		return err
 	}
@@ -507,7 +509,7 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 
 	// If the Terraform state is empty then we can exit early as we didn't create anything. Though, we clean up potentially
 	// created configmaps/secrets related to the Terraformer.
-	stateIsEmpty, err := common.IsStateEmpty(tf)
+	stateIsEmpty, err := common.IsStateEmpty(ctx, tf)
 	if err != nil {
 		return err
 	}
@@ -516,7 +518,7 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 		return tf.CleanupConfiguration(ctx)
 	}
 
-	configExists, err := tf.ConfigExists()
+	configExists, err := tf.ConfigExists(ctx)
 	if err != nil {
 		return err
 	}
@@ -536,7 +538,7 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 
 		_ = g.Add(flow.Task{
 			Name:         "Destroying Shoot infrastructure",
-			Fn:           flow.SimpleTaskFn(tf.SetEnvVars(common.TerraformerEnvVars(infra.Spec.SecretRef)...).Destroy),
+			Fn:           tf.SetEnvVars(common.TerraformerEnvVars(infra.Spec.SecretRef)...).Destroy,
 			Dependencies: flow.NewTaskIDs(destroyServiceLoadBalancers),
 		})
 
@@ -551,7 +553,8 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 
 // Migrate implements infrastructure.Actuator.
 func (a *actuator) Migrate(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	tf, err := common.NewTerraformer(a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
+	logger := a.logger.WithValues("infrastructure", kutil.KeyFromObject(infra), "operation", "migrate")
+	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
 	if err != nil {
 		return err
 	}

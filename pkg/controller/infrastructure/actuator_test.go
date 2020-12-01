@@ -241,7 +241,7 @@ var _ = Describe("Actuator", func() {
 
 					alicloudClientFactory.EXPECT().NewVPCClient(region, accessKeyID, accessKeySecret).Return(vpcClient, nil),
 
-					terraformer.EXPECT().GetStateOutputVariables(TerraformerOutputKeyVPCID).
+					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID).
 						Return(map[string]string{
 							TerraformerOutputKeyVPCID: vpcID,
 						}, nil),
@@ -274,9 +274,9 @@ var _ = Describe("Actuator", func() {
 
 					terraformerFactory.EXPECT().DefaultInitializer(c, mainContent, variablesContent, []byte(tfVarsContent), gomock.AssignableToTypeOf(realterraformer.CreateState)).Return(initializer),
 
-					terraformer.EXPECT().InitializeWith(initializer).Return(terraformer),
+					terraformer.EXPECT().InitializeWith(ctx, initializer).Return(terraformer),
 
-					terraformer.EXPECT().Apply(),
+					terraformer.EXPECT().Apply(ctx),
 
 					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: secretNamespace, Name: secretName}, gomock.AssignableToTypeOf(&corev1.Secret{})).
 						SetArg(2, corev1.Secret{
@@ -292,7 +292,7 @@ var _ = Describe("Actuator", func() {
 					shootSTSClient.EXPECT().GetAccountIDFromCallerIdentity(ctx).Return("", nil),
 					logger.EXPECT().Info("Sharing customized image with Shoot's Alicloud account from Seed", "infrastructure", infra.Name),
 
-					terraformer.EXPECT().GetStateOutputVariables(TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID, TerraformerOutputKeyKeyPairName).
+					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID, TerraformerOutputKeyKeyPairName).
 						Return(map[string]string{
 							TerraformerOutputKeyVPCID:           vpcID,
 							TerraformerOutputKeyVPCCIDR:         vpcCIDRString,
@@ -361,7 +361,7 @@ var _ = Describe("Actuator", func() {
 
 					alicloudClientFactory.EXPECT().NewVPCClient(region, accessKeyID, accessKeySecret).Return(vpcClient, nil),
 
-					terraformer.EXPECT().GetStateOutputVariables(TerraformerOutputKeyVPCID).
+					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID).
 						Return(map[string]string{
 							TerraformerOutputKeyVPCID: vpcID,
 						}, nil),
@@ -394,9 +394,9 @@ var _ = Describe("Actuator", func() {
 
 					terraformerFactory.EXPECT().DefaultInitializer(c, mainContent, variablesContent, []byte(tfVarsContent), realterraformer.CreateOrUpdateState{State: &state}).Return(initializer),
 
-					terraformer.EXPECT().InitializeWith(initializer).Return(terraformer),
+					terraformer.EXPECT().InitializeWith(ctx, initializer).Return(terraformer),
 
-					terraformer.EXPECT().Apply(),
+					terraformer.EXPECT().Apply(ctx),
 
 					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: secretNamespace, Name: secretName}, gomock.AssignableToTypeOf(&corev1.Secret{})).
 						SetArg(2, corev1.Secret{
@@ -412,7 +412,7 @@ var _ = Describe("Actuator", func() {
 					shootSTSClient.EXPECT().GetAccountIDFromCallerIdentity(ctx).Return("", nil),
 					logger.EXPECT().Info("Sharing customized image with Shoot's Alicloud account from Seed", "infrastructure", infra.Name),
 
-					terraformer.EXPECT().GetStateOutputVariables(TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID, TerraformerOutputKeyKeyPairName).
+					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID, TerraformerOutputKeyKeyPairName).
 						Return(map[string]string{
 							TerraformerOutputKeyVPCID:           vpcID,
 							TerraformerOutputKeyVPCCIDR:         vpcCIDRString,
