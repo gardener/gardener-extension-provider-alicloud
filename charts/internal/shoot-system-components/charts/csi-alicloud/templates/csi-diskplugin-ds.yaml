@@ -5,7 +5,6 @@ metadata:
   namespace: kube-system
   labels:
     origin: gardener
-    garden.sapcloud.io/role: system-component
     app: csi-disk-plugin-alicloud
 spec:
   selector:
@@ -18,7 +17,6 @@ spec:
       labels:
         app: csi-disk-plugin-alicloud
         origin: gardener
-        garden.sapcloud.io/role: system-component
     spec:
       priorityClassName: system-node-critical
       serviceAccount: csi-disk-plugin-alicloud

@@ -49,9 +49,8 @@ func NewCloudAware() np.CloudAware {
 		cloudControllerManagerNotSecured: &np.SourcePod{
 			Ports: np.NewSinglePort(10253),
 			Pod: np.NewPod("cloud-controller-manager-http", labels.Set{
-				"app":                     "kubernetes",
-				"garden.sapcloud.io/role": "controlplane",
-				"role":                    "cloud-controller-manager",
+				"app":  "kubernetes",
+				"role": "cloud-controller-manager",
 			}),
 			ExpectedPolicies: sets.NewString(
 				"allow-from-prometheus",
@@ -65,9 +64,8 @@ func NewCloudAware() np.CloudAware {
 		kubeControllerManagerSecured: &np.SourcePod{
 			Ports: np.NewSinglePort(10257),
 			Pod: np.NewPod("kube-controller-manager-https", labels.Set{
-				"app":                     "kubernetes",
-				"garden.sapcloud.io/role": "controlplane",
-				"role":                    "controller-manager",
+				"app":  "kubernetes",
+				"role": "controller-manager",
 			}, ">= 1.13"),
 			ExpectedPolicies: sets.NewString(
 				"allow-from-prometheus",
@@ -80,9 +78,8 @@ func NewCloudAware() np.CloudAware {
 		kubeControllerManagerNotSecured: &np.SourcePod{
 			Ports: np.NewSinglePort(10252),
 			Pod: np.NewPod("kube-controller-manager-http", labels.Set{
-				"app":                     "kubernetes",
-				"garden.sapcloud.io/role": "controlplane",
-				"role":                    "controller-manager",
+				"app":  "kubernetes",
+				"role": "controller-manager",
 			}, "< 1.13"),
 			ExpectedPolicies: sets.NewString(
 				"allow-from-prometheus",
@@ -95,9 +92,8 @@ func NewCloudAware() np.CloudAware {
 		csiPlugin: &np.SourcePod{
 			Ports: np.NewSinglePort(80),
 			Pod: np.NewPod("csi-plugin-controller", labels.Set{
-				"app":                     "kubernetes",
-				"garden.sapcloud.io/role": "controlplane",
-				"role":                    "csi-plugin-controller",
+				"app":  "kubernetes",
+				"role": "csi-plugin-controller",
 			}),
 			ExpectedPolicies: sets.NewString(
 				"allow-to-public-networks",
