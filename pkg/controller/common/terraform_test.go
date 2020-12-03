@@ -73,6 +73,8 @@ var _ = Describe("Terraform", func() {
 				factory.EXPECT().
 					NewForConfig(gomock.Any(), &config, purpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 					Return(tf, nil),
+				tf.EXPECT().UseV2(true).Return(tf),
+				tf.EXPECT().SetLogLevel("info").Return(tf),
 				tf.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(tf),
 				tf.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(tf),
 				tf.EXPECT().SetDeadlinePod(15*time.Minute).Return(tf),
@@ -96,6 +98,8 @@ var _ = Describe("Terraform", func() {
 				factory.EXPECT().
 					NewForConfig(gomock.Any(), &config, purpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 					Return(tf, nil),
+				tf.EXPECT().UseV2(true).Return(tf),
+				tf.EXPECT().SetLogLevel("info").Return(tf),
 				tf.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(tf),
 				tf.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(tf),
 				tf.EXPECT().SetDeadlinePod(15*time.Minute).Return(tf),
