@@ -57,6 +57,8 @@ func NewTerraformer(logger logr.Logger, factory terraformer.Factory, config *res
 	}
 
 	return tf.
+		UseV2(true).
+		SetLogLevel("info").
 		SetTerminationGracePeriodSeconds(630).
 		SetDeadlineCleaning(5 * time.Minute).
 		SetDeadlinePod(15 * time.Minute), nil
