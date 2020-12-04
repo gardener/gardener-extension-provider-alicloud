@@ -20,3 +20,16 @@ data:
         Key_Name            log
         Parser              kubeapiserverParser
         Reserve_Data        True
+
+    [FILTER]
+        Name                parser
+        Match               kubernetes.*csi-plugin-controller*alicloud-csi*
+        Key_Name            log
+        Parser              kubeapiserverParser
+        Reserve_Data        True
+
+    [FILTER]
+        Name                rewrite_tag
+        Match               kubernetes.*
+        Rule                $tag ^kubernetes\.var\.log\.containers\.(cloud-controller-manager-.+?_.+?_alicloud-cloud-controller-manager|csi-plugin-controller-.+?_.+?_alicloud-csi) user-exposed.$TAG true
+        Emitter_Name        re_emitted-provider-alicloud
