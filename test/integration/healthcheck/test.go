@@ -75,8 +75,8 @@ var _ = ginkgo.Describe("Provider-alicloud integration test: health checks", fun
 		})
 
 		ginkgo.Context("Condition type: ShootControlPlaneHealthy", func() {
-			f.Serial().Release().CIt(fmt.Sprintf("ControlPlane CRD should contain unhealthy condition because the deployment '%s' cannot be found in the shoot namespace in the seed", alicloud.CsiPluginController), func(ctx context.Context) {
-				err := healthcheckoperation.ControlPlaneHealthCheckDeleteSeedDeployment(ctx, f, f.Shoot.GetName(), alicloud.CsiPluginController, gardencorev1beta1.ShootControlPlaneHealthy)
+			f.Serial().Release().CIt(fmt.Sprintf("ControlPlane CRD should contain unhealthy condition because the deployment '%s' cannot be found in the shoot namespace in the seed", alicloud.CSIPluginController), func(ctx context.Context) {
+				err := healthcheckoperation.ControlPlaneHealthCheckDeleteSeedDeployment(ctx, f, f.Shoot.GetName(), alicloud.CSIPluginController, gardencorev1beta1.ShootControlPlaneHealthy)
 				framework.ExpectNoError(err)
 			}, timeout)
 		})
