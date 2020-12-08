@@ -60,8 +60,10 @@ const (
 	StorageEndpoint = "storageEndpoint"
 	//CloudControllerManagerName is the a constant for the name of the CloudController.
 	CloudControllerManagerName = "cloud-controller-manager"
-	// CsiPluginController is the a constant for the name of the CSI Plugin controller
-	CsiPluginController = "csi-plugin-controller"
+	// CSIPluginController is the a constant for the name of the csi-plugin-controller Deployment in the Seed.
+	CSIPluginController = "csi-plugin-controller"
+	// CSISnapshotControllerName is a constant for the name of the csi-snapshot-controller Deployment in the Seed.
+	CSISnapshotControllerName = "csi-snapshot-controller"
 
 	// CRDVolumeSnapshotClasses is a constant for the name of VolumeSnapshotClasses CRD
 	CRDVolumeSnapshotClasses = "volumesnapshotclasses.snapshot.storage.k8s.io"
