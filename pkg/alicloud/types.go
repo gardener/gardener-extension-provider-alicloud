@@ -65,12 +65,22 @@ const (
 	// CSISnapshotControllerName is a constant for the name of the csi-snapshot-controller Deployment in the Seed.
 	CSISnapshotControllerName = "csi-snapshot-controller"
 
-	// CRDVolumeSnapshotClasses is a constant for the name of VolumeSnapshotClasses CRD
+	// CRDVolumeSnapshotClasses is a constant for the name of VolumeSnapshotClasses CRD.
 	CRDVolumeSnapshotClasses = "volumesnapshotclasses.snapshot.storage.k8s.io"
-	// CRDVolumeSnapshotContents is a constant for the name of VolumeSnapshotContents CRD
+	// CRDVolumeSnapshotContents is a constant for the name of VolumeSnapshotContents CRD.
 	CRDVolumeSnapshotContents = "volumesnapshotcontents.snapshot.storage.k8s.io"
-	// CRDVolumeSnapshots is a constant for the name of CRDVolumeSnapshots CRD
+	// CRDVolumeSnapshots is a constant for the name of CRDVolumeSnapshots CRD.
 	CRDVolumeSnapshots = "volumesnapshots.snapshot.storage.k8s.io"
+
+	// ServiceLinkedRoleForNATGateway is a constant for the name of service linked role of NAT gateway.
+	ServiceLinkedRoleForNATGateway = "AliyunServiceRoleForNatgw"
+	// ServiceForNATGateway is a constant for the name of service of NAT gateway.
+	ServiceForNATGateway = "nat.aliyuncs.com"
+
+	//ErrorCodeNoPermission is a constant for the error code of no permission.
+	ErrorCodeNoPermission = "NoPermission"
+	// ErrorCodeRoleEntityNotExist is a constant for the error code of role entity not exist.
+	ErrorCodeRoleEntityNotExist = "EntityNotExist.Role"
 )
 
 var (

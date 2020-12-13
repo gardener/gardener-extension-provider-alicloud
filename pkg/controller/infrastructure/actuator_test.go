@@ -99,6 +99,7 @@ var _ = Describe("Actuator", func() {
 			terraformer           *mockterraformer.MockTerraformer
 			shootECSClient        *mockalicloudclient.MockECS
 			shootSTSClient        *mockalicloudclient.MockSTS
+			shootRAMClient        *mockalicloudclient.MockRAM
 			chartRendererFactory  *mockchartrenderer.MockFactory
 			terraformChartOps     *mockinfrastructure.MockTerraformChartOps
 			actuator              infrastructure.Actuator
@@ -133,6 +134,9 @@ var _ = Describe("Actuator", func() {
 			securityGroupID string
 			keyPairName     string
 			rawState        *realterraformer.RawState
+
+			serviceForNatGw           string
+			serviceLinkedRoleForNatGw string
 		)
 
 		Describe("#Reconcile", func() {
@@ -145,6 +149,7 @@ var _ = Describe("Actuator", func() {
 				terraformer = mockterraformer.NewMockTerraformer(ctrl)
 				shootECSClient = mockalicloudclient.NewMockECS(ctrl)
 				shootSTSClient = mockalicloudclient.NewMockSTS(ctrl)
+				shootRAMClient = mockalicloudclient.NewMockRAM(ctrl)
 				chartRendererFactory = mockchartrenderer.NewMockFactory(ctrl)
 				terraformChartOps = mockinfrastructure.NewMockTerraformChartOps(ctrl)
 				actuator = NewActuatorWithDeps(
@@ -209,6 +214,10 @@ var _ = Describe("Actuator", func() {
 				natGatewayID = "natGatewayID"
 				securityGroupID = "sgID"
 				keyPairName = "keyPairName"
+
+				serviceLinkedRoleForNatGw = "AliyunServiceRoleForNatgw"
+				serviceForNatGw = "nat.aliyuncs.com"
+
 			})
 
 			It("should correctly reconcile the infrastructure", func() {
@@ -229,6 +238,10 @@ var _ = Describe("Actuator", func() {
 								alicloud.AccessKeySecret: []byte(accessKeySecret),
 							},
 						}),
+
+					alicloudClientFactory.EXPECT().NewRAMClient(region, accessKeyID, accessKeySecret).Return(shootRAMClient, nil),
+					shootRAMClient.EXPECT().GetServiceLinkedRole(serviceLinkedRoleForNatGw).Return(nil, nil),
+					shootRAMClient.EXPECT().CreateServiceLinkedRole(region, serviceForNatGw).Return(nil),
 
 					terraformerFactory.EXPECT().NewForConfig(gomock.Any(), &restConfig, TerraformerPurpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 						Return(terraformer, nil),
@@ -351,6 +364,10 @@ var _ = Describe("Actuator", func() {
 								alicloud.AccessKeySecret: []byte(accessKeySecret),
 							},
 						}),
+
+					alicloudClientFactory.EXPECT().NewRAMClient(region, accessKeyID, accessKeySecret).Return(shootRAMClient, nil),
+					shootRAMClient.EXPECT().GetServiceLinkedRole(serviceLinkedRoleForNatGw).Return(nil, nil),
+					shootRAMClient.EXPECT().CreateServiceLinkedRole(region, serviceForNatGw).Return(nil),
 
 					terraformerFactory.EXPECT().NewForConfig(gomock.Any(), &restConfig, TerraformerPurpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 						Return(terraformer, nil),

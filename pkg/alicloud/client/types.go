@@ -17,6 +17,7 @@ package client
 import (
 	"context"
 
+	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,6 +33,7 @@ type ClientFactory interface {
 	NewSTSClient(region, accessKeyID, accessKeySecret string) (STS, error)
 	NewSLBClient(region, accessKeyID, accessKeySecret string) (SLB, error)
 	NewVPCClient(region, accessKeyID, accessKeySecret string) (VPC, error)
+	NewRAMClient(region, accessKeyID, accessKeySecret string) (RAM, error)
 	NewStorageClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (Storage, error)
 }
 
@@ -69,4 +71,10 @@ type Storage interface {
 	DeleteObjectsWithPrefix(ctx context.Context, bucketName, prefix string) error
 	CreateBucketIfNotExists(ctx context.Context, bucketName string) error
 	DeleteBucketIfExists(ctx context.Context, bucketName string) error
+}
+
+// RAM is an interface which must be implemented by alicloud ram clients.
+type RAM interface {
+	CreateServiceLinkedRole(regionID, serviceName string) error
+	GetServiceLinkedRole(roleName string) (*ram.Role, error)
 }
