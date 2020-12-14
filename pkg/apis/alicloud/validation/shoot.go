@@ -54,6 +54,10 @@ func ValidateNetworkingUpdate(newNetworking, oldNetworking core.Networking, fldP
 func ValidateNetworking(networking core.Networking, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
+	if networking.Nodes == nil {
+		allErrs = append(allErrs, field.Required(fldPath.Child("nodes"), "a CIDR must be provided for Alicloud shoots"))
+	}
+
 	allErrs = append(allErrs, validateNetworkCIDR(networking.Nodes, fldPath.Child("nodes"))...)
 	allErrs = append(allErrs, validateNetworkCIDR(networking.Pods, fldPath.Child("pods"))...)
 	allErrs = append(allErrs, validateNetworkCIDR(networking.Services, fldPath.Child("services"))...)
@@ -157,9 +161,7 @@ func validateVolumeFunc(volumeType *string, size string, fldPath *field.Path) fi
 func validateNetworkCIDR(cidr *string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if cidr == nil {
-		allErrs = append(allErrs, field.Required(fldPath, "a CIDR must be provided for Alicloud shoots"))
-	} else if cidrvalidation.NetworksIntersect(*cidr, ReservedCIDR) {
+	if cidr != nil && cidrvalidation.NetworksIntersect(*cidr, ReservedCIDR) {
 		allErrs = append(allErrs, field.Invalid(fldPath, fldPath, fmt.Sprintf("must not overlap with %s, it is reserved by Alicloud", ReservedCIDR)))
 	}
 

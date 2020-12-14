@@ -77,14 +77,6 @@ var _ = Describe("Shoot validation", func() {
 					"Type":  Equal(field.ErrorTypeRequired),
 					"Field": Equal("spec.networking.nodes"),
 				})),
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":  Equal(field.ErrorTypeRequired),
-					"Field": Equal("spec.networking.pods"),
-				})),
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":  Equal(field.ErrorTypeRequired),
-					"Field": Equal("spec.networking.services"),
-				})),
 			))
 		})
 
