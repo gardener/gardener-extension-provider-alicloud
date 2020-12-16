@@ -52,7 +52,7 @@ spec:
             secretKeyRef:
               name: cloudprovider
               key: accessKeySecret
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
 {{- if .Values.csiPluginController.podResources.diskPlugin }}
         resources:
 {{ toYaml .Values.csiPluginController.podResources.diskPlugin | indent 12 }}
