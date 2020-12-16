@@ -19,54 +19,38 @@ import (
 	"regexp"
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+
 	"github.com/gardener/gardener/pkg/apis/core"
 	"github.com/gardener/gardener/pkg/apis/core/validation"
-	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-const (
-	maxDataDiskCount = 64
-
-	dataDiskNameFmt string = `[a-zA-Z][a-zA-Z0-9\.\-_:]+`
-
-	// ReservedCIDR is a IPV4 CIDR reserved for AliCloud internal usage.
-	// For example: the meta service endpoint is 100.100.100.200.
-	ReservedCIDR = "100.64.0.0/10"
-)
-
-// ValidateNetworkingUpdate validates the network setting of a Shoot during update.
-// The network CIDR settings should be immutable.
-func ValidateNetworkingUpdate(newNetworking, oldNetworking core.Networking, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newNetworking.Nodes, oldNetworking.Nodes, fldPath.Child("nodes"))...)
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newNetworking.Pods, oldNetworking.Pods, fldPath.Child("pods"))...)
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newNetworking.Services, oldNetworking.Services, fldPath.Child("services"))...)
-
-	return allErrs
-}
-
-// ValidateNetworking validates the network settings of a Shoot during creation.
+// ValidateNetworking validates the network settings of a Shoot.
 func ValidateNetworking(networking core.Networking, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, validateNetworkCIDR(networking.Nodes, fldPath.Child("nodes"))...)
-	allErrs = append(allErrs, validateNetworkCIDR(networking.Pods, fldPath.Child("pods"))...)
-	allErrs = append(allErrs, validateNetworkCIDR(networking.Services, fldPath.Child("services"))...)
+	if networking.Nodes == nil {
+		allErrs = append(allErrs, field.Required(fldPath.Child("nodes"), "a nodes CIDR must be provided for Alicloud shoots"))
+	}
 
 	return allErrs
 }
+
+const (
+	maxDataDiskCount        = 64
+	dataDiskNameFmt  string = `[a-zA-Z][a-zA-Z0-9\.\-_:]+`
+)
+
+var dataDiskNameRegexp = regexp.MustCompile("^" + dataDiskNameFmt + "$")
 
 // ValidateWorkers validates the workers of a Shoot.
 func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	alicloudZones := sets.NewString()
-	dataDiskNameRegexp := regexp.MustCompile("^" + dataDiskNameFmt + "$")
 
+	alicloudZones := sets.NewString()
 	for _, alicloudZone := range zones {
 		alicloudZones.Insert(alicloudZone.Name)
 	}
@@ -151,17 +135,5 @@ func validateVolumeFunc(volumeType *string, size string, fldPath *field.Path) fi
 	if size == "" {
 		allErrs = append(allErrs, field.Required(fldPath.Child("size"), "must not be empty"))
 	}
-	return allErrs
-}
-
-func validateNetworkCIDR(cidr *string, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	if cidr == nil {
-		allErrs = append(allErrs, field.Required(fldPath, "a CIDR must be provided for Alicloud shoots"))
-	} else if cidrvalidation.NetworksIntersect(*cidr, ReservedCIDR) {
-		allErrs = append(allErrs, field.Invalid(fldPath, fldPath, fmt.Sprintf("must not overlap with %s, it is reserved by Alicloud", ReservedCIDR)))
-	}
-
 	return allErrs
 }
