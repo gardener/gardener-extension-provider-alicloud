@@ -68,7 +68,7 @@ spec:
             secretKeyRef:
               name: csi-diskplugin-alicloud
               key: accessKeySecret
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: pods-mount-dir
           mountPath: /var/lib/kubelet
