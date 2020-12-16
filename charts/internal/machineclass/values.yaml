@@ -28,6 +28,7 @@
 #     kubernetes.io/role/****: "1" # This is mandatory as the safety controller uses this tag to identify VMs created by this controller. Replace **** string with your desired role name.
 #   keyPairName: test-keypair # keypair used to access Alicloud ECS machine
 #   secret:
-#     accessKeyID: ABCD
-#     accessKeySecret: ABCD
 #     userData: abc
+#   credentialsSecretRef:
+#     name: cloudprovider
+#     namespace: shoot-namespace

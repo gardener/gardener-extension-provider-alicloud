@@ -47,7 +47,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Machines", func() {
@@ -96,9 +95,7 @@ var _ = Describe("Machines", func() {
 				namespace        string
 				cloudProfileName string
 
-				alicloudAccessKeyID     string
-				alicloudAccessKeySecret string
-				region                  string
+				region string
 
 				machineImageName    string
 				machineImageVersion string
@@ -162,8 +159,6 @@ var _ = Describe("Machines", func() {
 				cloudProfileName = "alicloud"
 
 				region = "china"
-				alicloudAccessKeyID = "access-key-id"
-				alicloudAccessKeySecret = "secret-access-key"
 
 				machineImageName = "my-os"
 				machineImageVersion = "123"
@@ -396,6 +391,10 @@ var _ = Describe("Machines", func() {
 						"secret": map[string]interface{}{
 							"userData": string(userData),
 						},
+						"credentialsSecretRef": map[string]interface{}{
+							"name":      w.Spec.SecretRef.Name,
+							"namespace": w.Spec.SecretRef.Namespace,
+						},
 						"keyPairName": keyName,
 					}
 
@@ -449,10 +448,10 @@ var _ = Describe("Machines", func() {
 						machineClassWithHashPool2Zone2 = fmt.Sprintf("%s-%s", machineClassNamePool2Zone2, workerPoolHash2)
 					)
 
-					addNameAndSecretToMachineClass(machineClassPool1Zone1, alicloudAccessKeyID, alicloudAccessKeySecret, machineClassWithHashPool1Zone1)
-					addNameAndSecretToMachineClass(machineClassPool1Zone2, alicloudAccessKeyID, alicloudAccessKeySecret, machineClassWithHashPool1Zone2)
-					addNameAndSecretToMachineClass(machineClassPool2Zone1, alicloudAccessKeyID, alicloudAccessKeySecret, machineClassWithHashPool2Zone1)
-					addNameAndSecretToMachineClass(machineClassPool2Zone2, alicloudAccessKeyID, alicloudAccessKeySecret, machineClassWithHashPool2Zone2)
+					addNameAndSecretToMachineClass(machineClassPool1Zone1, machineClassWithHashPool1Zone1, w.Spec.SecretRef)
+					addNameAndSecretToMachineClass(machineClassPool1Zone2, machineClassWithHashPool1Zone2, w.Spec.SecretRef)
+					addNameAndSecretToMachineClass(machineClassPool2Zone1, machineClassWithHashPool2Zone1, w.Spec.SecretRef)
+					addNameAndSecretToMachineClass(machineClassPool2Zone2, machineClassWithHashPool2Zone2, w.Spec.SecretRef)
 
 					machineClasses = map[string]interface{}{"machineClasses": []map[string]interface{}{
 						machineClassPool1Zone1,
@@ -509,8 +508,6 @@ var _ = Describe("Machines", func() {
 				It("should return the expected machine deployments for profile image types", func() {
 					workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, cluster)
 
-					expectGetSecretCallToWork(c, alicloudAccessKeyID, alicloudAccessKeySecret)
-
 					// Test workerDelegate.DeployMachineClasses()
 
 					chartApplier.
@@ -563,19 +560,7 @@ var _ = Describe("Machines", func() {
 				})
 			})
 
-			It("should fail because the secret cannot be read", func() {
-				c.EXPECT().
-					Get(context.TODO(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).
-					Return(fmt.Errorf("error"))
-
-				result, err := workerDelegate.GenerateMachineDeployments(context.TODO())
-				Expect(err).To(HaveOccurred())
-				Expect(result).To(BeNil())
-			})
-
 			It("should fail because the version is invalid", func() {
-				expectGetSecretCallToWork(c, alicloudAccessKeyID, alicloudAccessKeySecret)
-
 				clusterWithoutImages.Shoot.Spec.Kubernetes.Version = "invalid"
 				workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, cluster)
 
@@ -585,8 +570,6 @@ var _ = Describe("Machines", func() {
 			})
 
 			It("should fail because the infrastructure status cannot be decoded", func() {
-				expectGetSecretCallToWork(c, alicloudAccessKeyID, alicloudAccessKeySecret)
-
 				w.Spec.InfrastructureProviderStatus = &runtime.RawExtension{}
 
 				workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, cluster)
@@ -597,8 +580,6 @@ var _ = Describe("Machines", func() {
 			})
 
 			It("should fail because the security group cannot be found", func() {
-				expectGetSecretCallToWork(c, alicloudAccessKeyID, alicloudAccessKeySecret)
-
 				w.Spec.InfrastructureProviderStatus = &runtime.RawExtension{
 					Raw: encode(&api.InfrastructureStatus{
 						VPC: api.VPCStatus{},
@@ -613,8 +594,6 @@ var _ = Describe("Machines", func() {
 			})
 
 			It("should fail because the machine image cannot be found", func() {
-				expectGetSecretCallToWork(c, alicloudAccessKeyID, alicloudAccessKeySecret)
-
 				workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, clusterWithoutImages)
 
 				result, err := workerDelegate.GenerateMachineDeployments(context.TODO())
@@ -623,8 +602,6 @@ var _ = Describe("Machines", func() {
 			})
 
 			It("should fail because the vswitch id cannot be found", func() {
-				expectGetSecretCallToWork(c, alicloudAccessKeyID, alicloudAccessKeySecret)
-
 				w.Spec.InfrastructureProviderStatus = &runtime.RawExtension{
 					Raw: encode(&api.InfrastructureStatus{
 						VPC: api.VPCStatus{
@@ -647,8 +624,6 @@ var _ = Describe("Machines", func() {
 			})
 
 			It("should fail because the volume size cannot be decoded", func() {
-				expectGetSecretCallToWork(c, alicloudAccessKeyID, alicloudAccessKeySecret)
-
 				w.Spec.Pools[0].Volume.Size = "not-decodeable"
 
 				workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, cluster)
@@ -659,8 +634,6 @@ var _ = Describe("Machines", func() {
 			})
 
 			It("should set expected machineControllerManager settings on machine deployment", func() {
-				expectGetSecretCallToWork(c, alicloudAccessKeyID, alicloudAccessKeySecret)
-
 				testDrainTimeout := metav1.Duration{Duration: 10 * time.Minute}
 				testHealthTimeout := metav1.Duration{Duration: 20 * time.Minute}
 				testCreationTimeout := metav1.Duration{Duration: 30 * time.Minute}
@@ -696,18 +669,6 @@ func encode(obj runtime.Object) []byte {
 	return data
 }
 
-func expectGetSecretCallToWork(c *mockclient.MockClient, alicloudAccessKeyID, alicloudAccessKeySecret string) {
-	c.EXPECT().
-		Get(context.TODO(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).
-		DoAndReturn(func(_ context.Context, _ client.ObjectKey, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				alicloud.AccessKeyID:     []byte(alicloudAccessKeyID),
-				alicloud.AccessKeySecret: []byte(alicloudAccessKeySecret),
-			}
-			return nil
-		})
-}
-
 func useDefaultMachineClass(def map[string]interface{}, keyValues ...interface{}) map[string]interface{} {
 	out := make(map[string]interface{}, len(def)+1)
 
@@ -722,11 +683,13 @@ func useDefaultMachineClass(def map[string]interface{}, keyValues ...interface{}
 	return out
 }
 
-func addNameAndSecretToMachineClass(class map[string]interface{}, alicloudAccessKeyID, alicloudAccessKeySecret, name string) {
+func addNameAndSecretToMachineClass(class map[string]interface{}, name string, credentialsSecretRef corev1.SecretReference) {
 	class["name"] = name
+	class["credentialsSecretRef"] = map[string]interface{}{
+		"name":      credentialsSecretRef.Name,
+		"namespace": credentialsSecretRef.Namespace,
+	}
 	class["labels"] = map[string]string{
 		v1beta1constants.GardenerPurpose: genericworkeractuator.GardenPurposeMachineClass,
 	}
-	class["secret"].(map[string]interface{})[alicloud.AccessKeyID] = alicloudAccessKeyID
-	class["secret"].(map[string]interface{})[alicloud.AccessKeySecret] = alicloudAccessKeySecret
 }
