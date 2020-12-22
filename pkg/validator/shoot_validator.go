@@ -26,13 +26,6 @@ import (
 )
 
 func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig) error {
-	// Network validation
-	networkPath := field.NewPath("spec", "networking")
-
-	if errList := alicloudvalidation.ValidateNetworking(shoot.Spec.Networking, networkPath); len(errList) != 0 {
-		return errList.ToAggregate()
-	}
-
 	// Provider validation
 	fldPath := field.NewPath("spec", "provider")
 
@@ -57,8 +50,10 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfi
 
 func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.Shoot) error {
 	var (
-		fldPath            = field.NewPath("spec", "provider")
-		infraConfigFldPath = fldPath.Child("infrastructureConfig")
+		fldPath            = field.NewPath("spec")
+		networkingFldPath  = fldPath.Child("networking")
+		providerFldPath    = fldPath.Child("provider")
+		infraConfigFldPath = providerFldPath.Child("infrastructureConfig")
 	)
 
 	// InfrastructureConfig update
@@ -78,7 +73,11 @@ func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 		}
 	}
 
-	if errList := alicloudvalidation.ValidateWorkersUpdate(oldShoot.Spec.Provider.Workers, shoot.Spec.Provider.Workers, fldPath.Child("workers")); len(errList) != 0 {
+	if errList := alicloudvalidation.ValidateWorkersUpdate(oldShoot.Spec.Provider.Workers, shoot.Spec.Provider.Workers, providerFldPath.Child("workers")); len(errList) != 0 {
+		return errList.ToAggregate()
+	}
+
+	if errList := alicloudvalidation.ValidateNetworkingUpdate(oldShoot.Spec.Networking, shoot.Spec.Networking, networkingFldPath); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 
@@ -86,6 +85,13 @@ func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 }
 
 func (v *Shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) error {
+	// Network validation
+	networkPath := field.NewPath("spec", "networking")
+	if errList := alicloudvalidation.ValidateNetworking(shoot.Spec.Networking, networkPath); len(errList) != 0 {
+		return errList.ToAggregate()
+	}
+
+	// Infra validation
 	fldPath := field.NewPath("spec", "provider")
 	infraConfig, err := checkAndDecodeInfrastructureConfig(v.decoder, shoot.Spec.Provider.InfrastructureConfig, fldPath.Child("infrastructureConfig"))
 	if err != nil {
