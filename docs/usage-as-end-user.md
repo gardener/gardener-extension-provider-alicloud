@@ -16,12 +16,53 @@ Applications can use AccessKey pair to authorize themselves to a set of APIs and
 
 Make sure to [create a Resource Access Management User](https://www.alibabacloud.com/help/doc-detail/93720.htm), and [create an AccessKey Pair](https://partners-intl.aliyun.com/help/doc-detail/116401.htm) that shall be used for the Shoot cluster.
 
-[Grant at least the following permissions](https://partners-intl.aliyun.com/help/doc-detail/116146.htm) to the Resource Access Management User.
-- AliyunECSFullAccess
-- AliyunVPCFullAccess
-- AliyunSLBFullAccess
-- AliyunNATGatewayFullAccess
-- AliyunEIPFullAccess
+### Permissions
+
+Please make sure the provided credentials have the correct privileges. You can use the following Alicloud RAM policy document and attach it to the RAM user backed by the credentials you provided.
+```
+{
+    "Statement": [
+        {
+            "Action": [
+                "vpc:*"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Action": [
+                "ecs:*"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Action": [
+                "slb:*"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Action": [
+                "ram:GetRole",
+                "ram:CreateRole"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "*"
+            ]
+        }
+    ],
+    "Version": "1"
+}
+```
 
 Provide AccessKey Pair in the `Secret` (base64 encoded for fields `accessKeyID` and `accessKeySecret`, respectively), that is being referenced by the `SecretBinding` in the Shoot cluster configuration.
 

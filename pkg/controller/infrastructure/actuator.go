@@ -402,6 +402,10 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return err
 	}
 
+	if err := a.ensureServiceLinkedRole(ctx, infra, credentials); err != nil {
+		return err
+	}
+
 	tf, err := common.NewTerraformerWithAuth(a.logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
 	if err != nil {
 		return err
@@ -560,4 +564,25 @@ func (a *actuator) Migrate(ctx context.Context, infra *extensionsv1alpha1.Infras
 	}
 
 	return tf.CleanupConfiguration(ctx)
+}
+
+// ensureServiceLinkedRole is to check if service linked role exists, if not create one.
+func (a *actuator) ensureServiceLinkedRole(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, credentials *alicloud.Credentials) error {
+	client, err := a.newClientFactory.NewRAMClient(infra.Spec.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
+	if err != nil {
+		return err
+	}
+
+	serviceLinkedRole, err := client.GetServiceLinkedRole(alicloud.ServiceLinkedRoleForNATGateway)
+	if err != nil {
+		return err
+	}
+
+	if serviceLinkedRole == nil {
+		if err := client.CreateServiceLinkedRole(infra.Spec.Region, alicloud.ServiceForNATGateway); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
