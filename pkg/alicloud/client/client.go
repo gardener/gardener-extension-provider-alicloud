@@ -19,12 +19,11 @@ import (
 	"fmt"
 	"net/http"
 
-	aliclouderrors "github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
-
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
@@ -359,7 +358,7 @@ func (c *vpcClient) DescribeEipAddresses(req *vpc.DescribeEipAddressesRequest) (
 	return c.client.DescribeEipAddresses(req)
 }
 
-// ramClient defines the struct of VPC client
+// ramClient defines the struct of RAM client
 type ramClient struct {
 	client *ram.Client
 }
@@ -385,7 +384,7 @@ func (c *ramClient) GetServiceLinkedRole(roleName string) (*ram.Role, error) {
 	response, err := c.client.GetRole(request)
 	if err != nil {
 		if isNoPermissionError(err) {
-			return nil, fmt.Errorf("no permission to get service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/master/docs/usage-as-end-user.md#Permissions")
+			return nil, fmt.Errorf("no permission to get service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/v1.21.0/docs/usage-as-end-user.md#Permissions")
 		}
 		if isRoleNotExistsError(err) {
 			return nil, nil
@@ -409,7 +408,7 @@ func (c *ramClient) CreateServiceLinkedRole(regionID, serviceName string) error 
 
 	if _, err := c.client.CreateServiceLinkedRole(request); err != nil {
 		if isNoPermissionError(err) {
-			return fmt.Errorf("no permission to create service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/master/docs/usage-as-end-user.md#Permissions")
+			return fmt.Errorf("no permission to create service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/v1.21.0/docs/usage-as-end-user.md#Permissions")
 		}
 		return err
 	}
@@ -418,7 +417,7 @@ func (c *ramClient) CreateServiceLinkedRole(regionID, serviceName string) error 
 }
 
 func isNoPermissionError(err error) bool {
-	if serverError, ok := err.(*aliclouderrors.ServerError); ok {
+	if serverError, ok := err.(*errors.ServerError); ok {
 		if serverError.ErrorCode() == alicloud.ErrorCodeNoPermission {
 			return true
 		}
@@ -427,7 +426,7 @@ func isNoPermissionError(err error) bool {
 }
 
 func isRoleNotExistsError(err error) bool {
-	if serverError, ok := err.(*aliclouderrors.ServerError); ok {
+	if serverError, ok := err.(*errors.ServerError); ok {
 		if serverError.ErrorCode() == alicloud.ErrorCodeRoleEntityNotExist {
 			return true
 		}
