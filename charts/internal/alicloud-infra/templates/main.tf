@@ -28,10 +28,6 @@ resource "alicloud_nat_gateway" "nat_gateway" {
   nat_type          = "Enhanced"
   vswitch_id        = alicloud_vswitch.vsw_z0.id
   depends_on        = [alicloud_vswitch.vsw_z0]
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 {{- end }}
 
