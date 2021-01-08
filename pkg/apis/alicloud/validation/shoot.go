@@ -16,6 +16,7 @@ package validation
 
 import (
 	"fmt"
+	"net"
 	"regexp"
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
@@ -40,12 +41,12 @@ const (
 
 // ValidateNetworkingUpdate validates the network setting of a Shoot during update.
 // The network CIDR settings should be immutable.
-func ValidateNetworkingUpdate(newNetworking, oldNetworking core.Networking, fldPath *field.Path) field.ErrorList {
+func ValidateNetworkingUpdate(oldNetworking, newNetworking core.Networking, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newNetworking.Nodes, oldNetworking.Nodes, fldPath.Child("nodes"))...)
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newNetworking.Pods, oldNetworking.Pods, fldPath.Child("pods"))...)
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newNetworking.Services, oldNetworking.Services, fldPath.Child("services"))...)
+	allErrs = append(allErrs, validateNetworkImmutable(oldNetworking.Nodes, newNetworking.Nodes, fldPath.Child("nodes"))...)
+	allErrs = append(allErrs, validateNetworkImmutable(oldNetworking.Pods, newNetworking.Pods, fldPath.Child("pods"))...)
+	allErrs = append(allErrs, validateNetworkImmutable(oldNetworking.Services, newNetworking.Services, fldPath.Child("services"))...)
 
 	return allErrs
 }
@@ -53,6 +54,8 @@ func ValidateNetworkingUpdate(newNetworking, oldNetworking core.Networking, fldP
 // ValidateNetworking validates the network settings of a Shoot during creation.
 func ValidateNetworking(networking core.Networking, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+
+	allErrs = append(allErrs, validateNetworkCIDRNotNil(networking.Nodes, fldPath.Child("nodes"))...)
 
 	allErrs = append(allErrs, validateNetworkCIDR(networking.Nodes, fldPath.Child("nodes"))...)
 	allErrs = append(allErrs, validateNetworkCIDR(networking.Pods, fldPath.Child("pods"))...)
@@ -157,10 +160,33 @@ func validateVolumeFunc(volumeType *string, size string, fldPath *field.Path) fi
 func validateNetworkCIDR(cidr *string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if cidr == nil {
-		allErrs = append(allErrs, field.Required(fldPath, "a CIDR must be provided for Alicloud shoots"))
-	} else if cidrvalidation.NetworksIntersect(*cidr, ReservedCIDR) {
+	if cidr != nil && cidrvalidation.NetworksIntersect(*cidr, ReservedCIDR) {
 		allErrs = append(allErrs, field.Invalid(fldPath, fldPath, fmt.Sprintf("must not overlap with %s, it is reserved by Alicloud", ReservedCIDR)))
+	}
+
+	return allErrs
+}
+
+func validateNetworkImmutable(cidrOld, cidrNew *string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if cidrOld != nil {
+		if _, _, err := net.ParseCIDR(*cidrOld); err == nil {
+			// Validate the immutable field only when the old CIDR is validated.
+			// 1. Allow the update from invalidated CIDR to validated, like "null" => "10.250.0.0/16".
+			// 2. Deny the update from validated CIDR to validated, like "10.252.0.0/16" => 10.250.0.0/16.
+			allErrs = append(allErrs, apivalidation.ValidateImmutableField(cidrNew, cidrOld, fldPath)...)
+		}
+	}
+
+	return allErrs
+}
+
+func validateNetworkCIDRNotNil(cidr *string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if cidr == nil {
+		allErrs = append(allErrs, field.Required(fldPath, "a CIDR must be provided"))
 	}
 
 	return allErrs
