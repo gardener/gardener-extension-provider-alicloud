@@ -12,8 +12,6 @@ metadata:
 type: Opaque
 data:
   userData: {{ $machineClass.secret.userData | b64enc }}
-  alicloudAccessKeyID: {{ $machineClass.secret.accessKeyID | b64enc }}
-  alicloudAccessKeySecret: {{ $machineClass.secret.accessKeySecret | b64enc }}
 ---
 apiVersion: machine.sapcloud.io/v1alpha1
 kind: AlicloudMachineClass
@@ -44,4 +42,7 @@ spec:
   secretRef:
     name: {{ $machineClass.name }}
     namespace: {{ $.Release.Namespace }}
+  credentialsSecretRef:
+    name: {{ $machineClass.credentialsSecretRef.name }}
+    namespace: {{ $machineClass.credentialsSecretRef.namespace }}
 {{- end }}

@@ -70,29 +70,12 @@ func (w *workerDelegate) GenerateMachineDeployments(ctx context.Context) (worker
 	return w.machineDeployments, nil
 }
 
-func (w *workerDelegate) generateMachineClassSecretData(ctx context.Context) (map[string][]byte, error) {
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, w.Client(), &w.worker.Spec.SecretRef)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string][]byte{
-		machinev1alpha1.AlicloudAccessKeyID:     []byte(credentials.AccessKeyID),
-		machinev1alpha1.AlicloudAccessKeySecret: []byte(credentials.AccessKeySecret),
-	}, nil
-}
-
 func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	var (
 		machineDeployments = worker.MachineDeployments{}
 		machineClasses     []map[string]interface{}
 		machineImages      []apisalicloud.MachineImage
 	)
-
-	machineClassSecretData, err := w.generateMachineClassSecretData(ctx)
-	if err != nil {
-		return err
-	}
 
 	infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 	if _, _, err := w.Decoder().Decode(w.worker.Spec.InfrastructureProviderStatus.Raw, nil, infrastructureStatus); err != nil {
@@ -153,6 +136,10 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				"secret": map[string]interface{}{
 					"userData": string(pool.UserData),
 				},
+				"credentialsSecretRef": map[string]interface{}{
+					"name":      w.worker.Spec.SecretRef.Name,
+					"namespace": w.worker.Spec.SecretRef.Namespace,
+				},
 				"keyPairName": infrastructureStatus.KeyPairName,
 			}, disks)
 
@@ -179,8 +166,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			machineClassSpec["labels"] = map[string]string{
 				v1beta1constants.GardenerPurpose: genericworkeractuator.GardenPurposeMachineClass,
 			}
-			machineClassSpec["secret"].(map[string]interface{})[alicloud.AccessKeyID] = string(machineClassSecretData[machinev1alpha1.AlicloudAccessKeyID])
-			machineClassSpec["secret"].(map[string]interface{})[alicloud.AccessKeySecret] = string(machineClassSecretData[machinev1alpha1.AlicloudAccessKeySecret])
 
 			machineClasses = append(machineClasses, machineClassSpec)
 		}
