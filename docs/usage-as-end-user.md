@@ -52,7 +52,10 @@ Please make sure the provided credentials have the correct privileges. You can u
         {
             "Action": [
                 "ram:GetRole",
-                "ram:CreateRole"
+                "ram:CreateRole",
+                "ram:UpdateRole",
+                "ram:ListRoles",
+                "ram:DeleteRole"
             ],
             "Effect": "Allow",
             "Resource": [
