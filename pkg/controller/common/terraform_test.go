@@ -36,6 +36,7 @@ var _ = Describe("Terraform", func() {
 
 		purpose string
 		infra   *extensionsv1alpha1.Infrastructure
+		owner   *metav1.OwnerReference
 		logger  = log.Log.WithName("test")
 	)
 
@@ -55,6 +56,7 @@ var _ = Describe("Terraform", func() {
 				},
 			},
 		}
+		owner = metav1.NewControllerRef(infra, extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.InfrastructureResource))
 	})
 
 	AfterEach(func() {
@@ -78,6 +80,7 @@ var _ = Describe("Terraform", func() {
 				tf.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(tf),
 				tf.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(tf),
 				tf.EXPECT().SetDeadlinePod(15*time.Minute).Return(tf),
+				tf.EXPECT().SetOwnerRef(owner).Return(tf),
 			)
 
 			actual, err := NewTerraformer(logger, factory, &config, purpose, infra)
@@ -103,6 +106,7 @@ var _ = Describe("Terraform", func() {
 				tf.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(tf),
 				tf.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(tf),
 				tf.EXPECT().SetDeadlinePod(15*time.Minute).Return(tf),
+				tf.EXPECT().SetOwnerRef(owner).Return(tf),
 				tf.EXPECT().SetEnvVars(TerraformerEnvVars(infra.Spec.SecretRef)).Return(tf),
 			)
 

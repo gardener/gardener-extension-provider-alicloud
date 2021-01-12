@@ -35,6 +35,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/rest"
@@ -117,6 +118,7 @@ var _ = Describe("Actuator", func() {
 			secretName      string
 			region          string
 			infra           extensionsv1alpha1.Infrastructure
+			owner           *metav1.OwnerReference
 			accessKeyID     string
 			accessKeySecret string
 			cluster         controller.Cluster
@@ -192,6 +194,7 @@ var _ = Describe("Actuator", func() {
 						},
 					},
 				}
+				owner = metav1.NewControllerRef(&infra, extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.InfrastructureResource))
 				accessKeyID = "accessKeyID"
 				accessKeySecret = "accessKeySecret"
 				cluster = controller.Cluster{
@@ -251,6 +254,7 @@ var _ = Describe("Actuator", func() {
 					terraformer.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(terraformer),
 					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
 					terraformer.EXPECT().SetDeadlinePod(15*time.Minute).Return(terraformer),
+					terraformer.EXPECT().SetOwnerRef(owner).Return(terraformer),
 
 					terraformer.EXPECT().SetEnvVars(gomock.Any()).Return(terraformer),
 
@@ -377,6 +381,7 @@ var _ = Describe("Actuator", func() {
 					terraformer.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(terraformer),
 					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
 					terraformer.EXPECT().SetDeadlinePod(15*time.Minute).Return(terraformer),
+					terraformer.EXPECT().SetOwnerRef(owner).Return(terraformer),
 
 					terraformer.EXPECT().SetEnvVars(gomock.Any()).Return(terraformer),
 
