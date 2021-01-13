@@ -24,6 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -56,12 +57,14 @@ func NewTerraformer(logger logr.Logger, factory terraformer.Factory, config *res
 		return nil, err
 	}
 
+	owner := metav1.NewControllerRef(infra, extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.InfrastructureResource))
 	return tf.
 		UseV2(true).
 		SetLogLevel("info").
 		SetTerminationGracePeriodSeconds(630).
 		SetDeadlineCleaning(5 * time.Minute).
-		SetDeadlinePod(15 * time.Minute), nil
+		SetDeadlinePod(15 * time.Minute).
+		SetOwnerRef(owner), nil
 }
 
 // NewTerraformerWithAuth creates a new Terraformer and initializes it with the credentials.
