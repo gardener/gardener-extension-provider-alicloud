@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
@@ -31,22 +33,21 @@ import (
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// MachineClassKind yields the name of the Alicloud machine class.
+// MachineClassKind yields the name of the machine class kind used by Alicloud provider.
 func (w *workerDelegate) MachineClassKind() string {
-	return "AlicloudMachineClass"
+	return "MachineClass"
 }
 
-// MachineClass yields a newly initialized AlicloudMachineClass object.
+// MachineClass yields a newly initialized MachineClass object.
 func (w *workerDelegate) MachineClass() client.Object {
-	return &machinev1alpha1.AlicloudMachineClass{}
+	return &machinev1alpha1.MachineClass{}
 }
 
-// MachineClassList yields a newly initialized AlicloudMachineClassList object.
+// MachineClassList yields a newly initialized MachineClassList object.
 func (w *workerDelegate) MachineClassList() client.ObjectList {
-	return &machinev1alpha1.AlicloudMachineClassList{}
+	return &machinev1alpha1.MachineClassList{}
 }
 
 // DeployMachineClasses generates and creates the Alicloud specific machine classes.
@@ -55,6 +56,11 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 		if err := w.generateMachineConfig(ctx); err != nil {
 			return err
 		}
+	}
+
+	// Delete any older version of AlicloudMachineClass CRs.
+	if err := w.Client().DeleteAllOf(ctx, &machinev1alpha1.AlicloudMachineClass{}, client.InNamespace(w.worker.Namespace)); err != nil {
+		return err
 	}
 
 	return w.seedChartApplier.Apply(ctx, filepath.Join(alicloud.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses}))

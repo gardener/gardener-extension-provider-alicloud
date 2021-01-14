@@ -25,6 +25,8 @@ const (
 
 	// MachineControllerManagerImageName is the name of the MachineControllerManager image.
 	MachineControllerManagerImageName = "machine-controller-manager"
+	// MachineControllerManagerProviderAlicloudImageName is the name of the MachineControllerManagerProviderAlicloud image.
+	MachineControllerManagerProviderAlicloudImageName = "machine-controller-manager-provider-alicloud"
 	// CloudControllerManagerImageName is the name of the CloudControllerManager image.
 	CloudControllerManagerImageName = "alicloud-controller-manager"
 	// CSIAttacherImageName is the name of the CSI attacher image.

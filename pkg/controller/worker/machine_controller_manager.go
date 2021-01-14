@@ -34,7 +34,7 @@ var (
 	mcmChart = &chart.Chart{
 		Name:   alicloud.MachineControllerManagerName,
 		Path:   filepath.Join(alicloud.InternalChartsPath, alicloud.MachineControllerManagerName, "seed"),
-		Images: []string{alicloud.MachineControllerManagerImageName},
+		Images: []string{alicloud.MachineControllerManagerImageName, alicloud.MachineControllerManagerProviderAlicloudImageName},
 		Objects: []*chart.Object{
 			{Type: &appsv1.Deployment{}, Name: alicloud.MachineControllerManagerName},
 			{Type: &corev1.Service{}, Name: alicloud.MachineControllerManagerName},
