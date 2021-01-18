@@ -24,7 +24,7 @@ import (
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -52,7 +52,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 	return controlplane.New(mgr, controlplane.Args{
 		Kind:     controlplane.KindSeed,
 		Provider: alicloud.Type,
-		Types:    []runtime.Object{&appsv1.Deployment{}, &druidv1alpha1.Etcd{}, &corev1.Service{}},
+		Types:    []client.Object{&appsv1.Deployment{}, &druidv1alpha1.Etcd{}, &corev1.Service{}},
 		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, &opts.KubeAPIServer, &opts.Service, logger), nil, nil, nil, logger),
 	})
 }

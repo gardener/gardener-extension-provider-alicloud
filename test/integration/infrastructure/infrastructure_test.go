@@ -161,7 +161,7 @@ var _ = Describe("Infrastructure tests", func() {
 
 		By("start manager")
 		go func() {
-			err := mgr.Start(mgrContext.Done())
+			err := mgr.Start(mgrContext)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 
@@ -299,7 +299,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 	By("wait until infrastructure is created")
 	if err := common.WaitUntilExtensionCRReady(
 		ctx, c, logger,
-		func() runtime.Object { return &extensionsv1alpha1.Infrastructure{} },
+		func() client.Object { return &extensionsv1alpha1.Infrastructure{} },
 		"Infrastucture", infra.Namespace, infra.Name,
 		10*time.Second, 30*time.Second, 16*time.Minute, nil,
 	); err != nil {
