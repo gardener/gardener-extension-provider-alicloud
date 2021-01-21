@@ -62,7 +62,7 @@ func addFlags() {
 func main() {
 	addFlags()
 	flag.Parse()
-	log.SetLogger(zap.Logger(false))
+	log.SetLogger(zap.New(zap.UseDevMode(false)))
 	logger = log.Log.WithName("alicloud-generator")
 	if err := validate(); err != nil {
 		logger.Error(err, "error validating input flags")

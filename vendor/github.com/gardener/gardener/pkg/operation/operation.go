@@ -404,24 +404,16 @@ func (o *Operation) CleanShootTaskErrorAndUpdateStatusLabel(ctx context.Context,
 	o.Shoot.Info = updatedShoot
 
 	if len(o.Shoot.Info.Status.LastErrors) == 0 {
-		updatedShoot, err = kutil.TryUpdateShootLabels(
-			ctx,
-			o.K8sGardenClient.GardenCore(),
-			retry.DefaultBackoff,
-			o.Shoot.Info.ObjectMeta,
-			shoot.StatusLabelTransform(
-				shoot.ComputeStatus(
-					o.Shoot.Info.Status.LastOperation,
-					o.Shoot.Info.Status.LastErrors,
-					o.Shoot.Info.Status.Conditions...,
-				),
-			),
-		)
-		if err != nil {
+		oldObj := o.Shoot.Info.DeepCopy()
+		kutil.SetMetaDataLabel(&o.Shoot.Info.ObjectMeta, common.ShootStatus, string(shoot.ComputeStatus(
+			o.Shoot.Info.Status.LastOperation,
+			o.Shoot.Info.Status.LastErrors,
+			o.Shoot.Info.Status.Conditions...,
+		)))
+		if err := o.K8sGardenClient.Client().Patch(ctx, o.Shoot.Info, client.MergeFrom(oldObj)); err != nil {
 			o.Logger.Errorf("Could not update shoot's %s/%s status label after removing an erroneous task: %v", o.Shoot.Info.Namespace, o.Shoot.Info.Name, err)
 			return
 		}
-		o.Shoot.Info = updatedShoot
 	}
 }
 
@@ -518,8 +510,6 @@ func (o *Operation) SwitchBackupEntryToTargetSeed(ctx context.Context) error {
 // ComputeGrafanaHosts computes the host for both grafanas.
 func (o *Operation) ComputeGrafanaHosts() []string {
 	return []string{
-		o.ComputeGrafanaOperatorsHostDeprecated(),
-		o.ComputeGrafanaUsersHostDeprecated(),
 		o.ComputeGrafanaOperatorsHost(),
 		o.ComputeGrafanaUsersHost(),
 	}
@@ -528,7 +518,6 @@ func (o *Operation) ComputeGrafanaHosts() []string {
 // ComputePrometheusHosts computes the hosts for prometheus.
 func (o *Operation) ComputePrometheusHosts() []string {
 	return []string{
-		o.ComputePrometheusHostDeprecated(),
 		o.ComputePrometheusHost(),
 	}
 }
@@ -536,21 +525,8 @@ func (o *Operation) ComputePrometheusHosts() []string {
 // ComputeAlertManagerHosts computes the host for alert manager.
 func (o *Operation) ComputeAlertManagerHosts() []string {
 	return []string{
-		o.ComputeAlertManagerHostDeprecated(),
 		o.ComputeAlertManagerHost(),
 	}
-}
-
-// ComputeGrafanaOperatorsHostDeprecated computes the host for users Grafana.
-// TODO: timuthy - remove in the future. Old Grafana host is retained for migration reasons.
-func (o *Operation) ComputeGrafanaOperatorsHostDeprecated() string {
-	return o.ComputeIngressHostDeprecated(common.GrafanaOperatorsPrefix)
-}
-
-// ComputeGrafanaUsersHostDeprecated computes the host for operators Grafana.
-// TODO: timuthy - remove in the future. Old Grafana host is retained for migration reasons.
-func (o *Operation) ComputeGrafanaUsersHostDeprecated() string {
-	return o.ComputeIngressHostDeprecated(common.GrafanaUsersPrefix)
 }
 
 // ComputeGrafanaOperatorsHost computes the host for users Grafana.
@@ -563,32 +539,14 @@ func (o *Operation) ComputeGrafanaUsersHost() string {
 	return o.ComputeIngressHost(common.GrafanaUsersPrefix)
 }
 
-// ComputeAlertManagerHostDeprecated computes the host for alert manager.
-// TODO: timuthy - remove in the future. Old AlertManager host is retained for migration reasons.
-func (o *Operation) ComputeAlertManagerHostDeprecated() string {
-	return o.ComputeIngressHostDeprecated(common.AlertManagerPrefix)
-}
-
 // ComputeAlertManagerHost computes the host for alert manager.
 func (o *Operation) ComputeAlertManagerHost() string {
 	return o.ComputeIngressHost(common.AlertManagerPrefix)
 }
 
-// ComputePrometheusHostDeprecated computes the host for prometheus.
-// TODO: timuthy - remove in the future. Old Prometheus host is retained for migration reasons.
-func (o *Operation) ComputePrometheusHostDeprecated() string {
-	return o.ComputeIngressHostDeprecated(common.PrometheusPrefix)
-}
-
 // ComputePrometheusHost computes the host for prometheus.
 func (o *Operation) ComputePrometheusHost() string {
 	return o.ComputeIngressHost(common.PrometheusPrefix)
-}
-
-// ComputeIngressHostDeprecated computes the host for a given prefix.
-// TODO: timuthy - remove in the future. Only retained for migration reasons.
-func (o *Operation) ComputeIngressHostDeprecated(prefix string) string {
-	return o.Seed.GetIngressFQDNDeprecated(prefix, o.Shoot.Info.Name, o.Garden.Project.Name)
 }
 
 // ComputeIngressHost computes the host for a given prefix.
