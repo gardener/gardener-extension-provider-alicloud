@@ -32,24 +32,36 @@ func DefaultTerraformOps() TerraformChartOps {
 // ComputeCreateVPCInitializerValues computes the InitializerValues to create a new VPC.
 func (terraformOps) ComputeCreateVPCInitializerValues(config *v1alpha1.InfrastructureConfig, internetChargeType string) *InitializerValues {
 	return &InitializerValues{
-		CreateVPC:          true,
-		VPCID:              TerraformDefaultVPCID,
-		VPCCIDR:            string(*config.Networks.VPC.CIDR),
-		NATGatewayID:       TerraformDefaultNATGatewayID,
-		SNATTableIDs:       TerraformDefaultSNATTableIDs,
-		InternetChargeType: internetChargeType,
+		VPC: VPC{
+			CreateVPC: true,
+			VPCID:     TerraformDefaultVPCID,
+			VPCCIDR:   *config.Networks.VPC.CIDR,
+		},
+		NATGateway: NATGateway{
+			NATGatewayID: TerraformDefaultNATGatewayID,
+			SNATTableIDs: TerraformDefaultSNATTableIDs,
+		},
+		EIP: EIP{
+			InternetChargeType: internetChargeType,
+		},
 	}
 }
 
 // ComputeUseVPCInitializerValues computes the InitializerValues to use an existing VPC.
 func (terraformOps) ComputeUseVPCInitializerValues(config *v1alpha1.InfrastructureConfig, info *VPCInfo) *InitializerValues {
 	return &InitializerValues{
-		CreateVPC:          false,
-		VPCID:              strconv.Quote(*config.Networks.VPC.ID),
-		VPCCIDR:            info.CIDR,
-		NATGatewayID:       strconv.Quote(info.NATGatewayID),
-		SNATTableIDs:       strconv.Quote(info.SNATTableIDs),
-		InternetChargeType: info.InternetChargeType,
+		VPC: VPC{
+			CreateVPC: false,
+			VPCID:     strconv.Quote(*config.Networks.VPC.ID),
+			VPCCIDR:   info.CIDR,
+		},
+		NATGateway: NATGateway{
+			NATGatewayID: strconv.Quote(info.NATGatewayID),
+			SNATTableIDs: strconv.Quote(info.SNATTableIDs),
+		},
+		EIP: EIP{
+			InternetChargeType: info.InternetChargeType,
+		},
 	}
 }
 
@@ -75,9 +87,7 @@ func (terraformOps) ComputeChartValues(
 		}
 
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil && *zone.NatGateway.EIPAllocationID != "" {
-			zoneConfig["natGateway"] = map[string]interface{}{
-				"eipAllocationID": *zone.NatGateway.EIPAllocationID,
-			}
+			zoneConfig["eipAllocationID"] = *zone.NatGateway.EIPAllocationID
 		}
 
 		zones = append(zones, zoneConfig)
@@ -87,15 +97,17 @@ func (terraformOps) ComputeChartValues(
 		"alicloud": map[string]interface{}{
 			"region": infra.Spec.Region,
 		},
-		"create": map[string]interface{}{
-			"vpc": values.CreateVPC,
-		},
 		"vpc": map[string]interface{}{
-			"cidr":               values.VPCCIDR,
-			"id":                 values.VPCID,
-			"natGatewayID":       values.NATGatewayID,
-			"snatTableID":        values.SNATTableIDs,
-			"internetChargeType": values.InternetChargeType,
+			"create": values.VPC.CreateVPC,
+			"id":     values.VPC.VPCID,
+			"cidr":   values.VPC.VPCCIDR,
+		},
+		"natGateway": map[string]interface{}{
+			"id":           values.NATGateway.NATGatewayID,
+			"sNatTableIDs": values.NATGateway.SNATTableIDs,
+		},
+		"eip": map[string]interface{}{
+			"internetChargeType": values.EIP.InternetChargeType,
 		},
 		"clusterName":  infra.Namespace,
 		"sshPublicKey": string(infra.Spec.SSHPublicKey),

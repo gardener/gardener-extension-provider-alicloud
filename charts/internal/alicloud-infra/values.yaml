@@ -1,26 +1,27 @@
 alicloud:
   region: cn-beijing
 
-create:
-  vpc: true
-
 clusterName: test-namespace
 
 sshPublicKey: sshkey-12345
 
 vpc:
+  create: true
   id: alicloud_vpc.vpc.id
   cidr: 10.10.10.10/6
-  natGatewayID: alicloud_nat_gateway.nat_gateway.id
-  snatTableID: alicloud_nat_gateway.nat_gateway.snat_table_ids
+
+natGateway:
+  id: alicloud_nat_gateway.nat_gateway.id
+  sNatTableIDs: alicloud_nat_gateway.nat_gateway.snat_table_ids
+
+eip:
   internetChargeType: PayByTraffic
 
 zones:
 - name: cn-beijing-a
   cidr:
     workers: 10.250.0.0/19
-#  natGateway:
-#    eipAllocationID: eip-ufxsdg122elmszcg
+#  eipAllocationID: eip-ufxsdg122elmszcg
 - name: cn-beijing-b
   cidr:
     workers: 10.250.100.0/19

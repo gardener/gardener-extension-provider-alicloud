@@ -10,7 +10,7 @@ resource "alicloud_key_pair" "publickey" {
   public_key = "{{ required "sshPublicKey is required" .Values.sshPublicKey }}"
 }
 
-{{ if .Values.create.vpc -}}
+{{ if .Values.vpc.create -}}
 resource "alicloud_vpc" "vpc" {
   name       = "{{ required "clusterName is required" .Values.clusterName }}-vpc"
   cidr_block = "{{ required "vpc.cidr is required" .Values.vpc.cidr }}"
@@ -32,7 +32,7 @@ resource "alicloud_nat_gateway" "nat_gateway" {
 {{- end }}
 
 // Loop zones
-{{ range $index, $zone := .Values.zones -}}
+{{- range $index, $zone := .Values.zones }}
 resource "alicloud_vswitch" "vsw_z{{ $index }}" {
   name              = "{{ required "clusterName is required" $.Values.clusterName }}-{{ required "zone.name is required" $zone.name }}-vsw"
   vpc_id            = {{ required "vpc.id is required" $.Values.vpc.id }}
@@ -45,45 +45,39 @@ resource "alicloud_vswitch" "vsw_z{{ $index }}" {
   }
 }
 
-{{- $createEip := true }}
-{{ if $zone.natGateway -}}
-{{ if $zone.natGateway.eipAllocationID }}
-// specify EIP id
+{{ if $zone.eipAllocationID -}}
+// specify EIP ID
 data "alicloud_eips" "eip_natgw_ds{{ $index }}" {
-  ids = ["{{ $zone.natGateway.eipAllocationID }}"]
+  ids = ["{{ required "$zone.eipAllocationID is required" $zone.eipAllocationID }}"]
 }
 
 resource "alicloud_eip_association" "eip_natgw_asso_z{{ $index }}" {
   allocation_id = data.alicloud_eips.eip_natgw_ds{{ $index }}.eips.0.id
-  instance_id   = {{ required "natGatewayID is required" $.Values.vpc.natGatewayID }}
+  instance_id   = {{ required "natGateway.id is required" $.Values.natGateway.id }}
 }
 
 resource "alicloud_snat_entry" "snat_z{{ $index }}" {
-  snat_table_id     = {{ required "snatTableID is required" $.Values.vpc.snatTableID }}
+  snat_table_id     = {{ required "natGateway.sNatTableIDs is required" $.Values.natGateway.sNatTableIDs }}
   source_vswitch_id = alicloud_vswitch.vsw_z{{ $index }}.id
   snat_ip           = data.alicloud_eips.eip_natgw_ds{{ $index }}.eips.0.ip_address
   depends_on        = [alicloud_eip_association.eip_natgw_asso_z{{ $index }}]
 }
-{{- $createEip = false }}
-{{- end }}
-{{- end }}
-
-{{- if $createEip }}
+{{ else -}}
 // Create a new EIP.
 resource "alicloud_eip" "eip_natgw_z{{ $index }}" {
   name                 = "{{ required "clusterName is required" $.Values.clusterName }}-eip-natgw-z{{ $index }}"
   bandwidth            = "100"
   instance_charge_type = "PostPaid"
-  internet_charge_type = "{{ required "vpc.internetChargeType is required" $.Values.vpc.internetChargeType }}"
+  internet_charge_type = "{{ required "eip.internetChargeType is required" $.Values.eip.internetChargeType }}"
 }
 
 resource "alicloud_eip_association" "eip_natgw_asso_z{{ $index }}" {
   allocation_id = alicloud_eip.eip_natgw_z{{ $index }}.id
-  instance_id   = {{ required "natGatewayID is required" $.Values.vpc.natGatewayID }}
+  instance_id   = {{ required "natGateway.id is required" $.Values.natGateway.id }}
 }
 
 resource "alicloud_snat_entry" "snat_z{{ $index }}" {
-  snat_table_id     = {{ required "snatTableID is required" $.Values.vpc.snatTableID }}
+  snat_table_id     = {{ required "natGateway.sNatTableIDs is required" $.Values.natGateway.sNatTableIDs }}
   source_vswitch_id = alicloud_vswitch.vsw_z{{ $index }}.id
   snat_ip           = alicloud_eip.eip_natgw_z{{ $index }}.ip_address
   depends_on        = [alicloud_eip_association.eip_natgw_asso_z{{ $index }}]
@@ -120,7 +114,7 @@ resource "alicloud_security_group_rule" "allow_all_internal_tcp_in" {
   port_range        = "1/65535"
   priority          = 1
   security_group_id = alicloud_security_group.sg.id
-  cidr_ip           = "{{ required "pod is required" .Values.vpc.cidr }}"
+  cidr_ip           = "{{ required "vpc.cidr is required" .Values.vpc.cidr }}"
 }
 
 resource "alicloud_security_group_rule" "allow_all_internal_udp_in" {
@@ -130,7 +124,7 @@ resource "alicloud_security_group_rule" "allow_all_internal_udp_in" {
   port_range        = "1/65535"
   priority          = 1
   security_group_id = alicloud_security_group.sg.id
-  cidr_ip           = "{{ required "pod is required" .Values.vpc.cidr }}"
+  cidr_ip           = "{{ required "vpc.cidr is required" .Values.vpc.cidr }}"
 }
 
 // We have introduced new output variables. However, they are not applied for
