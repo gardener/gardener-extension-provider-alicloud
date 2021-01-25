@@ -53,9 +53,7 @@ Please make sure the provided credentials have the correct privileges. You can u
             "Action": [
                 "ram:GetRole",
                 "ram:CreateRole",
-                "ram:UpdateRole",
-                "ram:ListRoles",
-                "ram:DeleteRole"
+                "ram:CreateServiceLinkedRole"
             ],
             "Effect": "Allow",
             "Resource": [
