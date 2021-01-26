@@ -384,7 +384,7 @@ func (c *ramClient) GetServiceLinkedRole(roleName string) (*ram.Role, error) {
 	response, err := c.client.GetRole(request)
 	if err != nil {
 		if isNoPermissionError(err) {
-			return nil, fmt.Errorf("no permission to get service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/v1.21.0/docs/usage-as-end-user.md#Permissions")
+			return nil, fmt.Errorf("no permission to get service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/v1.21.1/docs/usage-as-end-user.md#Permissions")
 		}
 		if isRoleNotExistsError(err) {
 			return nil, nil
@@ -408,7 +408,7 @@ func (c *ramClient) CreateServiceLinkedRole(regionID, serviceName string) error 
 
 	if _, err := c.client.CreateServiceLinkedRole(request); err != nil {
 		if isNoPermissionError(err) {
-			return fmt.Errorf("no permission to create service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/v1.21.0/docs/usage-as-end-user.md#Permissions")
+			return fmt.Errorf("no permission to create service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/v1.21.1/docs/usage-as-end-user.md#Permissions")
 		}
 		return err
 	}
