@@ -43,6 +43,24 @@ const (
 	TerraformDefaultSNATTableIDs = "alicloud_nat_gateway.nat_gateway.snat_table_ids"
 )
 
+// VPC contains values of VPC used to render terraform charts.
+type VPC struct {
+	CreateVPC bool
+	VPCID     string
+	VPCCIDR   string
+}
+
+// NATGateway contains values of NATGateway used to render terraform charts.
+type NATGateway struct {
+	NATGatewayID string
+	SNATTableIDs string
+}
+
+// EIP contains values of EIP used to render terraform charts
+type EIP struct {
+	InternetChargeType string
+}
+
 // VPCInfo contains info about an existing VPC.
 type VPCInfo struct {
 	CIDR               string
@@ -53,12 +71,9 @@ type VPCInfo struct {
 
 // InitializerValues are values used to render a terraform initializer chart.
 type InitializerValues struct {
-	CreateVPC          bool
-	VPCID              string
-	VPCCIDR            string
-	NATGatewayID       string
-	SNATTableIDs       string
-	InternetChargeType string
+	VPC        VPC
+	NATGateway NATGateway
+	EIP        EIP
 }
 
 // TerraformChartOps are operations to do for interfacing with Terraform charts.

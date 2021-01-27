@@ -54,12 +54,18 @@ var _ = Describe("TerraformChartOps", func() {
 			)
 
 			Expect(ops.ComputeCreateVPCInitializerValues(&config, internetChargeType)).To(Equal(&InitializerValues{
-				CreateVPC:          true,
-				VPCID:              TerraformDefaultVPCID,
-				VPCCIDR:            string(cidr),
-				NATGatewayID:       TerraformDefaultNATGatewayID,
-				SNATTableIDs:       TerraformDefaultSNATTableIDs,
-				InternetChargeType: internetChargeType,
+				VPC: VPC{
+					CreateVPC: true,
+					VPCID:     TerraformDefaultVPCID,
+					VPCCIDR:   cidr,
+				},
+				NATGateway: NATGateway{
+					NATGatewayID: TerraformDefaultNATGatewayID,
+					SNATTableIDs: TerraformDefaultSNATTableIDs,
+				},
+				EIP: EIP{
+					InternetChargeType: internetChargeType,
+				},
 			}))
 		})
 	})
@@ -86,11 +92,15 @@ var _ = Describe("TerraformChartOps", func() {
 			)
 
 			Expect(ops.ComputeUseVPCInitializerValues(&config, &info)).To(Equal(&InitializerValues{
-				CreateVPC:    false,
-				VPCID:        strconv.Quote(id),
-				VPCCIDR:      cidr,
-				NATGatewayID: strconv.Quote(natGatewayID),
-				SNATTableIDs: strconv.Quote(sNATTableIDs),
+				VPC: VPC{
+					CreateVPC: false,
+					VPCID:     strconv.Quote(id),
+					VPCCIDR:   cidr,
+				},
+				NATGateway: NATGateway{
+					NATGatewayID: strconv.Quote(natGatewayID),
+					SNATTableIDs: strconv.Quote(sNATTableIDs),
+				},
 			}))
 		})
 	})
@@ -145,12 +155,18 @@ var _ = Describe("TerraformChartOps", func() {
 				internetChargeType = "internetChargeType"
 
 				values = InitializerValues{
-					CreateVPC:          true,
-					VPCCIDR:            vpcCIDR,
-					VPCID:              vpcID,
-					NATGatewayID:       natGatewayID,
-					SNATTableIDs:       sNATTableIDs,
-					InternetChargeType: internetChargeType,
+					VPC: VPC{
+						CreateVPC: true,
+						VPCCIDR:   vpcCIDR,
+						VPCID:     vpcID,
+					},
+					NATGateway: NATGateway{
+						NATGatewayID: natGatewayID,
+						SNATTableIDs: sNATTableIDs,
+					},
+					EIP: EIP{
+						InternetChargeType: internetChargeType,
+					},
 				}
 			)
 
@@ -158,14 +174,16 @@ var _ = Describe("TerraformChartOps", func() {
 				"alicloud": map[string]interface{}{
 					"region": region,
 				},
-				"create": map[string]interface{}{
-					"vpc": true,
-				},
 				"vpc": map[string]interface{}{
-					"cidr":               vpcCIDR,
-					"id":                 vpcID,
-					"natGatewayID":       natGatewayID,
-					"snatTableID":        sNATTableIDs,
+					"create": true,
+					"cidr":   vpcCIDR,
+					"id":     vpcID,
+				},
+				"natGateway": map[string]interface{}{
+					"id":           natGatewayID,
+					"sNatTableIDs": sNATTableIDs,
+				},
+				"eip": map[string]interface{}{
 					"internetChargeType": internetChargeType,
 				},
 				"clusterName":  namespace,
@@ -176,9 +194,7 @@ var _ = Describe("TerraformChartOps", func() {
 						"cidr": map[string]interface{}{
 							"workers": zone1Worker,
 						},
-						"natGateway": map[string]interface{}{
-							"eipAllocationID": zone1EipAllocID,
-						},
+						"eipAllocationID": zone1EipAllocID,
 					},
 					{
 						"name": zone2Name,

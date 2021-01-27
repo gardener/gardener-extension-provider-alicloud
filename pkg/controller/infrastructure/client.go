@@ -51,7 +51,7 @@ func GetVPCInfo(vpcClient alicloudclient.VPC, vpcID string) (*VPCInfo, error) {
 
 	natGateway := describeNatGatewaysRes.NatGateways.NatGateway[0]
 	natGatewayID := natGateway.NatGatewayId
-	sNATTableIDs := strings.Join(natGateway.SnatTableIds.SnatTableId, ",")
+	sNatTableIDs := strings.Join(natGateway.SnatTableIds.SnatTableId, ",")
 
 	internetChargeType, err := FetchEIPInternetChargeType(vpcClient, vpcID)
 	if err != nil {
@@ -61,7 +61,7 @@ func GetVPCInfo(vpcClient alicloudclient.VPC, vpcID string) (*VPCInfo, error) {
 	return &VPCInfo{
 		CIDR:               vpcCIDR,
 		NATGatewayID:       natGatewayID,
-		SNATTableIDs:       sNATTableIDs,
+		SNATTableIDs:       sNatTableIDs,
 		InternetChargeType: internetChargeType,
 	}, nil
 }
