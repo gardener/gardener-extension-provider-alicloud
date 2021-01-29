@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	apiv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
@@ -74,19 +76,19 @@ var _ = Describe("Machines", func() {
 
 		Describe("#MachineClassKind", func() {
 			It("should return the correct kind of the machine class", func() {
-				Expect(workerDelegate.MachineClassKind()).To(Equal("AlicloudMachineClass"))
+				Expect(workerDelegate.MachineClassKind()).To(Equal("MachineClass"))
 			})
 		})
 
 		Describe("#MachineClass", func() {
 			It("should return the correct type for the machine class", func() {
-				Expect(workerDelegate.MachineClass()).To(Equal(&machinev1alpha1.AlicloudMachineClass{}))
+				Expect(workerDelegate.MachineClass()).To(Equal(&machinev1alpha1.MachineClass{}))
 			})
 		})
 
 		Describe("#MachineClassList", func() {
 			It("should return the correct type for the machine class list", func() {
-				Expect(workerDelegate.MachineClassList()).To(Equal(&machinev1alpha1.AlicloudMachineClassList{}))
+				Expect(workerDelegate.MachineClassList()).To(Equal(&machinev1alpha1.MachineClassList{}))
 			})
 		})
 
@@ -507,20 +509,19 @@ var _ = Describe("Machines", func() {
 
 				It("should return the expected machine deployments for profile image types", func() {
 					workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, cluster)
+					gomock.InOrder(
+						c.EXPECT().DeleteAllOf(context.TODO(), &machinev1alpha1.AlicloudMachineClass{}, client.InNamespace(namespace)),
+						chartApplier.EXPECT().
+							Apply(
+								context.TODO(),
+								filepath.Join(alicloud.InternalChartsPath, "machineclass"),
+								namespace,
+								"machineclass",
+								kubernetes.Values(machineClasses),
+							),
+					)
 
 					// Test workerDelegate.DeployMachineClasses()
-
-					chartApplier.
-						EXPECT().
-						Apply(
-							context.TODO(),
-							filepath.Join(alicloud.InternalChartsPath, "machineclass"),
-							namespace,
-							"machineclass",
-							kubernetes.Values(machineClasses),
-						).
-						Return(nil)
-
 					err := workerDelegate.DeployMachineClasses(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
@@ -553,11 +554,28 @@ var _ = Describe("Machines", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					// Test workerDelegate.GenerateMachineDeployments()
-
 					result, err := workerDelegate.GenerateMachineDeployments(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 					Expect(result).To(Equal(machineDeployments))
 				})
+			})
+
+			It("should return err when the infrastructure provider status cannot be decoded", func() {
+				workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, cluster)
+
+				// Deliberately setting InfrastructureProviderStatus to empty
+				w.Spec.InfrastructureProviderStatus = &runtime.RawExtension{}
+				err := workerDelegate.DeployMachineClasses(context.TODO())
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("should return error when failing to delete AlicloudMachineClass", func() {
+				workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, cluster)
+				c.EXPECT().DeleteAllOf(context.TODO(), &machinev1alpha1.AlicloudMachineClass{}, client.InNamespace(namespace)).Return(fmt.Errorf("fake error"))
+
+				// Test workerDelegate.DeployMachineClasses()
+				err := workerDelegate.DeployMachineClasses(context.TODO())
+				Expect(err).To(HaveOccurred())
 			})
 
 			It("should fail because the version is invalid", func() {

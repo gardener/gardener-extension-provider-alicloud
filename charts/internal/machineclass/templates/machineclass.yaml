@@ -14,11 +14,11 @@ data:
   userData: {{ $machineClass.secret.userData | b64enc }}
 ---
 apiVersion: machine.sapcloud.io/v1alpha1
-kind: AlicloudMachineClass
+kind: MachineClass
 metadata:
   name: {{ $machineClass.name }}
   namespace: {{ $.Release.Namespace }}
-spec:
+providerSpec:
   imageID: {{ $machineClass.imageID }}
   instanceType: {{ $machineClass.instanceType }}
   region: {{ $machineClass.region }}
@@ -39,10 +39,10 @@ spec:
   keyPairName: {{ $machineClass.keyPairName }}
   tags:
 {{ toYaml $machineClass.tags | indent 4 }}
-  secretRef:
-    name: {{ $machineClass.name }}
-    namespace: {{ $.Release.Namespace }}
-  credentialsSecretRef:
-    name: {{ $machineClass.credentialsSecretRef.name }}
-    namespace: {{ $machineClass.credentialsSecretRef.namespace }}
+secretRef:
+  name: {{ $machineClass.name }}
+  namespace: {{ $.Release.Namespace }}
+credentialsSecretRef:
+  name: {{ $machineClass.credentialsSecretRef.name }}
+  namespace: {{ $machineClass.credentialsSecretRef.namespace }}
 {{- end }}
