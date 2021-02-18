@@ -37,9 +37,3 @@ spec:
       - name: REGION
         type: env
         value: eu-central-1
-      - name: VPC_ID
-        type: env
-        valueFrom:
-          secretKeyRef:
-            name: alicloud-configuration
-            key: vpcID
