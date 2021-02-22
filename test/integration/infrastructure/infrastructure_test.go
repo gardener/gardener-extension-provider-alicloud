@@ -33,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -53,7 +54,12 @@ const (
 	vpcCIDR     = "10.250.0.0/16"
 	workersCIDR = "10.250.0.0/21"
 
+	natGatewayCIDR = "10.250.128.0/21" // Enhanced NatGateway need bind with VSwitch, natGatewayCIDR is used for this VSwitch
+	natGatewayType = "Enhanced"
+
 	secretName = "cloudprovider"
+
+	availableStatus = "Available"
 
 	sshPublicKey       = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDSb1DJfupnWTfKJ0fmRGgnSx8A2/pRd5oC49qE1jFX+/J9L01jUyLc5sBKZXVkfU5q5h0JfbkhJXSIkzqE+rNPnJBI4e+8Lo2TVWLAvVZRA9Fg9Dk3mgkdVB+9qW2mIqtJF5GOWKuk7HkObwpY1pX8kHC/LJVfpNQpVBqWef0WJj6vbyjhlZ3vgRxK9I6wdJzjUYtNsDhvvBTy/IBg/xp82w9T2r3GVfnaTLMeQCW9mPviDKnQsrWMgVb2A0Z4c62EbzzLzQV4ScVJ6JMgOgkMqEPdbnKF8dEQcSu+/DQZoZt56Aeov7T4oamahj9/rIDX+WR1nOcfntIdhCyoB4lISkNFz/MlPC7O8HwJk4P7rojLGNk6xmn6NxY5CJGC2dVxFsb1bmm+fKHAp62mgwEoFZcDyIkcsmnmnID9u0rJNyMz84YUGZ/jEz8LePujDHcXiqgoLsKJ8gNRneISL9+m9s1VK7WxDDIbq8iWzR7XfAVE/GzKpVYkqrWCvjKEeFIDuDUnf3jghQCQMsXnJM7zGWr1tl+Dvl2Avxmj2xyUJXYHbXbl2aM434DgQySnV8JPzYH7EsTmvuhdb8SJIbb/NonFsSM+72HpSzVc083x4B++VL7oP1X8cly62pFVM1fi8sxBio48Hq5SmAUu9T4wUY4J+AKU6osFA/ATlMCIiQ== your_email@example.com"
 	sshPublicKeyDigest = "b9b39384513d9300374c98ccc8818a8b"
@@ -63,7 +69,6 @@ var (
 	accessKeyID     = flag.String("access-key-id", "", "Alicloud access key id")
 	accessKeySecret = flag.String("access-key-secret", "", "Alicloud access key secret")
 	region          = flag.String("region", "", "Alicloud region")
-	vpcID           = flag.String("vpc-id", "", "Alicloud existing VPC id")
 )
 
 func validateFlags() {
@@ -75,9 +80,6 @@ func validateFlags() {
 	}
 	if len(*region) == 0 {
 		panic("need an Alicloud region")
-	}
-	if len(*vpcID) == 0 {
-		panic("need an Alicloud existing VPC id")
 	}
 }
 
@@ -204,13 +206,19 @@ var _ = Describe("Infrastructure tests", func() {
 	})
 
 	Context("with infrastructure that requests existing vpc", func() {
+		var identifiers infrastructureIdentifiers
+		BeforeEach(func() {
+			identifiers = prepareVPC(ctx, alicloudClient, *region, vpcCIDR, natGatewayCIDR)
+		})
+
 		AfterEach(func() {
 			framework.RunCleanupActions()
+			cleanupVPC(ctx, alicloudClient, identifiers)
 		})
 
 		It("should successfully create and delete", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
-				ID: vpcID,
+				ID: identifiers.vpcID,
 			}, availabilityZone)
 
 			err := runTest(ctx, logger, c, providerConfig, decoder, alicloudClient)
@@ -574,4 +582,153 @@ func verifyDeletion(ctx context.Context, alicloudClient *aliClient, infrastructu
 		Expect(err).NotTo(HaveOccurred())
 		Expect(describeKeyPairOutput.KeyPairs.KeyPair).To(BeEmpty())
 	}
+}
+
+func prepareVPC(ctx context.Context, alicloudClient *aliClient, region, vpcCIDR, natGatewayCIDR string) infrastructureIdentifiers {
+	vpcClient := alicloudClient.VPC
+	createVpcReq := vpc.CreateCreateVpcRequest()
+	createVpcReq.CidrBlock = vpcCIDR
+	createVpcReq.RegionId = region
+	createVPCsResp, err := vpcClient.CreateVpc(createVpcReq)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		describeVpcsReq := vpc.CreateDescribeVpcsRequest()
+		describeVpcsReq.VpcId = createVPCsResp.VpcId
+		describeVpcsResp, err := vpcClient.DescribeVpcs(describeVpcsReq)
+		if err != nil {
+			return false, err
+		}
+
+		if describeVpcsResp.Vpcs.Vpc[0].Status != availableStatus {
+			return false, nil
+		}
+
+		return true, nil
+	}, ctx.Done())
+	Expect(err).NotTo(HaveOccurred())
+
+	createVSwitchsReq := vpc.CreateCreateVSwitchRequest()
+	createVSwitchsReq.VpcId = createVPCsResp.VpcId
+	createVSwitchsReq.RegionId = region
+	createVSwitchsReq.CidrBlock = natGatewayCIDR
+	createVSwitchsReq.ZoneId = region + "a"
+	createVSwitchsResp, err := vpcClient.CreateVSwitch(createVSwitchsReq)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		describeVSwitchesReq := vpc.CreateDescribeVSwitchesRequest()
+		describeVSwitchesReq.VSwitchId = createVSwitchsResp.VSwitchId
+		describeVSwitchesResp, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
+		if err != nil {
+			return false, err
+		}
+
+		if describeVSwitchesResp.VSwitches.VSwitch[0].Status != availableStatus {
+			return false, nil
+		}
+
+		return true, nil
+	}, ctx.Done())
+	Expect(err).NotTo(HaveOccurred())
+
+	createNatGatewayReq := vpc.CreateCreateNatGatewayRequest()
+	createNatGatewayReq.VpcId = createVPCsResp.VpcId
+	createNatGatewayReq.RegionId = region
+	createNatGatewayReq.VSwitchId = createVSwitchsResp.VSwitchId
+	createNatGatewayReq.NatType = natGatewayType
+	createNatGatewayResp, err := vpcClient.CreateNatGateway(createNatGatewayReq)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		describeNatGatewaysReq := vpc.CreateDescribeNatGatewaysRequest()
+		describeNatGatewaysReq.NatGatewayId = createNatGatewayResp.NatGatewayId
+		describeNatGatewaysResp, err := vpcClient.DescribeNatGateways(describeNatGatewaysReq)
+		if err != nil {
+			return false, err
+		}
+
+		if describeNatGatewaysResp.NatGateways.NatGateway[0].Status != availableStatus {
+			return false, nil
+		}
+
+		return true, nil
+	}, ctx.Done())
+	Expect(err).NotTo(HaveOccurred())
+
+	return infrastructureIdentifiers{
+		vpcID:        pointer.StringPtr(createVPCsResp.VpcId),
+		vswitchID:    pointer.StringPtr(createVSwitchsResp.VSwitchId),
+		natGatewayID: pointer.StringPtr(createNatGatewayResp.NatGatewayId),
+	}
+}
+
+func cleanupVPC(ctx context.Context, alicloudClient *aliClient, identifiers infrastructureIdentifiers) {
+	vpcClient := alicloudClient.VPC
+	deleteNatGatewayReq := vpc.CreateDeleteNatGatewayRequest()
+	deleteNatGatewayReq.NatGatewayId = *identifiers.natGatewayID
+
+	_, err := vpcClient.DeleteNatGateway(deleteNatGatewayReq)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		describeNatGatewaysReq := vpc.CreateDescribeNatGatewaysRequest()
+		describeNatGatewaysReq.NatGatewayId = *identifiers.natGatewayID
+		describeNatGatewaysResp, err := vpcClient.DescribeNatGateways(describeNatGatewaysReq)
+
+		if err != nil {
+			return false, err
+		}
+
+		if len(describeNatGatewaysResp.NatGateways.NatGateway) == 0 {
+			return true, nil
+		}
+
+		return false, nil
+	}, ctx.Done())
+	Expect(err).NotTo(HaveOccurred())
+
+	deleteVSwitchReq := vpc.CreateDeleteVSwitchRequest()
+	deleteVSwitchReq.VSwitchId = *identifiers.vswitchID
+	_, err = vpcClient.DeleteVSwitch(deleteVSwitchReq)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		describeVSwitchesReq := vpc.CreateDescribeVSwitchesRequest()
+		describeVSwitchesReq.VSwitchId = *identifiers.vswitchID
+		describeVSwitchesResp, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
+
+		if err != nil {
+			return false, err
+		}
+
+		if len(describeVSwitchesResp.VSwitches.VSwitch) == 0 {
+			return true, nil
+		}
+
+		return false, nil
+	}, ctx.Done())
+	Expect(err).NotTo(HaveOccurred())
+
+	deleteVpcReq := vpc.CreateDeleteVpcRequest()
+	deleteVpcReq.VpcId = *identifiers.vpcID
+	_, err = vpcClient.DeleteVpc(deleteVpcReq)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		describeVpcsReq := vpc.CreateDescribeVpcsRequest()
+		describeVpcsReq.VpcId = *identifiers.vpcID
+		describeVpcsResp, err := vpcClient.DescribeVpcs(describeVpcsReq)
+
+		if err != nil {
+			return false, err
+		}
+
+		if len(describeVpcsResp.Vpcs.Vpc) == 0 {
+			return true, nil
+		}
+
+		return false, nil
+	}, ctx.Done())
+	Expect(err).NotTo(HaveOccurred())
 }
