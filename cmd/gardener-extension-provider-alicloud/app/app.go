@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"os"
 
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
 	alicloudcmd "github.com/gardener/gardener-extension-provider-alicloud/pkg/cmd"
@@ -50,11 +52,12 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	var (
 		restOpts = &controllercmd.RESTOptions{}
 		mgrOpts  = &controllercmd.ManagerOptions{
-			LeaderElection:          true,
-			LeaderElectionID:        controllercmd.LeaderElectionNameID(alicloud.Name),
-			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
-			WebhookServerPort:       443,
-			WebhookCertDir:          "/tmp/gardener-extensions-cert",
+			LeaderElection:             true,
+			LeaderElectionResourceLock: resourcelock.ConfigMapsLeasesResourceLock,
+			LeaderElectionID:           controllercmd.LeaderElectionNameID(alicloud.Name),
+			LeaderElectionNamespace:    os.Getenv("LEADER_ELECTION_NAMESPACE"),
+			WebhookServerPort:          443,
+			WebhookCertDir:             "/tmp/gardener-extensions-cert",
 		}
 		configFileOpts = &alicloudcmd.ConfigOptions{}
 

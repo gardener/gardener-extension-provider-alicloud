@@ -17,8 +17,6 @@ package healthcheck
 import (
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -49,7 +47,7 @@ var (
 // RegisterHealthChecks registers health checks for each extension resource
 // HealthChecks are grouped by extension (e.g worker), extension.type (e.g alicloud) and  Health Check Type (e.g SystemComponentsHealthy)
 func RegisterHealthChecks(mgr manager.Manager, opts healthcheck.DefaultAddArgs) error {
-	snapshotControllerPreCheckFunc := func(_ runtime.Object, cluster *extensionscontroller.Cluster) bool {
+	snapshotControllerPreCheckFunc := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
 		snapshotControllerEnabled, err := version.CompareVersions(cluster.Shoot.Spec.Kubernetes.Version, ">=", "1.17")
 		if err != nil {
 			return false

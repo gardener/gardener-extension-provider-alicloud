@@ -17,6 +17,8 @@ package controlplaneexposure
 import (
 	"context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 	webhookutils "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/utils"
 
@@ -87,8 +89,15 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return nil
 	}
 
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: new.Namespace,
+			Name:      v1beta1constants.DeploymentNameKubeAPIServer,
+		},
+	}
+
 	// Get load balancer address of the kube-apiserver service
-	address, err := kutil.GetLoadBalancerIngress(ctx, e.client, new.Namespace, v1beta1constants.DeploymentNameKubeAPIServer)
+	address, err := kutil.GetLoadBalancerIngress(ctx, e.client, service)
 	if err != nil {
 		return errors.Wrap(err, "could not get kube-apiserver service load balancer address")
 	}

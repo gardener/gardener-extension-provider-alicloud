@@ -499,7 +499,7 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 
 // Delete implements infrastructure.Actuator.
 func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	logger := a.logger.WithValues("infrastructure", kutil.KeyFromObject(infra), "operation", "delete")
+	logger := a.logger.WithValues("infrastructure", client.ObjectKeyFromObject(infra), "operation", "delete")
 
 	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
 	if err != nil {
@@ -557,7 +557,7 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 
 // Migrate implements infrastructure.Actuator.
 func (a *actuator) Migrate(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	logger := a.logger.WithValues("infrastructure", kutil.KeyFromObject(infra), "operation", "migrate")
+	logger := a.logger.WithValues("infrastructure", client.ObjectKeyFromObject(infra), "operation", "migrate")
 	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra)
 	if err != nil {
 		return err
