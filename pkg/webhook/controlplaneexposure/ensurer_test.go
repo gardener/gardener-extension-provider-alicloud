@@ -153,7 +153,11 @@ var _ = Describe("Ensurer", func() {
 			// Create mock client
 			c := mockclient.NewMockClient(ctrl)
 			c.EXPECT().Get(context.TODO(), client.ObjectKey{Name: namespace}, &extensionsv1alpha1.Cluster{}).DoAndReturn(clientGet(cluster))
-			c.EXPECT().Get(context.TODO(), svcKey, &corev1.Service{}).DoAndReturn(clientGet(svc))
+			c.EXPECT().Get(context.TODO(), svcKey, &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      v1beta1constants.DeploymentNameKubeAPIServer,
+					Namespace: namespace,
+				}}).DoAndReturn(clientGet(svc))
 
 			// Create ensurer
 			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, service, logger)
@@ -188,7 +192,11 @@ var _ = Describe("Ensurer", func() {
 			// Create mock client
 			c := mockclient.NewMockClient(ctrl)
 			c.EXPECT().Get(context.TODO(), client.ObjectKey{Name: namespace}, &extensionsv1alpha1.Cluster{}).DoAndReturn(clientGet(cluster))
-			c.EXPECT().Get(context.TODO(), svcKey, &corev1.Service{}).DoAndReturn(clientGet(svc))
+			c.EXPECT().Get(context.TODO(), svcKey, &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      v1beta1constants.DeploymentNameKubeAPIServer,
+					Namespace: namespace,
+				}}).DoAndReturn(clientGet(svc))
 
 			// Create ensurer
 			ensurer := NewEnsurer(etcdStorage, kubeAPIServer, service, logger)
@@ -344,8 +352,8 @@ func checkETCDEvents(etcd *druidv1alpha1.Etcd) {
 	Expect(*etcd.Spec.StorageCapacity).To(Equal(resource.MustParse("20Gi")))
 }
 
-func clientGet(result runtime.Object) interface{} {
-	return func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+func clientGet(result client.Object) interface{} {
+	return func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 		switch obj.(type) {
 		case *corev1.Service:
 			*obj.(*corev1.Service) = *result.(*corev1.Service)

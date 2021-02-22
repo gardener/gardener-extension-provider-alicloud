@@ -25,6 +25,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/gardener/gardener/pkg/operation/botanist/extensions/operatingsystemconfig/original/components/kubelet"
+	"github.com/gardener/gardener/pkg/operation/botanist/extensions/operatingsystemconfig/utils"
+	oscutils "github.com/gardener/gardener/pkg/operation/botanist/extensions/operatingsystemconfig/utils"
 )
 
 var logger = log.Log.WithName("alicloud-controlplane-webhook")
@@ -32,12 +36,12 @@ var logger = log.Log.WithName("alicloud-controlplane-webhook")
 // AddToManager creates a webhook and adds it to the manager.
 func AddToManager(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
-	fciCodec := controlplane.NewFileContentInlineCodec()
+	fciCodec := oscutils.NewFileContentInlineCodec()
 	return controlplane.New(mgr, controlplane.Args{
 		Kind:     controlplane.KindShoot,
 		Provider: alicloud.Type,
 		Types:    []client.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},
-		Mutator: genericmutator.NewMutator(NewEnsurer(logger), controlplane.NewUnitSerializer(),
-			controlplane.NewKubeletConfigCodec(fciCodec), fciCodec, logger),
+		Mutator: genericmutator.NewMutator(NewEnsurer(logger), utils.NewUnitSerializer(),
+			kubelet.NewConfigCodec(fciCodec), fciCodec, logger),
 	})
 }
