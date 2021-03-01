@@ -563,7 +563,10 @@ func (a *actuator) Migrate(ctx context.Context, infra *extensionsv1alpha1.Infras
 		return err
 	}
 
-	return tf.CleanupConfiguration(ctx)
+	if err := tf.CleanupConfiguration(ctx); err != nil {
+		return err
+	}
+	return tf.RemoveTerraformerFinalizerFromConfig(ctx)
 }
 
 // ensureServiceLinkedRole is to check if service linked role exists, if not create one.
