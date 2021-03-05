@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"os"
 
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
-
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
 	alicloudcmd "github.com/gardener/gardener-extension-provider-alicloud/pkg/cmd"
@@ -43,6 +41,8 @@ import (
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/component-base/version/verflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -125,6 +125,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		Use: fmt.Sprintf("%s-controller-manager", alicloud.Name),
 
 		Run: func(cmd *cobra.Command, args []string) {
+			verflag.PrintAndExitIfRequested()
+
 			if err := aggOption.Complete(); err != nil {
 				controllercmd.LogErrAndExit(err, "Error completing options")
 			}
@@ -201,6 +203,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		},
 	}
 
+	verflag.AddFlags(cmd.Flags())
 	aggOption.AddFlags(cmd.Flags())
 
 	return cmd

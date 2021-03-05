@@ -27,6 +27,7 @@ import (
 	"github.com/gardener/gardener/pkg/apis/core/install"
 	"github.com/spf13/cobra"
 	componentbaseconfig "k8s.io/component-base/config"
+	"k8s.io/component-base/version/verflag"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -52,6 +53,8 @@ func NewValidatorCommand(ctx context.Context) *cobra.Command {
 		Use: fmt.Sprintf("validator-%s", provideralicloud.Type),
 
 		Run: func(cmd *cobra.Command, args []string) {
+			verflag.PrintAndExitIfRequested()
+
 			if err := aggOption.Complete(); err != nil {
 				controllercmd.LogErrAndExit(err, "Error completing options")
 			}
@@ -84,6 +87,7 @@ func NewValidatorCommand(ctx context.Context) *cobra.Command {
 		},
 	}
 
+	verflag.AddFlags(cmd.Flags())
 	aggOption.AddFlags(cmd.Flags())
 
 	return cmd

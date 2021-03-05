@@ -1069,6 +1069,7 @@ k8s.io/component-base/config
 k8s.io/component-base/config/v1alpha1
 k8s.io/component-base/featuregate
 k8s.io/component-base/version
+k8s.io/component-base/version/verflag
 # k8s.io/gengo v0.0.0-20200428234225-8167cfdcfc14
 ## explicit
 k8s.io/gengo/args
