@@ -99,7 +99,7 @@ var _ = Describe("ValuesProvider", func() {
 						Pods: &cidr,
 					},
 					Kubernetes: gardencorev1beta1.Kubernetes{
-						Version: "1.14.0",
+						Version: "1.20.0",
 						VerticalPodAutoscaler: &gardencorev1beta1.VerticalPodAutoscaler{
 							Enabled: true,
 						},
@@ -143,7 +143,7 @@ var _ = Describe("ValuesProvider", func() {
 			"alicloud-cloud-controller-manager": map[string]interface{}{
 				"replicas":          1,
 				"clusterName":       namespace,
-				"kubernetesVersion": "1.14.0",
+				"kubernetesVersion": "1.20.0",
 				"podNetwork":        cidr,
 				"podAnnotations": map[string]interface{}{
 					"checksum/secret-cloud-controller-manager": "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
@@ -159,7 +159,7 @@ var _ = Describe("ValuesProvider", func() {
 			"csi-alicloud": map[string]interface{}{
 				"replicas":          1,
 				"regionID":          "eu-central-1",
-				"kubernetesVersion": "1.14.0",
+				"kubernetesVersion": "1.20.0",
 
 				"csiPluginController": map[string]interface{}{
 					"snapshotPrefix":         "myshoot",
@@ -187,7 +187,7 @@ var _ = Describe("ValuesProvider", func() {
 					"accessKeyID":     "Zm9v",
 					"accessKeySecret": "YmFy",
 				},
-				"kubernetesVersion": "1.14.0",
+				"kubernetesVersion": "1.20.0",
 				"vpaEnabled":        true,
 			},
 		}

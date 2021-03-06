@@ -21,15 +21,9 @@ rules:
 - apiGroups: ["snapshot.storage.k8s.io"]
   resources: ["volumesnapshotcontents"]
   verbs: ["get", "list"]
-{{- if semverCompare "< 1.14" .Values.kubernetesVersion }}
-- apiGroups: ["csi.storage.k8s.io"]
-  resources: ["csinodeinfos"]
-  verbs: ["get", "list", "watch"]
-{{- else }}
 - apiGroups: ["storage.k8s.io"]
   resources: ["csinodes"]
   verbs: ["get", "list", "watch"]
-{{- end }}
 - apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get", "list", "watch"]
@@ -46,7 +40,6 @@ roleRef:
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-provisioner
   apiGroup: rbac.authorization.k8s.io
 
-{{- if semverCompare ">= 1.14" .Values.kubernetesVersion }}
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -72,4 +65,3 @@ roleRef:
   kind: Role
   name: csi-provisioner
   apiGroup: rbac.authorization.k8s.io
-{{- end }}
