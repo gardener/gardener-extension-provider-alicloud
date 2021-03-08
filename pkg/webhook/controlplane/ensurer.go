@@ -84,21 +84,13 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, ver *semver.Version
 	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--feature-gates=",
 		"CSIDriverRegistry=false", ",")
 
-	kVersion14 := semver.MustParse("v1.14")
 	kVersion16 := semver.MustParse("v1.16")
 
 	if ver.LessThan(kVersion16) {
-		if ver.LessThan(kVersion14) {
-			c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
-				"CSINodeInfo=true", ",")
-			c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
-				"CSIDriverRegistry=true", ",")
-		} else {
-			c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
-				"ExpandCSIVolumes=true", ",")
-			c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
-				"ExpandInUsePersistentVolumes=true", ",")
-		}
+		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
+			"ExpandCSIVolumes=true", ",")
+		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
+			"ExpandInUsePersistentVolumes=true", ",")
 	}
 }
 
@@ -161,16 +153,10 @@ func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.
 		return fmt.Errorf("Can not parse shoot k8s cluster version: %v", err)
 	}
 
-	kVersion14 := semver.MustParse("v1.14")
 	kVersion16 := semver.MustParse("v1.16")
 
 	if ver.LessThan(kVersion16) {
-		if ver.LessThan(kVersion14) {
-			new.FeatureGates["CSINodeInfo"] = true
-			new.FeatureGates["CSIDriverRegistry"] = true
-		} else {
-			new.FeatureGates["ExpandCSIVolumes"] = true
-		}
+		new.FeatureGates["ExpandCSIVolumes"] = true
 	}
 
 	return nil

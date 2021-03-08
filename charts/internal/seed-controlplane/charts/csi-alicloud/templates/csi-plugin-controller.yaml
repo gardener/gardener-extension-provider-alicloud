@@ -69,9 +69,6 @@ spec:
         - "--csi-address=$(CSI_ENDPOINT)"
         - "--kubeconfig=/var/lib/csi-attacher/kubeconfig"
         - "--leader-election"
-{{- if semverCompare "1.13.x" .Values.kubernetesVersion }}
-        - "--leader-election-type=leases"
-{{- end }}
         - "--leader-election-namespace=kube-system"
         env:
         - name: CSI_ENDPOINT
@@ -96,13 +93,9 @@ spec:
         - "--kubeconfig=/var/lib/csi-provisioner/kubeconfig"
         - "--feature-gates=Topology=True"
         - "--enable-leader-election=true"
-{{- if semverCompare ">= 1.14" .Values.kubernetesVersion }}
         - "--leader-election-type=leases"
         - "--leader-election-namespace=kube-system"
         - "--volume-name-prefix=pv-{{ .Values.csiPluginController.persistentVolumePrefix }}"
-{{- else }}
-        - "--provisioner=diskplugin.csi.alibabacloud.com"
-{{- end }}
 {{- if .Values.csiPluginController.podResources.provisioner }}
         resources:
 {{ toYaml .Values.csiPluginController.podResources.provisioner | indent 12 }}
@@ -122,11 +115,9 @@ spec:
         args:
         - "--csi-address=$(CSI_ENDPOINT)"
         - "--kubeconfig=/var/lib/csi-snapshotter/kubeconfig"
-{{- if semverCompare ">= 1.14" .Values.kubernetesVersion }}
         - "--leader-election"
         - "--leader-election-namespace=kube-system"
         - "--snapshot-name-prefix=s-{{ .Values.csiPluginController.snapshotPrefix }}"
-{{- end }}
         env:
         - name: CSI_ENDPOINT
           value: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock
@@ -139,7 +130,6 @@ spec:
           mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
         - name: csi-snapshotter
           mountPath: /var/lib/csi-snapshotter
-{{- if semverCompare ">= 1.14" .Values.kubernetesVersion }}
       - name: alicloud-csi-resizer
         image: {{ index .Values.images "csi-resizer" }}
         args:
@@ -160,7 +150,6 @@ spec:
           mountPath: /var/lib/csi-resizer
         - name: socket-dir
           mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com 
-{{- end}}
       volumes:
       - name: socket-dir
         emptyDir: {}

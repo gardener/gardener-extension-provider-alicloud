@@ -42,23 +42,12 @@ func TestController(t *testing.T) {
 var _ = Describe("Ensurer", func() {
 	var (
 		ctrl       *gomock.Controller
-		eContext13 = gcontext.NewInternalGardenContext(
+		eContext15 = gcontext.NewInternalGardenContext(
 			&extensionscontroller.Cluster{
 				Shoot: &gardencorev1beta1.Shoot{
 					Spec: gardencorev1beta1.ShootSpec{
 						Kubernetes: gardencorev1beta1.Kubernetes{
-							Version: "1.13.0",
-						},
-					},
-				},
-			},
-		)
-		eContext14 = gcontext.NewInternalGardenContext(
-			&extensionscontroller.Cluster{
-				Shoot: &gardencorev1beta1.Shoot{
-					Spec: gardencorev1beta1.ShootSpec{
-						Kubernetes: gardencorev1beta1.Kubernetes{
-							Version: "1.14.0",
+							Version: "1.15.0",
 						},
 					},
 				},
@@ -99,14 +88,9 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
-			// 1.13
+			// 1.15
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext13, dep, nil)
-			Expect(err).To(Not(HaveOccurred()))
-			checkKubeAPIServerDeployment(dep, []string{"CSINodeInfo=true", "CSIDriverRegistry=true"})
-			// 1.14
-			dep = apidep()
-			err = ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext14, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext15, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{"ExpandCSIVolumes=true", "ExpandInUsePersistentVolumes=true"})
 
@@ -141,14 +125,9 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
-			// 1.13
+			// 1.15
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext13, dep, nil)
-			Expect(err).To(Not(HaveOccurred()))
-			checkKubeAPIServerDeployment(dep, []string{"CSINodeInfo=true", "CSIDriverRegistry=true"})
-			// 1.14
-			dep = apidep()
-			err = ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext14, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext15, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{"ExpandCSIVolumes=true", "ExpandInUsePersistentVolumes=true"})
 		})
@@ -177,7 +156,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext13, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext15, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -207,7 +186,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext13, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext15, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -246,7 +225,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeletServiceUnitOptions method and check the result
-			opts, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), eContext13, oldUnitOptions, nil)
+			opts, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), eContext15, oldUnitOptions, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(opts).To(Equal(newUnitOptions))
 		})
@@ -255,24 +234,12 @@ var _ = Describe("Ensurer", func() {
 	Describe("#EnsureKubeletConfiguration", func() {
 		It("should modify existing elements of kubelet configuration", func() {
 			var (
-				oldKubeletConfig13 = &kubeletconfigv1beta1.KubeletConfiguration{
+				oldKubeletConfig15 = &kubeletconfigv1beta1.KubeletConfiguration{
 					FeatureGates: map[string]bool{
 						"Foo": true,
 					},
 				}
-				newKubeletConfig13 = &kubeletconfigv1beta1.KubeletConfiguration{
-					FeatureGates: map[string]bool{
-						"Foo":               true,
-						"CSINodeInfo":       true,
-						"CSIDriverRegistry": true,
-					},
-				}
-				oldKubeletConfig14 = &kubeletconfigv1beta1.KubeletConfiguration{
-					FeatureGates: map[string]bool{
-						"Foo": true,
-					},
-				}
-				newKubeletConfig14 = &kubeletconfigv1beta1.KubeletConfiguration{
+				newKubeletConfig15 = &kubeletconfigv1beta1.KubeletConfiguration{
 					FeatureGates: map[string]bool{
 						"Foo":              true,
 						"ExpandCSIVolumes": true,
@@ -284,14 +251,10 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeletConfiguration method and check the result
-			// 13
-			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext13, oldKubeletConfig13, nil)
+			// 1.15
+			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext15, oldKubeletConfig15, nil)
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(oldKubeletConfig13).To(Equal(newKubeletConfig13))
-			// 14
-			err = ensurer.EnsureKubeletConfiguration(context.TODO(), eContext14, oldKubeletConfig14, nil)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(oldKubeletConfig14).To(Equal(newKubeletConfig14))
+			Expect(oldKubeletConfig15).To(Equal(newKubeletConfig15))
 		})
 	})
 })

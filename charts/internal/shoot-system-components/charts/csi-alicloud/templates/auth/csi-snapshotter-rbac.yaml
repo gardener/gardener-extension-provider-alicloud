@@ -49,8 +49,6 @@ roleRef:
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-snapshotter
   apiGroup: rbac.authorization.k8s.io
 ---
-{{- if semverCompare ">= 1.14" .Values.kubernetesVersion }}
----
 # Attacher must be able to work with config map in current namespace
 # if (and only if) leadership election is enabled
 kind: Role
@@ -75,4 +73,3 @@ roleRef:
   kind: Role
   name: csi-snapshotter
   apiGroup: rbac.authorization.k8s.io
-{{- end }}
