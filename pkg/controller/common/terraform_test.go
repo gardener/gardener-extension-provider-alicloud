@@ -17,8 +17,8 @@ package common
 import (
 	"time"
 
+	mockterraformer "github.com/gardener/gardener/extensions/pkg/terraformer/mock"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	mockterraformer "github.com/gardener/gardener/pkg/mock/gardener/extensions/terraformer"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -20,22 +20,21 @@ import (
 	"strings"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/json"
-	"k8s.io/utils/pointer"
-
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	versionutils "github.com/gardener/gardener/pkg/utils/version"
 
 	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/pointer"
 )
 
 // Now determines the current metav1.Time.
@@ -285,20 +284,7 @@ func parseInt32(s string) (int32, error) {
 }
 
 func parseShootedSeed(annotation string) (*ShootedSeed, error) {
-	var (
-		flags    = make(map[string]struct{})
-		settings = make(map[string]string)
-	)
-
-	for _, fragment := range strings.Split(annotation, ",") {
-		parts := strings.SplitN(fragment, "=", 2)
-		if len(parts) == 1 {
-			flags[fragment] = struct{}{}
-			continue
-		}
-
-		settings[parts[0]] = parts[1]
-	}
+	flags, settings := getFlagsAndSettings(annotation)
 
 	if _, ok := flags["true"]; !ok {
 		return nil, nil
@@ -383,6 +369,24 @@ func parseShootedSeed(annotation string) (*ShootedSeed, error) {
 	}
 
 	return &shootedSeed, nil
+}
+
+func getFlagsAndSettings(annotation string) (map[string]struct{}, map[string]string) {
+	var (
+		flags    = make(map[string]struct{})
+		settings = make(map[string]string)
+	)
+
+	for _, fragment := range strings.Split(annotation, ",") {
+		parts := strings.SplitN(fragment, "=", 2)
+		if len(parts) == 1 {
+			flags[fragment] = struct{}{}
+			continue
+		}
+		settings[parts[0]] = parts[1]
+	}
+
+	return flags, settings
 }
 
 func parseShootedSeedBlockCIDRs(settings map[string]string) ([]string, error) {
@@ -769,6 +773,35 @@ func ReadShootedSeed(shoot *gardencorev1beta1.Shoot) (*ShootedSeed, error) {
 	return shootedSeed, nil
 }
 
+// ReadManagedSeedAPIServer reads the managed seed API server settings from the corresponding annotation.
+func ReadManagedSeedAPIServer(shoot *gardencorev1beta1.Shoot) (*ShootedSeedAPIServer, error) {
+	if shoot.Namespace != v1beta1constants.GardenNamespace || shoot.Annotations == nil {
+		return nil, nil
+	}
+
+	val, ok := shoot.Annotations[v1beta1constants.AnnotationManagedSeedAPIServer]
+	if !ok {
+		return nil, nil
+	}
+
+	_, settings := getFlagsAndSettings(val)
+	apiServer, err := parseShootedSeedAPIServer(settings)
+	if err != nil {
+		return nil, err
+	}
+	if apiServer == nil {
+		return nil, nil
+	}
+
+	setDefaults_ShootedSeedAPIServer(apiServer)
+
+	if errs := validateShootedSeedAPIServer(apiServer, nil); len(errs) > 0 {
+		return nil, errs.ToAggregate()
+	}
+
+	return apiServer, nil
+}
+
 // HibernationIsEnabled checks if the given shoot's desired state is hibernated.
 func HibernationIsEnabled(shoot *gardencorev1beta1.Shoot) bool {
 	return shoot.Spec.Hibernation != nil && shoot.Spec.Hibernation.Enabled != nil && *shoot.Spec.Hibernation.Enabled
@@ -821,6 +854,11 @@ func ShootWantsBasicAuthentication(shoot *gardencorev1beta1.Shoot) bool {
 // ShootUsesUnmanagedDNS returns true if the shoot's DNS section is marked as 'unmanaged'.
 func ShootUsesUnmanagedDNS(shoot *gardencorev1beta1.Shoot) bool {
 	return shoot.Spec.DNS != nil && len(shoot.Spec.DNS.Providers) > 0 && shoot.Spec.DNS.Providers[0].Type != nil && *shoot.Spec.DNS.Providers[0].Type == "unmanaged"
+}
+
+// SeedSettingVerticalPodAutoscalerEnabled returns true if the 'verticalPodAutoscaler' setting is enabled.
+func SeedSettingVerticalPodAutoscalerEnabled(settings *gardencorev1beta1.SeedSettings) bool {
+	return settings == nil || settings.VerticalPodAutoscaler == nil || settings.VerticalPodAutoscaler.Enabled
 }
 
 // DetermineMachineImageForName finds the cloud specific machine images in the <cloudProfile> for the given <name> and
@@ -1195,4 +1233,17 @@ func KubernetesDashboardEnabled(addons *gardencorev1beta1.Addons) bool {
 // NginxIngressEnabled returns true if the nginx-ingress addon is enabled in the Shoot manifest.
 func NginxIngressEnabled(addons *gardencorev1beta1.Addons) bool {
 	return addons != nil && addons.NginxIngress != nil && addons.NginxIngress.Enabled
+}
+
+// BackupBucketIsErroneous returns `true` if the given BackupBucket has a last error.
+// It also returns the error description if available.
+func BackupBucketIsErroneous(bb *gardencorev1beta1.BackupBucket) (bool, string) {
+	if bb == nil {
+		return false, ""
+	}
+	lastErr := bb.Status.LastError
+	if lastErr == nil {
+		return false, ""
+	}
+	return true, lastErr.Description
 }
