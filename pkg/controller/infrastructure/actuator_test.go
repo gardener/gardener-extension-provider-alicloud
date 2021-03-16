@@ -23,13 +23,12 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	realterraformer "github.com/gardener/gardener/extensions/pkg/terraformer"
+	mockterraformer "github.com/gardener/gardener/extensions/pkg/terraformer/mock"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
+	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
-	mockchartrenderer "github.com/gardener/gardener/pkg/mock/gardener/chartrenderer"
-	mockgardenerchartrenderer "github.com/gardener/gardener/pkg/mock/gardener/chartrenderer"
-	mockterraformer "github.com/gardener/gardener/pkg/mock/gardener/extensions/terraformer"
 	"github.com/gardener/gardener/pkg/mock/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -108,7 +107,7 @@ var _ = Describe("Actuator", func() {
 			initializer           *mockterraformer.MockInitializer
 			restConfig            rest.Config
 
-			chartRenderer *mockgardenerchartrenderer.MockInterface
+			chartRenderer *mockchartrenderer.MockInterface
 
 			cidr   string
 			config alicloudv1alpha1.InfrastructureConfig
@@ -166,7 +165,7 @@ var _ = Describe("Actuator", func() {
 				c = mockclient.NewMockClient(ctrl)
 				initializer = mockterraformer.NewMockInitializer(ctrl)
 
-				chartRenderer = mockgardenerchartrenderer.NewMockInterface(ctrl)
+				chartRenderer = mockchartrenderer.NewMockInterface(ctrl)
 
 				cidr = "192.168.0.0/16"
 				config = alicloudv1alpha1.InfrastructureConfig{

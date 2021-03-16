@@ -132,12 +132,6 @@ func ExtractShootDetailsFromBackupEntryName(backupEntryName string) (shootTechni
 	return shootTechnicalID, shootUID
 }
 
-// IsFollowingNewNamingConvention determines whether the new naming convention followed for shoot resources.
-// TODO: Remove this and use only "--" as separator, once we have all shoots deployed as per new naming conventions.
-func IsFollowingNewNamingConvention(seedNamespace string) bool {
-	return len(strings.Split(seedNamespace, "--")) > 2
-}
-
 // ReplaceCloudProviderConfigKey replaces a key with the new value in the given cloud provider config.
 func ReplaceCloudProviderConfigKey(cloudProviderConfig, separator, key, value string) string {
 	keyValueRegexp := regexp.MustCompile(fmt.Sprintf(`(\Q%s\E%s)([^\n]*)`, key, separator))
@@ -162,7 +156,7 @@ func ProjectForNamespace(projectLister gardencorelisters.ProjectLister, namespac
 
 // ProjectForNamespaceWithClient returns the project object responsible for a given <namespace>.
 // It tries to identify the project object by looking for the namespace name in the project spec.
-func ProjectForNamespaceWithClient(ctx context.Context, c client.Client, namespaceName string) (*gardencorev1beta1.Project, error) {
+func ProjectForNamespaceWithClient(ctx context.Context, c client.Reader, namespaceName string) (*gardencorev1beta1.Project, error) {
 	projectList := &gardencorev1beta1.ProjectList{}
 	err := c.List(ctx, projectList)
 	if err != nil {
