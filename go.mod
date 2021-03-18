@@ -11,7 +11,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/frankban/quicktest v1.9.0 // indirect
 	github.com/gardener/etcd-druid v0.3.0
-	github.com/gardener/gardener v1.18.1
+	github.com/gardener/gardener v1.18.2-0.20210318073350-b8027a3499c0
 	github.com/gardener/machine-controller-manager v0.36.0
 	github.com/go-logr/logr v0.3.0
 	github.com/gobuffalo/packr/v2 v2.8.1
