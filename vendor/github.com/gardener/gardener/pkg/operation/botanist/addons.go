@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gardener/gardener/charts"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
@@ -28,8 +29,7 @@ import (
 	"github.com/gardener/gardener/pkg/controllerutils"
 	netpol "github.com/gardener/gardener/pkg/operation/botanist/addons/networkpolicy"
 	"github.com/gardener/gardener/pkg/operation/botanist/component"
-	"github.com/gardener/gardener/pkg/operation/botanist/controlplane/konnectivity"
-	"github.com/gardener/gardener/pkg/operation/botanist/extensions/dns"
+	"github.com/gardener/gardener/pkg/operation/botanist/component/extensions/dns"
 	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 	versionutils "github.com/gardener/gardener/pkg/utils/version"
@@ -226,6 +226,7 @@ func (b *Botanist) generateCoreAddonsChart(ctx context.Context) (*chartrenderer.
 			"vpaEnabled":        b.Shoot.WantsVerticalPodAutoscaler,
 		}
 		coreDNSConfig = map[string]interface{}{
+			"nodeNetwork": b.Shoot.GetNodeNetwork(),
 			"service": map[string]interface{}{
 				"clusterDNS": b.Shoot.Networks.CoreDNS.String(),
 				// TODO: resolve conformance test issue before changing:
@@ -313,7 +314,7 @@ func (b *Botanist) generateCoreAddonsChart(ctx context.Context) (*chartrenderer.
 		shootInfo["domain"] = *domain
 	}
 	var extensions []string
-	for extensionType := range b.Shoot.Extensions {
+	for extensionType := range b.Shoot.Components.Extensions.Extension.Extensions() {
 		extensions = append(extensions, extensionType)
 	}
 	shootInfo["extensions"] = strings.Join(extensions, ",")
@@ -332,7 +333,7 @@ func (b *Botanist) generateCoreAddonsChart(ctx context.Context) (*chartrenderer.
 		}
 	}
 
-	coreDNS, err := b.InjectShootShootImages(coreDNSConfig, common.CoreDNSImageName)
+	coreDNS, err := b.InjectShootShootImages(coreDNSConfig, charts.ImageNameCoredns)
 	if err != nil {
 		return nil, err
 	}
@@ -345,26 +346,26 @@ func (b *Botanist) generateCoreAddonsChart(ctx context.Context) (*chartrenderer.
 		nodeLocalDNSConfig["dnsServer"] = b.Shoot.Networks.CoreDNS.String()
 	}
 
-	nodelocalDNS, err := b.InjectShootShootImages(nodeLocalDNSConfig, common.NodeLocalDNSImageName)
+	nodelocalDNS, err := b.InjectShootShootImages(nodeLocalDNSConfig, charts.ImageNameNodeLocalDns)
 	if err != nil {
 		return nil, err
 	}
 
-	nodeProblemDetector, err := b.InjectShootShootImages(nodeProblemDetectorConfig, common.NodeProblemDetectorImageName)
+	nodeProblemDetector, err := b.InjectShootShootImages(nodeProblemDetectorConfig, charts.ImageNameNodeProblemDetector)
 	if err != nil {
 		return nil, err
 	}
 
-	kubeProxy, err := b.InjectShootShootImages(kubeProxyConfig, common.KubeProxyImageName, common.AlpineImageName)
+	kubeProxy, err := b.InjectShootShootImages(kubeProxyConfig, charts.ImageNameKubeProxy, charts.ImageNameAlpine)
 	if err != nil {
 		return nil, err
 	}
 
-	nodeExporter, err := b.InjectShootShootImages(nodeExporterConfig, common.NodeExporterImageName)
+	nodeExporter, err := b.InjectShootShootImages(nodeExporterConfig, charts.ImageNameNodeExporter)
 	if err != nil {
 		return nil, err
 	}
-	blackboxExporter, err := b.InjectShootShootImages(blackboxExporterConfig, common.BlackboxExporterImageName)
+	blackboxExporter, err := b.InjectShootShootImages(blackboxExporterConfig, charts.ImageNameBlackboxExporter)
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +382,7 @@ func (b *Botanist) generateCoreAddonsChart(ctx context.Context) (*chartrenderer.
 		"podMutatorEnabled": b.APIServerSNIPodMutatorEnabled(),
 	}
 
-	apiserverProxy, err := b.InjectShootShootImages(apiserverProxyConfig, common.APIServerProxySidecarImageName, common.APIServerProxyImageName)
+	apiserverProxy, err := b.InjectShootShootImages(apiserverProxyConfig, charts.ImageNameApiserverProxySidecar, charts.ImageNameApiserverProxy)
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +421,7 @@ func (b *Botanist) generateCoreAddonsChart(ctx context.Context) (*chartrenderer.
 		}
 
 		// Konnectivity agent related values
-		konnectivityAgent, err := b.InjectShootShootImages(konnectivityAgentConfig, konnectivity.AgentImageName)
+		konnectivityAgent, err := b.InjectShootShootImages(konnectivityAgentConfig, charts.ImageNameKonnectivityAgent)
 		if err != nil {
 			return nil, err
 		}
@@ -466,7 +467,7 @@ func (b *Botanist) generateCoreAddonsChart(ctx context.Context) (*chartrenderer.
 			vpnShootConfig["nodeNetwork"] = *nodeNetwork
 		}
 
-		vpnShoot, err := b.InjectShootShootImages(vpnShootConfig, common.VPNShootImageName)
+		vpnShoot, err := b.InjectShootShootImages(vpnShootConfig, charts.ImageNameVpnShoot)
 		if err != nil {
 			return nil, err
 		}
@@ -474,7 +475,7 @@ func (b *Botanist) generateCoreAddonsChart(ctx context.Context) (*chartrenderer.
 		values["vpn-shoot"] = common.GenerateAddonConfig(vpnShoot, true)
 	}
 
-	return b.K8sShootClient.ChartRenderer().Render(filepath.Join(common.ChartPath, "shoot-core", "components"), "shoot-core", metav1.NamespaceSystem, values)
+	return b.K8sShootClient.ChartRenderer().Render(filepath.Join(charts.Path, "shoot-core", "components"), "shoot-core", metav1.NamespaceSystem, values)
 }
 
 // generateOptionalAddonsChart renders the gardener-resource-manager chart for the optional addons. After that it
@@ -488,14 +489,14 @@ func (b *Botanist) generateOptionalAddonsChart(_ context.Context) (*chartrendere
 	if err != nil {
 		return nil, err
 	}
-	kubernetesDashboardImagesToInject := []string{common.KubernetesDashboardImageName}
+	kubernetesDashboardImagesToInject := []string{charts.ImageNameKubernetesDashboard}
 
 	k8sVersionLessThan116, err := versionutils.CompareVersions(b.Shoot.Info.Spec.Kubernetes.Version, "<", "1.16")
 	if err != nil {
 		return nil, err
 	}
 	if !k8sVersionLessThan116 {
-		kubernetesDashboardImagesToInject = append(kubernetesDashboardImagesToInject, common.KubernetesDashboardMetricsScraperImageName)
+		kubernetesDashboardImagesToInject = append(kubernetesDashboardImagesToInject, charts.ImageNameKubernetesDashboardMetricsScraper)
 	}
 
 	kubernetesDashboard, err := b.InjectShootShootImages(kubernetesDashboardConfig, kubernetesDashboardImagesToInject...)
@@ -507,12 +508,12 @@ func (b *Botanist) generateOptionalAddonsChart(_ context.Context) (*chartrendere
 	if err != nil {
 		return nil, err
 	}
-	nginxIngress, err := b.InjectShootShootImages(nginxIngressConfig, common.NginxIngressControllerImageName, common.IngressDefaultBackendImageName)
+	nginxIngress, err := b.InjectShootShootImages(nginxIngressConfig, charts.ImageNameNginxIngressController, charts.ImageNameIngressDefaultBackend)
 	if err != nil {
 		return nil, err
 	}
 
-	return b.K8sShootClient.ChartRenderer().Render(filepath.Join(common.ChartPath, "shoot-addons"), "addons", metav1.NamespaceSystem, map[string]interface{}{
+	return b.K8sShootClient.ChartRenderer().Render(filepath.Join(charts.Path, "shoot-addons"), "addons", metav1.NamespaceSystem, map[string]interface{}{
 		"global":               global,
 		"kubernetes-dashboard": kubernetesDashboard,
 		"nginx-ingress":        nginxIngress,

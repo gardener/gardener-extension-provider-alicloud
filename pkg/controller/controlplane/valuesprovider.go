@@ -290,6 +290,16 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	return getControlPlaneShootChartValues(cluster, credentials)
 }
 
+// GetControlPlaneShootCRDsChartValues returns the values for the control plane shoot CRDs chart applied by the generic actuator.
+// Currently the provider extension does not specify a control plane shoot CRDs chart. That's why we simply return empty values.
+func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
+	_ context.Context,
+	_ *extensionsv1alpha1.ControlPlane,
+	_ *extensionscontroller.Cluster,
+) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}
+
 // cloudConfig wraps the settings for the Alicloud provider.
 // See https://github.com/kubernetes/cloud-provider-alibaba-cloud/blob/master/cloud-controller-manager/alicloud.go
 type cloudConfig struct {

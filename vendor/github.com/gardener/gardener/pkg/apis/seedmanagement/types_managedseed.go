@@ -47,10 +47,18 @@ type ManagedSeedList struct {
 	Items []ManagedSeed
 }
 
+// ManagedSeedTemplate is a template for creating a ManagedSeed object.
+type ManagedSeedTemplate struct {
+	// Standard object metadata.
+	metav1.ObjectMeta
+	// Specification of the desired behavior of the ManagedSeed.
+	Spec ManagedSeedSpec
+}
+
 // ManagedSeedSpec is the specification of a ManagedSeed.
 type ManagedSeedSpec struct {
 	// Shoot references a Shoot that should be registered as Seed.
-	Shoot Shoot
+	Shoot *Shoot
 	// SeedTemplate is a template for a Seed object, that should be used to register a given cluster as a Seed.
 	// Either SeedTemplate or Gardenlet must be specified. When Seed is specified, the ManagedSeed controller will not deploy a gardenlet into the cluster
 	// and an existing gardenlet reconciling the new Seed is required.
