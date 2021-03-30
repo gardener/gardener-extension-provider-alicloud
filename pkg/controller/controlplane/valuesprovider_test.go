@@ -121,14 +121,6 @@ var _ = Describe("ValuesProvider", func() {
 			},
 		}
 
-		// TODO remove cpMap in next version
-		ccmMonitoringConfigmap = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      "cloud-controller-manager-monitoring-config",
-			},
-		}
-
 		checksums = map[string]string{
 			v1beta1constants.SecretNameCloudProvider: "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
 			"cloud-controller-manager":               "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
@@ -207,7 +199,6 @@ var _ = Describe("ValuesProvider", func() {
 		It("should return correct control plane chart values", func() {
 			// Create mock client
 			client := mockclient.NewMockClient(ctrl)
-			client.EXPECT().Delete(context.TODO(), ccmMonitoringConfigmap).DoAndReturn(clientDeleteSuccess())
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
 			// Create valuesProvider
 			vp := NewValuesProvider(logger)
@@ -253,12 +244,6 @@ func clientGet(result runtime.Object) interface{} {
 		case *corev1.Secret:
 			*obj.(*corev1.Secret) = *result.(*corev1.Secret)
 		}
-		return nil
-	}
-}
-
-func clientDeleteSuccess() interface{} {
-	return func(ctx context.Context, cm runtime.Object) error {
 		return nil
 	}
 }
