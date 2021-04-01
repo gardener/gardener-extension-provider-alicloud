@@ -169,7 +169,7 @@ var _ = Describe("Infrastructure tests", func() {
 
 		c = mgr.GetClient()
 		Expect(c).ToNot(BeNil())
-		decoder = serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder()
+		decoder = serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()
 
 		flag.Parse()
 		validateFlags()
