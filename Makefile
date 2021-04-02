@@ -153,5 +153,4 @@ integration-test-infra:
 		--kubeconfig=${KUBECONFIG} \
 		--access-key-id='$(shell cat $(ACCESS_KEY_ID_FILE))' \
 		--access-key-secret='$(shell cat $(ACCESS_KEY_SECRET_FILE))' \
-		--region=$(REGION) \
-		--vpc-id='$(shell cat $(VPC_ID_FILE))'
+		--region=$(REGION)
