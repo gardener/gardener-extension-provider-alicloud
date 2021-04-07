@@ -200,8 +200,8 @@ github.com/gardener/gardener v1.1.2/go.mod h1:CP9I0tCDVXTLPkJv/jUtXVUh948kSNKEGU
 github.com/gardener/gardener v1.3.1/go.mod h1:936P5tQbg6ViiW8BVC9ELM95sFrk4DgobKrxMNtn/LU=
 github.com/gardener/gardener v1.4.1-0.20200519155656-a8ccc6cc779a/go.mod h1:t9oESM37bAMIuezi9I0H0I8+++8jy8BUPitcf4ERRXY=
 github.com/gardener/gardener v1.11.3/go.mod h1:5DzqfOm+G8UftKu5zUbYJ+9Cnfd4XrvRNDabkM9AIp4=
-github.com/gardener/gardener v1.19.1-0.20210401122359-e16e6ec0002e h1:VSktQdwn4iKSL0e5GZb0OGVo/z5m76kx3j6NvnZUabc=
-github.com/gardener/gardener v1.19.1-0.20210401122359-e16e6ec0002e/go.mod h1:UcXWBf6D2wYKoJslhvYXIphWoC/w3JdyKg4JgD1u7Y0=
+github.com/gardener/gardener v1.20.0 h1:k0vtWg53Y3tDi5Wdz3HSFNeJgQRASPra3po8iE2SaJY=
+github.com/gardener/gardener v1.20.0/go.mod h1:H/Y5heDyef3WfsVTvkhiFe0sgqYFsM1ot4zy8NX/cas=
 github.com/gardener/gardener-resource-manager v0.10.0/go.mod h1:0pKTHOhvU91eQB0EYr/6Ymd7lXc/5Hi8P8tF/gpV0VQ=
 github.com/gardener/gardener-resource-manager v0.13.1/go.mod h1:0No/XttYRUwDn5lSppq9EqlKdo/XJQ44aCZz5BVu3Vw=
 github.com/gardener/gardener-resource-manager v0.18.0 h1:bNB0yKhSqe8DnsvIp3xZr9nsFB4fm+AUAqj1EoIvWU8=
@@ -210,7 +210,7 @@ github.com/gardener/hvpa-controller v0.0.0-20191014062307-fad3bdf06a25/go.mod h1
 github.com/gardener/hvpa-controller v0.2.5/go.mod h1:rjsb3BPKJFMluudZ8/bhCCDQfFCF/0Um+rzXQI/MmfI=
 github.com/gardener/hvpa-controller v0.3.1 h1:VsOdcKZMcZDlUNVbFY8oqlKrb1GSCdmzPooKT/Tyi+Y=
 github.com/gardener/hvpa-controller v0.3.1/go.mod h1:rjsb3BPKJFMluudZ8/bhCCDQfFCF/0Um+rzXQI/MmfI=
-github.com/gardener/landscaper/apis v0.6.0/go.mod h1:++MW27PlSnbWM4AJipikw62RSprxO5TKVxZ8nh0e4Yw=
+github.com/gardener/landscaper/apis v0.7.0/go.mod h1:++MW27PlSnbWM4AJipikw62RSprxO5TKVxZ8nh0e4Yw=
 github.com/gardener/machine-controller-manager v0.27.0/go.mod h1:zlIxuLQMtRO+aXOFsG6qtYkBmggbWY82K7MSO051ARU=
 github.com/gardener/machine-controller-manager v0.33.0/go.mod h1:jxxE+mGgXwg4iPlCHTG4GtUfK2CcHA6yYoIIowoxOZU=
 github.com/gardener/machine-controller-manager v0.36.0 h1:bGtmkz0si1zzRSUCR8+Fpku+oTim66iJeTp01os1Pz4=
