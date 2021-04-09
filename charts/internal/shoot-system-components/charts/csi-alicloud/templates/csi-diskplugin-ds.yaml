@@ -43,6 +43,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+{{- if .Values.resources.nodeDriverRegistrar }}
+        resources:
+{{ toYaml .Values.resources.nodeDriverRegistrar | indent 10 }}
+{{- end }}
         volumeMounts:
         - name: plugin-dir
           mountPath: /csi
@@ -68,7 +72,23 @@ spec:
             secretKeyRef:
               name: csi-diskplugin-alicloud
               key: accessKeySecret
+{{- if .Values.resources.driver }}
+        resources:
+{{ toYaml .Values.resources.driver | indent 10 }}
+{{- end }}
         imagePullPolicy: IfNotPresent
+        ports:
+        - name: healthz
+          containerPort: 9808
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+          initialDelaySeconds: 10
+          timeoutSeconds: 3
+          periodSeconds: 10
+          failureThreshold: 5
         volumeMounts:
         - name: pods-mount-dir
           mountPath: /var/lib/kubelet
@@ -76,6 +96,17 @@ spec:
         - mountPath: /dev
           name: host-dev
           mountPropagation: "HostToContainer"
+      - name: csi-liveness-probe
+        image: {{ index .Values.images "csi-liveness-probe" }}
+        args:
+        - --csi-address=/csi/csi.sock
+{{- if .Values.resources.livenessProbe }}
+        resources:
+{{ toYaml .Values.resources.livenessProbe | indent 10 }}
+{{- end }}
+        volumeMounts:
+        - name: plugin-dir
+          mountPath: /csi
       volumes:
       - name: registration-dir
         hostPath:

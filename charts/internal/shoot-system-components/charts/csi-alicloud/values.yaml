@@ -1,8 +1,33 @@
 images:
   csi-driver-registrar: image-repository:image-tag
   csi-plugin-alicloud: image-repository:image-tag
+  csi-liveness-probe: image-repository:image-tag
+
 credential:
   accessKeyID: keyID
   accessKeySecret: secret
 kubernetesVersion: v1.14.0
 vpaEnabled: false
+
+resources:
+  driver:
+    requests:
+      cpu: 20m
+      memory: 50Mi
+    limits:
+      cpu: 50m
+      memory: 80Mi
+  nodeDriverRegistrar:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 30m
+      memory: 50Mi
+  livenessProbe:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 30m
+      memory: 50Mi

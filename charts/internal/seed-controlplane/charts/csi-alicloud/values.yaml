@@ -9,6 +9,7 @@ images:
   csi-snapshotter: repository:tag
   csi-snapshot-controller: repository:tag
   csi-resizer: repository:tag
+  csi-liveness-probe: repository:tag
 
 csiPluginController:
   snapshotPrefix: ""
@@ -44,6 +45,13 @@ csiPluginController:
         cpu: 30m
         memory: 50Mi
     resizer:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 30m
+        memory: 50Mi
+    livenessProbe:
       requests:
         cpu: 10m
         memory: 32Mi

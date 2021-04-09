@@ -158,6 +158,7 @@ var controlPlaneChart = &chart.Chart{
 				alicloud.CSISnapshotterImageName,
 				alicloud.CSIResizerImageName,
 				alicloud.CSIPluginImageName,
+				alicloud.CSILivenessProbeImageName,
 				alicloud.CSISnapshotControllerImageName,
 			},
 			Objects: []*chart.Object{
@@ -181,8 +182,12 @@ var controlPlaneShootChart = &chart.Chart{
 			},
 		},
 		{
-			Name:   "csi-alicloud",
-			Images: []string{alicloud.CSINodeDriverRegistrarImageName, alicloud.CSIPluginImageName},
+			Name: "csi-alicloud",
+			Images: []string{
+				alicloud.CSINodeDriverRegistrarImageName,
+				alicloud.CSIPluginImageName,
+				alicloud.CSILivenessProbeImageName,
+			},
 			Objects: []*chart.Object{
 				// csi-disk-plugin-alicloud
 				{Type: &appsv1.DaemonSet{}, Name: "csi-disk-plugin-alicloud"},
