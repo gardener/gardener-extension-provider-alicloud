@@ -14,9 +14,9 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret-gardener-extensions-validator-alicloud-cert: {{ include (print $.Template.BasePath "/secret-cert.yaml") . | sha256sum }}
+        checksum/secret-gardener-extension-admission-alicloud-cert: {{ include (print $.Template.BasePath "/secret-cert.yaml") . | sha256sum }}
         {{- if .Values.global.kubeconfig }}
-        checksum/gardener-extensions-validator-alicloud-kubeconfig: {{ include (print $.Template.BasePath "/secret-kubeconfig.yaml") . | sha256sum }}
+        checksum/gardener-extension-admission-alicloud-kubeconfig: {{ include (print $.Template.BasePath "/secret-kubeconfig.yaml") . | sha256sum }}
         {{- end }}
       labels:
 {{ include "labels" . | indent 8 }}
@@ -31,11 +31,11 @@ spec:
         image: {{ include "image" .Values.global.image }}
         imagePullPolicy: {{ .Values.global.image.pullPolicy }}
         command:
-        - /gardener-extension-validator-alicloud
+        - /gardener-extension-admission-alicloud
         - --webhook-config-server-port={{ .Values.global.webhookConfig.serverPort }}
-        - --webhook-config-cert-dir=/etc/gardener-extensions-validator-alicloud/srv
+        - --webhook-config-cert-dir=/etc/gardener-extension-admission-alicloud/srv
         {{- if .Values.global.kubeconfig }}
-        - --kubeconfig=/etc/gardener-extensions-validator-alicloud/kubeconfig/kubeconfig
+        - --kubeconfig=/etc/gardener-extension-admission-alicloud/kubeconfig/kubeconfig
         {{- end }}
         ports:
         - name: webhook-server
@@ -51,22 +51,22 @@ spec:
 {{ toYaml .Values.global.resources | nindent 10 }}
 {{- end }}
         volumeMounts:
-        - name: gardener-extensions-validator-alicloud-cert
-          mountPath: /etc/gardener-extensions-validator-alicloud/srv
+        - name: gardener-extension-admission-alicloud-cert
+          mountPath: /etc/gardener-extension-admission-alicloud/srv
           readOnly: true
         {{- if .Values.global.kubeconfig }}
-        - name: gardener-extensions-validator-alicloud-kubeconfig
-          mountPath: /etc/gardener-extensions-validator-alicloud/kubeconfig
+        - name: gardener-extension-admission-alicloud-kubeconfig
+          mountPath: /etc/gardener-extension-admission-alicloud/kubeconfig
           readOnly: true
         {{- end }}
       volumes:
-      - name: gardener-extensions-validator-alicloud-cert
+      - name: gardener-extension-admission-alicloud-cert
         secret:
-          secretName: gardener-extensions-validator-alicloud-cert
+          secretName: gardener-extension-admission-alicloud-cert
           defaultMode: 420
       {{- if .Values.global.kubeconfig }}
-      - name: gardener-extensions-validator-alicloud-kubeconfig
+      - name: gardener-extension-admission-alicloud-kubeconfig
         secret:
-          secretName: gardener-extensions-validator-alicloud-kubeconfig
+          secretName: gardener-extension-admission-alicloud-kubeconfig
           defaultMode: 420
       {{- end }}
