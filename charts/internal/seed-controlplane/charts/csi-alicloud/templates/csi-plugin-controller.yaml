@@ -59,6 +59,17 @@ spec:
 {{- end }}
         ports:
         - containerPort: 80
+        - name: healthz
+          containerPort: 9808
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+          initialDelaySeconds: 10
+          timeoutSeconds: 3
+          periodSeconds: 10
+          failureThreshold: 5
         volumeMounts:
         - name: socket-dir
           mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
@@ -149,7 +160,18 @@ spec:
         - name: csi-resizer
           mountPath: /var/lib/csi-resizer
         - name: socket-dir
-          mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com 
+          mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
+      - name: alicloud-csi-liveness-probe
+        image: {{ index .Values.images "csi-liveness-probe" }}
+        args:
+        - --csi-address=/var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock
+{{- if .Values.csiPluginController.podResources.livenessProbe }}
+        resources:
+{{ toYaml .Values.csiPluginController.podResources.livenessProbe | indent 12 }}
+{{- end }}
+        volumeMounts:
+        - name: socket-dir
+          mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
       volumes:
       - name: socket-dir
         emptyDir: {}

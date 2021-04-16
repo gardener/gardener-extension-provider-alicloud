@@ -41,6 +41,8 @@ const (
 	CSISnapshotControllerImageName = "csi-snapshot-controller"
 	// CSIResizerImageName is the name of the CSI resizer image.
 	CSIResizerImageName = "csi-resizer"
+	// CSILivenessProbeImageName is the name of the CSI liveness probe image.
+	CSILivenessProbeImageName = "csi-liveness-probe"
 
 	// CSIPluginImageName is the name of the CSI plugin image.
 	CSIPluginImageName = "csi-plugin-alicloud"

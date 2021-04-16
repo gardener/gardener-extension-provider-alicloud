@@ -67,10 +67,10 @@ spec:
     vpc:
       id: vpc-gw879zodzt6z1cupe3ps4
       vswitches:
-      - purpose: nodes 
+      - purpose: nodes
         id: vs-001
         zone: cn-beijing-f
-      securityGroups: 
+      securityGroups:
       - purpose: nodes
         id: sg-gw8efawapk7dhq6q5z24
     keyPairName: shoot--foobar--alicloud-ssh-publickey
