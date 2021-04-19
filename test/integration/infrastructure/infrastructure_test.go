@@ -24,7 +24,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/operation/common"
+	"github.com/gardener/gardener/pkg/extensions"
 	"github.com/gardener/gardener/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -241,7 +241,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		Expect(client.IgnoreNotFound(c.Delete(ctx, infra))).To(Succeed())
 
 		By("wait until infrastructure is deleted")
-		err := common.WaitUntilExtensionCRDeleted(
+		err := extensions.WaitUntilExtensionCRDeleted(
 			ctx, c, logger,
 			func() extensionsv1alpha1.Object { return &extensionsv1alpha1.Infrastructure{} },
 			"Infrastructure", infra.Namespace, infra.Name,
@@ -305,7 +305,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 	}
 
 	By("wait until infrastructure is created")
-	if err := common.WaitUntilExtensionCRReady(
+	if err := extensions.WaitUntilExtensionCRReady(
 		ctx, c, logger,
 		func() client.Object { return &extensionsv1alpha1.Infrastructure{} },
 		"Infrastucture", infra.Namespace, infra.Name,
