@@ -400,36 +400,6 @@ var _ = Describe("Network Policy Testing", func() {
 			Port: networkpolicies.Port{
 				Port: 10257,
 				Name: ""}}
-		KubeSchedulerHttp = &networkpolicies.SourcePod{
-			Pod: networkpolicies.Pod{
-				Name: "kube-scheduler-http",
-				Labels: labels.Set{
-					"app":                     "kubernetes",
-					"garden.sapcloud.io/role": "controlplane",
-					"role":                    "scheduler"},
-				ShootVersionConstraint: "< 1.13",
-				SeedClusterConstraints: sets.String(nil)},
-			Ports: []networkpolicies.Port{
-				networkpolicies.Port{
-					Port: 10251,
-					Name: ""}},
-			ExpectedPolicies: sets.String{
-				"allow-from-prometheus":    sets.Empty{},
-				"allow-to-dns":             sets.Empty{},
-				"allow-to-shoot-apiserver": sets.Empty{},
-				"deny-all":                 sets.Empty{}}}
-		KubeSchedulerHttp10251 = &networkpolicies.TargetPod{
-			Pod: networkpolicies.Pod{
-				Name: "kube-scheduler-http",
-				Labels: labels.Set{
-					"app":                     "kubernetes",
-					"garden.sapcloud.io/role": "controlplane",
-					"role":                    "scheduler"},
-				ShootVersionConstraint: "< 1.13",
-				SeedClusterConstraints: sets.String(nil)},
-			Port: networkpolicies.Port{
-				Port: 10251,
-				Name: ""}}
 		KubeSchedulerHttps = &networkpolicies.SourcePod{
 			Pod: networkpolicies.Pod{
 				Name: "kube-scheduler-https",
@@ -437,7 +407,7 @@ var _ = Describe("Network Policy Testing", func() {
 					"app":                     "kubernetes",
 					"garden.sapcloud.io/role": "controlplane",
 					"role":                    "scheduler"},
-				ShootVersionConstraint: ">= 1.13",
+				ShootVersionConstraint: "",
 				SeedClusterConstraints: sets.String(nil)},
 			Ports: []networkpolicies.Port{
 				networkpolicies.Port{
@@ -455,7 +425,7 @@ var _ = Describe("Network Policy Testing", func() {
 					"app":                     "kubernetes",
 					"garden.sapcloud.io/role": "controlplane",
 					"role":                    "scheduler"},
-				ShootVersionConstraint: ">= 1.13",
+				ShootVersionConstraint: "",
 				SeedClusterConstraints: sets.String(nil)},
 			Port: networkpolicies.Port{
 				Port: 10259,
@@ -733,7 +703,6 @@ var _ = Describe("Network Policy Testing", func() {
 			EtcdMain,
 			Grafana,
 			KubeApiserver,
-			KubeSchedulerHttp,
 			KubeSchedulerHttps,
 			KubeStateMetricsShoot,
 			MachineControllerManager,
@@ -901,7 +870,6 @@ var _ = Describe("Network Policy Testing", func() {
 		DefaultCIt(`loki`, assertHasNetworkPolicy(Loki))
 		DefaultCIt(`grafana`, assertHasNetworkPolicy(Grafana))
 		DefaultCIt(`gardener-resource-manager`, assertHasNetworkPolicy(GardenerResourceManager))
-		DefaultCIt(`kube-scheduler-http`, assertHasNetworkPolicy(KubeSchedulerHttp))
 		DefaultCIt(`kube-scheduler-https`, assertHasNetworkPolicy(KubeSchedulerHttps))
 		DefaultCIt(`kube-state-metrics-shoot`, assertHasNetworkPolicy(KubeStateMetricsShoot))
 		DefaultCIt(`machine-controller-manager`, assertHasNetworkPolicy(MachineControllerManager))
@@ -928,7 +896,6 @@ var _ = Describe("Network Policy Testing", func() {
 		DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertBlockIngress(EtcdMain2379, false))
 		DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertBlockIngress(Grafana3000, false))
 		DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertBlockIngress(KubeApiserver443, true))
-		DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertBlockIngress(KubeSchedulerHttp10251, false))
 		DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertBlockIngress(KubeSchedulerHttps10259, false))
 		DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertBlockIngress(KubeStateMetricsShoot8080, false))
 		DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertBlockIngress(MachineControllerManager10258, false))
@@ -955,7 +922,6 @@ var _ = Describe("Network Policy Testing", func() {
 		DefaultCIt(`should block connectivity from loki to busybox`, assertBlockEgresss(Loki))
 		DefaultCIt(`should block connectivity from grafana to busybox`, assertBlockEgresss(Grafana))
 		DefaultCIt(`should block connectivity from gardener-resource-manager to busybox`, assertBlockEgresss(GardenerResourceManager))
-		DefaultCIt(`should block connectivity from kube-scheduler-http to busybox`, assertBlockEgresss(KubeSchedulerHttp))
 		DefaultCIt(`should block connectivity from kube-scheduler-https to busybox`, assertBlockEgresss(KubeSchedulerHttps))
 		DefaultCIt(`should block connectivity from kube-state-metrics-shoot to busybox`, assertBlockEgresss(KubeStateMetricsShoot))
 		DefaultCIt(`should block connectivity from machine-controller-manager to busybox`, assertBlockEgresss(MachineControllerManager))
@@ -982,7 +948,6 @@ var _ = Describe("Network Policy Testing", func() {
 		DefaultCIt(`should block connectivity from loki`, assertBlockToSeedNodes(Loki))
 		DefaultCIt(`should block connectivity from grafana`, assertBlockToSeedNodes(Grafana))
 		DefaultCIt(`should block connectivity from gardener-resource-manager`, assertBlockToSeedNodes(GardenerResourceManager))
-		DefaultCIt(`should block connectivity from kube-scheduler-http`, assertBlockToSeedNodes(KubeSchedulerHttp))
 		DefaultCIt(`should block connectivity from kube-scheduler-https`, assertBlockToSeedNodes(KubeSchedulerHttps))
 		DefaultCIt(`should block connectivity from kube-state-metrics-shoot`, assertBlockToSeedNodes(KubeStateMetricsShoot))
 		DefaultCIt(`should block connectivity from machine-controller-manager`, assertBlockToSeedNodes(MachineControllerManager))
@@ -1022,7 +987,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1047,7 +1011,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1072,7 +1035,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1097,7 +1059,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1122,7 +1083,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should allow connection to Pod "etcd-events" at port 2379`, assertEgresssToMirroredPod(EtcdEvents2379, true))
 			DefaultCIt(`should allow connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, true))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1148,7 +1108,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-events" at port 2379`, assertEgresssToMirroredPod(EtcdEvents2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should block connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, false))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1173,7 +1132,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should block connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, false))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1198,7 +1156,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should block connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, false))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1223,7 +1180,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-events" at port 2379`, assertEgresssToMirroredPod(EtcdEvents2379, false))
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, false))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1248,7 +1204,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
@@ -1257,31 +1212,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should allow connection to "External host" 8.8.8.8:53`, assertEgresssToHost(ExternalhostPort53, true))
 			DefaultCIt(`should block connection to "Garden Prometheus" prometheus-web.garden:80`, assertEgresssToHost(GardenPrometheusPort80, false))
 			DefaultCIt(`should allow connection to "Seed Kube APIServer" kubernetes.default:443`, assertEgresssToHost(SeedKubeAPIServerPort443, true))
-		})
-
-		Context("kube-scheduler-http", func() {
-
-			BeforeEach(func() {
-				from = networkpolicies.NewNamespacedSourcePod(KubeSchedulerHttp, sharedResources.Mirror)
-			})
-
-			DefaultCIt(`should block connection to Pod "cloud-controller-manager-http" at port 10253`, assertEgresssToMirroredPod(CloudControllerManagerHttp10253, false))
-			DefaultCIt(`should block connection to Pod "csi-plugin-controller" at port 80`, assertEgresssToMirroredPod(CsiPluginController80, false))
-			DefaultCIt(`should block connection to Pod "kube-controller-manager-http" at port 10252`, assertEgresssToMirroredPod(KubeControllerManagerHttp10252, false))
-			DefaultCIt(`should block connection to Pod "kube-controller-manager-https" at port 10257`, assertEgresssToMirroredPod(KubeControllerManagerHttps10257, false))
-			DefaultCIt(`should block connection to Pod "gardener-resource-manager" at port 8080`, assertEgresssToMirroredPod(GardenerResourceManager8080, false))
-			DefaultCIt(`should block connection to Pod "loki" at port 3100`, assertEgresssToMirroredPod(Loki3100, false))
-			DefaultCIt(`should block connection to Pod "etcd-events" at port 2379`, assertEgresssToMirroredPod(EtcdEvents2379, false))
-			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
-			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
-			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
-			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
-			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
-			DefaultCIt(`should block connection to Pod "prometheus" at port 9090`, assertEgresssToMirroredPod(Prometheus9090, false))
-			DefaultCIt(`should block connection to "Metadata service" 100.100.100.200:80`, assertEgresssToHost(MetadataservicePort80, false))
-			DefaultCIt(`should block connection to "External host" 8.8.8.8:53`, assertEgresssToHost(ExternalhostPort53, false))
-			DefaultCIt(`should block connection to "Garden Prometheus" prometheus-web.garden:80`, assertEgresssToHost(GardenPrometheusPort80, false))
 		})
 
 		Context("kube-scheduler-https", func() {
@@ -1300,7 +1230,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
 			DefaultCIt(`should block connection to Pod "prometheus" at port 9090`, assertEgresssToMirroredPod(Prometheus9090, false))
@@ -1325,7 +1254,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, false))
 			DefaultCIt(`should block connection to Pod "prometheus" at port 9090`, assertEgresssToMirroredPod(Prometheus9090, false))
@@ -1350,7 +1278,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should block connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, false))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should block connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, false))
 			DefaultCIt(`should block connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, false))
 			DefaultCIt(`should block connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, false))
 			DefaultCIt(`should block connection to Pod "prometheus" at port 9090`, assertEgresssToMirroredPod(Prometheus9090, false))
@@ -1376,7 +1303,6 @@ var _ = Describe("Network Policy Testing", func() {
 			DefaultCIt(`should allow connection to Pod "etcd-main" at port 2379`, assertEgresssToMirroredPod(EtcdMain2379, true))
 			DefaultCIt(`should block connection to Pod "grafana" at port 3000`, assertEgresssToMirroredPod(Grafana3000, false))
 			DefaultCIt(`should allow connection to Pod "kube-apiserver" at port 443`, assertEgresssToMirroredPod(KubeApiserver443, true))
-			DefaultCIt(`should allow connection to Pod "kube-scheduler-http" at port 10251`, assertEgresssToMirroredPod(KubeSchedulerHttp10251, true))
 			DefaultCIt(`should allow connection to Pod "kube-scheduler-https" at port 10259`, assertEgresssToMirroredPod(KubeSchedulerHttps10259, true))
 			DefaultCIt(`should allow connection to Pod "kube-state-metrics-shoot" at port 8080`, assertEgresssToMirroredPod(KubeStateMetricsShoot8080, true))
 			DefaultCIt(`should allow connection to Pod "machine-controller-manager" at port 10258`, assertEgresssToMirroredPod(MachineControllerManager10258, true))
