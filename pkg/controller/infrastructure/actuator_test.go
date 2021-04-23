@@ -52,12 +52,12 @@ import (
 	mockinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/controller/infrastructure"
 )
 
-func ExpectInject(ok bool, err error) {
+func expectInject(ok bool, err error) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(ok).To(BeTrue(), "no injection happened")
 }
 
-func ExpectEncode(data []byte, err error) []byte {
+func expectEncode(data []byte, err error) []byte {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(data).NotTo(BeNil())
 	return data
@@ -82,7 +82,7 @@ var _ = Describe("Actuator", func() {
 		scheme = runtime.NewScheme()
 		install.Install(scheme)
 		Expect(controller.AddToScheme(scheme)).To(Succeed())
-		serializer = json.NewYAMLSerializer(json.DefaultMetaFactory, scheme, scheme)
+		serializer = json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{})
 	})
 
 	AfterEach(func() {
@@ -131,7 +131,6 @@ var _ = Describe("Actuator", func() {
 
 			vpcID           string
 			vpcCIDRString   string
-			natGatewayID    string
 			securityGroupID string
 			keyPairName     string
 			rawState        *realterraformer.RawState
@@ -175,7 +174,7 @@ var _ = Describe("Actuator", func() {
 						},
 					},
 				}
-				configYAML = ExpectEncode(runtime.Encode(serializer, &config))
+				configYAML = expectEncode(runtime.Encode(serializer, &config))
 				secretNamespace = "secretns"
 				secretName = "secret"
 				region = "region"
@@ -213,7 +212,6 @@ var _ = Describe("Actuator", func() {
 
 				vpcID = "vpcID"
 				vpcCIDRString = "vpcCIDR"
-				natGatewayID = "natGatewayID"
 				securityGroupID = "sgID"
 				keyPairName = "keyPairName"
 
@@ -264,15 +262,7 @@ var _ = Describe("Actuator", func() {
 							TerraformerOutputKeyVPCID: vpcID,
 						}, nil),
 
-					vpcClient.EXPECT().DescribeNatGateways(describeNATGatewaysReq).Return(&vpc.DescribeNatGatewaysResponse{
-						NatGateways: vpc.NatGateways{
-							NatGateway: []vpc.NatGateway{
-								{
-									NatGatewayId: natGatewayID,
-								},
-							},
-						},
-					}, nil),
+					vpcClient.EXPECT().FetchEIPInternetChargeType(context.TODO(), nil, vpcID).Return(alicloudclient.DefaultInternetChargeType, nil),
 
 					terraformChartOps.EXPECT().ComputeCreateVPCInitializerValues(&config, alicloudclient.DefaultInternetChargeType).Return(&initializerValues),
 					terraformChartOps.EXPECT().ComputeChartValues(&infra, &config, &initializerValues).Return(chartValues),
@@ -324,9 +314,9 @@ var _ = Describe("Actuator", func() {
 					c.EXPECT().Update(ctx, &infra),
 				)
 
-				ExpectInject(inject.ClientInto(c, actuator))
-				ExpectInject(inject.SchemeInto(scheme, actuator))
-				ExpectInject(inject.ConfigInto(&restConfig, actuator))
+				expectInject(inject.ClientInto(c, actuator))
+				expectInject(inject.SchemeInto(scheme, actuator))
+				expectInject(inject.ConfigInto(&restConfig, actuator))
 
 				Expect(actuator.Reconcile(ctx, &infra, &cluster)).To(Succeed())
 				Expect(infra.Status.ProviderStatus.Object).To(Equal(&alicloudv1alpha1.InfrastructureStatus{
@@ -354,8 +344,6 @@ var _ = Describe("Actuator", func() {
 				infra.Status.State = &runtime.RawExtension{
 					Raw: rawStateInBytes,
 				}
-				describeNATGatewaysReq := vpc.CreateDescribeNatGatewaysRequest()
-				describeNATGatewaysReq.VpcId = vpcID
 
 				gomock.InOrder(
 					chartRendererFactory.EXPECT().NewForConfig(&restConfig).Return(chartRenderer, nil),
@@ -390,16 +378,7 @@ var _ = Describe("Actuator", func() {
 						Return(map[string]string{
 							TerraformerOutputKeyVPCID: vpcID,
 						}, nil),
-
-					vpcClient.EXPECT().DescribeNatGateways(describeNATGatewaysReq).Return(&vpc.DescribeNatGatewaysResponse{
-						NatGateways: vpc.NatGateways{
-							NatGateway: []vpc.NatGateway{
-								{
-									NatGatewayId: natGatewayID,
-								},
-							},
-						},
-					}, nil),
+					vpcClient.EXPECT().FetchEIPInternetChargeType(context.TODO(), nil, vpcID).Return(alicloudclient.DefaultInternetChargeType, nil),
 
 					terraformChartOps.EXPECT().ComputeCreateVPCInitializerValues(&config, alicloudclient.DefaultInternetChargeType).Return(&initializerValues),
 					terraformChartOps.EXPECT().ComputeChartValues(&infra, &config, &initializerValues).Return(chartValues),
@@ -451,9 +430,9 @@ var _ = Describe("Actuator", func() {
 					c.EXPECT().Update(ctx, &infra),
 				)
 
-				ExpectInject(inject.ClientInto(c, actuator))
-				ExpectInject(inject.SchemeInto(scheme, actuator))
-				ExpectInject(inject.ConfigInto(&restConfig, actuator))
+				expectInject(inject.ClientInto(c, actuator))
+				expectInject(inject.SchemeInto(scheme, actuator))
+				expectInject(inject.ConfigInto(&restConfig, actuator))
 
 				Expect(actuator.Restore(ctx, &infra, &cluster)).To(Succeed())
 				Expect(infra.Status.ProviderStatus.Object).To(Equal(&alicloudv1alpha1.InfrastructureStatus{

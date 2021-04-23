@@ -7,6 +7,7 @@ package infrastructure
 import (
 	reflect "reflect"
 
+	client "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	v1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	infrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	v1alpha10 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -65,7 +66,7 @@ func (mr *MockTerraformChartOpsMockRecorder) ComputeCreateVPCInitializerValues(a
 }
 
 // ComputeUseVPCInitializerValues mocks base method.
-func (m *MockTerraformChartOps) ComputeUseVPCInitializerValues(arg0 *v1alpha1.InfrastructureConfig, arg1 *infrastructure.VPCInfo) *infrastructure.InitializerValues {
+func (m *MockTerraformChartOps) ComputeUseVPCInitializerValues(arg0 *v1alpha1.InfrastructureConfig, arg1 *client.VPCInfo) *infrastructure.InitializerValues {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ComputeUseVPCInitializerValues", arg0, arg1)
 	ret0, _ := ret[0].(*infrastructure.InitializerValues)

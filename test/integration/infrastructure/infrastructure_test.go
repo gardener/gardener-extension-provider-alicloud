@@ -83,28 +83,6 @@ func validateFlags() {
 	}
 }
 
-type aliClient struct {
-	ECS *ecs.Client
-	VPC *vpc.Client
-}
-
-func newAliClient(region, accessKeyID, accessKeySecret string) *aliClient {
-	ecsClient, err := ecs.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
-	if err != nil {
-		panic(err)
-	}
-
-	vpcClient, err := vpc.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
-	if err != nil {
-		panic(err)
-	}
-
-	return &aliClient{
-		ECS: ecsClient,
-		VPC: vpcClient,
-	}
-}
-
 var _ = Describe("Infrastructure tests", func() {
 	var (
 		ctx    = context.Background()
@@ -117,7 +95,7 @@ var _ = Describe("Infrastructure tests", func() {
 
 		InfraChartPath string
 
-		alicloudClient *aliClient
+		clientFactory alicloudclient.ClientFactory
 
 		availabilityZone string
 	)
@@ -174,7 +152,8 @@ var _ = Describe("Infrastructure tests", func() {
 		flag.Parse()
 		validateFlags()
 
-		alicloudClient = newAliClient(*region, *accessKeyID, *accessKeySecret)
+		clientFactory = alicloudclient.NewClientFactory()
+
 		availabilityZone = *region + "a"
 	})
 
@@ -200,20 +179,23 @@ var _ = Describe("Infrastructure tests", func() {
 				CIDR: pointer.StringPtr(vpcCIDR),
 			}, availabilityZone)
 
-			err := runTest(ctx, logger, c, providerConfig, decoder, alicloudClient)
+			err := runTest(ctx, logger, c, providerConfig, decoder, clientFactory)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	Context("with infrastructure that requests existing vpc", func() {
-		var identifiers infrastructureIdentifiers
+		var (
+			identifiers infrastructureIdentifiers
+		)
+
 		BeforeEach(func() {
-			identifiers = prepareVPC(ctx, alicloudClient, *region, vpcCIDR, natGatewayCIDR)
+			identifiers = prepareVPC(ctx, clientFactory, *region, vpcCIDR, natGatewayCIDR)
 		})
 
 		AfterEach(func() {
 			framework.RunCleanupActions()
-			cleanupVPC(ctx, alicloudClient, identifiers)
+			cleanupVPC(ctx, clientFactory, identifiers)
 		})
 
 		It("should successfully create and delete", func() {
@@ -221,13 +203,13 @@ var _ = Describe("Infrastructure tests", func() {
 				ID: identifiers.vpcID,
 			}, availabilityZone)
 
-			err := runTest(ctx, logger, c, providerConfig, decoder, alicloudClient)
+			err := runTest(ctx, logger, c, providerConfig, decoder, clientFactory)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })
 
-func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, alicloudClient *aliClient) error {
+func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
 	var (
 		infra                     *extensionsv1alpha1.Infrastructure
 		namespace                 *corev1.Namespace
@@ -250,7 +232,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		Expect(err).NotTo(HaveOccurred())
 
 		By("verify infrastructure deletion")
-		verifyDeletion(ctx, alicloudClient, infrastructureIdentifiers)
+		verifyDeletion(ctx, clientFactory, infrastructureIdentifiers)
 
 		Expect(client.IgnoreNotFound(c.Delete(ctx, namespace))).To(Succeed())
 		Expect(client.IgnoreNotFound(c.Delete(ctx, cluster))).To(Succeed())
@@ -325,7 +307,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 	}
 
 	By("verify infrastructure creation")
-	infrastructureIdentifiers = verifyCreation(ctx, alicloudClient, infra, providerStatus, providerConfig)
+	infrastructureIdentifiers = verifyCreation(ctx, clientFactory, infra, providerStatus, providerConfig)
 
 	return nil
 }
@@ -389,7 +371,7 @@ type infrastructureIdentifiers struct {
 
 func verifyCreation(
 	ctx context.Context,
-	alicloudClient *aliClient,
+	clientFactory alicloudclient.ClientFactory,
 	infra *extensionsv1alpha1.Infrastructure,
 	infraStatus *alicloudv1alpha1.InfrastructureStatus,
 	providerConfig *alicloudv1alpha1.InfrastructureConfig,
@@ -402,8 +384,11 @@ func verifyCreation(
 		securityGroupSuffix = "-sg"
 	)
 
-	vpcClient := alicloudClient.VPC
-	ecsClient := alicloudClient.ECS
+	vpcClient, err := clientFactory.NewVPCClient(*region, *accessKeyID, *accessKeySecret)
+	Expect(err).NotTo(HaveOccurred())
+
+	ecsClient, err := clientFactory.NewECSClient(*region, *accessKeyID, *accessKeySecret)
+	Expect(err).NotTo(HaveOccurred())
 
 	// vpc
 	describeVPCsReq := vpc.CreateDescribeVpcsRequest()
@@ -513,9 +498,12 @@ func verifyCreation(
 	return
 }
 
-func verifyDeletion(ctx context.Context, alicloudClient *aliClient, infrastructureIdentifier infrastructureIdentifiers) {
-	vpcClient := alicloudClient.VPC
-	ecsClient := alicloudClient.ECS
+func verifyDeletion(ctx context.Context, clientFactory alicloudclient.ClientFactory, infrastructureIdentifier infrastructureIdentifiers) {
+	vpcClient, err := clientFactory.NewVPCClient(*region, *accessKeyID, *accessKeySecret)
+	Expect(err).NotTo(HaveOccurred())
+
+	ecsClient, err := clientFactory.NewECSClient(*region, *accessKeyID, *accessKeySecret)
+	Expect(err).NotTo(HaveOccurred())
 
 	// vpc
 	if infrastructureIdentifier.vpcID != nil {
@@ -584,8 +572,9 @@ func verifyDeletion(ctx context.Context, alicloudClient *aliClient, infrastructu
 	}
 }
 
-func prepareVPC(ctx context.Context, alicloudClient *aliClient, region, vpcCIDR, natGatewayCIDR string) infrastructureIdentifiers {
-	vpcClient := alicloudClient.VPC
+func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory, region, vpcCIDR, natGatewayCIDR string) infrastructureIdentifiers {
+	vpcClient, err := clientFactory.NewVPCClient(region, *accessKeyID, *accessKeySecret)
+	Expect(err).NotTo(HaveOccurred())
 	createVpcReq := vpc.CreateCreateVpcRequest()
 	createVpcReq.CidrBlock = vpcCIDR
 	createVpcReq.RegionId = region
@@ -663,14 +652,15 @@ func prepareVPC(ctx context.Context, alicloudClient *aliClient, region, vpcCIDR,
 	}
 }
 
-func cleanupVPC(ctx context.Context, alicloudClient *aliClient, identifiers infrastructureIdentifiers) {
-	vpcClient := alicloudClient.VPC
-	ecsClient := alicloudClient.ECS
+func cleanupVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory, identifiers infrastructureIdentifiers) {
+	vpcClient, err := clientFactory.NewVPCClient(*region, *accessKeyID, *accessKeySecret)
+	Expect(err).NotTo(HaveOccurred())
+	ecsClient, err := clientFactory.NewECSClient(*region, *accessKeyID, *accessKeySecret)
+	Expect(err).NotTo(HaveOccurred())
 
 	deleteNatGatewayReq := vpc.CreateDeleteNatGatewayRequest()
 	deleteNatGatewayReq.NatGatewayId = *identifiers.natGatewayID
-
-	_, err := vpcClient.DeleteNatGateway(deleteNatGatewayReq)
+	_, err = vpcClient.DeleteNatGateway(deleteNatGatewayReq)
 	Expect(err).NotTo(HaveOccurred())
 
 	describeNatGatewaysReq := vpc.CreateDescribeNatGatewaysRequest()

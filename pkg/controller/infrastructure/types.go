@@ -18,6 +18,8 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 )
 
 const (
@@ -61,14 +63,6 @@ type EIP struct {
 	InternetChargeType string
 }
 
-// VPCInfo contains info about an existing VPC.
-type VPCInfo struct {
-	CIDR               string
-	NATGatewayID       string
-	SNATTableIDs       string
-	InternetChargeType string
-}
-
 // InitializerValues are values used to render a terraform initializer chart.
 type InitializerValues struct {
 	VPC        VPC
@@ -79,6 +73,6 @@ type InitializerValues struct {
 // TerraformChartOps are operations to do for interfacing with Terraform charts.
 type TerraformChartOps interface {
 	ComputeCreateVPCInitializerValues(config *v1alpha1.InfrastructureConfig, internetChargeType string) *InitializerValues
-	ComputeUseVPCInitializerValues(config *v1alpha1.InfrastructureConfig, info *VPCInfo) *InitializerValues
+	ComputeUseVPCInitializerValues(config *v1alpha1.InfrastructureConfig, info *alicloudclient.VPCInfo) *InitializerValues
 	ComputeChartValues(infra *extensionsv1alpha1.Infrastructure, config *v1alpha1.InfrastructureConfig, values *InitializerValues) map[string]interface{}
 }
