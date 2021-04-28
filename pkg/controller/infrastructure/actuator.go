@@ -149,7 +149,7 @@ func (a *actuator) fetchEIPInternetChargeType(ctx context.Context, vpcClient ali
 		return "", err
 	}
 
-	return FetchEIPInternetChargeType(vpcClient, stateVariables[TerraformerOutputKeyVPCID])
+	return vpcClient.FetchEIPInternetChargeType(ctx, nil, stateVariables[TerraformerOutputKeyVPCID])
 }
 
 func (a *actuator) getInitializerValues(
@@ -175,7 +175,7 @@ func (a *actuator) getInitializerValues(
 
 	vpcID := *config.Networks.VPC.ID
 
-	vpcInfo, err := GetVPCInfo(vpcClient, vpcID)
+	vpcInfo, err := vpcClient.GetVPCInfo(ctx, vpcID)
 	if err != nil {
 		return nil, err
 	}

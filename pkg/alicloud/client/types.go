@@ -17,10 +17,14 @@ package client
 import (
 	"context"
 
-	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 )
 
@@ -34,21 +38,40 @@ type ClientFactory interface {
 	NewSLBClient(region, accessKeyID, accessKeySecret string) (SLB, error)
 	NewVPCClient(region, accessKeyID, accessKeySecret string) (VPC, error)
 	NewRAMClient(region, accessKeyID, accessKeySecret string) (RAM, error)
-	NewStorageClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (Storage, error)
+	NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (OSS, error)
+	NewOSSClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (OSS, error)
 }
 
-// STS is an interface which must be implemented by alicloud sts clients.
+// ecsClient implements the ECS interface.
+type ecsClient struct {
+	ecs.Client
+}
+
+// ECS is an interface which declares ECS related methods.
+type ECS interface {
+	CheckIfImageExists(ctx context.Context, imageID string) (bool, error)
+	ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error
+	DescribeSecurityGroups(request *ecs.DescribeSecurityGroupsRequest) (response *ecs.DescribeSecurityGroupsResponse, err error)
+	DescribeSecurityGroupAttribute(request *ecs.DescribeSecurityGroupAttributeRequest) (response *ecs.DescribeSecurityGroupAttributeResponse, err error)
+	DescribeKeyPairs(request *ecs.DescribeKeyPairsRequest) (response *ecs.DescribeKeyPairsResponse, err error)
+}
+
+// stsClient implements the STS interface.
+type stsClient struct {
+	sts.Client
+}
+
+// STS is an interface which declares STS related methods.
 type STS interface {
 	GetAccountIDFromCallerIdentity(ctx context.Context) (string, error)
 }
 
-// ECS is an interface which must be implemented by alicloud ecs clients.
-type ECS interface {
-	CheckIfImageExists(ctx context.Context, imageID string) (bool, error)
-	ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error
+// slbClient implements the SLB interface.
+type slbClient struct {
+	slb.Client
 }
 
-// SLB is an interface which must be implemented by alicloud slb clients.
+// SLB is an interface which declares SLB related methods.
 type SLB interface {
 	GetLoadBalancerIDs(ctx context.Context, region string) ([]string, error)
 	GetFirstVServerGroupName(ctx context.Context, region, loadBalancerID string) (string, error)
@@ -56,25 +79,59 @@ type SLB interface {
 	SetLoadBalancerDeleteProtection(ctx context.Context, region, loadBalancerID string, protection bool) error
 }
 
-// VPC is an interface which must be implemented by alicloud vpc clients.
-type VPC interface {
-	// DescribeVpcs describes the VPCs for the request.
-	DescribeVpcs(req *vpc.DescribeVpcsRequest) (*vpc.DescribeVpcsResponse, error)
-	// DescribeNatGateways describes the NAT gateways for the request.
-	DescribeNatGateways(req *vpc.DescribeNatGatewaysRequest) (*vpc.DescribeNatGatewaysResponse, error)
-	// DescribeEipAddresses describes the EIP addresses for the request.
-	DescribeEipAddresses(req *vpc.DescribeEipAddressesRequest) (*vpc.DescribeEipAddressesResponse, error)
+// vpcClient implements the VPC interface.
+type vpcClient struct {
+	vpc.Client
 }
 
-// Storage is an interface which must be implemented by alicloud oss storage clients.
-type Storage interface {
+// VPC is an interface which declares VPC related methods.
+type VPC interface {
+	GetVPCWithID(ctx context.Context, vpcID string) ([]vpc.Vpc, error)
+	GetNatGatewaysWithVPCID(ctx context.Context, vpcID string) ([]vpc.NatGateway, error)
+	GetEIPWithID(ctx context.Context, eipID string) ([]vpc.EipAddress, error)
+	GetVPCInfo(ctx context.Context, vpcID string) (*VPCInfo, error)
+	FetchEIPInternetChargeType(ctx context.Context, natGateway *vpc.NatGateway, vpcID string) (string, error)
+
+	CreateVpc(request *vpc.CreateVpcRequest) (response *vpc.CreateVpcResponse, err error)
+	DescribeVpcs(request *vpc.DescribeVpcsRequest) (response *vpc.DescribeVpcsResponse, err error)
+	DeleteVpc(request *vpc.DeleteVpcRequest) (response *vpc.DeleteVpcResponse, err error)
+	CreateVSwitch(request *vpc.CreateVSwitchRequest) (response *vpc.CreateVSwitchResponse, err error)
+	DescribeVSwitches(request *vpc.DescribeVSwitchesRequest) (response *vpc.DescribeVSwitchesResponse, err error)
+	DeleteVSwitch(request *vpc.DeleteVSwitchRequest) (response *vpc.DeleteVSwitchResponse, err error)
+	CreateNatGateway(request *vpc.CreateNatGatewayRequest) (response *vpc.CreateNatGatewayResponse, err error)
+	DescribeNatGateways(request *vpc.DescribeNatGatewaysRequest) (response *vpc.DescribeNatGatewaysResponse, err error)
+	DeleteNatGateway(request *vpc.DeleteNatGatewayRequest) (response *vpc.DeleteNatGatewayResponse, err error)
+	DescribeSnatTableEntries(request *vpc.DescribeSnatTableEntriesRequest) (response *vpc.DescribeSnatTableEntriesResponse, err error)
+	DescribeEipAddresses(request *vpc.DescribeEipAddressesRequest) (response *vpc.DescribeEipAddressesResponse, err error)
+}
+
+// ramClient implements the RAM interface.
+type ramClient struct {
+	ram.Client
+}
+
+// RAM is an interface which declares RAM related methods.
+type RAM interface {
+	CreateServiceLinkedRole(regionID, serviceName string) error
+	GetServiceLinkedRole(roleName string) (*ram.Role, error)
+}
+
+// ossClient implements the OSS interface.
+type ossClient struct {
+	oss.Client
+}
+
+// OSS is an interface which declares OSS related methods.
+type OSS interface {
 	DeleteObjectsWithPrefix(ctx context.Context, bucketName, prefix string) error
 	CreateBucketIfNotExists(ctx context.Context, bucketName string) error
 	DeleteBucketIfExists(ctx context.Context, bucketName string) error
 }
 
-// RAM is an interface which must be implemented by alicloud ram clients.
-type RAM interface {
-	CreateServiceLinkedRole(regionID, serviceName string) error
-	GetServiceLinkedRole(roleName string) (*ram.Role, error)
+// VPCInfo contains info about an existing VPC.
+type VPCInfo struct {
+	CIDR               string
+	NATGatewayID       string
+	SNATTableIDs       string
+	InternetChargeType string
 }

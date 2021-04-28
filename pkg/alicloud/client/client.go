@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	corev1 "k8s.io/api/core/v1"
@@ -38,41 +39,39 @@ func ComputeStorageEndpoint(region string) string {
 	return fmt.Sprintf("https://oss-%s.aliyuncs.com/", region)
 }
 
-type clientFactory struct {
-}
+type clientFactory struct{}
 
-// NewClientFactory creates a new clientFactory instance that can be used to instantiate Alicloud clients
+// NewClientFactory creates a new clientFactory instance that can be used to instantiate Alicloud clients.
 func NewClientFactory() ClientFactory {
 	return &clientFactory{}
 }
 
-// storageClient defines the struct of OSS client
-type storageClient struct {
-	client *oss.Client
+// NewOSSClient creates an new OSS client with given endpoint, accessKeyID, and accessKeySecret.
+func (f *clientFactory) NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (OSS, error) {
+	client, err := oss.New(endpoint, accessKeyID, accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ossClient{
+		*client,
+	}, nil
 }
 
-// NewStorageClientFromSecretRef creates a new Alicloud storage Client using the credentials from <secretRef>.
-func (f *clientFactory) NewStorageClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (Storage, error) {
+// NewOSSClientFromSecretRef creates a new OSS Client using the credentials from <secretRef>.
+func (f *clientFactory) NewOSSClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (OSS, error) {
 	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, client, secretRef)
 	if err != nil {
 		return nil, err
 	}
 
-	ossClient, err := oss.New(ComputeStorageEndpoint(region), credentials.AccessKeyID, credentials.AccessKeySecret)
-	if err != nil {
-		return nil, err
-	}
-
-	storageClient := &storageClient{
-		client: ossClient,
-	}
-	return storageClient, nil
+	return f.NewOSSClient(ComputeStorageEndpoint(region), credentials.AccessKeyID, credentials.AccessKeySecret)
 }
 
-// DeleteObjectsWithPrefix deletes the s3 objects with the specific <prefix> from <bucketName>. If it does not exist,
-// no error is returned.
-func (c *storageClient) DeleteObjectsWithPrefix(ctx context.Context, bucketName, prefix string) error {
-	bucket, err := c.client.Bucket(bucketName)
+// DeleteObjectsWithPrefix deletes the OSS objects with the specific <prefix> from <bucketName>.
+// If it does not exist, no error is returned.
+func (c *ossClient) DeleteObjectsWithPrefix(ctx context.Context, bucketName, prefix string) error {
+	bucket, err := c.Bucket(bucketName)
 	if err != nil {
 		return err
 	}
@@ -112,14 +111,14 @@ func (c *storageClient) DeleteObjectsWithPrefix(ctx context.Context, bucketName,
 
 // CreateBucketIfNotExists creates the OSS bucket with name <bucketName> in <region>. If it already exist,
 // no error is returned.
-func (c *storageClient) CreateBucketIfNotExists(ctx context.Context, bucketName string) error {
+func (c *ossClient) CreateBucketIfNotExists(ctx context.Context, bucketName string) error {
 	var expirationOption oss.Option
 	t, ok := ctx.Deadline()
 	if ok {
 		expirationOption = oss.Expires(t)
 	}
 
-	if err := c.client.CreateBucket(bucketName, oss.StorageClass(oss.StorageStandard), expirationOption); err != nil {
+	if err := c.CreateBucket(bucketName, oss.StorageClass(oss.StorageStandard), expirationOption); err != nil {
 		if ossErr, ok := err.(oss.ServiceError); !ok {
 			return err
 		} else if ossErr.StatusCode != http.StatusConflict {
@@ -132,7 +131,7 @@ func (c *storageClient) CreateBucketIfNotExists(ctx context.Context, bucketName 
 			SSEAlgorithm: string(oss.AESAlgorithm),
 		},
 	}
-	if err := c.client.SetBucketEncryption(bucketName, encryptionRule, expirationOption); err != nil {
+	if err := c.SetBucketEncryption(bucketName, encryptionRule, expirationOption); err != nil {
 		return err
 	}
 
@@ -145,13 +144,13 @@ func (c *storageClient) CreateBucketIfNotExists(ctx context.Context, bucketName 
 			},
 		},
 	}
-	return c.client.SetBucketLifecycle(bucketName, rules)
+	return c.SetBucketLifecycle(bucketName, rules)
 }
 
 // DeleteBucketIfExists deletes the Alicloud OSS bucket with name <bucketName>. If it does not exist,
 // no error is returned.
-func (c *storageClient) DeleteBucketIfExists(ctx context.Context, bucketName string) error {
-	if err := c.client.DeleteBucket(bucketName); err != nil {
+func (c *ossClient) DeleteBucketIfExists(ctx context.Context, bucketName string) error {
+	if err := c.DeleteBucket(bucketName); err != nil {
 		if ossErr, ok := err.(oss.ServiceError); ok {
 			switch ossErr.StatusCode {
 			case http.StatusNotFound:
@@ -171,12 +170,7 @@ func (c *storageClient) DeleteBucketIfExists(ctx context.Context, bucketName str
 	return nil
 }
 
-// escClient defines the struct of ECS client
-type ecsClient struct {
-	client *ecs.Client
-}
-
-// NewECSClient creates a new ECS client with given region, AccessKeyID, and AccessKeySecret
+// NewECSClient creates a new ECS client with given region, accessKeyID, and accessKeySecret.
 func (f *clientFactory) NewECSClient(region, accessKeyID, accessKeySecret string) (ECS, error) {
 	client, err := ecs.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 	if err != nil {
@@ -184,39 +178,34 @@ func (f *clientFactory) NewECSClient(region, accessKeyID, accessKeySecret string
 	}
 
 	return &ecsClient{
-		client: client,
+		*client,
 	}, nil
 }
 
-// CheckIfImageExists checks whether given imageID can be accessed by the client
+// CheckIfImageExists checks whether given imageID can be accessed by the client.
 func (c *ecsClient) CheckIfImageExists(ctx context.Context, imageID string) (bool, error) {
 	request := ecs.CreateDescribeImagesRequest()
 	request.ImageId = imageID
 	request.SetScheme("HTTPS")
-	response, err := c.client.DescribeImages(request)
+	response, err := c.DescribeImages(request)
 	if err != nil {
 		return false, err
 	}
 	return response.TotalCount > 0, nil
 }
 
-// ShareImageToAccount shares the given image to target account from current client
+// ShareImageToAccount shares the given image to target account from current client.
 func (c *ecsClient) ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error {
 	request := ecs.CreateModifyImageSharePermissionRequest()
 	request.RegionId = regionID
 	request.ImageId = imageID
 	request.AddAccount = &[]string{accountID}
 	request.SetScheme("HTTPS")
-	_, err := c.client.ModifyImageSharePermission(request)
+	_, err := c.ModifyImageSharePermission(request)
 	return err
 }
 
-// stsClient defines the struct of STS client
-type stsClient struct {
-	client *sts.Client
-}
-
-// NewSTSClient creates a new STS client with given region, AccessKeyID, and AccessKeySecret
+// NewSTSClient creates a new STS client with given region, accessKeyID, and accessKeySecret.
 func (f *clientFactory) NewSTSClient(region, accessKeyID, accessKeySecret string) (STS, error) {
 	client, err := sts.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 	if err != nil {
@@ -224,27 +213,22 @@ func (f *clientFactory) NewSTSClient(region, accessKeyID, accessKeySecret string
 	}
 
 	return &stsClient{
-		client: client,
+		*client,
 	}, nil
 }
 
-// GetAccountIDFromCallerIdentity gets caller's accountID
+// GetAccountIDFromCallerIdentity gets caller's accountID.
 func (c *stsClient) GetAccountIDFromCallerIdentity(ctx context.Context) (string, error) {
 	request := sts.CreateGetCallerIdentityRequest()
 	request.SetScheme("HTTPS")
-	response, err := c.client.GetCallerIdentity(request)
+	response, err := c.GetCallerIdentity(request)
 	if err != nil {
 		return "", err
 	}
 	return response.AccountId, nil
 }
 
-// slbClient defines the struct of SLB client
-type slbClient struct {
-	client *slb.Client
-}
-
-// NewSLBClient creates a new SLB client with given region, AccessKeyID, and AccessKeySecret
+// NewSLBClient creates a new SLB client with given region, accessKeyID, and accessKeySecret.
 func (f *clientFactory) NewSLBClient(region, accessKeyID, accessKeySecret string) (SLB, error) {
 	client, err := slb.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 	if err != nil {
@@ -252,11 +236,11 @@ func (f *clientFactory) NewSLBClient(region, accessKeyID, accessKeySecret string
 	}
 
 	return &slbClient{
-		client: client,
+		*client,
 	}, nil
 }
 
-// GetLoadBalancerIDs gets LoadBalancerIDs from all LoadBalancers in the given region
+// GetLoadBalancerIDs gets LoadBalancerIDs from all LoadBalancers in the given region.
 func (c *slbClient) GetLoadBalancerIDs(ctx context.Context, region string) ([]string, error) {
 	var (
 		loadBalancerIDs []string
@@ -270,7 +254,7 @@ func (c *slbClient) GetLoadBalancerIDs(ctx context.Context, region string) ([]st
 
 	for {
 		request.PageNumber = requests.NewInteger(pageNumber)
-		response, err := c.client.DescribeLoadBalancers(request)
+		response, err := c.DescribeLoadBalancers(request)
 		if err != nil {
 			return nil, err
 		}
@@ -286,13 +270,13 @@ func (c *slbClient) GetLoadBalancerIDs(ctx context.Context, region string) ([]st
 	return loadBalancerIDs, nil
 }
 
-// GetFirstVServerGroupName gets the VServerGroupName of the first VServerGroup in the LoadBalancer with given region and loadBalancerID
+// GetFirstVServerGroupName gets the VServerGroupName of the first VServerGroup in the LoadBalancer with given region and loadBalancerID.
 func (c *slbClient) GetFirstVServerGroupName(ctx context.Context, region, loadBalancerID string) (string, error) {
 	request := slb.CreateDescribeVServerGroupsRequest()
 	request.SetScheme("HTTPS")
 	request.RegionId = region
 	request.LoadBalancerId = loadBalancerID
-	response, err := c.client.DescribeVServerGroups(request)
+	response, err := c.DescribeVServerGroups(request)
 	if err != nil {
 		return "", err
 	}
@@ -308,7 +292,7 @@ func (c *slbClient) DeleteLoadBalancer(ctx context.Context, region, loadBalancer
 	request.SetScheme("HTTPS")
 	request.RegionId = region
 	request.LoadBalancerId = loadBalancerID
-	_, err := c.client.DeleteLoadBalancer(request)
+	_, err := c.Client.DeleteLoadBalancer(request)
 	return err
 }
 
@@ -324,17 +308,12 @@ func (c *slbClient) SetLoadBalancerDeleteProtection(ctx context.Context, region,
 	request.SetScheme("HTTPS")
 	request.RegionId = region
 	request.LoadBalancerId = loadBalancerID
-	_, err := c.client.SetLoadBalancerDeleteProtection(request)
+	_, err := c.Client.SetLoadBalancerDeleteProtection(request)
 
 	return err
 }
 
-// vpcClient defines the struct of VPC client
-type vpcClient struct {
-	client *vpc.Client
-}
-
-// NewSLBClient creates a new SLB client with given region, AccessKeyID, and AccessKeySecret
+// NewSLBClient creates a new SLB client with given region, accessKeyID, and accessKeySecret.
 func (f *clientFactory) NewVPCClient(region, accessKeyID, accessKeySecret string) (VPC, error) {
 	client, err := vpc.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 	if err != nil {
@@ -342,28 +321,111 @@ func (f *clientFactory) NewVPCClient(region, accessKeyID, accessKeySecret string
 	}
 
 	return &vpcClient{
-		client: client,
+		*client,
 	}, nil
 }
 
-func (c *vpcClient) DescribeVpcs(req *vpc.DescribeVpcsRequest) (*vpc.DescribeVpcsResponse, error) {
-	return c.client.DescribeVpcs(req)
+// GetVPCWithID returns VPC with given vpcID.
+func (c *vpcClient) GetVPCWithID(ctx context.Context, vpcID string) ([]vpc.Vpc, error) {
+	request := vpc.CreateDescribeVpcsRequest()
+	request.VpcId = vpcID
+	response, err := c.DescribeVpcs(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Vpcs.Vpc, nil
 }
 
-func (c *vpcClient) DescribeNatGateways(req *vpc.DescribeNatGatewaysRequest) (*vpc.DescribeNatGatewaysResponse, error) {
-	return c.client.DescribeNatGateways(req)
+// GetNatGatewaysWithVPCID returns Gateways with given vpcID.
+func (c *vpcClient) GetNatGatewaysWithVPCID(ctx context.Context, vpcID string) ([]vpc.NatGateway, error) {
+	request := vpc.CreateDescribeNatGatewaysRequest()
+	request.VpcId = vpcID
+	response, err := c.DescribeNatGateways(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.NatGateways.NatGateway, nil
 }
 
-func (c *vpcClient) DescribeEipAddresses(req *vpc.DescribeEipAddressesRequest) (*vpc.DescribeEipAddressesResponse, error) {
-	return c.client.DescribeEipAddresses(req)
+// GetEIPWithID returns EIP with given eipID
+func (c *vpcClient) GetEIPWithID(ctx context.Context, eipID string) ([]vpc.EipAddress, error) {
+	request := vpc.CreateDescribeEipAddressesRequest()
+	request.AllocationId = eipID
+
+	response, err := c.DescribeEipAddresses(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.EipAddresses.EipAddress, nil
 }
 
-// ramClient defines the struct of RAM client
-type ramClient struct {
-	client *ram.Client
+// GetVPCInfo gets info of an existing VPC.
+func (c *vpcClient) GetVPCInfo(ctx context.Context, vpcID string) (*VPCInfo, error) {
+	vpc, err := c.GetVPCWithID(ctx, vpcID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vpc) != 1 {
+		return nil, fmt.Errorf("ambiguous VPC response: expected 1 VPC but got %v", vpc)
+	}
+
+	natGateways, err := c.GetNatGatewaysWithVPCID(ctx, vpcID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(natGateways) != 1 {
+		return nil, fmt.Errorf("ambiguous NAT Gateway response: expected 1 NAT Gateway but got %v", natGateways)
+	}
+
+	natGateway := natGateways[0]
+	internetChargeType, err := c.FetchEIPInternetChargeType(ctx, &natGateway, vpcID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &VPCInfo{
+		CIDR:               vpc[0].CidrBlock,
+		NATGatewayID:       natGateways[0].NatGatewayId,
+		SNATTableIDs:       strings.Join(natGateway.SnatTableIds.SnatTableId, ","),
+		InternetChargeType: internetChargeType,
+	}, nil
 }
 
-// NewRAMClient creates a new RAM client with given region, AccessKeyID, and AccessKeySecret
+// FetchEIPInternetChargeType fetches the internet charge type for the VPC's EIP.
+func (c *vpcClient) FetchEIPInternetChargeType(ctx context.Context, natGateway *vpc.NatGateway, vpcID string) (string, error) {
+	if natGateway == nil {
+		natGateways, err := c.GetNatGatewaysWithVPCID(ctx, vpcID)
+		if err != nil {
+			return "", err
+		}
+		if len(natGateways) != 1 {
+			return DefaultInternetChargeType, nil
+		}
+		*natGateway = natGateways[0]
+	}
+
+	if len(natGateway.IpLists.IpList) == 0 {
+		return DefaultInternetChargeType, nil
+	}
+
+	ipList := natGateway.IpLists.IpList[0]
+	eip, err := c.GetEIPWithID(ctx, ipList.AllocationId)
+	if err != nil {
+		return "", err
+	}
+	if len(eip) == 0 {
+		return DefaultInternetChargeType, nil
+	}
+
+	return eip[0].InternetChargeType, nil
+}
+
+// NewRAMClient creates a new RAM client with given region, accessKeyID, and accessKeySecret.
 func (f *clientFactory) NewRAMClient(region, accessKeyID, accessKeySecret string) (RAM, error) {
 	client, err := ram.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 	if err != nil {
@@ -371,17 +433,17 @@ func (f *clientFactory) NewRAMClient(region, accessKeyID, accessKeySecret string
 	}
 
 	return &ramClient{
-		client: client,
+		*client,
 	}, nil
 }
 
-// GetServiceLinkedRole returns service linked role from Alicloud SDK calls.
+// GetServiceLinkedRole returns service linked role from Alicloud SDK calls with given role name.
 func (c *ramClient) GetServiceLinkedRole(roleName string) (*ram.Role, error) {
 	request := ram.CreateGetRoleRequest()
 	request.RoleName = roleName
 	request.SetScheme("HTTPS")
 
-	response, err := c.client.GetRole(request)
+	response, err := c.GetRole(request)
 	if err != nil {
 		if isNoPermissionError(err) {
 			return nil, fmt.Errorf("no permission to get service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/v1.21.1/docs/usage-as-end-user.md#Permissions")
@@ -406,7 +468,7 @@ func (c *ramClient) CreateServiceLinkedRole(regionID, serviceName string) error 
 	request.SetScheme("HTTPS")
 	request.RegionId = regionID
 
-	if _, err := c.client.CreateServiceLinkedRole(request); err != nil {
+	if _, err := c.Client.CreateServiceLinkedRole(request); err != nil {
 		if isNoPermissionError(err) {
 			return fmt.Errorf("no permission to create service linked role, please grant credentials correct privileges. See https://github.com/gardener/gardener-extension-provider-alicloud/blob/v1.21.1/docs/usage-as-end-user.md#Permissions")
 		}

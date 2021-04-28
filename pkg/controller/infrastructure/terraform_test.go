@@ -17,6 +17,8 @@ package infrastructure_test
 import (
 	"strconv"
 
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 
@@ -77,7 +79,7 @@ var _ = Describe("TerraformChartOps", func() {
 				cidr         = "192.168.0.0/16"
 				natGatewayID = "natGatewayID"
 				sNATTableIDs = "sNATTableIDs"
-				info         = VPCInfo{
+				info         = alicloudclient.VPCInfo{
 					CIDR:         cidr,
 					NATGatewayID: natGatewayID,
 					SNATTableIDs: sNATTableIDs,
