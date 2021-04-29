@@ -16,16 +16,56 @@ package validator
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig) error {
+// NewShootValidator returns a new instance of a shoot validator.
+func NewShootValidator() extensionswebhook.Validator {
+	return &shoot{}
+}
+
+type shoot struct {
+	decoder        runtime.Decoder
+	lenientDecoder runtime.Decoder
+}
+
+// InjectScheme injects the given scheme into the validator.
+func (s *shoot) InjectScheme(scheme *runtime.Scheme) error {
+	s.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
+	s.lenientDecoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
+	return nil
+}
+
+// Validate validates the given shoot object.
+func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
+	shoot, ok := new.(*core.Shoot)
+	if !ok {
+		return fmt.Errorf("wrong object type %T", new)
+	}
+
+	if old != nil {
+		oldShoot, ok := old.(*core.Shoot)
+		if !ok {
+			return fmt.Errorf("wrong object type %T for old object", old)
+		}
+		return s.validateShootUpdate(ctx, oldShoot, shoot)
+	}
+
+	return s.validateShootCreation(ctx, shoot)
+}
+
+func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig) error {
 	// Provider validation
 	fldPath := field.NewPath("spec", "provider")
 
@@ -35,7 +75,7 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfi
 
 	// ControlPlaneConfig
 	if shoot.Spec.Provider.ControlPlaneConfig != nil {
-		if _, err := decodeControlPlaneConfig(v.decoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig")); err != nil {
+		if _, err := decodeControlPlaneConfig(s.decoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig")); err != nil {
 			return err
 		}
 	}
@@ -48,7 +88,7 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfi
 	return nil
 }
 
-func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.Shoot) error {
+func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.Shoot) error {
 	var (
 		fldPath            = field.NewPath("spec")
 		networkingFldPath  = fldPath.Child("networking")
@@ -57,12 +97,12 @@ func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 	)
 
 	// InfrastructureConfig update
-	infraConfig, err := checkAndDecodeInfrastructureConfig(v.decoder, shoot.Spec.Provider.InfrastructureConfig, infraConfigFldPath)
+	infraConfig, err := checkAndDecodeInfrastructureConfig(s.decoder, shoot.Spec.Provider.InfrastructureConfig, infraConfigFldPath)
 	if err != nil {
 		return err
 	}
 
-	oldInfraConfig, err := checkAndDecodeInfrastructureConfig(v.decoder, oldShoot.Spec.Provider.InfrastructureConfig, infraConfigFldPath)
+	oldInfraConfig, err := checkAndDecodeInfrastructureConfig(s.lenientDecoder, oldShoot.Spec.Provider.InfrastructureConfig, infraConfigFldPath)
 	if err != nil {
 		return err
 	}
@@ -81,10 +121,10 @@ func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 		return errList.ToAggregate()
 	}
 
-	return v.validateShoot(ctx, shoot, infraConfig)
+	return s.validateShoot(ctx, shoot, infraConfig)
 }
 
-func (v *Shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) error {
+func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) error {
 	// Network validation
 	networkPath := field.NewPath("spec", "networking")
 	if errList := alicloudvalidation.ValidateNetworking(shoot.Spec.Networking, networkPath); len(errList) != 0 {
@@ -93,10 +133,10 @@ func (v *Shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 
 	// Infra validation
 	fldPath := field.NewPath("spec", "provider")
-	infraConfig, err := checkAndDecodeInfrastructureConfig(v.decoder, shoot.Spec.Provider.InfrastructureConfig, fldPath.Child("infrastructureConfig"))
+	infraConfig, err := checkAndDecodeInfrastructureConfig(s.decoder, shoot.Spec.Provider.InfrastructureConfig, fldPath.Child("infrastructureConfig"))
 	if err != nil {
 		return err
 	}
 
-	return v.validateShoot(ctx, shoot, infraConfig)
+	return s.validateShoot(ctx, shoot, infraConfig)
 }

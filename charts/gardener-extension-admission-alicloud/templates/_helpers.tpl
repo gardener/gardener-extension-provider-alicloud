@@ -1,5 +1,5 @@
 {{- define "name" -}}
-gardener-extension-validator-alicloud
+gardener-extension-admission-alicloud
 {{- end -}}
 
 {{- define "labels.app.key" -}}

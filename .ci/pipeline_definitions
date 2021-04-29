@@ -13,11 +13,11 @@ gardener-extension-provider-alicloud:
             image: 'eu.gcr.io/gardener-project/gardener/extensions/provider-alicloud'
             dockerfile: 'Dockerfile'
             target: gardener-extension-provider-alicloud
-          gardener-extension-validator-alicloud:
+          gardener-extension-admission-alicloud:
             registry: 'gcr-readwrite'
-            image: 'eu.gcr.io/gardener-project/gardener/extensions/validator-alicloud'
+            image: 'eu.gcr.io/gardener-project/gardener/extensions/admission-alicloud'
             dockerfile: 'Dockerfile'
-            target: gardener-extension-validator-alicloud
+            target: gardener-extension-admission-alicloud
   jobs:
     head-update:
       traits:
@@ -58,5 +58,5 @@ gardener-extension-provider-alicloud:
           dockerimages:
             gardener-extension-provider-alicloud:
               tag_as_latest: true
-            gardener-extension-validator-alicloud:
+            gardener-extension-admission-alicloud:
               tag_as_latest: true
