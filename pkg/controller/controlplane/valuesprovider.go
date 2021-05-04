@@ -41,6 +41,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
@@ -263,8 +264,15 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 ) (map[string]interface{}, error) {
 	// Decode providerConfig
 	cpConfig := &apisalicloud.ControlPlaneConfig{}
+
+	// The custom decoder which disables the strict mode.
+	// "Zone" field in not required in "ControlPlaneConfig" any more, and it has already been removed in the struct, but
+	// still exists in shoots' yaml. So it should also be removed in the shoots' yaml.
+	// Here we leverage one custom decoder (disabled the strict mode) to make migration more smooth.
+	// TODO: should be removed in next release.
+	decoder := serializer.NewCodecFactory(vp.Scheme()).UniversalDecoder()
 	if cp.Spec.ProviderConfig != nil {
-		if _, _, err := vp.Decoder().Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
+		if _, _, err := decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
 			return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", kutil.ObjectName(cp))
 		}
 	}
