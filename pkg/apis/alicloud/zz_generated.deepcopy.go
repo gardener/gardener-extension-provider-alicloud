@@ -83,6 +83,11 @@ func (in *CloudProfileConfig) DeepCopyObject() runtime.Object {
 func (in *ControlPlaneConfig) DeepCopyInto(out *ControlPlaneConfig) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	if in.Zone != nil {
+		in, out := &in.Zone, &out.Zone
+		*out = new(string)
+		**out = **in
+	}
 	if in.CloudControllerManager != nil {
 		in, out := &in.CloudControllerManager, &out.CloudControllerManager
 		*out = new(CloudControllerManagerConfig)

@@ -25,6 +25,10 @@ import (
 type ControlPlaneConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// Zone is the zone ID of the control plane.
+	// +optional
+	Zone *string `json:"zone,omitempty"`
+
 	// CloudControllerManager contains configuration settings for the cloud-controller-manager.
 	// +optional
 	CloudControllerManager *CloudControllerManagerConfig `json:"cloudControllerManager,omitempty"`

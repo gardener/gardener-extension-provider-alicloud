@@ -24,6 +24,9 @@ import (
 type ControlPlaneConfig struct {
 	metav1.TypeMeta
 
+	// Zone is the zone ID of the control plane.
+	Zone *string
+
 	// CloudControllerManager contains configuration settings for the cloud-controller-manager.
 	CloudControllerManager *CloudControllerManagerConfig
 }

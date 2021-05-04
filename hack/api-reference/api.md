@@ -97,6 +97,18 @@ string
 </tr>
 <tr>
 <td>
+<code>zone</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Zone is the zone ID of the control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>cloudControllerManager</code></br>
 <em>
 <a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.CloudControllerManagerConfig">
