@@ -406,7 +406,7 @@ func (c *vpcClient) FetchEIPInternetChargeType(ctx context.Context, natGateway *
 		if len(natGateways) != 1 {
 			return DefaultInternetChargeType, nil
 		}
-		*natGateway = natGateways[0]
+		natGateway = &natGateways[0]
 	}
 
 	if len(natGateway.IpLists.IpList) == 0 {
