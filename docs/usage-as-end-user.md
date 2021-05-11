@@ -255,7 +255,6 @@ spec:
     controlPlaneConfig:
       apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
       kind: ControlPlaneConfig
-      zone: eu-central-1a
     workers:
     - name: worker-xoluy
       machine:

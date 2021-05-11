@@ -57,7 +57,6 @@ spec:
   providerConfig:
     apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
     kind: ControlPlaneConfig
-    zone: eu-west-1a
     cloudControllerManager:
       featureGates:
         CustomResourceValidation: true
