@@ -141,7 +141,6 @@ github.com/gardener/gardener/pkg/apis/seedmanagement/v1alpha1
 github.com/gardener/gardener/pkg/apis/settings
 github.com/gardener/gardener/pkg/apis/settings/v1alpha1
 github.com/gardener/gardener/pkg/chartrenderer
-github.com/gardener/gardener/pkg/chartrenderer/mock
 github.com/gardener/gardener/pkg/client/core/clientset/versioned
 github.com/gardener/gardener/pkg/client/core/clientset/versioned/scheme
 github.com/gardener/gardener/pkg/client/core/clientset/versioned/typed/core/v1alpha1
@@ -919,7 +918,6 @@ k8s.io/gengo/namer
 k8s.io/gengo/parser
 k8s.io/gengo/types
 # k8s.io/helm v2.16.1+incompatible => k8s.io/helm v2.13.1+incompatible
-## explicit
 k8s.io/helm/pkg/chartutil
 k8s.io/helm/pkg/downloader
 k8s.io/helm/pkg/engine

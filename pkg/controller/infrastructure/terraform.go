@@ -15,6 +15,9 @@
 package infrastructure
 
 import (
+	"embed"
+	"text/template"
+
 	"strconv"
 
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
@@ -23,6 +26,44 @@ import (
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 )
+
+var (
+	//go:embed templates/main.tpl.tf
+	//go:embed templates/terraform.tpl.tfvars
+	//go:embed templates/variables.tpl.tf
+	tplsTF          embed.FS
+	variablesTF     []byte
+	terraformTFVars []byte
+	tplMainTF       *template.Template
+)
+
+func init() {
+	var (
+		err           error
+		tplNameMainTF = "main.tf"
+	)
+
+	mainScriptTF, err := tplsTF.ReadFile("templates/main.tpl.tf")
+	if err != nil {
+		panic(err)
+	}
+	tplMainTF, err = template.
+		New(tplNameMainTF).
+		Parse(string(mainScriptTF))
+	if err != nil {
+		panic(err)
+	}
+
+	variablesTF, err = tplsTF.ReadFile("templates/variables.tpl.tf")
+	if err != nil {
+		panic(err)
+	}
+
+	terraformTFVars, err = tplsTF.ReadFile("templates/terraform.tpl.tfvars")
+	if err != nil {
+		panic(err)
+	}
+}
 
 type terraformOps struct{}
 

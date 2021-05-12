@@ -35,7 +35,6 @@ require (
 	k8s.io/code-generator v0.20.2
 	k8s.io/component-base v0.20.2
 	k8s.io/gengo v0.0.0-20201113003025-83324d819ded
-	k8s.io/helm v2.16.1+incompatible
 	k8s.io/klog v1.0.0
 	k8s.io/kubelet v0.20.2
 	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
