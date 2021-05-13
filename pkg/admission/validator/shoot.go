@@ -75,7 +75,12 @@ func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig 
 
 	// ControlPlaneConfig
 	if shoot.Spec.Provider.ControlPlaneConfig != nil {
-		if _, err := decodeControlPlaneConfig(s.decoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig")); err != nil {
+		// We use "lenientDecoder" because the "zone" field of "ControlPlaneConfig" was removed with https://github.com/gardener/gardener-extension-provider-alicloud/pull/64
+		// but still Shoots in Gardener environments may contain the legacy "zone" field.
+		// We cannot use strict "decoder" because it will complain that the "zone" field is specified but it is actually an invalid.
+		// Let's use "lenientDecoder" for now to make the migration smoother for such Shoots.
+		// TODO: consider enabling the strict "decoder" in a future release.
+		if _, err := decodeControlPlaneConfig(s.lenientDecoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig")); err != nil {
 			return err
 		}
 	}
