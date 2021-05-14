@@ -343,6 +343,18 @@ string
 <p>ID is the id of the image.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>encrypted</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Encrypted is a flag to specify whether this image is encrypted or not</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageVersion">MachineImageVersion

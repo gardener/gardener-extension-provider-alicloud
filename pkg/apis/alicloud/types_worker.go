@@ -40,4 +40,6 @@ type MachineImage struct {
 	Version string
 	// ID is the ID of the image.
 	ID string
+	// Encrypted is a flag to specify whether this image is encrypted or not
+	Encrypted *bool
 }

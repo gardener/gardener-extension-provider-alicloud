@@ -20,6 +20,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -435,6 +437,11 @@ func (f *clientFactory) NewRAMClient(region, accessKeyID, accessKeySecret string
 	return &ramClient{
 		*client,
 	}, nil
+}
+
+// NewROSClient creates a new ROS client with given region, accessKeyID, and accessKeySecret.
+func (f *clientFactory) NewROSClient(region, accessKeyID, accessKeySecret string) (ROS, error) {
+	return ros.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 }
 
 // GetServiceLinkedRole returns service linked role from Alicloud SDK calls with given role name.

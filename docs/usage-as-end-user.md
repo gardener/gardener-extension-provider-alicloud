@@ -59,6 +59,15 @@ Please make sure the provided credentials have the correct privileges. You can u
             "Resource": [
                 "*"
             ]
+        },
+        {
+            "Action": [
+                "ros:*"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "*"
+            ]
         }
     ],
     "Version": "1"
@@ -264,6 +273,11 @@ spec:
       volume:
         size: 50Gi
         type: cloud_efficiency
+        # NOTE: This comment is for the case when encrypted of an existing shoot is updated from false to true. 
+        # It will cause affected nodes rolling updated. It is must to MAINTAIN the shoot. 
+        # Otherwise, the shoot will fail to reconcile.
+        # You could do it either via Dashboard or annotate the shoot with gardener.cloud/operation=maintain
+        encrypted: true
       zones:
       - eu-central-1a
       - eu-central-1b

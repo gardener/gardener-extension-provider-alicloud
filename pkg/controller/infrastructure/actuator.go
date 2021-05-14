@@ -33,6 +33,7 @@ import (
 	commonext "github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/flow"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -191,7 +192,21 @@ func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, conf
 	return a.terraformerFactory.DefaultInitializer(a.Client(), mainTF.String(), string(variablesTF), terraformTFVars, stateInitializer), nil
 }
 
-func (a *actuator) extractStatus(ctx context.Context, tf terraformer.Terraformer, infraConfig *alicloudv1alpha1.InfrastructureConfig, machineImages []alicloudv1alpha1.MachineImage) (*alicloudv1alpha1.InfrastructureStatus, error) {
+func (a *actuator) convertImageListToV1alpha1(machineImages []apisalicloud.MachineImage) ([]alicloudv1alpha1.MachineImage, error) {
+	var result []alicloudv1alpha1.MachineImage
+	for _, image := range machineImages {
+		converted := &alicloudv1alpha1.MachineImage{}
+		if err := a.Scheme().Convert(&image, converted, nil); err != nil {
+			return nil, err
+		}
+
+		result = append(result, *converted)
+	}
+
+	return result, nil
+}
+
+func (a *actuator) generateStatus(ctx context.Context, tf terraformer.Terraformer, infraConfig *alicloudv1alpha1.InfrastructureConfig, machineImages []apisalicloud.MachineImage) (*alicloudv1alpha1.InfrastructureStatus, error) {
 	outputVarKeys := []string{
 		TerraformerOutputKeyVPCID,
 		TerraformerOutputKeyVPCCIDR,
@@ -213,6 +228,11 @@ func (a *actuator) extractStatus(ctx context.Context, tf terraformer.Terraformer
 		return nil, err
 	}
 
+	machineImagesV1alpha1, err := a.convertImageListToV1alpha1(machineImages)
+	if err != nil {
+		return nil, err
+	}
+
 	return &alicloudv1alpha1.InfrastructureStatus{
 		TypeMeta: StatusTypeMeta,
 		VPC: alicloudv1alpha1.VPCStatus{
@@ -226,7 +246,7 @@ func (a *actuator) extractStatus(ctx context.Context, tf terraformer.Terraformer
 			},
 		},
 		KeyPairName:   vars[TerraformerOutputKeyKeyPairName],
-		MachineImages: machineImages,
+		MachineImages: machineImagesV1alpha1,
 	}, nil
 }
 
@@ -262,25 +282,6 @@ func computeProviderStatusVSwitches(infrastructure *alicloudv1alpha1.Infrastruct
 	return vswitchesToReturn, nil
 }
 
-// findMachineImage takes a list of machine images and tries to find the first entry
-// whose name and version matches with the given name and version. If no such entry is
-// found then an error will be returned.
-func findMachineImage(machineImages []alicloudv1alpha1.MachineImage, name, version string) (*alicloudv1alpha1.MachineImage, error) {
-	for _, machineImage := range machineImages {
-		if machineImage.Name == name && machineImage.Version == version {
-			return &machineImage, nil
-		}
-	}
-	return nil, fmt.Errorf("no machine image name %q in version %q found", name, version)
-}
-
-func appendMachineImage(machineImages []alicloudv1alpha1.MachineImage, machineImage alicloudv1alpha1.MachineImage) []alicloudv1alpha1.MachineImage {
-	if _, err := findMachineImage(machineImages, machineImage.Name, machineImage.Version); err != nil {
-		return append(machineImages, machineImage)
-	}
-	return machineImages
-}
-
 func (a *actuator) isWhitelistedImageID(imageID string) bool {
 	if a.whitelistedImageIDs != nil {
 		for _, whitelistedImageID := range a.whitelistedImageIDs {
@@ -292,23 +293,32 @@ func (a *actuator) isWhitelistedImageID(imageID string) bool {
 	return false
 }
 
-// shareCustomizedImages checks whether Shoot's Alicloud account has permissions to use the customized images. If it can't
-// access them, these images will be shared with it from Seed's Alicloud account. The list of images that worker use will be
-// returned.
-func (a *actuator) shareCustomizedImages(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) ([]alicloudv1alpha1.MachineImage, error) {
+// ensureImagesForShootProviderAccount does following things
+// 1. If worker needs an encrypted image, this method will ensure an corresponding encrypted image is copied.
+// 2. If worker needs a plain image, this method will make the corresponding image is visible to shoot's provider account.
+// The list of images that workers use will be returned.
+func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) ([]apisalicloud.MachineImage, error) {
 	var (
-		machineImages []alicloudv1alpha1.MachineImage
+		machineImages []apisalicloud.MachineImage
 	)
 
 	_, shootCloudProviderCredentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
 	if err != nil {
 		return nil, err
 	}
+
 	a.logger.Info("Creating Alicloud ECS client for Shoot", "infrastructure", infra.Name)
 	shootAlicloudECSClient, err := a.newClientFactory.NewECSClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
 	if err != nil {
 		return nil, err
 	}
+
+	a.logger.Info("Creating Alicloud ROS client for Shoot", "infrastructure", infra.Name)
+	shootAlicloudROSClient, err := a.newClientFactory.NewROSClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+
 	a.logger.Info("Creating Alicloud STS client for Shoot", "infrastructure", infra.Name)
 	shootAlicloudSTSClient, err := a.newClientFactory.NewSTSClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
 	if err != nil {
@@ -325,54 +335,120 @@ func (a *actuator) shareCustomizedImages(ctx context.Context, infra *extensionsv
 		return nil, err
 	}
 
-	a.logger.Info("Sharing customized image with Shoot's Alicloud account from Seed", "infrastructure", infra.Name)
+	a.logger.Info("Preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name)
 	for _, worker := range cluster.Shoot.Spec.Provider.Workers {
-		imageID, err := helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
-		if err != nil {
-			if providerStatus := infra.Status.ProviderStatus; providerStatus != nil {
-				infrastructureStatus := &apisalicloud.InfrastructureStatus{}
-				if _, _, err := a.Decoder().Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
-					return nil, errors.Wrapf(err, "could not decode infrastructure status of infrastructure '%s'", kutil.ObjectName(infra))
-				}
-
-				machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version)
-				if err != nil {
-					return nil, err
-				}
-				imageID = machineImage.ID
-			} else {
-				return nil, err
-			}
-		}
-		machineImages = appendMachineImage(machineImages, alicloudv1alpha1.MachineImage{
-			Name:    worker.Machine.Image.Name,
-			Version: *worker.Machine.Image.Version,
-			ID:      imageID,
-		})
-
-		// if this is a whitelisted machine image, we no longer need to check if it exists in cloud provider account, and
-		// we don't need to share the image to that account either.
-		if a.isWhitelistedImageID(imageID) {
-			a.logger.Info("Skipping image sharing for whitelisted image", "imageID", imageID)
-			continue
-		}
-
-		exists, err := shootAlicloudECSClient.CheckIfImageExists(ctx, imageID)
+		var machineImage *apisalicloud.MachineImage
+		useEncrytedDisk, err := common.UseEncryptedSystemDisk(worker.Volume)
 		if err != nil {
 			return nil, err
 		}
-		if exists {
-			continue
+		if useEncrytedDisk {
+			if machineImage, err = a.ensureEncryptedImageForShootProviderAccount(ctx, cloudProfileConfig, worker, infra, shootAlicloudROSClient); err != nil {
+				return nil, err
+			}
+		} else {
+			if machineImage, err = a.ensurePlainImageForShootProviderAccount(ctx, cloudProfileConfig, worker, infra, shootAlicloudECSClient, shootCloudProviderAccountID); err != nil {
+				return nil, err
+			}
 		}
-		if a.alicloudECSClient == nil {
-			return nil, fmt.Errorf("image sharing is not enabled or configured correctly and Alicloud ECS client is not instantiated in Seed. Please contact Gardener administrator")
+
+		machineImages = helper.AppendMachineImage(machineImages, *machineImage)
+	}
+	a.logger.Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name)
+
+	return machineImages, nil
+}
+
+func (a *actuator) ensureEncryptedImageForShootProviderAccount(ctx context.Context, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootROSClient alicloudclient.ROS) (*apisalicloud.MachineImage, error) {
+	infrastructureStatus := &apisalicloud.InfrastructureStatus{}
+	if infra.Status.ProviderStatus != nil {
+		if _, _, err := a.Decoder().Decode(infra.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
+			return nil, errors.Wrapf(err, "could not decode infrastructure status of infrastructure '%s'", kutil.ObjectName(infra))
 		}
-		if err := a.alicloudECSClient.ShareImageToAccount(ctx, infra.Spec.Region, imageID, shootCloudProviderAccountID); err != nil {
+	}
+	if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, true); err == nil {
+		return machineImage, nil
+	}
+
+	// Encrypted image is not found
+	// Find from cloud profile first, if not found then from status
+	imageID, err := helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
+	if err != nil {
+		if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
+			return nil, err
+		} else {
+			imageID = machineImage.ID
+		}
+	}
+
+	// It may block 10 minutes
+	a.logger.Info("Preparing encrypted image for shoot account", "name", worker.Machine.Image.Name, "version", *worker.Machine.Image.Version)
+	encryptor := common.NewImageEncryptor(shootROSClient, infra.Spec.Region, worker.Machine.Image.Name, *worker.Machine.Image.Version, imageID)
+	encryptedImageID, err := encryptor.TryToGetEncryptedImageID(ctx, 15*time.Minute, 10*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	return &apisalicloud.MachineImage{
+		Name:      worker.Machine.Image.Name,
+		Version:   *worker.Machine.Image.Version,
+		ID:        encryptedImageID,
+		Encrypted: helper.Bool(true),
+	}, nil
+}
+
+func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootECSClient alicloudclient.ECS, shootCloudProviderAccountID string) (*apisalicloud.MachineImage, error) {
+	imageID, err := helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
+	if err != nil {
+		if providerStatus := infra.Status.ProviderStatus; providerStatus != nil {
+			infrastructureStatus := &apisalicloud.InfrastructureStatus{}
+			if _, _, err := a.Decoder().Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
+				return nil, errors.Wrapf(err, "could not decode infrastructure status of infrastructure '%s'", kutil.ObjectName(infra))
+			}
+
+			if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
+				return nil, err
+			} else {
+				imageID = machineImage.ID
+			}
+		} else {
 			return nil, err
 		}
 	}
 
-	return machineImages, nil
+	if err = a.makeImageVisibleForShoot(ctx, shootECSClient, infra.Spec.Region, imageID, shootCloudProviderAccountID); err != nil {
+		return nil, err
+	}
+
+	return &apisalicloud.MachineImage{
+		Name:    worker.Machine.Image.Name,
+		Version: *worker.Machine.Image.Version,
+		ID:      imageID,
+	}, nil
+}
+
+func (a *actuator) makeImageVisibleForShoot(ctx context.Context, shootECSClient alicloudclient.ECS, region, imageID, shootAccountID string) error {
+	// if this is a whitelisted machine image, we no longer need to check if it exists in cloud provider account, and
+	// we don't need to share the image to that account either.
+	a.logger.Info("Sharing customized image with Shoot's Alicloud account from Seed", "imageID", imageID)
+	if a.isWhitelistedImageID(imageID) {
+		a.logger.Info("Skip image sharing for whitelisted image", "imageID", imageID)
+		return nil
+	}
+
+	exists, err := shootECSClient.CheckIfImageExists(ctx, imageID)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
+	if a.alicloudECSClient == nil {
+		return fmt.Errorf("image sharing is not enabled or configured correctly and Alicloud ECS client is not instantiated in Seed. Please contact Gardener administrator")
+	}
+
+	return a.alicloudECSClient.ShareImageToAccount(ctx, region, imageID, shootAccountID)
 }
 
 // Reconcile implements infrastructure.Actuator.
@@ -418,15 +494,15 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return errors.Wrapf(err, "failed to apply the terraform config")
 	}
 
-	var machineImages []alicloudv1alpha1.MachineImage
+	var machineImages []apisalicloud.MachineImage
 	if cluster.Shoot != nil {
-		machineImages, err = a.shareCustomizedImages(ctx, infra, cluster)
+		machineImages, err = a.ensureImagesForShootProviderAccount(ctx, infra, cluster)
 		if err != nil {
 			return errors.Wrapf(err, "failed to share the machine images")
 		}
 	}
 
-	status, err := a.extractStatus(ctx, tf, config, machineImages)
+	status, err := a.generateStatus(ctx, tf, config, machineImages)
 	if err != nil {
 		return err
 	}

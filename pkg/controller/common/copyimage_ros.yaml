@@ -1,0 +1,62 @@
+ROSTemplateFormatVersion: '2015-09-01'
+Parameters:
+  KMSKeyId:
+    Type: String
+    Description: The ID of the key used to encrypt the image.
+    Default: null
+  DestinationRegionId:
+    Type: String
+    Description: ID of the region to where the destination custom image belongs.
+  Encrypted:
+    Type: Boolean
+    Description: Whether to encrypt the image.
+    AllowedValues:
+      - 'True'
+      - 'true'
+      - 'False'
+      - 'false'
+    Default: 'True'
+  ImageId:
+    Type: String
+    Description: ID of the source custom image.
+  DestinationDescription:
+    Type: String
+    Description: >-
+      The description of the destination custom image.It cannot begin with
+      http:// or https://.  Default value: null.
+  Tag:
+    Type: Json
+    Description: ''
+    Default: []
+  DestinationImageName:
+    Type: String
+    Description: >-
+      Name of the destination custom image.The name is a string of 2 to 128
+      characters. It must begin with an English or a Chinese character. It can
+      contain A-Z, a-z, Chinese characters, numbers, periods (.), colons (:),
+      underscores (_), and hyphens (-).  Default value: null.
+Resources:
+  CopyImage:
+    Type: 'ALIYUN::ECS::CopyImage'
+    Properties:
+      KMSKeyId:
+        Ref: KMSKeyId
+      DestinationRegionId:
+        Ref: DestinationRegionId
+      Encrypted:
+        Ref: Encrypted
+      ImageId:
+        Ref: ImageId
+      DestinationDescription:
+        Ref: DestinationDescription
+      Tag:
+        Ref: Tag
+      DestinationImageName:
+        Ref: DestinationImageName
+Outputs:
+  ImageId:
+    Description: ID of the source custom image.
+    Value:
+      'Fn::GetAtt':
+        - CopyImage
+        - ImageId

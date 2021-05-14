@@ -87,6 +87,7 @@ var _ = Describe("Actuator", func() {
 			terraformerFactory    *mockterraformer.MockFactory
 			terraformer           *mockterraformer.MockTerraformer
 			shootECSClient        *mockalicloudclient.MockECS
+			shootROSClient        *mockalicloudclient.MockROS
 			shootSTSClient        *mockalicloudclient.MockSTS
 			shootRAMClient        *mockalicloudclient.MockRAM
 			terraformChartOps     *mockinfrastructure.MockTerraformChartOps
@@ -132,6 +133,7 @@ var _ = Describe("Actuator", func() {
 				shootECSClient = mockalicloudclient.NewMockECS(ctrl)
 				shootSTSClient = mockalicloudclient.NewMockSTS(ctrl)
 				shootRAMClient = mockalicloudclient.NewMockRAM(ctrl)
+				shootROSClient = mockalicloudclient.NewMockROS(ctrl)
 				terraformChartOps = mockinfrastructure.NewMockTerraformChartOps(ctrl)
 				actuator = NewActuatorWithDeps(
 					logger,
@@ -287,10 +289,13 @@ var _ = Describe("Actuator", func() {
 						}),
 					logger.EXPECT().Info("Creating Alicloud ECS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewECSClient(region, accessKeyID, accessKeySecret).Return(shootECSClient, nil),
+					logger.EXPECT().Info("Creating Alicloud ROS client for Shoot", "infrastructure", infra.Name),
+					alicloudClientFactory.EXPECT().NewROSClient(region, accessKeyID, accessKeySecret).Return(shootROSClient, nil),
 					logger.EXPECT().Info("Creating Alicloud STS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewSTSClient(region, accessKeyID, accessKeySecret).Return(shootSTSClient, nil),
 					shootSTSClient.EXPECT().GetAccountIDFromCallerIdentity(ctx).Return("", nil),
-					logger.EXPECT().Info("Sharing customized image with Shoot's Alicloud account from Seed", "infrastructure", infra.Name),
+					logger.EXPECT().Info("Preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
+					logger.EXPECT().Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
 
 					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID, TerraformerOutputKeyKeyPairName).
 						Return(map[string]string{
@@ -388,10 +393,13 @@ var _ = Describe("Actuator", func() {
 						}),
 					logger.EXPECT().Info("Creating Alicloud ECS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewECSClient(region, accessKeyID, accessKeySecret).Return(shootECSClient, nil),
+					logger.EXPECT().Info("Creating Alicloud ROS client for Shoot", "infrastructure", infra.Name),
+					alicloudClientFactory.EXPECT().NewROSClient(region, accessKeyID, accessKeySecret).Return(shootROSClient, nil),
 					logger.EXPECT().Info("Creating Alicloud STS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewSTSClient(region, accessKeyID, accessKeySecret).Return(shootSTSClient, nil),
 					shootSTSClient.EXPECT().GetAccountIDFromCallerIdentity(ctx).Return("", nil),
-					logger.EXPECT().Info("Sharing customized image with Shoot's Alicloud account from Seed", "infrastructure", infra.Name),
+					logger.EXPECT().Info("Preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
+					logger.EXPECT().Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
 
 					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID, TerraformerOutputKeyKeyPairName).
 						Return(map[string]string{
