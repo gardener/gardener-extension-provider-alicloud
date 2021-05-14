@@ -24,6 +24,9 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -36,6 +39,8 @@ func NewShootValidator() extensionswebhook.Validator {
 }
 
 type shoot struct {
+	client         client.Client
+	apiReader      client.Reader
 	decoder        runtime.Decoder
 	lenientDecoder runtime.Decoder
 }
@@ -44,6 +49,18 @@ type shoot struct {
 func (s *shoot) InjectScheme(scheme *runtime.Scheme) error {
 	s.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 	s.lenientDecoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
+	return nil
+}
+
+// InjectClient injects the given client into the validator.
+func (s *shoot) InjectClient(client client.Client) error {
+	s.client = client
+	return nil
+}
+
+// InjectAPIReader injects the given apiReader into the validator.
+func (s *shoot) InjectAPIReader(apiReader client.Reader) error {
+	s.apiReader = apiReader
 	return nil
 }
 
@@ -143,5 +160,31 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 		return err
 	}
 
-	return s.validateShoot(ctx, shoot, infraConfig)
+	if err := s.validateShoot(ctx, shoot, infraConfig); err != nil {
+		return err
+	}
+
+	return s.validateShootSecret(ctx, shoot)
+}
+
+func (s *shoot) validateShootSecret(ctx context.Context, shoot *core.Shoot) error {
+	var (
+		secretBinding    = &gardencorev1beta1.SecretBinding{}
+		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
+	)
+	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
+		return err
+	}
+
+	var (
+		secret    = &corev1.Secret{}
+		secretKey = kutil.Key(secretBinding.SecretRef.Namespace, secretBinding.SecretRef.Name)
+	)
+	// Explicitly use the client.Reader to prevent controller-runtime to start Informer for Secrets
+	// under the hood. The latter increases the memory usage of the component.
+	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
+		return err
+	}
+
+	return alicloudvalidation.ValidateCloudProviderSecret(secret)
 }
