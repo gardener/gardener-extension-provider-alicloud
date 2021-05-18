@@ -93,17 +93,13 @@ var _ = Describe("Infrastructure tests", func() {
 		c         client.Client
 		decoder   runtime.Decoder
 
-		InfraChartPath string
-
 		clientFactory alicloudclient.ClientFactory
 
 		availabilityZone string
 	)
 
 	BeforeSuite(func() {
-		InfraChartPath = alicloud.InfraChartPath
 		repoRoot := filepath.Join("..", "..", "..")
-		alicloud.InfraChartPath = filepath.Join(repoRoot, alicloud.InfraChartPath)
 
 		logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 		log := logrus.New()
@@ -165,8 +161,6 @@ var _ = Describe("Infrastructure tests", func() {
 
 		By("stopping test environment")
 		Expect(testEnv.Stop()).To(Succeed())
-
-		alicloud.InfraChartPath = InfraChartPath
 	})
 
 	Context("with infrastructure that requests new vpc (networks.vpc.cidr)", func() {

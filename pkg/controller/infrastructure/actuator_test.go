@@ -16,7 +16,6 @@ package infrastructure_test
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
@@ -26,8 +25,6 @@ import (
 	mockterraformer "github.com/gardener/gardener/extensions/pkg/terraformer/mock"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/chartrenderer"
-	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
 	"github.com/gardener/gardener/pkg/mock/go-logr/logr"
 	"github.com/golang/mock/gomock"
@@ -38,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/rest"
-	"k8s.io/helm/pkg/manifest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
@@ -61,13 +57,6 @@ func expectEncode(data []byte, err error) []byte {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(data).NotTo(BeNil())
 	return data
-}
-
-func mkManifest(name string, content string) manifest.Manifest {
-	return manifest.Manifest{
-		Name:    fmt.Sprintf("/templates/%s", name),
-		Content: content,
-	}
 }
 
 var _ = Describe("Actuator", func() {
@@ -100,14 +89,11 @@ var _ = Describe("Actuator", func() {
 			shootECSClient        *mockalicloudclient.MockECS
 			shootSTSClient        *mockalicloudclient.MockSTS
 			shootRAMClient        *mockalicloudclient.MockRAM
-			chartRendererFactory  *mockchartrenderer.MockFactory
 			terraformChartOps     *mockinfrastructure.MockTerraformChartOps
 			actuator              infrastructure.Actuator
 			c                     *mockclient.MockClient
 			initializer           *mockterraformer.MockInitializer
 			restConfig            rest.Config
-
-			chartRenderer *mockchartrenderer.MockInterface
 
 			cidr   string
 			config alicloudv1alpha1.InfrastructureConfig
@@ -124,10 +110,6 @@ var _ = Describe("Actuator", func() {
 
 			initializerValues InitializerValues
 			chartValues       map[string]interface{}
-
-			mainContent      string
-			variablesContent string
-			tfVarsContent    string
 
 			vpcID           string
 			vpcCIDRString   string
@@ -150,21 +132,17 @@ var _ = Describe("Actuator", func() {
 				shootECSClient = mockalicloudclient.NewMockECS(ctrl)
 				shootSTSClient = mockalicloudclient.NewMockSTS(ctrl)
 				shootRAMClient = mockalicloudclient.NewMockRAM(ctrl)
-				chartRendererFactory = mockchartrenderer.NewMockFactory(ctrl)
 				terraformChartOps = mockinfrastructure.NewMockTerraformChartOps(ctrl)
 				actuator = NewActuatorWithDeps(
 					logger,
 					alicloudClientFactory,
 					terraformerFactory,
-					chartRendererFactory,
 					terraformChartOps,
 					nil,
 					nil,
 				)
 				c = mockclient.NewMockClient(ctrl)
 				initializer = mockterraformer.NewMockInitializer(ctrl)
-
-				chartRenderer = mockchartrenderer.NewMockInterface(ctrl)
 
 				cidr = "192.168.0.0/16"
 				config = alicloudv1alpha1.InfrastructureConfig{
@@ -204,11 +182,40 @@ var _ = Describe("Actuator", func() {
 				}
 
 				initializerValues = InitializerValues{}
-				chartValues = map[string]interface{}{}
-
-				mainContent = "main"
-				variablesContent = "variables"
-				tfVarsContent = "tfVars"
+				chartValues = map[string]interface{}{
+					"alicloud": map[string]interface{}{
+						"region": "cn-shanghai-b",
+					},
+					"vpc": map[string]interface{}{
+						"create": true,
+						"id":     "alicloud_vpc.vpc.id",
+						"cidr":   "10.10.10.10/6",
+					},
+					"natGateway": map[string]interface{}{
+						"id":           "alicloud_nat_gateway.nat_gateway.id",
+						"sNatTableIDs": "alicloud_nat_gateway.nat_gateway.snat_table_ids",
+					},
+					"eip": map[string]interface{}{
+						"internetChargeType": "PayByTraffic",
+					},
+					"clusterName":  "test-namespace",
+					"sshPublicKey": "PRIVATE_KEY",
+					"zones": []map[string]interface{}{
+						{
+							"name": "cn-shanghai-b",
+							"cidr": map[string]interface{}{
+								"workers": "10.250.0.0/19",
+							},
+						},
+					},
+					"outputKeys": map[string]interface{}{
+						"vpcID":              "vpc_id",
+						"vpcCIDR":            "vpc_cidr",
+						"securityGroupID":    "sg_id",
+						"keyPairName":        "key_pair_name",
+						"vswitchNodesPrefix": "vswitch_z",
+					},
+				}
 
 				vpcID = "vpcID"
 				vpcCIDRString = "vpcCIDR"
@@ -229,8 +236,6 @@ var _ = Describe("Actuator", func() {
 				describeNATGatewaysReq.VpcId = vpcID
 
 				gomock.InOrder(
-					chartRendererFactory.EXPECT().NewForConfig(&restConfig).Return(chartRenderer, nil),
-
 					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: secretNamespace, Name: secretName}, gomock.AssignableToTypeOf(&corev1.Secret{})).
 						SetArg(2, corev1.Secret{
 							Data: map[string][]byte{
@@ -267,20 +272,7 @@ var _ = Describe("Actuator", func() {
 					terraformChartOps.EXPECT().ComputeCreateVPCInitializerValues(&config, alicloudclient.DefaultInternetChargeType).Return(&initializerValues),
 					terraformChartOps.EXPECT().ComputeChartValues(&infra, &config, &initializerValues).Return(chartValues),
 
-					chartRenderer.EXPECT().Render(
-						alicloud.InfraChartPath,
-						alicloud.InfraRelease,
-						infra.Namespace,
-						chartValues,
-					).Return(&chartrenderer.RenderedChart{
-						Manifests: []manifest.Manifest{
-							mkManifest(realterraformer.MainKey, mainContent),
-							mkManifest(realterraformer.VariablesKey, variablesContent),
-							mkManifest(realterraformer.TFVarsKey, tfVarsContent),
-						},
-					}, nil),
-
-					terraformerFactory.EXPECT().DefaultInitializer(c, mainContent, variablesContent, []byte(tfVarsContent), gomock.AssignableToTypeOf(realterraformer.CreateState)).Return(initializer),
+					terraformerFactory.EXPECT().DefaultInitializer(c, gomock.Any(), gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(realterraformer.CreateState)).Return(initializer),
 
 					terraformer.EXPECT().InitializeWith(ctx, initializer).Return(terraformer),
 
@@ -346,8 +338,6 @@ var _ = Describe("Actuator", func() {
 				}
 
 				gomock.InOrder(
-					chartRendererFactory.EXPECT().NewForConfig(&restConfig).Return(chartRenderer, nil),
-
 					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: secretNamespace, Name: secretName}, gomock.AssignableToTypeOf(&corev1.Secret{})).
 						SetArg(2, corev1.Secret{
 							Data: map[string][]byte{
@@ -383,20 +373,7 @@ var _ = Describe("Actuator", func() {
 					terraformChartOps.EXPECT().ComputeCreateVPCInitializerValues(&config, alicloudclient.DefaultInternetChargeType).Return(&initializerValues),
 					terraformChartOps.EXPECT().ComputeChartValues(&infra, &config, &initializerValues).Return(chartValues),
 
-					chartRenderer.EXPECT().Render(
-						alicloud.InfraChartPath,
-						alicloud.InfraRelease,
-						infra.Namespace,
-						chartValues,
-					).Return(&chartrenderer.RenderedChart{
-						Manifests: []manifest.Manifest{
-							mkManifest(realterraformer.MainKey, mainContent),
-							mkManifest(realterraformer.VariablesKey, variablesContent),
-							mkManifest(realterraformer.TFVarsKey, tfVarsContent),
-						},
-					}, nil),
-
-					terraformerFactory.EXPECT().DefaultInitializer(c, mainContent, variablesContent, []byte(tfVarsContent), realterraformer.CreateOrUpdateState{State: &state}).Return(initializer),
+					terraformerFactory.EXPECT().DefaultInitializer(c, gomock.Any(), gomock.Any(), gomock.Any(), realterraformer.CreateOrUpdateState{State: &state}).Return(initializer),
 
 					terraformer.EXPECT().InitializeWith(ctx, initializer).Return(terraformer),
 

@@ -15,6 +15,7 @@
 package infrastructure
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strconv"
@@ -33,7 +34,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	extensionschartrenderer "github.com/gardener/gardener/pkg/chartrenderer"
 	"github.com/gardener/gardener/pkg/utils/flow"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
@@ -62,7 +62,6 @@ func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, whitelisted
 		log.Log.WithName("infrastructure-actuator"),
 		alicloudclient.NewClientFactory(),
 		terraformer.DefaultFactory(),
-		extensionschartrenderer.DefaultFactory(),
 		DefaultTerraformOps(),
 		machineImageOwnerSecretRef,
 		whitelistedImageIDs,
@@ -74,14 +73,12 @@ func NewActuatorWithDeps(
 	logger logr.Logger,
 	newClientFactory alicloudclient.ClientFactory,
 	terraformerFactory terraformer.Factory,
-	chartRendererFactory extensionschartrenderer.Factory,
 	terraformChartOps TerraformChartOps,
 	machineImageOwnerSecretRef *corev1.SecretReference,
 	whitelistedImageIDs []string,
 ) infrastructure.Actuator {
 	a := &actuator{
 		logger:                     logger,
-		ChartRendererContext:       commonext.NewChartRendererContext(chartRendererFactory),
 		newClientFactory:           newClientFactory,
 		terraformerFactory:         terraformerFactory,
 		terraformChartOps:          terraformChartOps,
@@ -94,7 +91,7 @@ func NewActuatorWithDeps(
 
 type actuator struct {
 	logger logr.Logger
-	commonext.ChartRendererContext
+	commonext.RESTConfigContext
 
 	alicloudECSClient  alicloudclient.ECS
 	newClientFactory   alicloudclient.ClientFactory
@@ -185,17 +182,13 @@ func (a *actuator) getInitializerValues(
 
 func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, config *alicloudv1alpha1.InfrastructureConfig, values *InitializerValues, stateInitializer terraformer.StateConfigMapInitializer) (terraformer.Initializer, error) {
 	chartValues := a.terraformChartOps.ComputeChartValues(infra, config, values)
-	release, err := a.ChartRenderer().Render(alicloud.InfraChartPath, alicloud.InfraRelease, infra.Namespace, chartValues)
-	if err != nil {
-		return nil, err
+
+	var mainTF bytes.Buffer
+	if err := tplMainTF.Execute(&mainTF, chartValues); err != nil {
+		return nil, fmt.Errorf("could not render Terraform template: %+v", err)
 	}
 
-	files, err := terraformer.ExtractTerraformFiles(release)
-	if err != nil {
-		return nil, err
-	}
-
-	return a.terraformerFactory.DefaultInitializer(a.Client(), files.Main, files.Variables, files.TFVars, stateInitializer), nil
+	return a.terraformerFactory.DefaultInitializer(a.Client(), mainTF.String(), string(variablesTF), terraformTFVars, stateInitializer), nil
 }
 
 func (a *actuator) extractStatus(ctx context.Context, tf terraformer.Terraformer, infraConfig *alicloudv1alpha1.InfrastructureConfig, machineImages []alicloudv1alpha1.MachineImage) (*alicloudv1alpha1.InfrastructureStatus, error) {
