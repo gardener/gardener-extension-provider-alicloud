@@ -20,7 +20,7 @@ import (
 )
 
 // CreateStack invokes the ros.CreateStack API synchronously
-// api document: https://help.aliyun.com/api/ros/createstack.html
+// api document: https://www.alibabacloud.com/help/doc-detail/132086.htm
 func (client *Client) CreateStack(request *CreateStackRequest) (response *CreateStackResponse, err error) {
 	response = CreateCreateStackResponse()
 	err = client.DoAction(request, response)

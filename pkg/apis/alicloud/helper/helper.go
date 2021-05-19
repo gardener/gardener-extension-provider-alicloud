@@ -70,6 +70,11 @@ func Bool(v bool) *bool {
 	return &v
 }
 
+// String returns a pointer to of the string value passed in.
+func String(s string) *string {
+	return &s
+}
+
 // FindMachineImage takes a list of machine images and tries to find the first entry
 // whose name, version and encrypted flag matches with the given name and version encrypted flag.
 // If no such entry is found then an error will be returned.

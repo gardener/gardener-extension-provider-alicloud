@@ -196,6 +196,23 @@ func (c *ecsClient) CheckIfImageExists(ctx context.Context, imageID string) (boo
 	return response.TotalCount > 0, nil
 }
 
+// CheckIfImageOwnedByAliCloud checks if the given image ID is owned by AliCloud
+func (c *ecsClient) CheckIfImageOwnedByAliCloud(imageID string) (bool, error) {
+	request := ecs.CreateDescribeImagesRequest()
+	request.ImageId = imageID
+	request.SetScheme("HTTPS")
+	response, err := c.DescribeImages(request)
+	if err != nil {
+		return false, err
+	}
+
+	if response.TotalCount == 0 {
+		return false, fmt.Errorf("image %v is not found", imageID)
+	}
+
+	return response.Images.Image[0].ImageOwnerAlias == "system", nil
+}
+
 // ShareImageToAccount shares the given image to target account from current client.
 func (c *ecsClient) ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error {
 	request := ecs.CreateModifyImageSharePermissionRequest()

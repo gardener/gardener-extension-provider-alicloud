@@ -343,7 +343,7 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, infr
 			return nil, err
 		}
 		if useEncrytedDisk {
-			if machineImage, err = a.ensureEncryptedImageForShootProviderAccount(ctx, cloudProfileConfig, worker, infra, shootAlicloudROSClient); err != nil {
+			if machineImage, err = a.ensureEncryptedImageForShootProviderAccount(ctx, cloudProfileConfig, worker, infra, shootAlicloudROSClient, shootAlicloudECSClient); err != nil {
 				return nil, err
 			}
 		} else {
@@ -359,7 +359,13 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, infr
 	return machineImages, nil
 }
 
-func (a *actuator) ensureEncryptedImageForShootProviderAccount(ctx context.Context, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootROSClient alicloudclient.ROS) (*apisalicloud.MachineImage, error) {
+func (a *actuator) ensureEncryptedImageForShootProviderAccount(
+	ctx context.Context,
+	cloudProfileConfig *apisalicloud.CloudProfileConfig,
+	worker gardencorev1beta1.Worker,
+	infra *extensionsv1alpha1.Infrastructure,
+	shootROSClient alicloudclient.ROS,
+	shootECSClient alicloudclient.ECS) (*apisalicloud.MachineImage, error) {
 	infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 	if infra.Status.ProviderStatus != nil {
 		if _, _, err := a.Decoder().Decode(infra.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
@@ -381,6 +387,16 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(ctx context.Conte
 		}
 	}
 
+	// Check if image is provided by AliCloud (OwnerAlias is System).
+	if !(a.isWhitelistedImageID(imageID)) {
+		ownedByAliCloud, err := shootECSClient.CheckIfImageOwnedByAliCloud(imageID)
+		if err != nil {
+			return nil, err
+		}
+		if ownedByAliCloud {
+			return nil, fmt.Errorf("image (%s-%s/%s) is owned by AliCloud. An encrypted image can't be created from this image for the shoot", worker.Machine.Image.Name, *worker.Machine.Image.Version, imageID)
+		}
+	}
 	// It may block 10 minutes
 	a.logger.Info("Preparing encrypted image for shoot account", "name", worker.Machine.Image.Name, "version", *worker.Machine.Image.Version)
 	encryptor := common.NewImageEncryptor(shootROSClient, infra.Spec.Region, worker.Machine.Image.Name, *worker.Machine.Image.Version, imageID)
@@ -498,7 +514,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 	if cluster.Shoot != nil {
 		machineImages, err = a.ensureImagesForShootProviderAccount(ctx, infra, cluster)
 		if err != nil {
-			return errors.Wrapf(err, "failed to share the machine images")
+			return errors.Wrapf(err, "failed to ensure machine images for shoot")
 		}
 	}
 

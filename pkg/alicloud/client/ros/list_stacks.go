@@ -36,7 +36,7 @@ type ListStacksResponse struct {
 }
 
 // ListStacks invokes the ros.ListStacks API synchronously
-// api document: https://help.aliyun.com/api/ros/liststacks.html
+// api document: https://www.alibabacloud.com/help/doc-detail/132117.htm
 func (client *Client) ListStacks(request *ListStacksRequest) (response *ListStacksResponse, err error) {
 	response = CreateListStacksResponse()
 	err = client.DoAction(request, response)

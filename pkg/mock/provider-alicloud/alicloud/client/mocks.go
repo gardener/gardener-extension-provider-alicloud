@@ -199,6 +199,21 @@ func (mr *MockECSMockRecorder) CheckIfImageExists(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfImageExists", reflect.TypeOf((*MockECS)(nil).CheckIfImageExists), arg0, arg1)
 }
 
+// CheckIfImageOwnedByAliCloud mocks base method.
+func (m *MockECS) CheckIfImageOwnedByAliCloud(arg0 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckIfImageOwnedByAliCloud", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckIfImageOwnedByAliCloud indicates an expected call of CheckIfImageOwnedByAliCloud.
+func (mr *MockECSMockRecorder) CheckIfImageOwnedByAliCloud(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfImageOwnedByAliCloud", reflect.TypeOf((*MockECS)(nil).CheckIfImageOwnedByAliCloud), arg0)
+}
+
 // DescribeKeyPairs mocks base method.
 func (m *MockECS) DescribeKeyPairs(arg0 *ecs.DescribeKeyPairsRequest) (*ecs.DescribeKeyPairsResponse, error) {
 	m.ctrl.T.Helper()
@@ -793,6 +808,21 @@ func (m *MockROS) CreateStack(arg0 *ros.CreateStackRequest) (*ros.CreateStackRes
 func (mr *MockROSMockRecorder) CreateStack(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateStack", reflect.TypeOf((*MockROS)(nil).CreateStack), arg0)
+}
+
+// DeleteStack mocks base method.
+func (m *MockROS) DeleteStack(arg0 *ros.DeleteStackRequest) (*ros.DeleteStackResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteStack", arg0)
+	ret0, _ := ret[0].(*ros.DeleteStackResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteStack indicates an expected call of DeleteStack.
+func (mr *MockROSMockRecorder) DeleteStack(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStack", reflect.TypeOf((*MockROS)(nil).DeleteStack), arg0)
 }
 
 // GetStack mocks base method.

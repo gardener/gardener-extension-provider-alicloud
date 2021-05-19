@@ -103,6 +103,7 @@ func (ie *imageEncryptor) getStackIDFromName() (string, error) {
 	request := ros.CreateListStacksRequest()
 	request.StackName = &[]string{stackName}
 	request.RegionId = ie.regionID
+	request.SetScheme("HTTPS")
 
 	response, err := ie.rosClient.ListStacks(request)
 	if err != nil {
@@ -127,7 +128,6 @@ func (ie *imageEncryptor) createStack() (string, error) {
 	stackRequest := ros.CreateCreateStackRequest()
 	stackRequest.StackName = stackName
 	stackRequest.TemplateBody = CopyImageROSTemplate
-	stackRequest.DeletionProtection = "Enabled"
 	stackRequest.Tags = &[]ros.Tag{
 		{
 			Key:   "gardener-managed",
@@ -146,10 +146,11 @@ func (ie *imageEncryptor) createStack() (string, error) {
 	parameters := []ros.CreateStackParameters{
 		{ParameterKey: "ImageId", ParameterValue: ie.sourceImageID},
 		{ParameterKey: "DestinationDescription", ParameterValue: fmt.Sprintf("copied from image %s", ie.sourceImageID)},
-		{ParameterKey: "DestinationImageName", ParameterValue: fmt.Sprintf("%s-%s", ie.imageName, ie.imageVersion)},
+		{ParameterKey: "DestinationImageName", ParameterValue: fmt.Sprintf("%s-%s-encrypted", ie.imageName, ie.imageVersion)},
 		{ParameterKey: "DestinationRegionId", ParameterValue: ie.regionID},
 	}
 	stackRequest.Parameters = &parameters
+	stackRequest.SetScheme("HTTPS")
 	response, err := ie.rosClient.CreateStack(stackRequest)
 	if err != nil {
 		return "", err
@@ -185,6 +186,8 @@ func (ie *imageEncryptor) tryToGetEncrytpedImageIDFromStack(ctx context.Context,
 func (ie *imageEncryptor) getEncrytpedImageIDFromStack(stackId string) (string, bool, error) {
 	getStackRequest := ros.CreateGetStackRequest()
 	getStackRequest.StackId = stackId
+	getStackRequest.SetScheme("HTTPS")
+
 	response, err := ie.rosClient.GetStack(getStackRequest)
 	if err != nil {
 		if serverErr, ok := err.(*errors.ServerError); ok {

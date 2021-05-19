@@ -53,6 +53,7 @@ type ecsClient struct {
 // ECS is an interface which declares ECS related methods.
 type ECS interface {
 	CheckIfImageExists(ctx context.Context, imageID string) (bool, error)
+	CheckIfImageOwnedByAliCloud(imageID string) (bool, error)
 	ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error
 	DescribeSecurityGroups(request *ecs.DescribeSecurityGroupsRequest) (response *ecs.DescribeSecurityGroupsResponse, err error)
 	DescribeSecurityGroupAttribute(request *ecs.DescribeSecurityGroupAttributeRequest) (response *ecs.DescribeSecurityGroupAttributeResponse, err error)
@@ -124,6 +125,7 @@ type ROS interface {
 	ListStacks(request *ros.ListStacksRequest) (response *ros.ListStacksResponse, err error)
 	GetStack(request *ros.GetStackRequest) (response *ros.GetStackResponse, err error)
 	CreateStack(request *ros.CreateStackRequest) (response *ros.CreateStackResponse, err error)
+	DeleteStack(request *ros.DeleteStackRequest) (response *ros.DeleteStackResponse, err error)
 }
 
 // ossClient implements the OSS interface.

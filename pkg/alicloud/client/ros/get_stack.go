@@ -20,7 +20,7 @@ import (
 )
 
 // GetStack invokes the ros.GetStack API synchronously
-// api document: https://help.aliyun.com/api/ros/getstack.html
+// api document: https://www.alibabacloud.com/help/doc-detail/132088.htm
 func (client *Client) GetStack(request *GetStackRequest) (response *GetStackResponse, err error) {
 	response = CreateGetStackResponse()
 	err = client.DoAction(request, response)
