@@ -20,9 +20,3 @@ FROM base as gardener-extension-admission-alicloud
 
 COPY --from=builder /go/bin/gardener-extension-admission-alicloud /gardener-extension-admission-alicloud
 ENTRYPOINT ["/gardener-extension-admission-alicloud"]
-
-############# gardener-extension-validator-alicloud
-FROM base AS gardener-extension-validator-alicloud
-
-COPY --from=builder /go/bin/gardener-extension-admission-alicloud /gardener-extension-admission-alicloud
-ENTRYPOINT ["/gardener-extension-admission-alicloud"]
