@@ -45,4 +45,5 @@ secretRef:
 credentialsSecretRef:
   name: {{ $machineClass.credentialsSecretRef.name }}
   namespace: {{ $machineClass.credentialsSecretRef.namespace }}
+provider: "Alicloud"
 {{- end }}
