@@ -76,7 +76,7 @@ func String(s string) *string {
 }
 
 // FindMachineImage takes a list of machine images and tries to find the first entry
-// whose name, version and encrypted flag matches with the given name and version encrypted flag.
+// whose name, version and encrypted flag matches with the given name, version and encrypted flag.
 // If no such entry is found then an error will be returned.
 func FindMachineImage(machineImages []api.MachineImage, imageName, imageVersion string, encrypted bool) (*api.MachineImage, error) {
 	for _, machineImage := range machineImages {
