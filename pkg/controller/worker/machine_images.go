@@ -17,6 +17,8 @@ package worker
 import (
 	"context"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 
@@ -64,7 +66,7 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 				Name:      name,
 				Version:   version,
 				ID:        machineImageID,
-				Encrypted: helper.Bool(encrypted),
+				Encrypted: pointer.BoolPtr(encrypted),
 			}, nil
 		}
 	}

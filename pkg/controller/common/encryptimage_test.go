@@ -18,8 +18,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 	gcorev1alph1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
@@ -28,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("Encrypt Image tools", func() {
@@ -38,11 +37,11 @@ var _ = Describe("Encrypt Image tools", func() {
 		},
 		Entry("nil input doesn't use encryption", nil, false, false),
 		Entry("corev1beta1 image with nil Encryption value doesn't use encryption", &gcorev1beta1.Volume{}, false, false),
-		Entry("corev1beta1 image with false Encryption value doesn't use encryption", &gcorev1beta1.Volume{Encrypted: helper.Bool(false)}, false, false),
-		Entry("corev1beta1 image with true Encryption value uses encryption", &gcorev1beta1.Volume{Encrypted: helper.Bool(true)}, true, false),
+		Entry("corev1beta1 image with false Encryption value doesn't use encryption", &gcorev1beta1.Volume{Encrypted: pointer.BoolPtr(false)}, false, false),
+		Entry("corev1beta1 image with true Encryption value uses encryption", &gcorev1beta1.Volume{Encrypted: pointer.BoolPtr(true)}, true, false),
 		Entry("extensionsv1alpha1 image with nil Encryption value doesn't use encryption", &gcorev1beta1.Volume{}, false, false),
-		Entry("extensionsv1alpha1 image with false Encryption value doesn't use encryption", &gcorev1beta1.Volume{Encrypted: helper.Bool(false)}, false, false),
-		Entry("extensionsv1alpha1 image with true Encryption value uses encryption", &gcorev1beta1.Volume{Encrypted: helper.Bool(true)}, true, false),
+		Entry("extensionsv1alpha1 image with false Encryption value doesn't use encryption", &gcorev1beta1.Volume{Encrypted: pointer.BoolPtr(false)}, false, false),
+		Entry("extensionsv1alpha1 image with true Encryption value uses encryption", &gcorev1beta1.Volume{Encrypted: pointer.BoolPtr(true)}, true, false),
 		Entry("unsupported type of image returns error", &gcorev1alph1.Volume{}, true, true),
 	)
 

@@ -17,6 +17,8 @@ package helper
 import (
 	"fmt"
 
+	"k8s.io/utils/pointer"
+
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
@@ -59,20 +61,10 @@ func FindSecurityGroupByPurpose(securityGroups []api.SecurityGroup, purpose api.
 func matchEncryptedFlag(encrypted *bool, expectEncrypted bool) bool {
 	checkedVal := encrypted
 	if checkedVal == nil {
-		checkedVal = Bool(false)
+		checkedVal = pointer.BoolPtr(false)
 	}
 
 	return *checkedVal == expectEncrypted
-}
-
-// Bool returns a pointer to of the bool value passed in.
-func Bool(v bool) *bool {
-	return &v
-}
-
-// String returns a pointer to of the string value passed in.
-func String(s string) *string {
-	return &s
 }
 
 // FindMachineImage takes a list of machine images and tries to find the first entry
@@ -96,7 +88,7 @@ func FindMachineImage(machineImages []api.MachineImage, imageName, imageVersion 
 func AppendMachineImage(machineImages []api.MachineImage, machineImage api.MachineImage) []api.MachineImage {
 	expectEncripted := machineImage.Encrypted
 	if expectEncripted == nil {
-		expectEncripted = Bool(false)
+		expectEncripted = pointer.BoolPtr(false)
 	}
 	if _, err := FindMachineImage(machineImages, machineImage.Name, machineImage.Version, *expectEncripted); err != nil {
 		return append(machineImages, machineImage)

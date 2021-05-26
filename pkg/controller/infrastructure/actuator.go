@@ -28,6 +28,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
+	"k8s.io/utils/pointer"
 
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	commonext "github.com/gardener/gardener/extensions/pkg/controller/common"
@@ -409,7 +410,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 		Name:      worker.Machine.Image.Name,
 		Version:   *worker.Machine.Image.Version,
 		ID:        encryptedImageID,
-		Encrypted: helper.Bool(true),
+		Encrypted: pointer.BoolPtr(true),
 	}, nil
 }
 

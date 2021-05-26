@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/pointer"
 )
 
 const profileImageID = "id-1235"
@@ -77,9 +78,9 @@ var _ = Describe("Helper", func() {
 		Entry("entry not found (no name)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "foo", "1.2.3", true, nil, true),
 		Entry("entry not found (no version)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "foo", "1.2.4", true, nil, true),
 		Entry("entry not found (empty encrypted)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "bar", "1.2.3", true, nil, true),
-		Entry("entry not found (false encrypted)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: Bool(false)}}, "bar", "1.2.3", true, nil, true),
+		Entry("entry not found (false encrypted)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(false)}}, "bar", "1.2.3", true, nil, true),
 
-		Entry("entry exists (encrypted value exists)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: Bool(true)}}, "bar", "1.2.3", true, &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: Bool(true)}, false),
+		Entry("entry exists (encrypted value exists)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true)}}, "bar", "1.2.3", true, &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true)}, false),
 		Entry("entry exists (empty encrypted value)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "bar", "1.2.3", false, &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123"}, false),
 	)
 
@@ -87,7 +88,7 @@ var _ = Describe("Helper", func() {
 		func() {
 
 			It("should append a non-existing image", func() {
-				existingImages := []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: Bool(true)}}
+				existingImages := []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true)}}
 				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.4", ID: "id123"}
 				existingImages = AppendMachineImage(existingImages, imageToInsert)
 				Expect(len(existingImages)).To(Equal(2))
@@ -95,7 +96,7 @@ var _ = Describe("Helper", func() {
 			})
 
 			It("should not append the image", func() {
-				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: Bool(false)}
+				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(false)}
 				imageExisting := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123"}
 				existingImages := []api.MachineImage{imageExisting}
 				existingImages = AppendMachineImage(existingImages, imageToInsert)

@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
@@ -96,14 +98,14 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 							Type: "ecs.g6.2xlarge",
 							Image: &gardencorev1beta1.ShootMachineImage{
 								Name:    imageName,
-								Version: helper.String(imageVersion),
+								Version: pointer.StringPtr(imageVersion),
 							},
 						},
 						Volume: &gardencorev1beta1.Volume{
-							Name:       helper.String("workgroup"),
-							Type:       helper.String("cloud_efficiency"),
+							Name:       pointer.StringPtr("workgroup"),
+							Type:       pointer.StringPtr("cloud_efficiency"),
 							VolumeSize: "200Gi",
-							Encrypted:  helper.Bool(true),
+							Encrypted:  pointer.BoolPtr(true),
 						},
 					},
 				},
