@@ -276,10 +276,10 @@ spec:
       volume:
         size: 50Gi
         type: cloud_efficiency
-        # NOTE: This comment is for the case when encrypted of an existing shoot is updated from false to true. 
-        # It will cause affected nodes rolling updated. It is must to MAINTAIN the shoot. 
+        # NOTE: Below comment is for the case when encrypted field of an existing shoot is updated from false to true. 
+        # It will cause affected nodes to be rolling updated. Users must trigger a MAINTAIN operation of the shoot. 
         # Otherwise, the shoot will fail to reconcile.
-        # You could do it either via Dashboard or annotate the shoot with gardener.cloud/operation=maintain
+        # You could do it either via Dashboard or annotating the shoot with gardener.cloud/operation=maintain
         encrypted: true
       zones:
       - eu-central-1a
