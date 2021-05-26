@@ -77,10 +77,10 @@ func NewImageEncryptor(client alicloudclient.ROS, regionID, imageName, imageVers
 }
 
 // TryToGetEncryptedImageID will get image id from stack.
-// If the stack doesn't exit, it will create one and wait until the stack gets complete
-// It always take around 10 minutes to copy an encrypted image.
-// @Param timout is how long it will wait for stack to complete
-// @Param interval is time period to check whether the stack is ready via REST API
+// If the stack doesn't exist, it will create one and wait until the stack creation is complete
+// It always takes around 10 minutes to copy an encrypted image.
+// @Param timeout is the maximum time for it to wait for stack creation to complete
+// @Param interval is the time period to check whether the stack is ready via REST API
 func (ie *imageEncryptor) TryToGetEncryptedImageID(ctx context.Context, timeout time.Duration, interval time.Duration) (string, error) {
 	stackID, err := ie.getStackIDFromName()
 	if err != nil {
