@@ -79,9 +79,6 @@ func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *
 			allErrs = append(allErrs, field.Required(fldPath.Index(i).Child("volume"), "must not be nil"))
 		} else {
 			allErrs = append(allErrs, validateVolume(worker.Volume, fldPath.Index(i).Child("volume"))...)
-			if worker.Volume.Encrypted != nil {
-				allErrs = append(allErrs, field.NotSupported(fldPath.Index(i).Child("volume").Child("encrypted"), *worker.Volume.Encrypted, nil))
-			}
 		}
 
 		if length := len(worker.DataVolumes); length > maxDataDiskCount {
