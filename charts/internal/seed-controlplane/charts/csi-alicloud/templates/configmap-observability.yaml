@@ -13,3 +13,8 @@ data:
   dashboard_users: |
     csi-plugin-controller-dashboard.json: |-
 {{- .Files.Get "csi-plugin-controller-dashboard.json" | nindent 6 }}
+
+  observedComponents: |
+    observedPods:
+    - podPrefix: csi-plugin-controller
+      isExposedToUser: true
