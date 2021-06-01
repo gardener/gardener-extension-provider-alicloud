@@ -214,10 +214,6 @@ var _ = Describe("Shoot validation", func() {
 						"Field": Equal("workers[0].volume.size"),
 					})),
 					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":  Equal(field.ErrorTypeNotSupported),
-						"Field": Equal("workers[0].volume.encrypted"),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
 						"Type":  Equal(field.ErrorTypeInvalid),
 						"Field": Equal("workers[0].dataVolumes[0].name"),
 					})),
