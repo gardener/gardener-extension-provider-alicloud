@@ -15,6 +15,10 @@
 package validation
 
 import (
+	"context"
+	"fmt"
+
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -138,4 +142,17 @@ func ValidateNatGatewayConfig(natGateway *apisalicloud.NatGatewayConfig, fldPath
 	}
 
 	return allErrs
+}
+
+func ValidateNatGatewayZones(vpcClient alicloudclient.VPC, infra *apisalicloud.InfrastructureConfig) error {
+	available, err := vpcClient.CheckIfEnhancedNatGatewayAvailable(context.Background(), infra.Networks.Zones[0].Name)
+	if err != nil {
+		return err
+	}
+
+	if !available {
+		return fmt.Errorf("zone %s does not support enhanced natgateway now", infra.Networks.Zones[0].Name)
+	}
+
+	return nil
 }

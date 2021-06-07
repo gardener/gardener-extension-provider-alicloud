@@ -425,6 +425,22 @@ func (c *vpcClient) FetchEIPInternetChargeType(ctx context.Context, natGateway *
 	return eip[0].InternetChargeType, nil
 }
 
+func (c *vpcClient) CheckIfEnhancedNatGatewayAvailable(ctx context.Context, zoneID string) (bool, error) {
+	request := vpc.CreateListEnhanhcedNatGatewayAvailableZonesRequest()
+	response, err := c.ListEnhanhcedNatGatewayAvailableZones(request)
+	if err != nil {
+		return false, err
+	}
+
+	for _, zone := range response.Zones {
+		if zone.ZoneId == zoneID {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // NewRAMClient creates a new RAM client with given region, accessKeyID, and accessKeySecret.
 func (f *clientFactory) NewRAMClient(region, accessKeyID, accessKeySecret string) (RAM, error) {
 	client, err := ram.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)

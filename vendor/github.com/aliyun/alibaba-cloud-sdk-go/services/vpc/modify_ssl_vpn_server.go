@@ -21,7 +21,6 @@ import (
 )
 
 // ModifySslVpnServer invokes the vpc.ModifySslVpnServer API synchronously
-// api document: https://help.aliyun.com/api/vpc/modifysslvpnserver.html
 func (client *Client) ModifySslVpnServer(request *ModifySslVpnServerRequest) (response *ModifySslVpnServerResponse, err error) {
 	response = CreateModifySslVpnServerResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) ModifySslVpnServer(request *ModifySslVpnServerRequest) (re
 }
 
 // ModifySslVpnServerWithChan invokes the vpc.ModifySslVpnServer API asynchronously
-// api document: https://help.aliyun.com/api/vpc/modifysslvpnserver.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ModifySslVpnServerWithChan(request *ModifySslVpnServerRequest) (<-chan *ModifySslVpnServerResponse, <-chan error) {
 	responseChan := make(chan *ModifySslVpnServerResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) ModifySslVpnServerWithChan(request *ModifySslVpnServerRequ
 }
 
 // ModifySslVpnServerWithCallback invokes the vpc.ModifySslVpnServer API asynchronously
-// api document: https://help.aliyun.com/api/vpc/modifysslvpnserver.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ModifySslVpnServerWithCallback(request *ModifySslVpnServerRequest, callback func(response *ModifySslVpnServerResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -80,6 +75,7 @@ type ModifySslVpnServerRequest struct {
 	ClientToken           string           `position:"Query" name:"ClientToken"`
 	SslVpnServerId        string           `position:"Query" name:"SslVpnServerId"`
 	LocalSubnet           string           `position:"Query" name:"LocalSubnet"`
+	IDaaSRegionId         string           `position:"Query" name:"IDaaSRegionId"`
 	EnableMultiFactorAuth requests.Boolean `position:"Query" name:"EnableMultiFactorAuth"`
 	IDaaSInstanceId       string           `position:"Query" name:"IDaaSInstanceId"`
 	Cipher                string           `position:"Query" name:"Cipher"`

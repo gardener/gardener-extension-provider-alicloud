@@ -19,7 +19,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
@@ -82,7 +84,7 @@ func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
 	return s.validateShootCreation(ctx, shoot)
 }
 
-func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig) error {
+func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *apisalicloud.InfrastructureConfig) error {
 	// Provider validation
 	fldPath := field.NewPath("spec", "provider")
 
@@ -164,16 +166,31 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 		return err
 	}
 
-	return s.validateShootSecret(ctx, shoot)
+	secret, err := s.getShootSecret(ctx, shoot)
+	if err != nil {
+		return err
+	}
+
+	if err := alicloudvalidation.ValidateCloudProviderSecret(secret); err != nil {
+		return err
+	}
+
+	clientFactory := alicloudclient.NewClientFactory()
+	vpcClient, err := clientFactory.NewVPCClient(shoot.Spec.Region, string(secret.Data[alicloud.AccessKeyID]), string(secret.Data[alicloud.AccessKeySecret]))
+	if err != nil {
+		return err
+	}
+
+	return alicloudvalidation.ValidateNatGatewayZones(vpcClient, infraConfig)
 }
 
-func (s *shoot) validateShootSecret(ctx context.Context, shoot *core.Shoot) error {
+func (s *shoot) getShootSecret(ctx context.Context, shoot *core.Shoot) (*corev1.Secret, error) {
 	var (
 		secretBinding    = &gardencorev1beta1.SecretBinding{}
 		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
 	)
 	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
-		return err
+		return nil, err
 	}
 
 	var (
@@ -183,8 +200,8 @@ func (s *shoot) validateShootSecret(ctx context.Context, shoot *core.Shoot) erro
 	// Explicitly use the client.Reader to prevent controller-runtime to start Informer for Secrets
 	// under the hood. The latter increases the memory usage of the component.
 	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
-		return err
+		return nil, err
 	}
 
-	return alicloudvalidation.ValidateCloudProviderSecret(secret)
+	return secret, nil
 }

@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.442
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1119
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.1+incompatible
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/frankban/quicktest v1.9.0 // indirect

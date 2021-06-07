@@ -15,7 +15,7 @@ github.com/PuerkitoBio/urlesc
 # github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
 ## explicit
 github.com/ahmetb/gen-crd-api-reference-docs
-# github.com/aliyun/alibaba-cloud-sdk-go v1.61.442
+# github.com/aliyun/alibaba-cloud-sdk-go v1.61.1119
 ## explicit
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
