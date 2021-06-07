@@ -17,10 +17,10 @@ package helper_test
 import (
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/pointer"
 )
 
 const profileImageID = "id-1235"
@@ -68,17 +68,42 @@ var _ = Describe("Helper", func() {
 	)
 
 	DescribeTable("#FindMachineImage",
-		func(configImages []api.MachineImage, name, version string, expectedMachineImage *api.MachineImage, expectErr bool) {
-			machineImage, err := FindMachineImage(configImages, name, version)
-			expectResults(machineImage, expectedMachineImage, err, expectErr)
+		func(machineImage []api.MachineImage, name, version string, encrypted bool, expectedMachineImage *api.MachineImage, expectErr bool) {
+			found, err := FindMachineImage(machineImage, name, version, encrypted)
+			expectResults(found, expectedMachineImage, err, expectErr)
 		},
 
-		Entry("list is nil", nil, "foo", "1.2.3", nil, true),
-		Entry("empty list", []api.MachineImage{}, "foo", "1.2.3", nil, true),
-		Entry("entry not found (no name)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "foo", "1.2.3", nil, true),
-		Entry("entry not found (no version)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "foo", "1.2.4", nil, true),
-		Entry("entry exists", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "bar", "1.2.3", &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123"}, false),
+		Entry("list is nil", nil, "foo", "1.2.3", true, nil, true),
+		Entry("empty list", []api.MachineImage{}, "foo", "1.2.3", true, nil, true),
+		Entry("entry not found (no name)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "foo", "1.2.3", true, nil, true),
+		Entry("entry not found (no version)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "foo", "1.2.4", true, nil, true),
+		Entry("entry not found (empty encrypted)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "bar", "1.2.3", true, nil, true),
+		Entry("entry not found (false encrypted)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(false)}}, "bar", "1.2.3", true, nil, true),
+
+		Entry("entry exists (encrypted value exists)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true)}}, "bar", "1.2.3", true, &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true)}, false),
+		Entry("entry exists (empty encrypted value)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "bar", "1.2.3", false, &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123"}, false),
 	)
+
+	Describe("#AppendMachineImage",
+		func() {
+
+			It("should append a non-existing image", func() {
+				existingImages := []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true)}}
+				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.4", ID: "id123"}
+				existingImages = AppendMachineImage(existingImages, imageToInsert)
+				Expect(len(existingImages)).To(Equal(2))
+				Expect(existingImages, ContainElement(imageToInsert))
+			})
+
+			It("should not append the image", func() {
+				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(false)}
+				imageExisting := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123"}
+				existingImages := []api.MachineImage{imageExisting}
+				existingImages = AppendMachineImage(existingImages, imageToInsert)
+				Expect(len(existingImages)).To(Equal(1))
+				Expect(existingImages[0]).To(Equal(imageExisting))
+			})
+		})
 
 	DescribeTable("#FindImageForRegion",
 		func(profileImages []api.MachineImages, imageName, version, region string, expectedImage string) {

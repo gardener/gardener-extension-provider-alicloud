@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/utils/pointer"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -533,9 +535,10 @@ var _ = Describe("Machines", func() {
 						},
 						MachineImages: []apiv1alpha1.MachineImage{
 							{
-								Name:    machineImageName,
-								Version: machineImageVersion,
-								ID:      machineImageID,
+								Name:      machineImageName,
+								Version:   machineImageVersion,
+								ID:        machineImageID,
+								Encrypted: pointer.BoolPtr(false),
 							},
 						},
 					}

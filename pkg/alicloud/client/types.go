@@ -21,6 +21,8 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
+
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -38,6 +40,7 @@ type ClientFactory interface {
 	NewSLBClient(region, accessKeyID, accessKeySecret string) (SLB, error)
 	NewVPCClient(region, accessKeyID, accessKeySecret string) (VPC, error)
 	NewRAMClient(region, accessKeyID, accessKeySecret string) (RAM, error)
+	NewROSClient(region, accessKeyID, accessKeySecret string) (ROS, error)
 	NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (OSS, error)
 	NewOSSClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (OSS, error)
 }
@@ -50,6 +53,7 @@ type ecsClient struct {
 // ECS is an interface which declares ECS related methods.
 type ECS interface {
 	CheckIfImageExists(ctx context.Context, imageID string) (bool, error)
+	CheckIfImageOwnedByAliCloud(imageID string) (bool, error)
 	ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error
 	DescribeSecurityGroups(request *ecs.DescribeSecurityGroupsRequest) (response *ecs.DescribeSecurityGroupsResponse, err error)
 	DescribeSecurityGroupAttribute(request *ecs.DescribeSecurityGroupAttributeRequest) (response *ecs.DescribeSecurityGroupAttributeResponse, err error)
@@ -114,6 +118,14 @@ type ramClient struct {
 type RAM interface {
 	CreateServiceLinkedRole(regionID, serviceName string) error
 	GetServiceLinkedRole(roleName string) (*ram.Role, error)
+}
+
+// ROS is an interface which declares ROS related methods.
+type ROS interface {
+	ListStacks(request *ros.ListStacksRequest) (response *ros.ListStacksResponse, err error)
+	GetStack(request *ros.GetStackRequest) (response *ros.GetStackResponse, err error)
+	CreateStack(request *ros.CreateStackRequest) (response *ros.CreateStackResponse, err error)
+	DeleteStack(request *ros.DeleteStackRequest) (response *ros.DeleteStackResponse, err error)
 }
 
 // ossClient implements the OSS interface.

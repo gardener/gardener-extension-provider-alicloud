@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package infrastructure_test
+package infrastructure
 
 import (
 	"context"
@@ -48,40 +48,6 @@ import (
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 )
-
-const (
-	allCIDR     = "0.0.0.0/0"
-	vpcCIDR     = "10.250.0.0/16"
-	workersCIDR = "10.250.0.0/21"
-
-	natGatewayCIDR = "10.250.128.0/21" // Enhanced NatGateway need bind with VSwitch, natGatewayCIDR is used for this VSwitch
-	natGatewayType = "Enhanced"
-
-	secretName = "cloudprovider"
-
-	availableStatus = "Available"
-
-	sshPublicKey       = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDSb1DJfupnWTfKJ0fmRGgnSx8A2/pRd5oC49qE1jFX+/J9L01jUyLc5sBKZXVkfU5q5h0JfbkhJXSIkzqE+rNPnJBI4e+8Lo2TVWLAvVZRA9Fg9Dk3mgkdVB+9qW2mIqtJF5GOWKuk7HkObwpY1pX8kHC/LJVfpNQpVBqWef0WJj6vbyjhlZ3vgRxK9I6wdJzjUYtNsDhvvBTy/IBg/xp82w9T2r3GVfnaTLMeQCW9mPviDKnQsrWMgVb2A0Z4c62EbzzLzQV4ScVJ6JMgOgkMqEPdbnKF8dEQcSu+/DQZoZt56Aeov7T4oamahj9/rIDX+WR1nOcfntIdhCyoB4lISkNFz/MlPC7O8HwJk4P7rojLGNk6xmn6NxY5CJGC2dVxFsb1bmm+fKHAp62mgwEoFZcDyIkcsmnmnID9u0rJNyMz84YUGZ/jEz8LePujDHcXiqgoLsKJ8gNRneISL9+m9s1VK7WxDDIbq8iWzR7XfAVE/GzKpVYkqrWCvjKEeFIDuDUnf3jghQCQMsXnJM7zGWr1tl+Dvl2Avxmj2xyUJXYHbXbl2aM434DgQySnV8JPzYH7EsTmvuhdb8SJIbb/NonFsSM+72HpSzVc083x4B++VL7oP1X8cly62pFVM1fi8sxBio48Hq5SmAUu9T4wUY4J+AKU6osFA/ATlMCIiQ== your_email@example.com"
-	sshPublicKeyDigest = "b9b39384513d9300374c98ccc8818a8b"
-)
-
-var (
-	accessKeyID     = flag.String("access-key-id", "", "Alicloud access key id")
-	accessKeySecret = flag.String("access-key-secret", "", "Alicloud access key secret")
-	region          = flag.String("region", "", "Alicloud region")
-)
-
-func validateFlags() {
-	if len(*accessKeyID) == 0 {
-		panic("need an Alicloud access key id")
-	}
-	if len(*accessKeySecret) == 0 {
-		panic("need an Alicloud access key secret")
-	}
-	if len(*region) == 0 {
-		panic("need an Alicloud region")
-	}
-}
 
 var _ = Describe("Infrastructure tests", func() {
 	var (
@@ -150,7 +116,11 @@ var _ = Describe("Infrastructure tests", func() {
 
 		clientFactory = alicloudclient.NewClientFactory()
 
-		availabilityZone = *region + "a"
+		availabilityZone = getSingleZone(*region)
+
+		By("ensure encrypted image is cleaned in the current account")
+		Expect(deleteEncryptedImageStackIfExists(mgrContext, clientFactory)).To(Succeed())
+
 	})
 
 	AfterSuite(func() {
@@ -209,6 +179,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		namespace                 *corev1.Namespace
 		cluster                   *extensionsv1alpha1.Cluster
 		infrastructureIdentifiers infrastructureIdentifiers
+		err                       error
 	)
 
 	var cleanupHandle framework.CleanupActionHandle
@@ -221,7 +192,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 			ctx, c, logger,
 			func() extensionsv1alpha1.Object { return &extensionsv1alpha1.Infrastructure{} },
 			"Infrastructure", infra.Namespace, infra.Name,
-			10*time.Second, 16*time.Minute,
+			10*time.Second, 30*time.Minute,
 		)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -244,17 +215,6 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		return err
 	}
 
-	By("create cluster")
-	cluster = &extensionsv1alpha1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace.Name,
-		},
-		Spec: extensionsv1alpha1.ClusterSpec{},
-	}
-	if err := c.Create(ctx, cluster); err != nil {
-		return err
-	}
-
 	By("deploy cloudprovider secret into namespace")
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -270,13 +230,28 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		return err
 	}
 
+	By("create cluster which contains information of shoot info. It is used for encrypted image testing")
+	cluster, err = newCluster(namespace.Name)
+	if err != nil {
+		return err
+	}
+
+	if err := c.Create(ctx, cluster); err != nil {
+		return err
+	}
+
 	By("create infrastructure")
-	infra, err := newInfrastructure(namespace.Name, providerConfig)
+	infra, err = newInfrastructure(namespace.Name, providerConfig)
 	if err != nil {
 		return err
 	}
 
 	if err := c.Create(ctx, infra); err != nil {
+		return err
+	}
+
+	By("wait until encrypted image is ready")
+	if err := verifyStackExists(ctx, clientFactory); err != nil {
 		return err
 	}
 
@@ -290,7 +265,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		return err
 	}
 
-	By("decode infrastucture status")
+	By("decode infrastructure status")
 	if err := c.Get(ctx, client.ObjectKey{Namespace: infra.Namespace, Name: infra.Name}, infra); err != nil {
 		return err
 	}
@@ -302,6 +277,11 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 
 	By("verify infrastructure creation")
 	infrastructureIdentifiers = verifyCreation(ctx, clientFactory, infra, providerStatus, providerConfig)
+
+	By("verify image prepared in infrastructure status")
+	if err := verifyImageInfraStatus(providerStatus); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -595,7 +575,7 @@ func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 	createVSwitchsReq.VpcId = createVPCsResp.VpcId
 	createVSwitchsReq.RegionId = region
 	createVSwitchsReq.CidrBlock = natGatewayCIDR
-	createVSwitchsReq.ZoneId = region + "a"
+	createVSwitchsReq.ZoneId = getSingleZone(region)
 	createVSwitchsResp, err := vpcClient.CreateVSwitch(createVSwitchsReq)
 	Expect(err).NotTo(HaveOccurred())
 

@@ -17,6 +17,8 @@ package helper
 import (
 	"fmt"
 
+	"k8s.io/utils/pointer"
+
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
@@ -33,8 +35,8 @@ func FindVSwitchForPurposeAndZone(vswitches []api.VSwitch, purpose api.Purpose, 
 }
 
 // FindVSwitchForPurpose takes a list of vswitches and tries to find the first entry
-// whose purpose matches with the given purpose. If no such entry is found then
-// an error will be returned.
+// whose purpose matches with the given purpose.
+// If no such entry is found then an error will be returned.
 func FindVSwitchForPurpose(vswitches []api.VSwitch, purpose api.Purpose) (*api.VSwitch, error) {
 	for _, vswitch := range vswitches {
 		if vswitch.Purpose == purpose {
@@ -56,21 +58,48 @@ func FindSecurityGroupByPurpose(securityGroups []api.SecurityGroup, purpose api.
 	return nil, fmt.Errorf("cannot find security group with purpose %q", purpose)
 }
 
+func matchEncryptedFlag(encrypted *bool, expectEncrypted bool) bool {
+	checkedVal := encrypted
+	if checkedVal == nil {
+		checkedVal = pointer.BoolPtr(false)
+	}
+
+	return *checkedVal == expectEncrypted
+}
+
 // FindMachineImage takes a list of machine images and tries to find the first entry
-// whose name and version matches with the given name and version. If no such entry is
-// found then an error will be returned.
-func FindMachineImage(configImages []api.MachineImage, imageName, imageVersion string) (*api.MachineImage, error) {
-	for _, machineImage := range configImages {
-		if machineImage.Name == imageName && machineImage.Version == imageVersion {
+// whose name, version and encrypted flag matches with the given name, version and encrypted flag.
+// If no such entry is found then an error will be returned.
+func FindMachineImage(machineImages []api.MachineImage, imageName, imageVersion string, encrypted bool) (*api.MachineImage, error) {
+	for _, machineImage := range machineImages {
+		if machineImage.Name == imageName && machineImage.Version == imageVersion && matchEncryptedFlag(machineImage.Encrypted, encrypted) {
 			return &machineImage, nil
 		}
+	}
+
+	if encrypted {
+		return nil, fmt.Errorf("no encrypted machine image name %q in version %q found", imageName, imageVersion)
 	}
 	return nil, fmt.Errorf("no machine image name %q in version %q found", imageName, imageVersion)
 }
 
-// FindImageForRegionFromCloudProfile takes a list of machine images, and the desired image name, version, and region. It tries
-// to find the image with the given name and version in the desired region. If it cannot be found then an error
-// is returned.
+// AppendMachineImage will append a given MachineImage to an existing image list.
+// If a same image (by checking name, version and encrypted flag) already exists, nothing happens
+func AppendMachineImage(machineImages []api.MachineImage, machineImage api.MachineImage) []api.MachineImage {
+	expectEncripted := machineImage.Encrypted
+	if expectEncripted == nil {
+		expectEncripted = pointer.BoolPtr(false)
+	}
+	if _, err := FindMachineImage(machineImages, machineImage.Name, machineImage.Version, *expectEncripted); err != nil {
+		return append(machineImages, machineImage)
+	}
+
+	return machineImages
+}
+
+// FindImageForRegionFromCloudProfile takes a list of machine images, and the desired image name, version, and region.
+// It tries to find the image with the given name and version in the desired region.
+// If no image is found then an error is returned.
 func FindImageForRegionFromCloudProfile(cloudProfileConfig *api.CloudProfileConfig, imageName, imageVersion, regionName string) (string, error) {
 	if cloudProfileConfig != nil {
 		for _, machineImage := range cloudProfileConfig.MachineImages {

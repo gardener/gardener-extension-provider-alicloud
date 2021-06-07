@@ -20,10 +20,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
@@ -32,6 +28,10 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComputeStorageEndpoint computes the OSS storage endpoint based on the given region.
@@ -192,6 +192,23 @@ func (c *ecsClient) CheckIfImageExists(ctx context.Context, imageID string) (boo
 		return false, err
 	}
 	return response.TotalCount > 0, nil
+}
+
+// CheckIfImageOwnedByAliCloud checks if the given image ID is owned by AliCloud
+func (c *ecsClient) CheckIfImageOwnedByAliCloud(imageID string) (bool, error) {
+	request := ecs.CreateDescribeImagesRequest()
+	request.ImageId = imageID
+	request.SetScheme("HTTPS")
+	response, err := c.DescribeImages(request)
+	if err != nil {
+		return false, err
+	}
+
+	if response.TotalCount == 0 {
+		return false, fmt.Errorf("image %v is not found", imageID)
+	}
+
+	return response.Images.Image[0].ImageOwnerAlias == "system", nil
 }
 
 // ShareImageToAccount shares the given image to target account from current client.
@@ -435,6 +452,11 @@ func (f *clientFactory) NewRAMClient(region, accessKeyID, accessKeySecret string
 	return &ramClient{
 		*client,
 	}, nil
+}
+
+// NewROSClient creates a new ROS client with given region, accessKeyID, and accessKeySecret.
+func (f *clientFactory) NewROSClient(region, accessKeyID, accessKeySecret string) (ROS, error) {
+	return ros.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
 }
 
 // GetServiceLinkedRole returns service linked role from Alicloud SDK calls with given role name.

@@ -42,4 +42,7 @@ type MachineImage struct {
 	Version string `json:"version"`
 	// ID is the id of the image.
 	ID string `json:"id"`
+	// Encrypted is a flag to specify whether this image is encrypted or not
+	// +optional
+	Encrypted *bool `json:"encrypted,omitempty"`
 }

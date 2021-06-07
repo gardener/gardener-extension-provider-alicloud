@@ -78,7 +78,10 @@ spec:
 
 ## Enable customized machine images for the Alicloud extension
 
-Customized machine images can be created for an Alicloud account and shared with other Alicloud accounts. The same customized machine image has different image ID in different regions on Alicloud. Administrators/Operators need to explicitly declare them per imageID per region as below:
+Customized machine images can be created for an Alicloud account and shared with other Alicloud accounts. 
+The same customized machine image has different image ID in different regions on Alicloud.
+If you need to enable `encrypted system disk`, you must provide customized machine images.
+Administrators/Operators need to explicitly declare them per imageID per region as below:
 
 ```yaml
 machineImages:

@@ -96,6 +96,7 @@ spec:
     volume:
       type: cloud_efficiency
       size: 30Gi
+      encrypted: true
   # dataVolumes:
   # - name: kubelet-dir
   #   type: cloud_efficiency

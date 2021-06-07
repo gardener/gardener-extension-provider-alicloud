@@ -101,15 +101,12 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			return err
 		}
 
-		machineImageID, err := w.findMachineImage(pool.MachineImage.Name, pool.MachineImage.Version, w.worker.Spec.Region)
+		machineImage, err := w.findMachineImage(pool, infrastructureStatus, w.worker.Spec.Region)
 		if err != nil {
 			return err
 		}
-		machineImages = appendMachineImage(machineImages, apisalicloud.MachineImage{
-			Name:    pool.MachineImage.Name,
-			Version: pool.MachineImage.Version,
-			ID:      machineImageID,
-		})
+
+		machineImages = helper.AppendMachineImage(machineImages, *machineImage)
 
 		disks, err := computeDisks(w.worker.Namespace, pool)
 		if err != nil {
@@ -124,7 +121,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			}
 
 			machineClassSpec := utils.MergeMaps(map[string]interface{}{
-				"imageID":                 machineImageID,
+				"imageID":                 machineImage.ID,
 				"instanceType":            pool.MachineType,
 				"region":                  w.worker.Spec.Region,
 				"zoneID":                  zone,

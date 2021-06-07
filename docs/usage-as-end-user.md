@@ -59,6 +59,15 @@ Please make sure the provided credentials have the correct privileges. You can u
             "Resource": [
                 "*"
             ]
+        },
+        {
+            "Action": [
+                "ros:*"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "*"
+            ]
         }
     ],
     "Version": "1"
@@ -148,10 +157,12 @@ If you don't want to configure anything for the `cloudControllerManager` simply 
 
 ## `WorkerConfig`
 
-The Alicloud extension does not support a specific `WorkerConfig` yet, however, it supports additional data volumes (plus encryption) per machine.
+The Alicloud extension does not support a specific `WorkerConfig`. However, it supports additional data volumes (plus encryption) per machine.
 By default (if not stated otherwise), all the disks are unencrypted.
-Please note that it is currently only possible to encrypt data disks (system disk is unsupported).
 For each data volume, you have to specify a name.
+It also supports encrypted system disk. 
+However, only [Customized image](https://www.alibabacloud.com/help/doc-detail/172789.htm?spm=a2c63.l28256.b99.244.5da67453bNBrCt) is currently supported to be used as a basic image for encrypted system disk.
+
 The following YAML is a snippet of a `Shoot` resource:
 
 ```yaml
@@ -163,6 +174,7 @@ spec:
       volume:
         type: cloud_efficiency
         size: 20Gi
+        encrypted: true
       dataVolumes:
       - name: kubelet-dir
         type: cloud_efficiency
@@ -264,6 +276,11 @@ spec:
       volume:
         size: 50Gi
         type: cloud_efficiency
+        # NOTE: Below comment is for the case when encrypted field of an existing shoot is updated from false to true. 
+        # It will cause affected nodes to be rolling updated. Users must trigger a MAINTAIN operation of the shoot. 
+        # Otherwise, the shoot will fail to reconcile.
+        # You could do it either via Dashboard or annotating the shoot with gardener.cloud/operation=maintain
+        encrypted: true
       zones:
       - eu-central-1a
       - eu-central-1b

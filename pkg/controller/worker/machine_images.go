@@ -17,11 +17,15 @@ package worker
 import (
 	"context"
 
+	"k8s.io/utils/pointer"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/pkg/errors"
 )
 
@@ -47,33 +51,34 @@ func (w *workerDelegate) UpdateMachineImagesStatus(ctx context.Context) error {
 	return nil
 }
 
-func (w *workerDelegate) findMachineImage(name, version, region string) (string, error) {
-	machineImageID, err := helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
-	if err == nil {
-		return machineImageID, nil
+func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPool, infraStatus *api.InfrastructureStatus, region string) (*api.MachineImage, error) {
+	name := workerPool.MachineImage.Name
+	version := workerPool.MachineImage.Version
+	encrypted, err := common.UseEncryptedSystemDisk(workerPool.Volume)
+	if err != nil {
+		return nil, err
 	}
 
-	// Try to look up machine image in worker provider status as it was not found in componentconfig.
-	if providerStatus := w.worker.Status.ProviderStatus; providerStatus != nil {
-		workerStatus := &api.WorkerStatus{}
-		if _, _, err := w.Decoder().Decode(providerStatus.Raw, nil, workerStatus); err != nil {
-			return "", errors.Wrapf(err, "could not decode worker status of worker '%s'", kutil.ObjectName(w.worker))
+	if !encrypted {
+		machineImageID, err := helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
+		if err == nil {
+			return &api.MachineImage{
+				Name:      name,
+				Version:   version,
+				ID:        machineImageID,
+				Encrypted: pointer.BoolPtr(encrypted),
+			}, nil
 		}
+	}
 
-		machineImage, err := helper.FindMachineImage(workerStatus.MachineImages, name, version)
-		if err != nil {
-			return "", worker.ErrorMachineImageNotFound(name, version)
+	machineImage, err := helper.FindMachineImage(infraStatus.MachineImages, name, version, encrypted)
+	if err != nil {
+		opt := "unencrypted"
+		if encrypted {
+			opt = "encrypted"
 		}
-
-		return machineImage.ID, nil
+		return nil, worker.ErrorMachineImageNotFound(name, version, opt)
 	}
 
-	return "", worker.ErrorMachineImageNotFound(name, version)
-}
-
-func appendMachineImage(machineImages []api.MachineImage, machineImage api.MachineImage) []api.MachineImage {
-	if _, err := helper.FindMachineImage(machineImages, machineImage.Name, machineImage.Version); err != nil {
-		return append(machineImages, machineImage)
-	}
-	return machineImages
+	return machineImage, nil
 }
