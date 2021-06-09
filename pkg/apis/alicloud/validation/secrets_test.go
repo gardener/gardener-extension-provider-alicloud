@@ -70,6 +70,14 @@ var _ = Describe("Secret validation", func() {
 			HaveOccurred(),
 		),
 
+		Entry("should return error when the access key does not contain only alphanumeric characters and [._=]",
+			map[string][]byte{
+				alicloud.AccessKeyID:     []byte(strings.Repeat("a", 16) + " "),
+				alicloud.AccessKeySecret: []byte(strings.Repeat("b", 30)),
+			},
+			HaveOccurred(),
+		),
+
 		Entry("should return error when the secret access key field is missing",
 			map[string][]byte{
 				alicloud.AccessKeyID: []byte(strings.Repeat("a", 16)),
@@ -89,6 +97,14 @@ var _ = Describe("Secret validation", func() {
 			map[string][]byte{
 				alicloud.AccessKeyID:     []byte(strings.Repeat("a", 16)),
 				alicloud.AccessKeySecret: []byte(strings.Repeat("b", 29)),
+			},
+			HaveOccurred(),
+		),
+
+		Entry("should return error when the secret access key contains a trailing new line",
+			map[string][]byte{
+				alicloud.AccessKeyID:     []byte(strings.Repeat("a", 16)),
+				alicloud.AccessKeySecret: []byte(strings.Repeat("b", 30) + "\n"),
 			},
 			HaveOccurred(),
 		),
