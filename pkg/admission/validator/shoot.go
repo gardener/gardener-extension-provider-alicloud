@@ -33,6 +33,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var (
+	fldPath            = field.NewPath("spec")
+	networkingFldPath  = fldPath.Child("networking")
+	providerFldPath    = fldPath.Child("provider")
+	infraConfigFldPath = providerFldPath.Child("infrastructureConfig")
+	cpConfigFldPath    = providerFldPath.Child("controlPlaneConfig")
+	workersFldPath     = providerFldPath.Child("workers")
+)
+
 // NewShootValidator returns a new instance of a shoot validator.
 func NewShootValidator() extensionswebhook.Validator {
 	return &shoot{}
@@ -82,28 +91,24 @@ func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
 	return s.validateShootCreation(ctx, shoot)
 }
 
-func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig) error {
-	// Provider validation
-	fldPath := field.NewPath("spec", "provider")
-
-	if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking.Nodes, shoot.Spec.Networking.Pods, shoot.Spec.Networking.Services); len(errList) != 0 {
+func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
+	// Network validation
+	if errList := alicloudvalidation.ValidateNetworking(shoot.Spec.Networking, networkingFldPath); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 
-	// ControlPlaneConfig
-	if shoot.Spec.Provider.ControlPlaneConfig != nil {
-		// We use "lenientDecoder" because the "zone" field of "ControlPlaneConfig" was removed with https://github.com/gardener/gardener-extension-provider-alicloud/pull/64
-		// but still Shoots in Gardener environments may contain the legacy "zone" field.
-		// We cannot use strict "decoder" because it will complain that the "zone" field is specified but it is actually an invalid.
-		// Let's use "lenientDecoder" for now to make the migration smoother for such Shoots.
-		// TODO: consider enabling the strict "decoder" in a future release.
-		if _, err := decodeControlPlaneConfig(s.lenientDecoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig")); err != nil {
-			return err
+	// Provider validation
+	if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking.Nodes, shoot.Spec.Networking.Pods, shoot.Spec.Networking.Services); len(errList) != 0 {
+		return errList.ToAggregate()
+	}
+	if cpConfig != nil {
+		if errList := alicloudvalidation.ValidateControlPlaneConfig(cpConfig, shoot.Spec.Kubernetes.Version, cpConfigFldPath); len(errList) != 0 {
+			return errList.ToAggregate()
 		}
 	}
 
 	// Shoot workers
-	if errList := alicloudvalidation.ValidateWorkers(shoot.Spec.Provider.Workers, infraConfig.Networks.Zones, fldPath); len(errList) != 0 {
+	if errList := alicloudvalidation.ValidateWorkers(shoot.Spec.Provider.Workers, infraConfig.Networks.Zones, workersFldPath); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 
@@ -111,22 +116,30 @@ func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig 
 }
 
 func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.Shoot) error {
-	var (
-		fldPath            = field.NewPath("spec")
-		networkingFldPath  = fldPath.Child("networking")
-		providerFldPath    = fldPath.Child("provider")
-		infraConfigFldPath = providerFldPath.Child("infrastructureConfig")
-	)
-
-	// InfrastructureConfig update
+	// Decode the new infrastructure config
 	infraConfig, err := checkAndDecodeInfrastructureConfig(s.decoder, shoot.Spec.Provider.InfrastructureConfig, infraConfigFldPath)
 	if err != nil {
 		return err
 	}
 
+	// Decode the old infrastructure config
 	oldInfraConfig, err := checkAndDecodeInfrastructureConfig(s.lenientDecoder, oldShoot.Spec.Provider.InfrastructureConfig, infraConfigFldPath)
 	if err != nil {
 		return err
+	}
+
+	// Decode the new controlplane config
+	var cpConfig *alicloud.ControlPlaneConfig
+	if shoot.Spec.Provider.ControlPlaneConfig != nil {
+		// We use "lenientDecoder" because the "zone" field of "ControlPlaneConfig" was removed with https://github.com/gardener/gardener-extension-provider-alicloud/pull/64
+		// but still Shoots in Gardener environments may contain the legacy "zone" field.
+		// We cannot use strict "decoder" because it will complain that the "zone" field is specified but it is actually an invalid.
+		// Let's use "lenientDecoder" for now to make the migration smoother for such Shoots.
+		// TODO: consider enabling the strict "decoder" in a future release.
+		cpConfig, err = decodeControlPlaneConfig(s.lenientDecoder, shoot.Spec.Provider.ControlPlaneConfig, cpConfigFldPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	if !reflect.DeepEqual(oldInfraConfig, infraConfig) {
@@ -143,24 +156,27 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 		return errList.ToAggregate()
 	}
 
-	return s.validateShoot(ctx, shoot, infraConfig)
+	return s.validateShoot(ctx, shoot, infraConfig, cpConfig)
 }
 
 func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) error {
-	// Network validation
-	networkPath := field.NewPath("spec", "networking")
-	if errList := alicloudvalidation.ValidateNetworking(shoot.Spec.Networking, networkPath); len(errList) != 0 {
-		return errList.ToAggregate()
-	}
-
-	// Infra validation
-	fldPath := field.NewPath("spec", "provider")
-	infraConfig, err := checkAndDecodeInfrastructureConfig(s.decoder, shoot.Spec.Provider.InfrastructureConfig, fldPath.Child("infrastructureConfig"))
+	// Decode the infrastructure config
+	infraConfig, err := checkAndDecodeInfrastructureConfig(s.decoder, shoot.Spec.Provider.InfrastructureConfig, infraConfigFldPath)
 	if err != nil {
 		return err
 	}
 
-	if err := s.validateShoot(ctx, shoot, infraConfig); err != nil {
+	// Decode the controlplane config
+	var cpConfig *alicloud.ControlPlaneConfig
+	if shoot.Spec.Provider.ControlPlaneConfig != nil {
+		// TODO: consider enabling the strict "decoder" in a future release (see above).
+		cpConfig, err = decodeControlPlaneConfig(s.lenientDecoder, shoot.Spec.Provider.ControlPlaneConfig, cpConfigFldPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := s.validateShoot(ctx, shoot, infraConfig, cpConfig); err != nil {
 		return err
 	}
 
