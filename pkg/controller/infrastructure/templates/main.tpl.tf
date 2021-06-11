@@ -6,13 +6,13 @@ provider "alicloud" {
 
 // Import an existing public key to build a alicloud key pair
 resource "alicloud_key_pair" "publickey" {
-  key_name = "{{ .clusterName }}-ssh-publickey"
-  public_key = "{{ .sshPublicKey }}"
+  key_pair_name = "{{ .clusterName }}-ssh-publickey"
+  public_key    = "{{ .sshPublicKey }}"
 }
 
 {{ if .vpc.create -}}
 resource "alicloud_vpc" "vpc" {
-  name       = "{{ .clusterName }}-vpc"
+  vpc_name   = "{{ .clusterName }}-vpc"
   cidr_block = "{{ .vpc.cidr }}"
 
   timeouts {
@@ -34,10 +34,10 @@ resource "alicloud_nat_gateway" "nat_gateway" {
 // Loop zones
 {{- range $index, $zone := .zones }}
 resource "alicloud_vswitch" "vsw_z{{ $index }}" {
-  name              = "{{ $.clusterName }}-{{ $zone.name }}-vsw"
+  vswitch_name      = "{{ $.clusterName }}-{{ $zone.name }}-vsw"
   vpc_id            = {{ $.vpc.id }}
   cidr_block        = "{{ $zone.cidr.workers }}"
-  availability_zone = "{{ $zone.name }}"
+  zone_id           = "{{ $zone.name }}"
 
   timeouts {
     create = "5m"
