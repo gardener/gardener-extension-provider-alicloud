@@ -223,9 +223,6 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &rbacv1.Role{}, Name: "csi-provisioner"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-provisioner"},
 				// csi-snapshotter
-				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotClasses},
-				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotContents},
-				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshots},
 				{Type: &corev1.ServiceAccount{}, Name: "csi-snapshotter"},
 				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-snapshotter"},
 				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":csi-snapshotter"},
@@ -242,6 +239,21 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":csi-resizer"},
 				{Type: &rbacv1.Role{}, Name: "csi-resizer"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-resizer"},
+			},
+		},
+	},
+}
+
+var controlPlaneShootCRDsChart = &chart.Chart{
+	Name: "shoot-crds",
+	Path: filepath.Join(alicloud.InternalChartsPath, "shoot-crds"),
+	SubCharts: []*chart.Chart{
+		{
+			Name: "volumesnapshots",
+			Objects: []*chart.Object{
+				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotClasses},
+				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotContents},
+				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshots},
 			},
 		},
 	},
@@ -315,9 +327,13 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
 	_ context.Context,
 	_ *extensionsv1alpha1.ControlPlane,
-	_ *extensionscontroller.Cluster,
+	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
+	return map[string]interface{}{
+		"volumesnapshots": map[string]interface{}{
+			"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
+		},
+	}, nil
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.

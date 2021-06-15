@@ -231,6 +231,16 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(values).To(Equal(controlPlaneShootChartValues))
 		})
 	})
+
+	Describe("#GetControlPlaneShootCRDsChartValues", func() {
+		It("should return correct control plane shoot CRDs chart values ", func() {
+			vp := NewValuesProvider(logger)
+
+			values, err := vp.GetControlPlaneShootCRDsChartValues(context.TODO(), cp, cluster)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(Equal(map[string]interface{}{"volumesnapshots": map[string]interface{}{"kubernetesVersion": "1.20.0"}}))
+		})
+	})
 })
 
 func encode(obj runtime.Object) []byte {
