@@ -190,7 +190,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		By("wait until infrastructure is deleted")
 		err := extensions.WaitUntilExtensionObjectDeleted(
 			ctx, c, logger,
-			infra.DeepCopy(),
+			infra,
 			"Infrastructure",
 			10*time.Second, 30*time.Minute,
 		)
@@ -258,7 +258,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 	By("wait until infrastructure is created")
 	if err := extensions.WaitUntilExtensionObjectReady(
 		ctx, c, logger,
-		infra.DeepCopy(),
+		infra,
 		"Infrastucture",
 		10*time.Second, 30*time.Second, 16*time.Minute, nil,
 	); err != nil {
