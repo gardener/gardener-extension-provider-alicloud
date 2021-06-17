@@ -188,10 +188,10 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		Expect(client.IgnoreNotFound(c.Delete(ctx, infra))).To(Succeed())
 
 		By("wait until infrastructure is deleted")
-		err := extensions.WaitUntilExtensionCRDeleted(
+		err := extensions.WaitUntilExtensionObjectDeleted(
 			ctx, c, logger,
-			func() extensionsv1alpha1.Object { return &extensionsv1alpha1.Infrastructure{} },
-			"Infrastructure", infra.Namespace, infra.Name,
+			infra,
+			"Infrastructure",
 			10*time.Second, 30*time.Minute,
 		)
 		Expect(err).NotTo(HaveOccurred())
@@ -256,10 +256,10 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 	}
 
 	By("wait until infrastructure is created")
-	if err := extensions.WaitUntilExtensionCRReady(
+	if err := extensions.WaitUntilExtensionObjectReady(
 		ctx, c, logger,
-		func() client.Object { return &extensionsv1alpha1.Infrastructure{} },
-		"Infrastucture", infra.Namespace, infra.Name,
+		infra,
+		"Infrastucture",
 		10*time.Second, 30*time.Second, 16*time.Minute, nil,
 	); err != nil {
 		return err
