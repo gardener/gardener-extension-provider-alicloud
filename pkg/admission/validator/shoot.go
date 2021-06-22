@@ -92,10 +92,6 @@ func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
 }
 
 func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
-	// Network validation
-	if errList := alicloudvalidation.ValidateNetworking(shoot.Spec.Networking, networkingFldPath); len(errList) != 0 {
-		return errList.ToAggregate()
-	}
 
 	// Provider validation
 	if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking.Nodes, shoot.Spec.Networking.Pods, shoot.Spec.Networking.Services); len(errList) != 0 {
@@ -178,6 +174,10 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 
 	if err := s.validateShoot(ctx, shoot, infraConfig, cpConfig); err != nil {
 		return err
+	}
+
+	if errList := alicloudvalidation.ValidateNetworking(shoot.Spec.Networking, networkingFldPath); len(errList) != 0 {
+		return errList.ToAggregate()
 	}
 
 	return s.validateShootSecret(ctx, shoot)
