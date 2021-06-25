@@ -48,7 +48,7 @@ echo "Downloading go $GOLANG_VERSION"
 wget -q -O - "https://golang.org/dl/go$GOLANG_VERSION.src.tar.gz" | tar zx -C /usr/local
 cd /usr/local/go/src
 echo "Executing make on go $GOLANG_VERSION"
-./make.bash > /dev/null 2>&1
+./make.bash
 
 # Make the newly "installed from source" go the default one
 export PATH="/usr/local/go/bin:$PATH"
@@ -75,5 +75,8 @@ if ! make generate; then
   cd "$cur_dir"
   exit 1
 fi
+
+exit 1
+
 cd "$cur_dir"
 cp -RT "$REPO_PATH/" "$repo_root_dir/"

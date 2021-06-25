@@ -32,13 +32,6 @@ gardener-extension-provider-alicloud:
         options:
           public_build_logs: true
     release:
-      steps:
-        test-integration:
-          execute:
-          - test-integration.sh
-          trait_depends:
-          - publish
-          image: 'eu.gcr.io/gardener-project/gardener/testmachinery/testmachinery-run:stable'
       traits:
         version:
           preprocess: 'finalize'
@@ -53,10 +46,3 @@ gardener-extension-provider-alicloud:
               channel_name: 'C9CEBQPGE' #sap-tech-gardener
               slack_cfg_name: 'scp_workspace'
         component_descriptor: ~
-        publish:
-          oci-builder: 'kaniko'
-          dockerimages:
-            gardener-extension-provider-alicloud:
-              tag_as_latest: true
-            gardener-extension-admission-alicloud:
-              tag_as_latest: true
