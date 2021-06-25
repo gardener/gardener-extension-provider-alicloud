@@ -5,19 +5,6 @@ gardener-extension-provider-alicloud:
     traits:
       version:
         preprocess: 'inject-commit-hash'
-      publish:
-        oci-builder: 'kaniko'
-        dockerimages:
-          gardener-extension-provider-alicloud:
-            registry: 'gcr-readwrite'
-            image: 'eu.gcr.io/gardener-project/gardener/extensions/provider-alicloud'
-            dockerfile: 'Dockerfile'
-            target: gardener-extension-provider-alicloud
-          gardener-extension-admission-alicloud:
-            registry: 'gcr-readwrite'
-            image: 'eu.gcr.io/gardener-project/gardener/extensions/admission-alicloud'
-            dockerfile: 'Dockerfile'
-            target: gardener-extension-admission-alicloud
   jobs:
     head-update:
       traits:
