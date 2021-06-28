@@ -39,6 +39,7 @@ GOLANG_VERSION="$(sed -rn 's/FROM (eu\.gcr\.io\/gardener-project\/3rd\/golang|go
 
 export \
     GOROOT="$(go env GOROOT)" \
+    GOROOT_BOOTSTRAP="$(go env GOROOT)" \
     GOOS="$(go env GOOS)" \
     GOARCH="$(go env GOARCH)" \
     GOHOSTOS="$(go env GOHOSTOS)" \
