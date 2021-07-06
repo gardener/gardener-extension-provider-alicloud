@@ -8,73 +8,6 @@ This document describes the configurable options for Alicloud and provides an ex
 
 In order for Gardener to create a Kubernetes cluster using Alicloud infrastructure components, a Shoot has to provide credentials with sufficient permissions to the desired Alicloud project.
 Every shoot cluster references a `SecretBinding` which itself references a `Secret`, and this `Secret` contains the provider credentials of the Alicloud project.
-The `SecretBinding` is configurable in the [Shoot cluster](https://github.com/gardener/gardener/blob/master/example/90-shoot.yaml) with the field `secretBindingName`.
-
-The required credentials for the Alicloud project are an [AccessKey Pair](https://www.alibabacloud.com/help/doc-detail/29009.htm) associated with a [Resource Access Management (RAM) User](https://www.alibabacloud.com/help/doc-detail/28627.htm).
-A RAM user is a special account that can be used by services and applications to interact with Alicloud Cloud Platform APIs. 
-Applications can use AccessKey pair to authorize themselves to a set of APIs and perform actions within the permissions granted to the RAM user.
-
-Make sure to [create a Resource Access Management User](https://www.alibabacloud.com/help/doc-detail/93720.htm), and [create an AccessKey Pair](https://partners-intl.aliyun.com/help/doc-detail/116401.htm) that shall be used for the Shoot cluster.
-
-### Permissions
-
-Please make sure the provided credentials have the correct privileges. You can use the following Alicloud RAM policy document and attach it to the RAM user backed by the credentials you provided.
-```
-{
-    "Statement": [
-        {
-            "Action": [
-                "vpc:*"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "*"
-            ]
-        },
-        {
-            "Action": [
-                "ecs:*"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "*"
-            ]
-        },
-        {
-            "Action": [
-                "slb:*"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "*"
-            ]
-        },
-        {
-            "Action": [
-                "ram:GetRole",
-                "ram:CreateRole",
-                "ram:CreateServiceLinkedRole"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "*"
-            ]
-        },
-        {
-            "Action": [
-                "ros:*"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "*"
-            ]
-        }
-    ],
-    "Version": "1"
-}
-```
-
-Provide AccessKey Pair in the `Secret` (base64 encoded for fields `accessKeyID` and `accessKeySecret`, respectively), that is being referenced by the `SecretBinding` in the Shoot cluster configuration.
 
 This `Secret` must look as follows:
 
@@ -89,6 +22,77 @@ data:
   accessKeyID: base64(access-key-id)
   accessKeySecret: base64(access-key-secret)
 ```
+
+The `SecretBinding` is configurable in the [Shoot cluster](https://github.com/gardener/gardener/blob/master/example/90-shoot.yaml) with the field `secretBindingName`.
+
+The required credentials for the Alicloud project are an [AccessKey Pair](https://www.alibabacloud.com/help/doc-detail/29009.htm) associated with a [Resource Access Management (RAM) User](https://www.alibabacloud.com/help/doc-detail/28627.htm).
+A RAM user is a special account that can be used by services and applications to interact with Alicloud Cloud Platform APIs. 
+Applications can use AccessKey pair to authorize themselves to a set of APIs and perform actions within the permissions granted to the RAM user.
+
+Make sure to [create a Resource Access Management User](https://www.alibabacloud.com/help/doc-detail/93720.htm), and [create an AccessKey Pair](https://partners-intl.aliyun.com/help/doc-detail/116401.htm) that shall be used for the Shoot cluster.
+
+### Permissions
+
+Please make sure the provided credentials have the correct privileges. You can use the following Alicloud RAM policy document and attach it to the RAM user backed by the credentials you provided.
+
+<details>
+  <summary>Click to expand the Alicloud RAM policy document!</summary>
+
+  ```json
+  {
+      "Statement": [
+          {
+              "Action": [
+                  "vpc:*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                  "*"
+              ]
+          },
+          {
+              "Action": [
+                  "ecs:*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                  "*"
+              ]
+          },
+          {
+              "Action": [
+                  "slb:*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                  "*"
+              ]
+          },
+          {
+              "Action": [
+                  "ram:GetRole",
+                  "ram:CreateRole",
+                  "ram:CreateServiceLinkedRole"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                  "*"
+              ]
+          },
+          {
+              "Action": [
+                  "ros:*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                  "*"
+              ]
+          }
+      ],
+      "Version": "1"
+  }
+  ```
+</details>
 
 ## `InfrastructureConfig`
 
