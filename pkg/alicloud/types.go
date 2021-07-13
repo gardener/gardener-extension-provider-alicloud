@@ -85,6 +85,12 @@ const (
 	ErrorCodeNoPermission = "NoPermission"
 	// ErrorCodeRoleEntityNotExist is a constant for the error code of role entity not exist.
 	ErrorCodeRoleEntityNotExist = "EntityNotExist.Role"
+	// ErrorCodeDomainRecordNotBelongToUser is a constant for the error code of domain record not belong to user.
+	ErrorCodeDomainRecordNotBelongToUser = "DomainRecordNotBelongToUser"
+
+	// DefaultDNSRegion is the default region to be used if a region is not specified in the DNS secret
+	// or in the DNSRecord resource.
+	DefaultDNSRegion = "cn-shanghai"
 )
 
 var (
