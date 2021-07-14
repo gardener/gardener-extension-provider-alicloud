@@ -30,11 +30,6 @@ This extension controller supports the following Kubernetes versions:
 | Kubernetes 1.17 | 1.17.0+     | [![Gardener v1.17 Conformance Tests](https://testgrid.k8s.io/q/summary/conformance-gardener/Gardener,%20v1.17%20Alibaba%20Cloud/tests_status?style=svg)](https://testgrid.k8s.io/conformance-gardener#Gardener,%20v1.17%20Alibaba%20Cloud) |
 | Kubernetes 1.16 | 1.16.0+     | [![Gardener v1.16 Conformance Tests](https://testgrid.k8s.io/q/summary/conformance-gardener/Gardener,%20v1.16%20Alibaba%20Cloud/tests_status?style=svg)](https://testgrid.k8s.io/conformance-gardener#Gardener,%20v1.16%20Alibaba%20Cloud) |
 | Kubernetes 1.15 | 1.15.0+     | [1] |
-| Kubernetes 1.14 | unsupported | N/A                      |
-| Kubernetes 1.13 | unsupported | N/A                      |
-| Kubernetes 1.12 | unsupported | N/A                      |
-| Kubernetes 1.11 | unsupported | N/A                      |
-| Kubernetes 1.10 | unsupported | N/A                      |
 
 [1] Conformance tests are still executed and validated, unfortunately [no longer shown in TestGrid](https://github.com/kubernetes/test-infra/pull/18509#issuecomment-668204180).
 

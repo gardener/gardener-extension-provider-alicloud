@@ -31,7 +31,7 @@ images:
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: quay.io/k8scsi/csi-snapshotter
   tag: v1.2.2
-  targetVersion: ">= 1.14, < 1.17"
+  targetVersion: "< 1.17"
 - name: csi-snapshotter
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: k8s.gcr.io/sig-storage/csi-snapshotter
