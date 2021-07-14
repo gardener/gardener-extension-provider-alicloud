@@ -20,7 +20,7 @@ IMAGE_PREFIX                := $(REGISTRY)/extensions
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 HACK_DIR                    := $(REPO_ROOT)/hack
 VERSION                     := $(shell cat "$(REPO_ROOT)/VERSION")
-LD_FLAGS                    := "-w $(shell $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/get-build-ld-flags.sh k8s.io/component-base $(REPO_ROOT)/VERSION $(EXTENSION_PREFIX))"
+LD_FLAGS                    := "-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(IMAGE_TAG)"
 VERIFY                      := true
 LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := true
@@ -74,7 +74,7 @@ start-admission:
 
 .PHONY: install
 install:
-	@LD_FLAGS=$(LD_FLAGS) \
+	@LD_FLAGS="-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(VERSION)" \
 	$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/install.sh ./...
 
 .PHONY: docker-login

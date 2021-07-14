@@ -17,17 +17,17 @@ package client
 import (
 	"context"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 )
 
 // DefaultInternetChargeType is used for EIP
@@ -43,6 +43,7 @@ type ClientFactory interface {
 	NewROSClient(region, accessKeyID, accessKeySecret string) (ROS, error)
 	NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (OSS, error)
 	NewOSSClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (OSS, error)
+	NewDNSClient(region, accessKeyID, accessKeySecret string) (DNS, error)
 }
 
 // ecsClient implements the ECS interface.
@@ -146,4 +147,16 @@ type VPCInfo struct {
 	NATGatewayID       string
 	SNATTableIDs       string
 	InternetChargeType string
+}
+
+// dnsClient implements the DNS interface.
+type dnsClient struct {
+	alidns.Client
+}
+
+// DNS is an interface which declares DNS related methods.
+type DNS interface {
+	GetDomainNames(context.Context) ([]string, error)
+	CreateOrUpdateDomainRecords(context.Context, string, string, string, []string, int64) error
+	DeleteDomainRecords(context.Context, string, string, string) error
 }

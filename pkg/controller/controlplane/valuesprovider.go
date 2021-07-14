@@ -301,7 +301,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	checksums map[string]string,
 ) (map[string]interface{}, error) {
 	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef, false)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not read credentials from secret referred by controlplane '%s'", kutil.ObjectName(cp))
 	}
@@ -348,7 +348,7 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 	}
 
 	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef, false)
 	if err != nil {
 		return "", errors.Wrapf(err, "could not read credentials from secret referred by controlplane '%s'", kutil.ObjectName(cp))
 	}

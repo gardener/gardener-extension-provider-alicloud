@@ -18,16 +18,19 @@ import (
 	backupbucketcontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupbucket"
 	backupentrycontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupentry"
 	controlplanecontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/controlplane"
+	dnsrecordcontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/dnsrecord"
 	healthcheckcontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/healthcheck"
 	infrastructurecontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	workercontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
 	controlplanewebhook "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplane"
 	controlplaneexposurewebhook "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplaneexposure"
 	shootwebhook "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/shoot"
+
 	extensionsbackupbucketcontroller "github.com/gardener/gardener/extensions/pkg/controller/backupbucket"
 	extensionsbackupentrycontroller "github.com/gardener/gardener/extensions/pkg/controller/backupentry"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	extensionscontrolplanecontroller "github.com/gardener/gardener/extensions/pkg/controller/controlplane"
+	extensionsdnsrecordcontroller "github.com/gardener/gardener/extensions/pkg/controller/dnsrecord"
 	extensionshealthcheckcontroller "github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	extensionsinfrastructurecontroller "github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	extensionsworkercontroller "github.com/gardener/gardener/extensions/pkg/controller/worker"
@@ -42,6 +45,7 @@ func ControllerSwitchOptions() *controllercmd.SwitchOptions {
 		controllercmd.Switch(extensionsbackupbucketcontroller.ControllerName, backupbucketcontroller.AddToManager),
 		controllercmd.Switch(extensionsbackupentrycontroller.ControllerName, backupentrycontroller.AddToManager),
 		controllercmd.Switch(extensionscontrolplanecontroller.ControllerName, controlplanecontroller.AddToManager),
+		controllercmd.Switch(extensionsdnsrecordcontroller.ControllerName, dnsrecordcontroller.AddToManager),
 		controllercmd.Switch(extensionsinfrastructurecontroller.ControllerName, infrastructurecontroller.AddToManager),
 		controllercmd.Switch(extensionsworkercontroller.ControllerName, workercontroller.AddToManager),
 		controllercmd.Switch(extensionshealthcheckcontroller.ControllerName, healthcheckcontroller.AddToManager),

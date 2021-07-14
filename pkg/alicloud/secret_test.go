@@ -20,57 +20,94 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const (
+	accessKeyID     = "accessKeyID"
+	accessKeySecret = "accessKeySecret"
+)
+
 var _ = Describe("Alicloud Suite", func() {
 	Describe("#ReadSecretCredentials", func() {
-		It("should correctly read the credentials", func() {
-			var (
-				accessKeyID     = "accessKeyID"
-				accessKeySecret = "accessKeySecret"
-			)
+		Context("DNS keys are not allowed", func() {
+			It("should correctly read the credentials if non-DNS keys are used", func() {
+				creds, err := ReadSecretCredentials(&corev1.Secret{
+					Data: map[string][]byte{
+						AccessKeyID:     []byte(accessKeyID),
+						AccessKeySecret: []byte(accessKeySecret),
+					},
+				}, false)
 
-			creds, err := ReadSecretCredentials(&corev1.Secret{
-				Data: map[string][]byte{
-					AccessKeyID:     []byte(accessKeyID),
-					AccessKeySecret: []byte(accessKeySecret),
-				},
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creds).To(Equal(&Credentials{
+					AccessKeyID:     accessKeyID,
+					AccessKeySecret: accessKeySecret,
+				}))
 			})
 
-			Expect(err).NotTo(HaveOccurred())
-			Expect(creds).To(Equal(&Credentials{
-				AccessKeyID:     accessKeyID,
-				AccessKeySecret: accessKeySecret,
-			}))
+			It("should fail if DNS keys are used", func() {
+				_, err := ReadSecretCredentials(&corev1.Secret{
+					Data: map[string][]byte{
+						DNSAccessKeyID:     []byte(accessKeyID),
+						DNSAccessKeySecret: []byte(accessKeySecret),
+					},
+				}, false)
+
+				Expect(err).To(HaveOccurred())
+			})
 		})
 
-		It("should error if the data section is nil", func() {
-			_, err := ReadSecretCredentials(&corev1.Secret{})
+		Context("DNS keys are allowed", func() {
+			It("should correctly read the credentials if non-DNS keys are used", func() {
+				creds, err := ReadSecretCredentials(&corev1.Secret{
+					Data: map[string][]byte{
+						AccessKeyID:     []byte(accessKeyID),
+						AccessKeySecret: []byte(accessKeySecret),
+					},
+				}, true)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creds).To(Equal(&Credentials{
+					AccessKeyID:     accessKeyID,
+					AccessKeySecret: accessKeySecret,
+				}))
+			})
+
+			It("should correctly read the credentials if DNS keys are used", func() {
+				creds, err := ReadSecretCredentials(&corev1.Secret{
+					Data: map[string][]byte{
+						DNSAccessKeyID:     []byte(accessKeyID),
+						DNSAccessKeySecret: []byte(accessKeySecret),
+					},
+				}, true)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creds).To(Equal(&Credentials{
+					AccessKeyID:     accessKeyID,
+					AccessKeySecret: accessKeySecret,
+				}))
+			})
+		})
+
+		It("should fail if the data section is nil", func() {
+			_, err := ReadSecretCredentials(&corev1.Secret{}, false)
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("should error if access key id is missing", func() {
-			var (
-				accessKeySecret = "accessKeySecret"
-			)
-
+		It("should fail if access key id is missing", func() {
 			_, err := ReadSecretCredentials(&corev1.Secret{
 				Data: map[string][]byte{
 					AccessKeySecret: []byte(accessKeySecret),
 				},
-			})
+			}, false)
 
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("should error if access key secret is missing", func() {
-			var (
-				accessKeyID = "accessKeyID"
-			)
-
+		It("should fail if access key secret is missing", func() {
 			_, err := ReadSecretCredentials(&corev1.Secret{
 				Data: map[string][]byte{
 					AccessKeyID: []byte(accessKeyID),
 				},
-			})
+			}, false)
 
 			Expect(err).To(HaveOccurred())
 		})

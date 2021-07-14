@@ -60,7 +60,7 @@ func (f *clientFactory) NewOSSClient(endpoint, accessKeyID, accessKeySecret stri
 
 // NewOSSClientFromSecretRef creates a new OSS Client using the credentials from <secretRef>.
 func (f *clientFactory) NewOSSClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (OSS, error) {
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, client, secretRef)
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, client, secretRef, false)
 	if err != nil {
 		return nil, err
 	}

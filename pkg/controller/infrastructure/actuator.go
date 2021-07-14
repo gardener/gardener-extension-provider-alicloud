@@ -115,7 +115,7 @@ func (a *actuator) InjectAPIReader(reader client.Reader) error {
 		if err != nil {
 			return err
 		}
-		seedCloudProviderCredentials, err := alicloud.ReadSecretCredentials(machineImageOwnerSecret)
+		seedCloudProviderCredentials, err := alicloud.ReadSecretCredentials(machineImageOwnerSecret, false)
 		if err != nil {
 			return err
 		}
@@ -131,7 +131,7 @@ func (a *actuator) getConfigAndCredentialsForInfra(ctx context.Context, infra *e
 		return nil, nil, err
 	}
 
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.Client(), &infra.Spec.SecretRef)
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.Client(), &infra.Spec.SecretRef, false)
 	if err != nil {
 		return nil, nil, err
 	}

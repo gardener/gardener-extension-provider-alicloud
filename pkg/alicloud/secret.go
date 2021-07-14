@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	"k8s.io/utils/pointer"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,22 +36,32 @@ const (
 	AccessKeyID = "accessKeyID"
 	// AccessKeySecret is the data field in a secret where the access key secret is stored at.
 	AccessKeySecret = "accessKeySecret"
+
+	// DNSAccessKeyID is the data field in a DNS secret where the access key id is stored at.
+	DNSAccessKeyID = "ACCESS_KEY_ID"
+	// DNSAccessKeySecret is the data field in a DNS secret where the access key secret is stored at.
+	DNSAccessKeySecret = "ACCESS_KEY_SECRET"
 )
 
 // ReadSecretCredentials reads the Credentials from the given secret.
-func ReadSecretCredentials(secret *corev1.Secret) (*Credentials, error) {
+func ReadSecretCredentials(secret *corev1.Secret, allowDNSKeys bool) (*Credentials, error) {
 	if secret.Data == nil {
 		return nil, fmt.Errorf("secret %s/%s has no data section", secret.Namespace, secret.Name)
 	}
 
-	accessKeyID, ok := secret.Data[AccessKeyID]
-	if !ok {
-		return nil, fmt.Errorf("secret %s/%s has no access key id at data.%s", secret.Namespace, secret.Name, AccessKeyID)
+	var altAccessKeyIDKey, altAccessKeySecretKey *string
+	if allowDNSKeys {
+		altAccessKeyIDKey, altAccessKeySecretKey = pointer.String(DNSAccessKeyID), pointer.StringPtr(DNSAccessKeySecret)
 	}
 
-	accessKeySecret, ok := secret.Data[AccessKeySecret]
+	accessKeyID, ok := getSecretDataValue(secret, AccessKeyID, altAccessKeyIDKey)
 	if !ok {
-		return nil, fmt.Errorf("secret %s/%s has no access key secret at data.%s", secret.Namespace, secret.Name, AccessKeySecret)
+		return nil, fmt.Errorf("secret %s/%s has no access key id", secret.Namespace, secret.Name)
+	}
+
+	accessKeySecret, ok := getSecretDataValue(secret, AccessKeySecret, altAccessKeySecretKey)
+	if !ok {
+		return nil, fmt.Errorf("secret %s/%s has no access key secret", secret.Namespace, secret.Name)
 	}
 
 	return &Credentials{
@@ -60,11 +71,23 @@ func ReadSecretCredentials(secret *corev1.Secret) (*Credentials, error) {
 }
 
 // ReadCredentialsFromSecretRef reads the credentials from the secret referred by given <secretRef>.
-func ReadCredentialsFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference) (*Credentials, error) {
+func ReadCredentialsFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, allowDNSKeys bool) (*Credentials, error) {
 	secret, err := extensionscontroller.GetSecretByReference(ctx, client, secretRef)
 	if err != nil {
 		return nil, err
 	}
 
-	return ReadSecretCredentials(secret)
+	return ReadSecretCredentials(secret, allowDNSKeys)
+}
+
+func getSecretDataValue(secret *corev1.Secret, key string, altKey *string) ([]byte, bool) {
+	if value, ok := secret.Data[key]; ok {
+		return value, true
+	}
+	if altKey != nil {
+		if value, ok := secret.Data[*altKey]; ok {
+			return value, true
+		}
+	}
+	return nil, false
 }

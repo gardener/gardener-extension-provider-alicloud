@@ -25,6 +25,7 @@ import (
 	alicloudbackupbucket "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupbucket"
 	alicloudbackupentry "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupentry"
 	alicloudcontrolplane "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/controlplane"
+	aliclouddnsrecord "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/dnsrecord"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/healthcheck"
 	alicloudinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	alicloudworker "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
@@ -81,6 +82,11 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			MaxConcurrentReconciles: 5,
 		}
 
+		// options for the dnsrecord controller
+		dnsRecordCtrlOpts = &controllercmd.ControllerOptions{
+			MaxConcurrentReconciles: 5,
+		}
+
 		// options for the infrastructure controller
 		infraCtrlOpts = &controllercmd.ControllerOptions{
 			MaxConcurrentReconciles: 5,
@@ -111,6 +117,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			controllercmd.PrefixOption("backupbucket-", backupBucketCtrlOpts),
 			controllercmd.PrefixOption("backupentry-", backupEntryCtrlOpts),
 			controllercmd.PrefixOption("controlplane-", controlPlaneCtrlOpts),
+			controllercmd.PrefixOption("dnsrecord-", dnsRecordCtrlOpts),
 			controllercmd.PrefixOption("infrastructure-", infraCtrlOpts),
 			controllercmd.PrefixOption("worker-", &workerCtrlOptsUnprefixed),
 			controllercmd.PrefixOption("healthcheck-", healthCheckCtrlOpts),
@@ -172,6 +179,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			backupBucketCtrlOpts.Completed().Apply(&alicloudbackupbucket.DefaultAddOptions.Controller)
 			backupEntryCtrlOpts.Completed().Apply(&alicloudbackupentry.DefaultAddOptions.Controller)
 			controlPlaneCtrlOpts.Completed().Apply(&alicloudcontrolplane.DefaultAddOptions.Controller)
+			dnsRecordCtrlOpts.Completed().Apply(&aliclouddnsrecord.DefaultAddOptions.Controller)
 			infraCtrlOpts.Completed().Apply(&alicloudinfrastructure.DefaultAddOptions.Controller)
 			reconcileOpts.Completed().Apply(&alicloudinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation)
 			reconcileOpts.Completed().Apply(&alicloudcontrolplane.DefaultAddOptions.IgnoreOperationAnnotation)
