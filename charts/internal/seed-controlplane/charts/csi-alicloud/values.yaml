@@ -1,4 +1,4 @@
-kubernetesVersion: v1.14.0
+kubernetesVersion: v1.15.0
 regionID: shanghai-cn
 replicas: 1
 

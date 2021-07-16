@@ -32,9 +32,6 @@ type alicloudNetworkPolicy struct {
 	// kubeControllerManagerSecured points to alicloud-specific kube-controller-manager.
 	kubeControllerManagerSecured *np.SourcePod
 
-	// kubeControllerManagerNotSecured points to alicloud-specific kube-controller-manager.
-	kubeControllerManagerNotSecured *np.SourcePod
-
 	// csiPlugin points to alicloud-specific CSI Plugin.
 	csiPlugin *np.SourcePod
 
@@ -66,21 +63,7 @@ func NewCloudAware() np.CloudAware {
 			Pod: np.NewPod("kube-controller-manager-https", labels.Set{
 				"app":  "kubernetes",
 				"role": "controller-manager",
-			}, ">= 1.13"),
-			ExpectedPolicies: sets.NewString(
-				"allow-from-prometheus",
-				"allow-to-dns",
-				"allow-to-shoot-apiserver",
-				"deny-all",
-			),
-		},
-
-		kubeControllerManagerNotSecured: &np.SourcePod{
-			Ports: np.NewSinglePort(10252),
-			Pod: np.NewPod("kube-controller-manager-http", labels.Set{
-				"app":  "kubernetes",
-				"role": "controller-manager",
-			}, "< 1.13"),
+			}),
 			ExpectedPolicies: sets.NewString(
 				"allow-from-prometheus",
 				"allow-to-dns",
@@ -119,7 +102,6 @@ func (a *alicloudNetworkPolicy) Rules() []np.Rule {
 		a.newSource(a.cloudControllerManagerNotSecured).AllowPod(ag.KubeAPIServer()).AllowHost(ag.External()).Build(),
 		a.newSource(a.csiPlugin).AllowPod(ag.KubeAPIServer()).AllowHost(ag.External()).Build(),
 		a.newSource(a.kubeControllerManagerSecured).AllowPod(ag.KubeAPIServer()).Build(),
-		a.newSource(a.kubeControllerManagerNotSecured).AllowPod(ag.KubeAPIServer()).Build(),
 		a.newSource(ag.KubeAPIServer()).AllowPod(ag.EtcdMain(), ag.EtcdEvents()).AllowHost(ag.SeedKubeAPIServer(), ag.External()).Build(),
 		a.newSource(ag.EtcdMain()).AllowHost(ag.External()).Build(),
 		a.newSource(ag.EtcdEvents()).AllowHost(ag.External()).Build(),
@@ -131,7 +113,6 @@ func (a *alicloudNetworkPolicy) Rules() []np.Rule {
 		a.newSource(ag.MachineControllerManager()).AllowPod(ag.KubeAPIServer()).AllowHost(ag.SeedKubeAPIServer(), ag.External()).Build(),
 		a.newSource(ag.Prometheus()).AllowPod(
 			a.cloudControllerManagerNotSecured,
-			a.kubeControllerManagerNotSecured,
 			a.kubeControllerManagerSecured,
 			ag.EtcdEvents(),
 			ag.EtcdMain(),
@@ -160,7 +141,6 @@ func (a *alicloudNetworkPolicy) Sources() []*np.SourcePod {
 	return []*np.SourcePod{
 		a.cloudControllerManagerNotSecured,
 		a.csiPlugin,
-		a.kubeControllerManagerNotSecured,
 		a.kubeControllerManagerSecured,
 		ag.AddonManager(),
 		ag.Loki(),
