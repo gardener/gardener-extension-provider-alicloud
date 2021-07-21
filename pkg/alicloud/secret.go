@@ -37,10 +37,10 @@ const (
 	// AccessKeySecret is the data field in a secret where the access key secret is stored at.
 	AccessKeySecret = "accessKeySecret"
 
-	// DNSAccessKeyID is the data field in a DNS secret where the access key id is stored at.
-	DNSAccessKeyID = "ACCESS_KEY_ID"
+	// dnsAccessKeyID is the data field in a DNS secret where the access key id is stored at.
+	dnsAccessKeyID = "ACCESS_KEY_ID"
 	// DNSAccessKeySecret is the data field in a DNS secret where the access key secret is stored at.
-	DNSAccessKeySecret = "ACCESS_KEY_SECRET"
+	dnsAccessKeySecret = "ACCESS_KEY_SECRET"
 )
 
 // ReadSecretCredentials reads the Credentials from the given secret.
@@ -51,7 +51,7 @@ func ReadSecretCredentials(secret *corev1.Secret, allowDNSKeys bool) (*Credentia
 
 	var altAccessKeyIDKey, altAccessKeySecretKey *string
 	if allowDNSKeys {
-		altAccessKeyIDKey, altAccessKeySecretKey = pointer.String(DNSAccessKeyID), pointer.StringPtr(DNSAccessKeySecret)
+		altAccessKeyIDKey, altAccessKeySecretKey = pointer.String(dnsAccessKeyID), pointer.String(dnsAccessKeySecret)
 	}
 
 	accessKeyID, ok := getSecretDataValue(secret, AccessKeyID, altAccessKeyIDKey)
@@ -71,13 +71,23 @@ func ReadSecretCredentials(secret *corev1.Secret, allowDNSKeys bool) (*Credentia
 }
 
 // ReadCredentialsFromSecretRef reads the credentials from the secret referred by given <secretRef>.
-func ReadCredentialsFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, allowDNSKeys bool) (*Credentials, error) {
+func ReadCredentialsFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference) (*Credentials, error) {
 	secret, err := extensionscontroller.GetSecretByReference(ctx, client, secretRef)
 	if err != nil {
 		return nil, err
 	}
 
-	return ReadSecretCredentials(secret, allowDNSKeys)
+	return ReadSecretCredentials(secret, false)
+}
+
+// ReadDNSCredentialsFromSecretRef reads the credentials from the DNS secret referred by given <secretRef>.
+func ReadDNSCredentialsFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference) (*Credentials, error) {
+	secret, err := extensionscontroller.GetSecretByReference(ctx, client, secretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadSecretCredentials(secret, true)
 }
 
 func getSecretDataValue(secret *corev1.Secret, key string, altKey *string) ([]byte, bool) {

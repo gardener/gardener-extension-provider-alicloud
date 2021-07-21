@@ -46,8 +46,8 @@ var _ = Describe("Alicloud Suite", func() {
 			It("should fail if DNS keys are used", func() {
 				_, err := ReadSecretCredentials(&corev1.Secret{
 					Data: map[string][]byte{
-						DNSAccessKeyID:     []byte(accessKeyID),
-						DNSAccessKeySecret: []byte(accessKeySecret),
+						dnsAccessKeyID:     []byte(accessKeyID),
+						dnsAccessKeySecret: []byte(accessKeySecret),
 					},
 				}, false)
 
@@ -74,8 +74,8 @@ var _ = Describe("Alicloud Suite", func() {
 			It("should correctly read the credentials if DNS keys are used", func() {
 				creds, err := ReadSecretCredentials(&corev1.Secret{
 					Data: map[string][]byte{
-						DNSAccessKeyID:     []byte(accessKeyID),
-						DNSAccessKeySecret: []byte(accessKeySecret),
+						dnsAccessKeyID:     []byte(accessKeyID),
+						dnsAccessKeySecret: []byte(accessKeySecret),
 					},
 				}, true)
 

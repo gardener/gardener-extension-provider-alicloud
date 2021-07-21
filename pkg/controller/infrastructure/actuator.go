@@ -131,7 +131,7 @@ func (a *actuator) getConfigAndCredentialsForInfra(ctx context.Context, infra *e
 		return nil, nil, err
 	}
 
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.Client(), &infra.Spec.SecretRef, false)
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.Client(), &infra.Spec.SecretRef)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -57,7 +57,7 @@ func NewActuator(alicloudClientFactory alicloudclient.ClientFactory, logger logr
 // Reconcile reconciles the DNSRecord.
 func (a *actuator) Reconcile(ctx context.Context, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
 	// Create Alicloud client
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.Client(), &dns.Spec.SecretRef, true)
+	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.Client(), &dns.Spec.SecretRef)
 	if err != nil {
 		return fmt.Errorf("could not get Alicloud credentials: %+v", err)
 	}
@@ -104,7 +104,7 @@ func (a *actuator) Reconcile(ctx context.Context, dns *extensionsv1alpha1.DNSRec
 // Delete deletes the DNSRecord.
 func (a *actuator) Delete(ctx context.Context, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
 	// Create Alicloud client
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.Client(), &dns.Spec.SecretRef, true)
+	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.Client(), &dns.Spec.SecretRef)
 	if err != nil {
 		return fmt.Errorf("could not get Alicloud credentials: %+v", err)
 	}
