@@ -115,7 +115,7 @@ func (a *actuator) InjectAPIReader(reader client.Reader) error {
 		if err != nil {
 			return err
 		}
-		seedCloudProviderCredentials, err := alicloud.ReadSecretCredentials(machineImageOwnerSecret)
+		seedCloudProviderCredentials, err := alicloud.ReadSecretCredentials(machineImageOwnerSecret, false)
 		if err != nil {
 			return err
 		}

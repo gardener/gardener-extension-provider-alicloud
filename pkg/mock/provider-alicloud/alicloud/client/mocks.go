@@ -41,6 +41,21 @@ func (m *MockClientFactory) EXPECT() *MockClientFactoryMockRecorder {
 	return m.recorder
 }
 
+// NewDNSClient mocks base method.
+func (m *MockClientFactory) NewDNSClient(arg0, arg1, arg2 string) (client.DNS, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewDNSClient", arg0, arg1, arg2)
+	ret0, _ := ret[0].(client.DNS)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewDNSClient indicates an expected call of NewDNSClient.
+func (mr *MockClientFactoryMockRecorder) NewDNSClient(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDNSClient", reflect.TypeOf((*MockClientFactory)(nil).NewDNSClient), arg0, arg1, arg2)
+}
+
 // NewECSClient mocks base method.
 func (m *MockClientFactory) NewECSClient(arg0, arg1, arg2 string) (client.ECS, error) {
 	m.ctrl.T.Helper()
