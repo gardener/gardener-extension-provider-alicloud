@@ -230,7 +230,7 @@ func computeDisks(namespace string, pool extensionsv1alpha1.WorkerPool) (map[str
 func computeAdditionalHashData(pool extensionsv1alpha1.WorkerPool) []string {
 	var additionalData []string
 
-	// Volume.Encrypted is not included when calculating the hash
+	// Volume.Encrypted need to be included when calculating the hash
 	if pool.Volume.Encrypted != nil {
 		additionalData = append(additionalData, strconv.FormatBool(*pool.Volume.Encrypted))
 	}
