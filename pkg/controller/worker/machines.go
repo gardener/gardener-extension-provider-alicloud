@@ -94,6 +94,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	for _, pool := range w.worker.Spec.Pools {
+
 		zoneLen := int32(len(pool.Zones))
 
 		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, computeAdditionalHashData(pool)...)
@@ -228,6 +229,11 @@ func computeDisks(namespace string, pool extensionsv1alpha1.WorkerPool) (map[str
 
 func computeAdditionalHashData(pool extensionsv1alpha1.WorkerPool) []string {
 	var additionalData []string
+
+	// Volume.Encrypted is not included when calculating the hash
+	if pool.Volume.Encrypted != nil {
+		additionalData = append(additionalData, strconv.FormatBool(*pool.Volume.Encrypted))
+	}
 
 	for _, dv := range pool.DataVolumes {
 		additionalData = append(additionalData, dv.Size)
