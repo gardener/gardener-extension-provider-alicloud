@@ -23,7 +23,8 @@ import (
 // InfrastructureConfig infrastructure configuration resource
 type InfrastructureConfig struct {
 	metav1.TypeMeta
-
+	// +optional
+	metav1.ObjectMeta
 	// Networks specifies the networks for an infrastructure.
 	Networks Networks
 }

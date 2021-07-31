@@ -143,6 +143,21 @@ string
 </tr>
 <tr>
 <td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.15/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
 <code>networks</code></br>
 <em>
 <a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.Networks">

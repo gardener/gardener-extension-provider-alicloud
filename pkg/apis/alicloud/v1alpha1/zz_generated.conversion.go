@@ -269,6 +269,7 @@ func Convert_alicloud_ControlPlaneConfig_To_v1alpha1_ControlPlaneConfig(in *alic
 }
 
 func autoConvert_v1alpha1_InfrastructureConfig_To_alicloud_InfrastructureConfig(in *InfrastructureConfig, out *alicloud.InfrastructureConfig, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1alpha1_Networks_To_alicloud_Networks(&in.Networks, &out.Networks, s); err != nil {
 		return err
 	}
@@ -281,6 +282,7 @@ func Convert_v1alpha1_InfrastructureConfig_To_alicloud_InfrastructureConfig(in *
 }
 
 func autoConvert_alicloud_InfrastructureConfig_To_v1alpha1_InfrastructureConfig(in *alicloud.InfrastructureConfig, out *InfrastructureConfig, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_alicloud_Networks_To_v1alpha1_Networks(&in.Networks, &out.Networks, s); err != nil {
 		return err
 	}

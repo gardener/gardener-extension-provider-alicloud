@@ -113,6 +113,7 @@ func (in *ControlPlaneConfig) DeepCopyObject() runtime.Object {
 func (in *InfrastructureConfig) DeepCopyInto(out *InfrastructureConfig) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Networks.DeepCopyInto(&out.Networks)
 	return
 }
