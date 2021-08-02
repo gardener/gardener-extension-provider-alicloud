@@ -101,10 +101,10 @@ var _ = Describe("Machines", func() {
 
 				region string
 
-				machineImageName    string
-				machineImageVersion string
-				machineImageID      string
-
+				machineImageName        string
+				machineImageVersion     string
+				machineImageID          string
+				encryptedImageID        string
 				instanceChargeType      string
 				internetChargeType      string
 				internetMaxBandwidthIn  int
@@ -118,6 +118,7 @@ var _ = Describe("Machines", func() {
 
 				volumeType           string
 				volumeSize           int
+				volume2Encrypted     bool
 				dataVolume1Name      string
 				dataVolume1Size      int
 				dataVolume1Type      string
@@ -167,7 +168,7 @@ var _ = Describe("Machines", func() {
 				machineImageName = "my-os"
 				machineImageVersion = "123"
 				machineImageID = "ami-123456"
-
+				encryptedImageID = "ami-123456-encrypted"
 				instanceChargeType = "PostPaid"
 				internetChargeType = "PayByTraffic"
 				internetMaxBandwidthIn = 5
@@ -181,6 +182,7 @@ var _ = Describe("Machines", func() {
 
 				volumeType = "normal"
 				volumeSize = 20
+				volume2Encrypted = true
 				dataVolume1Name = "d1"
 				dataVolume1Size = 21
 				dataVolume1Type = "special"
@@ -292,6 +294,14 @@ var _ = Describe("Machines", func() {
 									},
 								},
 								KeyPairName: keyName,
+								MachineImages: []api.MachineImage{
+									{
+										Name:      machineImageName,
+										Version:   machineImageVersion,
+										Encrypted: pointer.BoolPtr(true),
+										ID:        encryptedImageID,
+									},
+								},
 							}),
 						},
 						Pools: []extensionsv1alpha1.WorkerPool{
@@ -343,8 +353,9 @@ var _ = Describe("Machines", func() {
 								},
 								UserData: userData,
 								Volume: &extensionsv1alpha1.Volume{
-									Type: &volumeType,
-									Size: fmt.Sprintf("%dGi", volumeSize),
+									Type:      &volumeType,
+									Size:      fmt.Sprintf("%dGi", volumeSize),
+									Encrypted: &volume2Encrypted,
 								},
 								Zones: []string{
 									zone1,
@@ -361,7 +372,7 @@ var _ = Describe("Machines", func() {
 				decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 
 				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster, fmt.Sprintf("%dGi", dataVolume1Size), dataVolume1Type, strconv.FormatBool(dataVolume1Encrypted), fmt.Sprintf("%dGi", dataVolume2Size), dataVolume2Type, strconv.FormatBool(dataVolume2Encrypted))
-				workerPoolHash2, _ = worker.WorkerPoolHash(w.Spec.Pools[1], cluster)
+				workerPoolHash2, _ = worker.WorkerPoolHash(w.Spec.Pools[1], cluster, "true")
 
 				workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, clusterWithoutImages)
 			})
@@ -435,10 +446,12 @@ var _ = Describe("Machines", func() {
 						machineClassPool2Zone1 = useDefaultMachineClass(defaultMachineClass,
 							"vSwitchID", vswitchZone1,
 							"zoneID", zone1,
+							"imageID", encryptedImageID,
 						)
 						machineClassPool2Zone2 = useDefaultMachineClass(defaultMachineClass,
 							"vSwitchID", vswitchZone2,
 							"zoneID", zone2,
+							"imageID", encryptedImageID,
 						)
 
 						machineClassNamePool1Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool1, zone1)
@@ -539,6 +552,12 @@ var _ = Describe("Machines", func() {
 								Version:   machineImageVersion,
 								ID:        machineImageID,
 								Encrypted: pointer.BoolPtr(false),
+							},
+							{
+								Name:      machineImageName,
+								Version:   machineImageVersion,
+								ID:        encryptedImageID,
+								Encrypted: pointer.BoolPtr(true),
 							},
 						},
 					}
