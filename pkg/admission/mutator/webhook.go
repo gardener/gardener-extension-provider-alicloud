@@ -12,21 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package mutator
 
 import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
+	"github.com/gardener/gardener/pkg/apis/core"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/mutator"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/validator"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 )
 
-// GardenWebhookSwitchOptions are the webhookcmd.SwitchOptions for the admission webhooks.
-func GardenWebhookSwitchOptions() *webhookcmd.SwitchOptions {
-	return webhookcmd.NewSwitchOptions(
-		webhookcmd.Switch(extensionswebhook.ValidatorName, validator.New),
-		webhookcmd.Switch(validator.SecretsValidatorName, validator.NewSecretsWebhook),
-		webhookcmd.Switch(mutator.ShootMutatorName, mutator.NewShootsWebhook),
-	)
+var logger = log.Log.WithName("alicloud-mutator-webhook")
+
+// NewShootsWebhook creates a new mutation webhook for shoots.
+func NewShootsWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
+	return extensionswebhook.New(mgr, extensionswebhook.Args{
+		Provider: alicloud.Type,
+		Name:     ShootMutatorName,
+		Path:     MutatorPath + "/shoots",
+		Mutators: map[extensionswebhook.Mutator][]client.Object{
+			NewShootMutator(): {&core.Shoot{}},
+		},
+	})
 }
