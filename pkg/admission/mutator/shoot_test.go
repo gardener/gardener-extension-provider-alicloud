@@ -15,7 +15,9 @@
 package mutator
 
 import (
-	"github.com/gardener/gardener/pkg/apis/core"
+	"context"
+
+	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	. "github.com/onsi/ginkgo"
@@ -25,24 +27,25 @@ import (
 
 var _ = Describe("Mutating Shoot", func() {
 	var (
-		oldShoot *core.Shoot
-		newShoot *core.Shoot
+		oldShoot *corev1beta1.Shoot
+		newShoot *corev1beta1.Shoot
 		shoot    = &shootMutator{}
+		ctx      = context.TODO()
 	)
 
 	BeforeEach(func() {
-		oldShoot = &core.Shoot{
-			Spec: core.ShootSpec{
-				Provider: core.Provider{
-					Workers: []core.Worker{
+		oldShoot = &corev1beta1.Shoot{
+			Spec: corev1beta1.ShootSpec{
+				Provider: corev1beta1.Provider{
+					Workers: []corev1beta1.Worker{
 						{
-							Machine: core.Machine{
-								Image: &core.ShootMachineImage{
+							Machine: corev1beta1.Machine{
+								Image: &corev1beta1.ShootMachineImage{
 									Name:    "GardenLinux",
-									Version: "1.0",
+									Version: pointer.StringPtr("1.0"),
 								},
 							},
-							Volume: &core.Volume{
+							Volume: &corev1beta1.Volume{
 								Encrypted: pointer.BoolPtr(true),
 							},
 						},
@@ -51,24 +54,24 @@ var _ = Describe("Mutating Shoot", func() {
 			},
 		}
 
-		newShoot = &core.Shoot{
-			Spec: core.ShootSpec{
-				Provider: core.Provider{
-					Workers: []core.Worker{
+		newShoot = &corev1beta1.Shoot{
+			Spec: corev1beta1.ShootSpec{
+				Provider: corev1beta1.Provider{
+					Workers: []corev1beta1.Worker{
 						{
-							Machine: core.Machine{
-								Image: &core.ShootMachineImage{
+							Machine: corev1beta1.Machine{
+								Image: &corev1beta1.ShootMachineImage{
 									Name:    "GardenLinux",
-									Version: "1.0",
+									Version: pointer.StringPtr("1.0"),
 								},
 							},
-							Volume: &core.Volume{},
+							Volume: &corev1beta1.Volume{},
 						},
 						{
-							Machine: core.Machine{
-								Image: &core.ShootMachineImage{
+							Machine: corev1beta1.Machine{
+								Image: &corev1beta1.ShootMachineImage{
 									Name:    "GardenLinux",
-									Version: "1.0",
+									Version: pointer.StringPtr("1.0"),
 								},
 							},
 						},
@@ -79,30 +82,30 @@ var _ = Describe("Mutating Shoot", func() {
 	})
 	Context("#Encrypted System Disk", func() {
 		It("should not reconcile infra if no system disk is encrypted", func() {
-			err := shoot.Mutate(nil, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, oldShoot, newShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(!checkReconcileInfraAnnotation(newShoot.Annotations))
 		})
 
 		It("should not reconcile infra if system disk is already encrypted", func() {
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(nil, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, oldShoot, newShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(!checkReconcileInfraAnnotation(newShoot.Annotations))
 		})
 
 		It("should not reconcile infra if new version of machine is not encrypted", func() {
-			newShoot.Spec.Provider.Workers[1].Machine.Image.Version = "2.0"
+			newShoot.Spec.Provider.Workers[1].Machine.Image.Version = pointer.StringPtr("2.0")
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(nil, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, oldShoot, newShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(!checkReconcileInfraAnnotation(newShoot.Annotations))
 		})
 
 		It("should reconcile infra if new version of machine is added and it is encrypted", func() {
-			newShoot.Spec.Provider.Workers[0].Machine.Image.Version = "2.0"
+			newShoot.Spec.Provider.Workers[0].Machine.Image.Version = pointer.StringPtr("2.0")
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(nil, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, oldShoot, newShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(checkReconcileInfraAnnotation(newShoot.Annotations))
 		})
@@ -110,7 +113,7 @@ var _ = Describe("Mutating Shoot", func() {
 		It("should reconcile infra if machine is changed to be encrypted", func() {
 			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(nil, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, oldShoot, newShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(checkReconcileInfraAnnotation(newShoot.Annotations))
 		})

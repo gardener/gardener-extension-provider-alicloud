@@ -17,12 +17,11 @@ package mutator
 import (
 	"context"
 	"fmt"
-	"encoding/json"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-	"github.com/gardener/gardener/pkg/apis/core"
+	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-	"gomodules.xyz/jsonpatch/v2"
+	"github.com/gardener/gardener/pkg/controllerutils"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -39,13 +38,13 @@ type shootMutator struct {
 }
 
 func (s *shootMutator) Mutate(_ context.Context, new, old client.Object) error {
-	shoot, ok := new.(*core.Shoot)
+	shoot, ok := new.(*corev1beta1.Shoot)
 	if !ok {
 		return fmt.Errorf("wrong object type %T", new)
 	}
 
 	if old != nil {
-		oldShoot, ok := old.(*core.Shoot)
+		oldShoot, ok := old.(*corev1beta1.Shoot)
 		if !ok {
 			return fmt.Errorf("wrong object type %T for old object", old)
 		}
@@ -56,7 +55,7 @@ func (s *shootMutator) Mutate(_ context.Context, new, old client.Object) error {
 	return nil
 }
 
-func (s *shootMutator) mutateShootUpdate(oldShoot, shoot *core.Shoot) error {
+func (s *shootMutator) mutateShootUpdate(oldShoot, shoot *corev1beta1.Shoot) error {
 	if !equality.Semantic.DeepEqual(oldShoot, shoot) {
 		s.mutateForEncryptedSystemDiskChange(oldShoot, shoot)
 	}
@@ -64,34 +63,21 @@ func (s *shootMutator) mutateShootUpdate(oldShoot, shoot *core.Shoot) error {
 	return nil
 }
 
-func (s *shootMutator) mutateForEncryptedSystemDiskChange(oldShoot, shoot *core.Shoot) {
+func (s *shootMutator) mutateForEncryptedSystemDiskChange(oldShoot, shoot *corev1beta1.Shoot) {
 	if requireNewEncryptedImage(oldShoot.Spec.Provider.Workers, shoot.Spec.Provider.Workers) {
+		logger.Info("Need to reconcile infra as new encrypted disk worker found", "name", shoot.Name, "namespace", shoot.Namespace)
 		if shoot.Annotations == nil {
 			shoot.Annotations = make(map[string]string)
 		}
 
-		shoot.Annotations["test"] = v1beta1constants.ShootTaskDeployInfrastructure
-		//controllerutils.AddTasks(shoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)
-		logger.Info("After annotation", "Annotations", shoot.Annotations, "name", shoot.Name, "ns", shoot.Namespace)
-
-
-		oldObjMarshaled, _ := json.Marshal(oldShoot)
-
-		newObjMarshaled, _ := json.Marshal(shoot)
-
-		logger.Info("Pure JSON", "json", newObjMarshaled)
-		patches, _ := jsonpatch.CreatePatch(oldObjMarshaled, newObjMarshaled)
-		for _, p := range patches {
-			logger.Info("Patches", "patch", p)
-		}
-
+		controllerutils.AddTasks(shoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)
 	}
 }
 
 // Check encrypted flag in new workers' volumes. If it is changed to be true, check for old workers
 // if there is already a volume is set to be encrypted and also the OS version is the same.
-func requireNewEncryptedImage(oldWorkers, newWorkers []core.Worker) bool {
-	var imagesEncrypted []*core.ShootMachineImage
+func requireNewEncryptedImage(oldWorkers, newWorkers []corev1beta1.Worker) bool {
+	var imagesEncrypted []*corev1beta1.ShootMachineImage
 	for _, w := range oldWorkers {
 		if w.Volume != nil && w.Volume.Encrypted != nil && *w.Volume.Encrypted {
 			if w.Machine.Image != nil {
