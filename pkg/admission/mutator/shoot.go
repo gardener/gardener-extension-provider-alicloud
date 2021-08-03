@@ -65,7 +65,7 @@ func (s *shootMutator) mutateShootUpdate(oldShoot, shoot *corev1beta1.Shoot) err
 
 func (s *shootMutator) mutateForEncryptedSystemDiskChange(oldShoot, shoot *corev1beta1.Shoot) {
 	if requireNewEncryptedImage(oldShoot.Spec.Provider.Workers, shoot.Spec.Provider.Workers) {
-		logger.Info("Need to reconcile infra as new encrypted disk worker found", "name", shoot.Name, "namespace", shoot.Namespace)
+		logger.Info("Need to reconcile infra as new encrypted system disk found in workers", "name", shoot.Name, "namespace", shoot.Namespace)
 		if shoot.Annotations == nil {
 			shoot.Annotations = make(map[string]string)
 		}
