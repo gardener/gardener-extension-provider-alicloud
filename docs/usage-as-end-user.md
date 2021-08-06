@@ -166,6 +166,7 @@ By default (if not stated otherwise), all the disks are unencrypted.
 For each data volume, you have to specify a name.
 It also supports encrypted system disk. 
 However, only [Customized image](https://www.alibabacloud.com/help/doc-detail/172789.htm?spm=a2c63.l28256.b99.244.5da67453bNBrCt) is currently supported to be used as a basic image for encrypted system disk.
+Please be noted that the change of system disk encryption flag will cause reconciliation of a shoot, and it will result in nodes rolling update within the worker group.
 
 The following YAML is a snippet of a `Shoot` resource:
 
