@@ -12,21 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package mutator
 
 import (
-	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
+	"testing"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/mutator"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/validator"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// GardenWebhookSwitchOptions are the webhookcmd.SwitchOptions for the admission webhooks.
-func GardenWebhookSwitchOptions() *webhookcmd.SwitchOptions {
-	return webhookcmd.NewSwitchOptions(
-		webhookcmd.Switch(extensionswebhook.ValidatorName, validator.New),
-		webhookcmd.Switch(validator.SecretsValidatorName, validator.NewSecretsWebhook),
-		webhookcmd.Switch(mutator.ShootMutatorName, mutator.NewShootsWebhook),
-	)
+func TestMutator(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Suite")
 }
