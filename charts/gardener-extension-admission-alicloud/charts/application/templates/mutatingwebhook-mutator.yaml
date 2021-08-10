@@ -19,12 +19,12 @@ webhooks:
     - v1beta1
   clientConfig:
     {{- if .Values.global.virtualGarden.enabled }}
-    url: {{ printf "https://%s.%s/webhooks/validate" (include "name" .) (.Release.Namespace) }}
+    url: {{ printf "https://%s.%s/webhooks/mutate/shoots" (include "name" .) (.Release.Namespace) }}
     {{- else }}
     service:
       namespace: {{ .Release.Namespace }}
       name: {{ include "name" . }}
-      path: /webhooks/validate
+      path: /webhooks/mutate/shoots
     {{- end }}
     caBundle: {{ required ".Values.webhookConfig.caBundle is required" (b64enc .Values.global.webhookConfig.caBundle) }}
   failurePolicy: Fail
