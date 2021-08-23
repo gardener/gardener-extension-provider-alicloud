@@ -32,8 +32,6 @@ const (
 	TerraformerOutputKeyVPCCIDR = "vpc_cidr"
 	// TerraformerOutputKeySecurityGroupID is the output key of the security group ID.
 	TerraformerOutputKeySecurityGroupID = "sg_id"
-	// TerraformerOutputKeyKeyPairName is the output key of the key pair name.
-	TerraformerOutputKeyKeyPairName = "key_pair_name"
 	// TerraformerOutputKeyVSwitchNodesPrefix is the prefix for the vswitches.
 	TerraformerOutputKeyVSwitchNodesPrefix = "vswitch_id_z"
 

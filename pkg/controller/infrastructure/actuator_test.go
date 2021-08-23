@@ -115,7 +115,6 @@ var _ = Describe("Actuator", func() {
 			vpcID           string
 			vpcCIDRString   string
 			securityGroupID string
-			keyPairName     string
 			rawState        *realterraformer.RawState
 
 			serviceForNatGw           string
@@ -214,7 +213,6 @@ var _ = Describe("Actuator", func() {
 						"vpcID":              "vpc_id",
 						"vpcCIDR":            "vpc_cidr",
 						"securityGroupID":    "sg_id",
-						"keyPairName":        "key_pair_name",
 						"vswitchNodesPrefix": "vswitch_z",
 					},
 				}
@@ -222,7 +220,6 @@ var _ = Describe("Actuator", func() {
 				vpcID = "vpcID"
 				vpcCIDRString = "vpcCIDR"
 				securityGroupID = "sgID"
-				keyPairName = "keyPairName"
 
 				serviceLinkedRoleForNatGw = "AliyunServiceRoleForNatgw"
 				serviceForNatGw = "nat.aliyuncs.com"
@@ -287,22 +284,18 @@ var _ = Describe("Actuator", func() {
 								alicloud.AccessKeySecret: []byte(accessKeySecret),
 							},
 						}),
-					logger.EXPECT().Info("Creating Alicloud ECS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewECSClient(region, accessKeyID, accessKeySecret).Return(shootECSClient, nil),
-					logger.EXPECT().Info("Creating Alicloud ROS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewROSClient(region, accessKeyID, accessKeySecret).Return(shootROSClient, nil),
-					logger.EXPECT().Info("Creating Alicloud STS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewSTSClient(region, accessKeyID, accessKeySecret).Return(shootSTSClient, nil),
 					shootSTSClient.EXPECT().GetAccountIDFromCallerIdentity(ctx).Return("", nil),
 					logger.EXPECT().Info("Preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
 					logger.EXPECT().Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
 
-					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID, TerraformerOutputKeyKeyPairName).
+					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID).
 						Return(map[string]string{
 							TerraformerOutputKeyVPCID:           vpcID,
 							TerraformerOutputKeyVPCCIDR:         vpcCIDRString,
 							TerraformerOutputKeySecurityGroupID: securityGroupID,
-							TerraformerOutputKeyKeyPairName:     keyPairName,
 						}, nil),
 					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
 					c.EXPECT().Status().Return(c),
@@ -327,7 +320,6 @@ var _ = Describe("Actuator", func() {
 							},
 						},
 					},
-					KeyPairName: keyPairName,
 				}))
 			})
 
@@ -391,22 +383,18 @@ var _ = Describe("Actuator", func() {
 								alicloud.AccessKeySecret: []byte(accessKeySecret),
 							},
 						}),
-					logger.EXPECT().Info("Creating Alicloud ECS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewECSClient(region, accessKeyID, accessKeySecret).Return(shootECSClient, nil),
-					logger.EXPECT().Info("Creating Alicloud ROS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewROSClient(region, accessKeyID, accessKeySecret).Return(shootROSClient, nil),
-					logger.EXPECT().Info("Creating Alicloud STS client for Shoot", "infrastructure", infra.Name),
 					alicloudClientFactory.EXPECT().NewSTSClient(region, accessKeyID, accessKeySecret).Return(shootSTSClient, nil),
 					shootSTSClient.EXPECT().GetAccountIDFromCallerIdentity(ctx).Return("", nil),
 					logger.EXPECT().Info("Preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
 					logger.EXPECT().Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
 
-					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID, TerraformerOutputKeyKeyPairName).
+					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID).
 						Return(map[string]string{
 							TerraformerOutputKeyVPCID:           vpcID,
 							TerraformerOutputKeyVPCCIDR:         vpcCIDRString,
 							TerraformerOutputKeySecurityGroupID: securityGroupID,
-							TerraformerOutputKeyKeyPairName:     keyPairName,
 						}, nil),
 					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
 					c.EXPECT().Status().Return(c),
@@ -431,7 +419,6 @@ var _ = Describe("Actuator", func() {
 							},
 						},
 					},
-					KeyPairName: keyPairName,
 				}))
 			})
 		})

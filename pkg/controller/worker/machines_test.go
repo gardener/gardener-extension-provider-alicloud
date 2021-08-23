@@ -114,7 +114,6 @@ var _ = Describe("Machines", func() {
 				machineType     string
 				userData        []byte
 				securityGroupID string
-				keyName         string
 
 				volumeType           string
 				volumeSize           int
@@ -178,7 +177,6 @@ var _ = Describe("Machines", func() {
 				machineType = "large"
 				userData = []byte("some-user-data")
 				securityGroupID = "sg-12345"
-				keyName = "my-ssh-key"
 
 				volumeType = "normal"
 				volumeSize = 20
@@ -293,7 +291,6 @@ var _ = Describe("Machines", func() {
 										},
 									},
 								},
-								KeyPairName: keyName,
 								MachineImages: []api.MachineImage{
 									{
 										Name:      machineImageName,
@@ -410,7 +407,6 @@ var _ = Describe("Machines", func() {
 							"name":      w.Spec.SecretRef.Name,
 							"namespace": w.Spec.SecretRef.Namespace,
 						},
-						"keyPairName": keyName,
 					}
 
 					dataDisksPool1 := []map[string]interface{}{

@@ -144,7 +144,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 					"name":      w.worker.Spec.SecretRef.Name,
 					"namespace": w.worker.Spec.SecretRef.Namespace,
 				},
-				"keyPairName": infrastructureStatus.KeyPairName,
 			}, disks)
 
 			var (

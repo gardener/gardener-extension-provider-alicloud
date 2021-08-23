@@ -110,17 +110,15 @@ var _ = Describe("TerraformChartOps", func() {
 	Describe("#ComputeTerraformerChartValues", func() {
 		It("should compute the terraformer chart values", func() {
 			var (
-				namespace    = "cluster-foo"
-				region       = "region"
-				sshPublicKey = "sshPublicKey"
+				namespace = "cluster-foo"
+				region    = "region"
 
 				infra = extensionsv1alpha1.Infrastructure{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: namespace,
 					},
 					Spec: extensionsv1alpha1.InfrastructureSpec{
-						Region:       region,
-						SSHPublicKey: []byte(sshPublicKey),
+						Region: region,
 					},
 				}
 
@@ -188,8 +186,7 @@ var _ = Describe("TerraformChartOps", func() {
 				"eip": map[string]interface{}{
 					"internetChargeType": internetChargeType,
 				},
-				"clusterName":  namespace,
-				"sshPublicKey": sshPublicKey,
+				"clusterName": namespace,
 				"zones": []map[string]interface{}{
 					{
 						"name": zone1Name,
@@ -209,7 +206,6 @@ var _ = Describe("TerraformChartOps", func() {
 					"vpcID":              TerraformerOutputKeyVPCID,
 					"vpcCIDR":            TerraformerOutputKeyVPCCIDR,
 					"securityGroupID":    TerraformerOutputKeySecurityGroupID,
-					"keyPairName":        TerraformerOutputKeyKeyPairName,
 					"vswitchNodesPrefix": TerraformerOutputKeyVSwitchNodesPrefix,
 				},
 			}))

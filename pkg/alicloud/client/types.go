@@ -59,6 +59,7 @@ type ECS interface {
 	DescribeSecurityGroups(request *ecs.DescribeSecurityGroupsRequest) (response *ecs.DescribeSecurityGroupsResponse, err error)
 	DescribeSecurityGroupAttribute(request *ecs.DescribeSecurityGroupAttributeRequest) (response *ecs.DescribeSecurityGroupAttributeResponse, err error)
 	DescribeKeyPairs(request *ecs.DescribeKeyPairsRequest) (response *ecs.DescribeKeyPairsResponse, err error)
+	DetachECSInstancesFromSSHKeyPair(keyName string) error
 }
 
 // stsClient implements the STS interface.
