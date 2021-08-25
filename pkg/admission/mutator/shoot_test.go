@@ -82,51 +82,40 @@ var _ = Describe("Mutating Shoot", func() {
 	})
 	Context("#Encrypted System Disk", func() {
 		It("should not reconcile infra if no system disk is encrypted", func() {
-			err := shoot.Mutate(ctx, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(!checkReconcileInfraAnnotation(newShoot.Annotations))
+			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
 
 		It("should not reconcile infra if system disk is already encrypted", func() {
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(ctx, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(!checkReconcileInfraAnnotation(newShoot.Annotations))
+			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
 
 		It("should not reconcile infra if new version of machine is not encrypted", func() {
 			newShoot.Spec.Provider.Workers[1].Machine.Image.Version = pointer.StringPtr("2.0")
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(ctx, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(!checkReconcileInfraAnnotation(newShoot.Annotations))
+			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
 
 		It("should reconcile infra if new version of machine is added and it is encrypted", func() {
 			newShoot.Spec.Provider.Workers[0].Machine.Image.Version = pointer.StringPtr("2.0")
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(ctx, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(checkReconcileInfraAnnotation(newShoot.Annotations))
+			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeTrue())
 		})
 
 		It("should reconcile infra if machine is changed to be encrypted", func() {
 			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(ctx, oldShoot, newShoot)
+			err := shoot.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(checkReconcileInfraAnnotation(newShoot.Annotations))
+			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeTrue())
 		})
 	})
 })
-
-func checkReconcileInfraAnnotation(annotations map[string]string) bool {
-	tasks := controllerutils.GetTasks(annotations)
-	for _, t := range tasks {
-		if t == v1beta1constants.ShootTaskDeployInfrastructure {
-			return true
-		}
-	}
-
-	return false
-}

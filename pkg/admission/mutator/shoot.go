@@ -17,6 +17,7 @@ package mutator
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -56,7 +57,7 @@ func (s *shootMutator) Mutate(_ context.Context, new, old client.Object) error {
 }
 
 func (s *shootMutator) mutateShootUpdate(oldShoot, shoot *corev1beta1.Shoot) error {
-	if !equality.Semantic.DeepEqual(oldShoot, shoot) {
+	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
 		s.mutateForEncryptedSystemDiskChange(oldShoot, shoot)
 	}
 
@@ -91,7 +92,7 @@ func requireNewEncryptedImage(oldWorkers, newWorkers []corev1beta1.Worker) bool 
 			if w.Machine.Image != nil {
 				found := false
 				for _, image := range imagesEncrypted {
-					if w.Machine.Image.Name == image.Name && w.Machine.Image.Version == image.Version {
+					if w.Machine.Image.Name == image.Name && reflect.DeepEqual(w.Machine.Image.Version, image.Version) {
 						found = true
 						break
 					}
