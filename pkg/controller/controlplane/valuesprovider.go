@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
@@ -41,6 +39,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
@@ -251,9 +250,9 @@ var controlPlaneShootCRDsChart = &chart.Chart{
 		{
 			Name: "volumesnapshots",
 			Objects: []*chart.Object{
-				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotClasses},
-				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotContents},
-				{Type: &apiextensionsv1beta1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshots},
+				{Type: &apiextensionsv1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotClasses},
+				{Type: &apiextensionsv1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshotContents},
+				{Type: &apiextensionsv1.CustomResourceDefinition{}, Name: alicloud.CRDVolumeSnapshots},
 			},
 		},
 	},
