@@ -39,7 +39,6 @@ import (
 	"github.com/gardener/gardener/pkg/utils/flow"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -370,7 +369,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 	if infra.Status.ProviderStatus != nil {
 		if _, _, err := a.Decoder().Decode(infra.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
-			return nil, errors.Wrapf(err, "could not decode infrastructure status of infrastructure '%s'", kutil.ObjectName(infra))
+			return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", kutil.ObjectName(infra), err)
 		}
 	}
 	if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, true); err == nil {
@@ -420,7 +419,7 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 		if providerStatus := infra.Status.ProviderStatus; providerStatus != nil {
 			infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 			if _, _, err := a.Decoder().Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
-				return nil, errors.Wrapf(err, "could not decode infrastructure status of infrastructure '%s'", kutil.ObjectName(infra))
+				return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", kutil.ObjectName(infra), err)
 			}
 
 			if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
@@ -508,14 +507,14 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 	}
 
 	if err := tf.InitializeWith(ctx, initializer).Apply(ctx); err != nil {
-		return errors.Wrapf(err, "failed to apply the terraform config")
+		return fmt.Errorf("failed to apply the terraform config: %w", err)
 	}
 
 	var machineImages []apisalicloud.MachineImage
 	if cluster.Shoot != nil {
 		machineImages, err = a.ensureImagesForShootProviderAccount(ctx, infra, cluster)
 		if err != nil {
-			return errors.Wrapf(err, "failed to ensure machine images for shoot")
+			return fmt.Errorf("failed to ensure machine images for shoot: %w", err)
 		}
 	}
 

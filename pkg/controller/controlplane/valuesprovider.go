@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -36,7 +37,6 @@ import (
 	"github.com/gardener/gardener/pkg/utils/secrets"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
@@ -297,7 +297,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	decoder := serializer.NewCodecFactory(vp.Scheme()).UniversalDecoder()
 	if cp.Spec.ProviderConfig != nil {
 		if _, _, err := decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
-			return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", kutil.ObjectName(cp))
+			return nil, fmt.Errorf("could not decode providerConfig of controlplane '%s': %w", kutil.ObjectName(cp), err)
 		}
 	}
 
@@ -315,7 +315,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	// Get credentials from the referenced secret
 	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not read credentials from secret referred by controlplane '%s'", kutil.ObjectName(cp))
+		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}
 
 	// Get control plane shoot chart values
@@ -360,19 +360,19 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 	// Decode infrastructureProviderStatus
 	infraStatus := &apisalicloud.InfrastructureStatus{}
 	if _, _, err := vp.Decoder().Decode(cp.Spec.InfrastructureProviderStatus.Raw, nil, infraStatus); err != nil {
-		return "", errors.Wrapf(err, "could not decode infrastructureProviderStatus of controlplane '%s'", kutil.ObjectName(cp))
+		return "", fmt.Errorf("could not decode infrastructureProviderStatus of controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}
 
 	// Get credentials from the referenced secret
 	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
 	if err != nil {
-		return "", errors.Wrapf(err, "could not read credentials from secret referred by controlplane '%s'", kutil.ObjectName(cp))
+		return "", fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}
 
 	// Find first vswitch with purpose "nodes"
 	vswitch, err := helper.FindVSwitchForPurpose(infraStatus.VPC.VSwitches, apisalicloud.PurposeNodes)
 	if err != nil {
-		return "", errors.Wrapf(err, "could not determine vswitch from infrastructureProviderStatus of controlplane '%s'", kutil.ObjectName(cp))
+		return "", fmt.Errorf("could not determine vswitch from infrastructureProviderStatus of controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}
 
 	// Initialize cloud config
@@ -388,7 +388,7 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {
-		return "", errors.Wrapf(err, "could not marshal cloud config to JSON for controlplane '%s'", kutil.ObjectName(cp))
+		return "", fmt.Errorf("could not marshal cloud config to JSON for controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}
 
 	return string(cfgJSON), nil
@@ -405,7 +405,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 ) (map[string]interface{}, error) {
 	ccmConfig, err := vp.getCloudControllerManagerConfigFileContent(ctx, cp)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not build cloud controller config file content for controlplain '%s", kutil.ObjectName(cp))
+		return nil, fmt.Errorf("could not build cloud controller config file content for controlplain '%s': %w", kutil.ObjectName(cp), err)
 	}
 	values := map[string]interface{}{
 		"alicloud-cloud-controller-manager": map[string]interface{}{

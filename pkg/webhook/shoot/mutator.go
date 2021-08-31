@@ -16,13 +16,13 @@ package shoot
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 
 	webhookutils "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/utils"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -47,7 +47,7 @@ func NewMutator(service *config.Service) extensionswebhook.Mutator {
 func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	acc, err := meta.Accessor(new)
 	if err != nil {
-		return errors.Wrapf(err, "could not create accessor during webhook")
+		return fmt.Errorf("could not create accessor during webhook: %w", err)
 	}
 	// If the object does have a deletion timestamp then we don't want to mutate anything.
 	if acc.GetDeletionTimestamp() != nil {
@@ -62,7 +62,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 				var ok bool
 				oldSvc, ok = old.(*corev1.Service)
 				if !ok {
-					return errors.Wrapf(err, "could not cast old object to corev1.Service")
+					return fmt.Errorf("could not cast old object to corev1.Service: %w", err)
 				}
 			}
 

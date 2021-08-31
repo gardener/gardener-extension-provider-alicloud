@@ -16,6 +16,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/utils/pointer"
 
@@ -26,26 +27,25 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
-	"github.com/pkg/errors"
 )
 
 // UpdateMachineImagesStatus implements genericactuator.WorkerDelegate.
 func (w *workerDelegate) UpdateMachineImagesStatus(ctx context.Context) error {
 	if w.machineImages == nil {
 		if err := w.generateMachineConfig(ctx); err != nil {
-			return errors.Wrapf(err, "unable to generate the machine config")
+			return fmt.Errorf("unable to generate the machine config: %w", err)
 		}
 	}
 
 	// Decode the current worker provider status.
 	workerStatus, err := w.decodeWorkerProviderStatus()
 	if err != nil {
-		return errors.Wrapf(err, "unable to decode the worker provider status")
+		return fmt.Errorf("unable to decode the worker provider status: %w", err)
 	}
 
 	workerStatus.MachineImages = w.machineImages
 	if err := w.updateWorkerProviderStatus(ctx, workerStatus); err != nil {
-		return errors.Wrapf(err, "unable to update worker provider status")
+		return fmt.Errorf("unable to update worker provider status: %w", err)
 	}
 
 	return nil
