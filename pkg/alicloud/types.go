@@ -47,11 +47,6 @@ const (
 	// CSIPluginImageName is the name of the CSI plugin image.
 	CSIPluginImageName = "csi-plugin-alicloud"
 
-	// BucketName is a constant for the key in a backup secret that holds the bucket name.
-	// The bucket name is written to the backup secret by Gardener as a temporary solution.
-	// TODO In the future, the bucket name should come from a BackupBucket resource (see https://github.com/gardener/gardener/blob/master/docs/proposals/02-backupinfra.md)
-	BucketName = "bucketName"
-
 	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
 	MachineControllerManagerName = "machine-controller-manager"
 	// MachineControllerManagerVpaName is the name of the VerticalPodAutoscaler of the machine-controller-manager deployment.
