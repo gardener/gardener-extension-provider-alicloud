@@ -317,6 +317,7 @@ func (a *actuator) ensureOldSSHKeyDetached(ctx context.Context, infra *extension
 	if err != nil {
 		return err
 	}
+
 	// nolint
 	a.logger.V(2).Info("Detaching ssh key pair from ECS instances", "keypair", infrastructureStatus.KeyPairName)
 	// nolint
@@ -382,7 +383,6 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, infr
 				return nil, err
 			}
 		}
-
 		machineImages = helper.AppendMachineImage(machineImages, *machineImage)
 	}
 	a.logger.Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name)
