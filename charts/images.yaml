@@ -36,11 +36,22 @@ images:
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: k8s.gcr.io/sig-storage/csi-snapshotter
   tag: v2.1.5
-  targetVersion: ">= 1.17"
+  targetVersion: ">= 1.17 < 1.20"
+- name: csi-snapshotter
+  sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
+  repository: k8s.gcr.io/sig-storage/csi-snapshotter
+  tag: v4.2.1
+  targetVersion: ">= 1.20"
 - name: csi-snapshot-controller
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: k8s.gcr.io/sig-storage/snapshot-controller
   tag: v2.1.5
+  targetVersion: ">= 1.17 < 1.20"
+- name: csi-snapshot-controller
+  sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
+  repository: k8s.gcr.io/sig-storage/snapshot-controller
+  tag: v4.2.1
+  targetVersion: ">= 1.20"
 - name: csi-resizer
   sourceRepository: https://github.com/kubernetes-csi/external-resizer
   repository: k8s.gcr.io/sig-storage/csi-resizer
