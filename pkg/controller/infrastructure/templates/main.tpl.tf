@@ -4,12 +4,6 @@ provider "alicloud" {
   region = "{{ .alicloud.region }}"
 }
 
-// Import an existing public key to build a alicloud key pair
-resource "alicloud_key_pair" "publickey" {
-  key_pair_name = "{{ .clusterName }}-ssh-publickey"
-  public_key    = "{{ .sshPublicKey }}"
-}
-
 {{ if .vpc.create -}}
 resource "alicloud_vpc" "vpc" {
   vpc_name   = "{{ .clusterName }}-vpc"
@@ -151,8 +145,4 @@ output "{{ .outputKeys.vpcID }}" {
 
 output "{{ .outputKeys.vpcCIDR }}" {
   value = "{{ .vpc.cidr }}"
-}
-
-output "{{ .outputKeys.keyPairName }}" {
-  value = alicloud_key_pair.publickey.key_name
 }

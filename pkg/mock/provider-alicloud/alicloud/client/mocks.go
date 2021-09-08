@@ -274,6 +274,20 @@ func (mr *MockECSMockRecorder) DescribeSecurityGroups(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroups", reflect.TypeOf((*MockECS)(nil).DescribeSecurityGroups), arg0)
 }
 
+// DetachECSInstancesFromSSHKeyPair mocks base method.
+func (m *MockECS) DetachECSInstancesFromSSHKeyPair(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DetachECSInstancesFromSSHKeyPair", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DetachECSInstancesFromSSHKeyPair indicates an expected call of DetachECSInstancesFromSSHKeyPair.
+func (mr *MockECSMockRecorder) DetachECSInstancesFromSSHKeyPair(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachECSInstancesFromSSHKeyPair", reflect.TypeOf((*MockECS)(nil).DetachECSInstancesFromSSHKeyPair), arg0)
+}
+
 // ShareImageToAccount mocks base method.
 func (m *MockECS) ShareImageToAccount(arg0 context.Context, arg1, arg2, arg3 string) error {
 	m.ctrl.T.Helper()

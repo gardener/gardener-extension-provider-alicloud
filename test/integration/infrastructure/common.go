@@ -24,12 +24,9 @@ const (
 	natGatewayCIDR = "10.250.128.0/21" // Enhanced NatGateway need bind with VSwitch, natGatewayCIDR is used for this VSwitch
 	natGatewayType = "Enhanced"
 
-	secretName = "cloudprovider"
-
-	availableStatus = "Available"
-
-	sshPublicKey       = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDSb1DJfupnWTfKJ0fmRGgnSx8A2/pRd5oC49qE1jFX+/J9L01jUyLc5sBKZXVkfU5q5h0JfbkhJXSIkzqE+rNPnJBI4e+8Lo2TVWLAvVZRA9Fg9Dk3mgkdVB+9qW2mIqtJF5GOWKuk7HkObwpY1pX8kHC/LJVfpNQpVBqWef0WJj6vbyjhlZ3vgRxK9I6wdJzjUYtNsDhvvBTy/IBg/xp82w9T2r3GVfnaTLMeQCW9mPviDKnQsrWMgVb2A0Z4c62EbzzLzQV4ScVJ6JMgOgkMqEPdbnKF8dEQcSu+/DQZoZt56Aeov7T4oamahj9/rIDX+WR1nOcfntIdhCyoB4lISkNFz/MlPC7O8HwJk4P7rojLGNk6xmn6NxY5CJGC2dVxFsb1bmm+fKHAp62mgwEoFZcDyIkcsmnmnID9u0rJNyMz84YUGZ/jEz8LePujDHcXiqgoLsKJ8gNRneISL9+m9s1VK7WxDDIbq8iWzR7XfAVE/GzKpVYkqrWCvjKEeFIDuDUnf3jghQCQMsXnJM7zGWr1tl+Dvl2Avxmj2xyUJXYHbXbl2aM434DgQySnV8JPzYH7EsTmvuhdb8SJIbb/NonFsSM+72HpSzVc083x4B++VL7oP1X8cly62pFVM1fi8sxBio48Hq5SmAUu9T4wUY4J+AKU6osFA/ATlMCIiQ== your_email@example.com"
-	sshPublicKeyDigest = "b9b39384513d9300374c98ccc8818a8b"
+	secretName           = "cloudprovider"
+	enableEncryptedImage = true
+	availableStatus      = "Available"
 )
 
 var (

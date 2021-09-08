@@ -5,3 +5,9 @@ run:
 linters:
   disable:
   - unused
+
+issues:
+  exclude-rules:
+  - path: (pkg/apis/alicloud/v1alpha1/zz_generated.conversion.go)
+    linters:
+    -  staticcheck

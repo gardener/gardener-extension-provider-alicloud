@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,10 +29,11 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 )
 
 // ComputeStorageEndpoint computes the OSS storage endpoint based on the given region.
@@ -220,6 +222,60 @@ func (c *ecsClient) ShareImageToAccount(ctx context.Context, regionID, imageID, 
 	request.SetScheme("HTTPS")
 	_, err := c.ModifyImageSharePermission(request)
 	return err
+}
+
+// DetachECSInstancesFromSSHKeyPair finds all ECS instances and detach them from the specified SSH key pair.
+func (c *ecsClient) DetachECSInstancesFromSSHKeyPair(keyName string) error {
+	const pageSize = 50
+	describeECSRequest := ecs.CreateDescribeInstancesRequest()
+	describeECSRequest.KeyPairName = keyName
+	describeECSRequest.PageSize = requests.NewInteger(pageSize)
+
+	var datachInstanceBatches []string
+	nextPage := 0
+	for {
+		nextPage++
+		describeECSRequest.PageNumber = requests.NewInteger(nextPage)
+		instancesResponse, err := c.DescribeInstances(describeECSRequest)
+		if err != nil {
+			return err
+		}
+
+		if len(instancesResponse.Instances.Instance) == 0 {
+			break
+		}
+
+		var instanceIDs []string
+		for _, instance := range instancesResponse.Instances.Instance {
+			instanceIDs = append(instanceIDs, instance.InstanceId)
+		}
+
+		jsonRaw, err := json.Marshal(instanceIDs)
+		if err != nil {
+			return err
+		}
+
+		datachInstanceBatches = append(datachInstanceBatches, string(jsonRaw))
+
+		if len(instancesResponse.Instances.Instance) < pageSize {
+			break
+		}
+	}
+
+	detachKeyPairRequest := ecs.CreateDetachKeyPairRequest()
+	detachKeyPairRequest.KeyPairName = keyName
+	for _, ids := range datachInstanceBatches {
+		detachKeyPairRequest.InstanceIds = ids
+		detachResponse, err := c.DetachKeyPair(detachKeyPairRequest)
+		if err != nil {
+			return err
+		}
+		if detachResponse.FailCount != "0" {
+			return fmt.Errorf("failed to detach keypair %s from instances: %v", keyName, detachResponse.Results)
+		}
+	}
+
+	return nil
 }
 
 // NewSTSClient creates a new STS client with given region, accessKeyID, and accessKeySecret.

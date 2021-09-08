@@ -152,14 +152,12 @@ func (terraformOps) ComputeChartValues(
 		"eip": map[string]interface{}{
 			"internetChargeType": values.EIP.InternetChargeType,
 		},
-		"clusterName":  infra.Namespace,
-		"sshPublicKey": string(infra.Spec.SSHPublicKey),
-		"zones":        zones,
+		"clusterName": infra.Namespace,
+		"zones":       zones,
 		"outputKeys": map[string]interface{}{
 			"vpcID":              TerraformerOutputKeyVPCID,
 			"vpcCIDR":            TerraformerOutputKeyVPCCIDR,
 			"securityGroupID":    TerraformerOutputKeySecurityGroupID,
-			"keyPairName":        TerraformerOutputKeyKeyPairName,
 			"vswitchNodesPrefix": TerraformerOutputKeyVSwitchNodesPrefix,
 		},
 	}

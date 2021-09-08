@@ -250,9 +250,11 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		return err
 	}
 
-	By("wait until encrypted image is ready")
-	if err := verifyStackExists(ctx, clientFactory); err != nil {
-		return err
+	if enableEncryptedImage {
+		By("wait until encrypted image is ready")
+		if err := verifyStackExists(ctx, clientFactory); err != nil {
+			return err
+		}
 	}
 
 	By("wait until infrastructure is created")
@@ -278,9 +280,11 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 	By("verify infrastructure creation")
 	infrastructureIdentifiers = verifyCreation(ctx, clientFactory, infra, providerStatus, providerConfig)
 
-	By("verify image prepared in infrastructure status")
-	if err := verifyImageInfraStatus(providerStatus); err != nil {
-		return err
+	if enableEncryptedImage {
+		By("verify image prepared in infrastructure status")
+		if err := verifyImageInfraStatus(providerStatus); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -326,8 +330,7 @@ func newInfrastructure(namespace string, providerConfig *alicloudv1alpha1.Infras
 				Name:      secretName,
 				Namespace: namespace,
 			},
-			Region:       *region,
-			SSHPublicKey: []byte(sshPublicKey),
+			Region: *region,
 		},
 	}, nil
 }
@@ -337,7 +340,6 @@ type infrastructureIdentifiers struct {
 	vswitchID             *string
 	natGatewayID          *string
 	securityGroupIDs      []string
-	keyPairName           *string
 	elasticIPAllocationID *string
 	snatTableId           *string
 	snatEntryId           *string
@@ -353,7 +355,6 @@ func verifyCreation(
 	infrastructureIdentifier infrastructureIdentifiers,
 ) {
 	const (
-		sshKeySuffix        = "-ssh-publickey"
 		eipSuffix           = "-eip-natgw-z0"
 		securityGroupSuffix = "-sg"
 	)
@@ -461,14 +462,6 @@ func verifyCreation(
 		},
 	}))
 
-	// ecs ssh key pair
-	describeKeyPairsReq := ecs.CreateDescribeKeyPairsRequest()
-	describeKeyPairsReq.KeyPairName = infra.Namespace + sshKeySuffix
-	describeKeyPairOutput, err := ecsClient.DescribeKeyPairs(describeKeyPairsReq)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(describeKeyPairOutput.KeyPairs.KeyPair[0].KeyPairFingerPrint).To(Equal(sshPublicKeyDigest))
-	infrastructureIdentifier.keyPairName = pointer.StringPtr(describeKeyPairOutput.KeyPairs.KeyPair[0].KeyPairName)
-
 	return
 }
 
@@ -536,14 +529,6 @@ func verifyDeletion(ctx context.Context, clientFactory alicloudclient.ClientFact
 		}
 	}
 
-	// ecs ssh key pair
-	if infrastructureIdentifier.keyPairName != nil {
-		describeKeyPairsReq := ecs.CreateDescribeKeyPairsRequest()
-		describeKeyPairsReq.KeyPairName = *infrastructureIdentifier.keyPairName
-		describeKeyPairOutput, err := ecsClient.DescribeKeyPairs(describeKeyPairsReq)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(describeKeyPairOutput.KeyPairs.KeyPair).To(BeEmpty())
-	}
 }
 
 func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory, region, vpcCIDR, natGatewayCIDR string) infrastructureIdentifiers {
