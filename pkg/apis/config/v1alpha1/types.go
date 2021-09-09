@@ -56,7 +56,7 @@ type KubeAPIServer struct {
 	MutateExternalTrafficPolicy bool `json:"mutateExternalTrafficPolicy"`
 }
 
-// LoadBalancerService specifies Service configuration
+// Service is a load balancer service configuration.
 type Service struct {
 	// BackendLoadBalancerSpec specifies the type of backend Alicloud load balancer, default is slb.s1.small.
 	BackendLoadBalancerSpec string `json:"backendLoadBalancerSpec"`

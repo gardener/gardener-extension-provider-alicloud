@@ -295,7 +295,7 @@ bool
 <a href="#alicloud.provider.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration</a>)
 </p>
 <p>
-<p>LoadBalancerService specifies Service configuration</p>
+<p>Service is a load balancer service configuration.</p>
 </p>
 <table>
 <thead>

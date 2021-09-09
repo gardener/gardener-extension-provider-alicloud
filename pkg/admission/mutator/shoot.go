@@ -27,8 +27,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const ShootMutatorName = "shoots.mutator"
-const MutatorPath = "/webhooks/mutate"
+const (
+	// ShootMutatorName is the shoots mutator webhook name.
+	ShootMutatorName = "shoots.mutator"
+	// MutatorPath is the mutator webhook path.
+	MutatorPath = "/webhooks/mutate"
+)
 
 // NewShootMutator returns a new instance of a shoot validator.
 func NewShootMutator() extensionswebhook.Mutator {

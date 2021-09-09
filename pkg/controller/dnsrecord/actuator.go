@@ -47,6 +47,7 @@ type actuator struct {
 	logger                logr.Logger
 }
 
+// NewActuator creates a new dnsrecord.Actuator.
 func NewActuator(alicloudClientFactory alicloudclient.ClientFactory, logger logr.Logger) dnsrecord.Actuator {
 	return &actuator{
 		alicloudClientFactory: alicloudClientFactory,

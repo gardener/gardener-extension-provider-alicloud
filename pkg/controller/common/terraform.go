@@ -32,9 +32,9 @@ import (
 )
 
 const (
-	TerraformVarAccessKeyID     = "TF_VAR_ACCESS_KEY_ID"
-	TerraformVarAccessKeySecret = "TF_VAR_ACCESS_KEY_SECRET"
-	TerraformProvider           = "provider.alicloud"
+	terraformVarAccessKeyID     = "TF_VAR_ACCESS_KEY_ID"
+	terraformVarAccessKeySecret = "TF_VAR_ACCESS_KEY_SECRET"
+	terraformProvider           = "provider.alicloud"
 )
 
 type tfState struct {
@@ -80,7 +80,7 @@ func NewTerraformerWithAuth(logger logr.Logger, factory terraformer.Factory, con
 // TerraformerEnvVars computes the Terraformer environment variables from the given secret ref.
 func TerraformerEnvVars(secretRef corev1.SecretReference) []corev1.EnvVar {
 	return []corev1.EnvVar{{
-		Name: TerraformVarAccessKeyID,
+		Name: terraformVarAccessKeyID,
 		ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: secretRef.Name,
@@ -88,7 +88,7 @@ func TerraformerEnvVars(secretRef corev1.SecretReference) []corev1.EnvVar {
 			Key: alicloud.AccessKeyID,
 		}},
 	}, {
-		Name: TerraformVarAccessKeySecret,
+		Name: terraformVarAccessKeySecret,
 		ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: secretRef.Name,
@@ -118,7 +118,7 @@ func IsStateEmpty(ctx context.Context, tf terraformer.Terraformer) (bool, error)
 	}
 
 	for _, res := range state.Resources {
-		if res.Provider == TerraformProvider && len(res.Instances) > 0 {
+		if res.Provider == terraformProvider && len(res.Instances) > 0 {
 			return false, nil
 		}
 	}

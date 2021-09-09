@@ -46,7 +46,7 @@ type CreateStackRequest struct {
 	Tags               *[]Tag                   `position:"Query" name:"Tags"  type:"Repeated"`
 }
 
-// Tags is a repeated param struct in CreateStackRequest
+// Tag is a repeated param struct in CreateStackRequest
 type Tag struct {
 	Value string `name:"Value"`
 	Key   string `name:"Key"`
