@@ -104,6 +104,7 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 	return allErrs
 }
 
+// ValidateNetworkZonesConfig validates a Zone slice.
 func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 

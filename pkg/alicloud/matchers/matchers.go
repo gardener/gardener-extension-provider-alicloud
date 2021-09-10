@@ -23,6 +23,7 @@ import (
 	"github.com/onsi/gomega/types"
 )
 
+// BeSemanticallyEqualTo returns a matcher that checks if a ecs.Permission is semantically equal to the given value.
 func BeSemanticallyEqualTo(expected interface{}) types.GomegaMatcher {
 	if expected == nil {
 		return BeNil()

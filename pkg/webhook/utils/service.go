@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	AlicloudLoadBalancerSpecAnnotationKey = "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-spec"
+	alicloudLoadBalancerSpecAnnotationKey = "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-spec"
 )
 
 // MutateExternalTrafficPolicy mutates ServiceExternalTrafficPolicyType to Local of LoadBalancer type service
@@ -41,6 +41,6 @@ func MutateExternalTrafficPolicy(new, old *corev1.Service) {
 // MutateAnnotation mutates annotation of LoadBalancer type service
 func MutateAnnotation(new, old *corev1.Service, loadBalancerSpec string) {
 	if new.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		metav1.SetMetaDataAnnotation(&new.ObjectMeta, AlicloudLoadBalancerSpecAnnotationKey, loadBalancerSpec)
+		metav1.SetMetaDataAnnotation(&new.ObjectMeta, alicloudLoadBalancerSpecAnnotationKey, loadBalancerSpec)
 	}
 }
