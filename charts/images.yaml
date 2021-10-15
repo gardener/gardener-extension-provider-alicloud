@@ -30,15 +30,9 @@ images:
   repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
   tag: v1.3.0
 - name: csi-provisioner
-  sourceRepository: https://github.com/kubernetes-csi/external-provisioner
-  repository: k8s.gcr.io/sig-storage/csi-provisioner
-  tag: v1.6.0
-  targetVersion: "< 1.17"
-- name: csi-provisioner
-  sourceRepository: https://github.com/kubernetes-csi/external-provisioner
-  repository: k8s.gcr.io/sig-storage/csi-provisioner
-  tag: v2.1.2
-  targetVersion: ">= 1.17"
+  sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
+  repository: registry.cn-hangzhou.aliyuncs.com/acs/csi-provisioner
+  tag: v3.0.0-3f86569-aliyun
 - name: csi-snapshotter
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: quay.io/k8scsi/csi-snapshotter
@@ -60,7 +54,7 @@ images:
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin
-  tag: v1.20.5-ff6490f-aliyun # the upstream image is using non-semver tags which is causing issues in the CI/CD pipelines of Gardener, thus the image is replicated and tagged with semver version in another registry (registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin:v1.18.8.45-1c5d2cd1-aliyun).
+  tag: v1.20.5-ff6490f-aliyun
 - name: csi-liveness-probe
   sourceRepository: github.com/kubernetes-csi/livenessprobe
   repository: k8s.gcr.io/sig-storage/livenessprobe

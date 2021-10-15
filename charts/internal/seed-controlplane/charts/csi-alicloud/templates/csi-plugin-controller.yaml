@@ -105,13 +105,8 @@ spec:
         - "--feature-gates=Topology=True"
         - "--leader-election-namespace=kube-system"
         - "--volume-name-prefix=pv-{{ .Values.csiPluginController.persistentVolumePrefix }}"
-        {{- if semverCompare ">= 1.17" .Values.kubernetesVersion }}
         - "--default-fstype=ext4"
         - "--leader-election=true"
-        {{- else }}
-        - "--enable-leader-election=true"
-        - "--leader-election-type=leases"
-        {{- end }}
 {{- if .Values.csiPluginController.podResources.provisioner }}
         resources:
 {{ toYaml .Values.csiPluginController.podResources.provisioner | indent 12 }}
