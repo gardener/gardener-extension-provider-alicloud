@@ -39,10 +39,6 @@ images:
   repository: k8s.gcr.io/sig-storage/csi-provisioner
   tag: v2.1.2
   targetVersion: ">= 1.17"
-- name: csi-provisioner
-  sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
-  repository: registry.eu-central-1.aliyuncs.com/acs/csi-provisioner
-  tag: v3.0.0-3f86569-aliyun
 - name: csi-snapshotter
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: quay.io/k8scsi/csi-snapshotter
