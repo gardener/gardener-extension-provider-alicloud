@@ -31,7 +31,7 @@ images:
   tag: v1.3.0
 - name: csi-provisioner
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
-  repository: registry.cn-hangzhou.aliyuncs.com/acs/csi-provisioner
+  repository: registry.eu-central-1.aliyuncs.com/acs/csi-provisioner
   tag: v3.0.0-3f86569-aliyun
 - name: csi-snapshotter
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
@@ -53,7 +53,7 @@ images:
   tag: v0.5.0
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
-  repository: registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin
+  repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
   tag: v1.20.5-ff6490f-aliyun
 - name: csi-liveness-probe
   sourceRepository: github.com/kubernetes-csi/livenessprobe
