@@ -58,14 +58,14 @@ var StatusTypeMeta = func() metav1.TypeMeta {
 }()
 
 // NewActuator instantiates an actuator with the default dependencies.
-func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, whitelistedImageIDs []string) infrastructure.Actuator {
+func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, toBeSharedImageIDs []string) infrastructure.Actuator {
 	return NewActuatorWithDeps(
 		log.Log.WithName("infrastructure-actuator"),
 		alicloudclient.NewClientFactory(),
 		terraformer.DefaultFactory(),
 		DefaultTerraformOps(),
 		machineImageOwnerSecretRef,
-		whitelistedImageIDs,
+		toBeSharedImageIDs,
 	)
 }
 
@@ -76,7 +76,7 @@ func NewActuatorWithDeps(
 	terraformerFactory terraformer.Factory,
 	terraformChartOps TerraformChartOps,
 	machineImageOwnerSecretRef *corev1.SecretReference,
-	whitelistedImageIDs []string,
+	toBeSharedImageIDs []string,
 ) infrastructure.Actuator {
 	a := &actuator{
 		logger:                     logger,
@@ -84,7 +84,7 @@ func NewActuatorWithDeps(
 		terraformerFactory:         terraformerFactory,
 		terraformChartOps:          terraformChartOps,
 		machineImageOwnerSecretRef: machineImageOwnerSecretRef,
-		whitelistedImageIDs:        whitelistedImageIDs,
+		toBeSharedImageIDs:         toBeSharedImageIDs,
 	}
 
 	return a
@@ -100,7 +100,7 @@ type actuator struct {
 	terraformChartOps  TerraformChartOps
 
 	machineImageOwnerSecretRef *corev1.SecretReference
-	whitelistedImageIDs        []string
+	toBeSharedImageIDs         []string
 }
 
 // InjectAPIReader implements inject.APIReader and instantiates actuator.alicloudECSClient.
@@ -280,10 +280,10 @@ func computeProviderStatusVSwitches(infrastructure *alicloudv1alpha1.Infrastruct
 	return vswitchesToReturn, nil
 }
 
-func (a *actuator) isWhitelistedImageID(imageID string) bool {
-	if a.whitelistedImageIDs != nil {
-		for _, whitelistedImageID := range a.whitelistedImageIDs {
-			if imageID == whitelistedImageID {
+func (a *actuator) toBeShared(imageID string) bool {
+	if a.toBeSharedImageIDs != nil {
+		for _, toBeSharedImageID := range a.toBeSharedImageIDs {
+			if imageID == toBeSharedImageID {
 				return true
 			}
 		}
@@ -374,7 +374,7 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, infr
 			return nil, err
 		}
 		if useEncrytedDisk {
-			if machineImage, err = a.ensureEncryptedImageForShootProviderAccount(ctx, cloudProfileConfig, worker, infra, shootAlicloudROSClient, shootAlicloudECSClient); err != nil {
+			if machineImage, err = a.ensureEncryptedImageForShootProviderAccount(ctx, cloudProfileConfig, worker, infra, shootAlicloudROSClient, shootAlicloudECSClient, shootCloudProviderAccountID); err != nil {
 				return nil, err
 			}
 		} else {
@@ -395,7 +395,8 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	worker gardencorev1beta1.Worker,
 	infra *extensionsv1alpha1.Infrastructure,
 	shootROSClient alicloudclient.ROS,
-	shootECSClient alicloudclient.ECS) (*apisalicloud.MachineImage, error) {
+	shootECSClient alicloudclient.ECS,
+	shootCloudProviderAccountID string) (*apisalicloud.MachineImage, error) {
 	infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 	if infra.Status.ProviderStatus != nil {
 		if _, _, err := a.Decoder().Decode(infra.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
@@ -418,16 +419,23 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 		}
 	}
 
-	// Check if image is provided by AliCloud (OwnerAlias is System).
-	if !(a.isWhitelistedImageID(imageID)) {
-		ownedByAliCloud, err := shootECSClient.CheckIfImageOwnedByAliCloud(imageID)
-		if err != nil {
+	// If it is a custom image, it need to be shared with shoot account
+	if err = a.makeImageVisibleForShoot(ctx, shootECSClient, infra.Spec.Region, imageID, shootCloudProviderAccountID); err != nil {
+		return nil, err
+	}
+
+	if exist, err := shootECSClient.CheckIfImageExists(ctx, imageID); err != nil {
+		return nil, err
+	} else if exist {
+		// Check if image is provided by AliCloud (OwnerAlias is System).
+		if ownedByAliCloud, err := shootECSClient.CheckIfImageOwnedByAliCloud(imageID); err != nil {
 			return nil, err
-		}
-		if ownedByAliCloud {
+		} else if ownedByAliCloud {
 			return nil, fmt.Errorf("image (%s-%s/%s) is owned by AliCloud. An encrypted image can't be created from this image for the shoot", worker.Machine.Image.Name, *worker.Machine.Image.Version, imageID)
 		}
 	}
+	// else {} it is private shared
+
 	// It may block 10 minutes
 	a.logger.Info("Preparing encrypted image for shoot account", "name", worker.Machine.Image.Name, "version", *worker.Machine.Image.Version)
 	encryptor := common.NewImageEncryptor(shootROSClient, infra.Spec.Region, worker.Machine.Image.Name, *worker.Machine.Image.Version, imageID)
@@ -477,8 +485,8 @@ func (a *actuator) makeImageVisibleForShoot(ctx context.Context, shootECSClient 
 	// if this is a whitelisted machine image, we no longer need to check if it exists in cloud provider account, and
 	// we don't need to share the image to that account either.
 	a.logger.Info("Sharing customized image with Shoot's Alicloud account from Seed", "imageID", imageID)
-	if a.isWhitelistedImageID(imageID) {
-		a.logger.Info("Skip image sharing for whitelisted image", "imageID", imageID)
+	if !a.toBeShared(imageID) {
+		a.logger.Info("Skip image sharing as it is not in the ToBeSharedImageIDs", "imageID", imageID)
 		return nil
 	}
 

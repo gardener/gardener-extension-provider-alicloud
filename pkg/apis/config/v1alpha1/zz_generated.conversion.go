@@ -107,7 +107,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 func autoConvert_v1alpha1_ControllerConfiguration_To_config_ControllerConfiguration(in *ControllerConfiguration, out *config.ControllerConfiguration, s conversion.Scope) error {
 	out.ClientConnection = (*componentbaseconfig.ClientConnectionConfiguration)(unsafe.Pointer(in.ClientConnection))
 	out.MachineImageOwnerSecretRef = (*v1.SecretReference)(unsafe.Pointer(in.MachineImageOwnerSecretRef))
-	out.WhitelistedImageIDs = *(*[]string)(unsafe.Pointer(&in.WhitelistedImageIDs))
+	out.ToBeSharedImageIDs = *(*[]string)(unsafe.Pointer(&in.ToBeSharedImageIDs))
 	out.KubeAPIServer = (*config.KubeAPIServer)(unsafe.Pointer(in.KubeAPIServer))
 	if err := Convert_v1alpha1_Service_To_config_Service(&in.Service, &out.Service, s); err != nil {
 		return err
@@ -127,7 +127,7 @@ func Convert_v1alpha1_ControllerConfiguration_To_config_ControllerConfiguration(
 func autoConvert_config_ControllerConfiguration_To_v1alpha1_ControllerConfiguration(in *config.ControllerConfiguration, out *ControllerConfiguration, s conversion.Scope) error {
 	out.ClientConnection = (*configv1alpha1.ClientConnectionConfiguration)(unsafe.Pointer(in.ClientConnection))
 	out.MachineImageOwnerSecretRef = (*v1.SecretReference)(unsafe.Pointer(in.MachineImageOwnerSecretRef))
-	out.WhitelistedImageIDs = *(*[]string)(unsafe.Pointer(&in.WhitelistedImageIDs))
+	out.ToBeSharedImageIDs = *(*[]string)(unsafe.Pointer(&in.ToBeSharedImageIDs))
 	out.KubeAPIServer = (*KubeAPIServer)(unsafe.Pointer(in.KubeAPIServer))
 	if err := Convert_config_Service_To_v1alpha1_Service(&in.Service, &out.Service, s); err != nil {
 		return err

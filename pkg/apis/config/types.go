@@ -35,8 +35,8 @@ type ControllerConfiguration struct {
 	// MachineImageOwnerSecretRef is the secret reference which contains credential of AliCloud subaccount for customized images.
 	// We currently assume multiple customized images should always be under this account.
 	MachineImageOwnerSecretRef *corev1.SecretReference
-	// WhitelistedImageIDs specifies an array of image IDs that will bypass image sharing.
-	WhitelistedImageIDs []string
+	// ToBeSharedImageIDs specifies custom image IDs which need to be shared by shoots
+	ToBeSharedImageIDs []string
 	// KubeAPIServer is the KubeAPIServer configuration.
 	KubeAPIServer *KubeAPIServer
 	// Service is the service configuration

@@ -173,7 +173,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			metav1.AddToGroupVersion(scheme, machinev1alpha1.SchemeGroupVersion)
 
 			configFileOpts.Completed().ApplyMachineImageOwnerSecretRef(&alicloudinfrastructure.DefaultAddOptions.MachineImageOwnerSecretRef)
-			configFileOpts.Completed().ApplyWhitelistedImageIDs(&alicloudinfrastructure.DefaultAddOptions.WhitelistedImageIDs)
+			configFileOpts.Completed().ApplyToBeSharedImageIDs(&alicloudinfrastructure.DefaultAddOptions.ToBeSharedImageIDs)
 			configFileOpts.Completed().ApplyETCDStorage(&alicloudcontrolplaneexposure.DefaultAddOptions.ETCDStorage)
 			configFileOpts.Completed().ApplyKubeAPIServer(&alicloudcontrolplaneexposure.DefaultAddOptions.KubeAPIServer)
 			configFileOpts.Completed().ApplyService(&alicloudcontrolplaneexposure.DefaultAddOptions.Service)
