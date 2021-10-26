@@ -73,7 +73,7 @@ We currently assume multiple customized images should always be under this accou
 </tr>
 <tr>
 <td>
-<code>ToBeSharedImageIDs</code></br>
+<code>toBeSharedImageIDs</code></br>
 <em>
 []string
 </em>
