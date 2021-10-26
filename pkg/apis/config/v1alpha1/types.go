@@ -38,7 +38,7 @@ type ControllerConfiguration struct {
 	// We currently assume multiple customized images should always be under this account.
 	MachineImageOwnerSecretRef *corev1.SecretReference `json:"machineImageOwnerSecretRef,omitempty"`
 	// ToBeSharedImageIDs specifies custom image IDs which need to be shared by shoots
-	ToBeSharedImageIDs []string
+	ToBeSharedImageIDs []string `json:"toBeSharedImageIDs,omitempty"`
 	// KubeAPIServer is the KubeAPIServer configuration.
 	KubeAPIServer *KubeAPIServer `json:"kubeAPIServer,omitempty"`
 	// Service is the service configuration
