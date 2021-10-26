@@ -133,10 +133,13 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				"internetMaxBandwidthIn":  5,
 				"internetMaxBandwidthOut": 5,
 				"spotStrategy":            "NoSpot",
-				"tags": map[string]string{
-					fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace):     "1",
-					fmt.Sprintf("kubernetes.io/role/worker/%s", w.worker.Namespace): "1",
-				},
+				"tags": utils.MergeStringMaps(
+					map[string]string{
+						fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace):     "1",
+						fmt.Sprintf("kubernetes.io/role/worker/%s", w.worker.Namespace): "1",
+					},
+					pool.Labels,
+				),
 				"secret": map[string]interface{}{
 					"userData": string(pool.UserData),
 				},
