@@ -75,7 +75,7 @@ config:
 #    name: machine-image-owner
 #    accessKeyID: ZHVtbXk=
 #    accessKeySecret: ZHVtbXk=
-#  whitelistedImageIDs:
+#  toBeSharedImageIDs:
 #  - image-id1
 #  - image-id2
 #  ...
