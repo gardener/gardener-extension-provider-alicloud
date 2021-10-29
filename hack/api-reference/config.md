@@ -73,13 +73,13 @@ We currently assume multiple customized images should always be under this accou
 </tr>
 <tr>
 <td>
-<code>whitelistedImageIDs</code></br>
+<code>toBeSharedImageIDs</code></br>
 <em>
 []string
 </em>
 </td>
 <td>
-<p>WhitelistedImageIDs specifies an array of image IDs that will bypass image sharing.</p>
+<p>ToBeSharedImageIDs specifies custom image IDs which need to be shared by shoots</p>
 </td>
 </tr>
 <tr>

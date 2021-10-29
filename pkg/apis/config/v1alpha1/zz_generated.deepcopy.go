@@ -41,8 +41,8 @@ func (in *ControllerConfiguration) DeepCopyInto(out *ControllerConfiguration) {
 		*out = new(v1.SecretReference)
 		**out = **in
 	}
-	if in.WhitelistedImageIDs != nil {
-		in, out := &in.WhitelistedImageIDs, &out.WhitelistedImageIDs
+	if in.ToBeSharedImageIDs != nil {
+		in, out := &in.ToBeSharedImageIDs, &out.ToBeSharedImageIDs
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

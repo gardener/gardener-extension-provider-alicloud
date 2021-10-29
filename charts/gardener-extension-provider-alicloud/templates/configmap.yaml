@@ -28,9 +28,9 @@ data:
 {{- end }}
     service:
       backendLoadBalancerSpec: {{ .Values.config.service.backendLoadBalancerSpec }}
-{{- if .Values.config.whitelistedImageIDs }}
-    whitelistedImageIDs:
-    {{- range .Values.config.whitelistedImageIDs }}
+{{- if .Values.config.toBeSharedImageIDs }}
+    toBeSharedImageIDs:
+    {{- range .Values.config.toBeSharedImageIDs }}
     - {{ . | quote }}
     {{- end }}
 {{- end }}

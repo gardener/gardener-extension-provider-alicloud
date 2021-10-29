@@ -82,10 +82,10 @@ func (c *Config) ApplyMachineImageOwnerSecretRef(secretRef **corev1.SecretRefere
 	}
 }
 
-// ApplyWhitelistedImageIDs sets whitelisted image IDs to those of this Config
-func (c *Config) ApplyWhitelistedImageIDs(whitelistedImageIDs *[]string) {
-	if c.Config.WhitelistedImageIDs != nil {
-		*whitelistedImageIDs = c.Config.WhitelistedImageIDs
+// ApplyToBeSharedImageIDs sets toBeSharedImageIDs image IDs to those of this Config
+func (c *Config) ApplyToBeSharedImageIDs(toBeSharedImageIDs *[]string) {
+	if c.Config.ToBeSharedImageIDs != nil {
+		*toBeSharedImageIDs = c.Config.ToBeSharedImageIDs
 	}
 }
 
