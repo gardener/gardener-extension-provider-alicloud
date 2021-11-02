@@ -22,11 +22,12 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 	gcorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/retry"
+
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 )
 
 // CopyImageROSTemplate contains the content of CopyImage ROS template. https://www.alibabacloud.com/help/doc-detail/116189.htm?spm=a2c63.l28256.b99.201.713413a3FkLSIx
@@ -126,6 +127,7 @@ func (ie *imageEncryptor) createStack() (string, error) {
 
 	stackRequest := ros.CreateCreateStackRequest()
 	stackRequest.StackName = stackName
+	stackRequest.TimeoutInMinutes = "120"
 	stackRequest.TemplateBody = CopyImageROSTemplate
 	stackRequest.Tags = &[]ros.Tag{
 		{
