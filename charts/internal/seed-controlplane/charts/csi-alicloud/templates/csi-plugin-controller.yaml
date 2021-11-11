@@ -38,8 +38,14 @@ spec:
         - "--run-as-controller=true"
         - "--v=5"
         env:
+{{- if .Values.enableADController }}
+        - name: DISK_AD_CONTROLLER
+          value: {{ .Values.enableADController | quote }}
+{{- end }}
         - name: CSI_ENDPOINT
           value: unix://var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock
+        - name: SERVICE_TYPE
+          value: provisioner
         - name: REGION_ID
           value: {{ .Values.regionID }}
         - name: ACCESS_KEY_ID

@@ -11,6 +11,8 @@ images:
   csi-resizer: repository:tag
   csi-liveness-probe: repository:tag
 
+enableADController: true
+
 csiPluginController:
   snapshotPrefix: ""
   persistentVolumePrefix: ""

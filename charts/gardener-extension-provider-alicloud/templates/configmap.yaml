@@ -34,6 +34,10 @@ data:
     - {{ . | quote }}
     {{- end }}
 {{- end }}
+{{- if .Values.config.csi }}
+    csi:
+      enableADController: {{ .Values.config.csi.enableADController }}
+{{- end }}
     etcd:
       storage:
         className: {{ .Values.config.etcd.storage.className }}

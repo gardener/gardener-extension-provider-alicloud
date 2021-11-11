@@ -24,6 +24,8 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -268,9 +270,10 @@ var storageClassChart = &chart.Chart{
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(logger logr.Logger) genericactuator.ValuesProvider {
+func NewValuesProvider(logger logr.Logger, csi config.CSI) genericactuator.ValuesProvider {
 	return &valuesProvider{
 		logger: logger.WithName("alicloud-values-provider"),
+		csi:    csi,
 	}
 }
 
@@ -279,6 +282,7 @@ type valuesProvider struct {
 	genericactuator.NoopValuesProvider
 	common.ClientContext
 	logger logr.Logger
+	csi    config.CSI
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -322,7 +326,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	}
 
 	// Get control plane shoot chart values
-	return getControlPlaneShootChartValues(cluster, credentials)
+	return vp.getControlPlaneShootChartValues(cluster, credentials)
 }
 
 // GetControlPlaneShootCRDsChartValues returns the values for the control plane shoot CRDs chart applied by the generic actuator.
@@ -425,9 +429,10 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"cloudConfig": ccmConfig,
 		},
 		"csi-alicloud": map[string]interface{}{
-			"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-			"regionID":          cp.Spec.Region,
-			"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+			"kubernetesVersion":  cluster.Shoot.Spec.Kubernetes.Version,
+			"regionID":           cp.Spec.Region,
+			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+			"enableADController": vp.enableCSIADController(),
 			"csiPluginController": map[string]interface{}{
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
@@ -454,8 +459,12 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 	return values, nil
 }
 
+func (vp *valuesProvider) enableCSIADController() bool {
+	return vp.csi.EnableADController == nil || *vp.csi.EnableADController
+}
+
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
-func getControlPlaneShootChartValues(
+func (vp *valuesProvider) getControlPlaneShootChartValues(
 	cluster *extensionscontroller.Cluster,
 	credentials *alicloud.Credentials,
 ) (map[string]interface{}, error) {
@@ -465,8 +474,9 @@ func getControlPlaneShootChartValues(
 				"accessKeyID":     base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeyID)),
 				"accessKeySecret": base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret)),
 			},
-			"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-			"vpaEnabled":        gardencorev1beta1helper.ShootWantsVerticalPodAutoscaler(cluster.Shoot),
+			"kubernetesVersion":  cluster.Shoot.Spec.Kubernetes.Version,
+			"enableADController": vp.enableCSIADController(),
+			"vpaEnabled":         gardencorev1beta1helper.ShootWantsVerticalPodAutoscaler(cluster.Shoot),
 		},
 	}
 

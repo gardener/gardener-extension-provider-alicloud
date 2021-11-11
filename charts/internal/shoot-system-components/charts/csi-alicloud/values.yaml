@@ -9,6 +9,8 @@ credential:
 kubernetesVersion: v1.15.0
 vpaEnabled: false
 
+enableADController: true
+
 resources:
   driver:
     requests:

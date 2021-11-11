@@ -135,6 +135,51 @@ github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config/v1alph
 <p>HealthCheckConfig is the config for the health check controller</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>csi</code></br>
+<em>
+<a href="#alicloud.provider.extensions.config.gardener.cloud/v1alpha1.CSI">
+CSI
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CSI is the config for CSI plugin components</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="alicloud.provider.extensions.config.gardener.cloud/v1alpha1.CSI">CSI
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#alicloud.provider.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration</a>)
+</p>
+<p>
+<p>CSI is csi components configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>enableADController</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnableADController enables disks to be attached/detached from csi-provisioner</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="alicloud.provider.extensions.config.gardener.cloud/v1alpha1.ETCD">ETCD

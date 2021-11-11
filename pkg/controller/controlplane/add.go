@@ -16,6 +16,7 @@ package controlplane
 
 import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane"
@@ -42,6 +43,8 @@ type AddOptions struct {
 	IgnoreOperationAnnotation bool
 	// ShootWebhooks specifies the list of desired shoot MutatingWebhooks.
 	ShootWebhooks []admissionregistrationv1.MutatingWebhook
+	// CSI specifies the configuration for CSI components
+	CSI config.CSI
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
@@ -49,7 +52,7 @@ type AddOptions struct {
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Actuator: genericactuator.NewActuator(alicloud.Name, controlPlaneSecrets, nil, nil, controlPlaneChart, controlPlaneShootChart,
-			controlPlaneShootCRDsChart, storageClassChart, nil, NewValuesProvider(logger), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
+			controlPlaneShootCRDsChart, storageClassChart, nil, NewValuesProvider(logger, opts.CSI), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(opts.IgnoreOperationAnnotation),

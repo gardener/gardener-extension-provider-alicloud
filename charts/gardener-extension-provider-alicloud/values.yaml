@@ -75,6 +75,8 @@ config:
 #    name: machine-image-owner
 #    accessKeyID: ZHVtbXk=
 #    accessKeySecret: ZHVtbXk=
+#  csi
+#    enableADController: true
 #  toBeSharedImageIDs:
 #  - image-id1
 #  - image-id2

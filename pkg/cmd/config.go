@@ -124,3 +124,10 @@ func (c *Config) ApplyHealthCheckConfig(config *healthcheckconfig.HealthCheckCon
 		*config = *c.Config.HealthCheckConfig
 	}
 }
+
+// ApplyCSI applies the ApplyCSI to the config
+func (c *Config) ApplyCSI(csi *config.CSI) {
+	if c.Config.CSI != nil {
+		*csi = *c.Config.CSI
+	}
+}
