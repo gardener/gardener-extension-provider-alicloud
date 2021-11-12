@@ -39,27 +39,30 @@ func (f *clientFactory) NewDNSClient(region, accessKeyID, accessKeySecret string
 	}, nil
 }
 
-// GetDomainNames returns a list of all domain names.
-func (d *dnsClient) GetDomainNames(ctx context.Context) ([]string, error) {
-	var domains []string
-	pageSize, pageNumber := 20, 1
-	req := alidns.CreateDescribeDomainsRequest()
-	req.PageSize = requests.NewInteger(pageSize)
-	for {
-		req.PageNumber = requests.NewInteger(pageNumber)
-		resp, err := d.Client.DescribeDomains(req)
-		if err != nil {
-			return nil, err
-		}
-		for _, domain := range resp.Domains.Domain {
-			domains = append(domains, domain.DomainName)
-		}
-		if resp.PageNumber*int64(pageSize) >= resp.TotalCount {
-			break
-		}
-		pageNumber++
+// GetDomainNames returns a map of all domain names mapped to their composite domain names.
+func (d *dnsClient) GetDomainNames(ctx context.Context) (map[string]string, error) {
+	domains, err := d.getDomains()
+	if err != nil {
+		return nil, err
 	}
-	return domains, nil
+	domainNames := make(map[string]string)
+	for _, domain := range domains {
+		domainNames[domain.DomainName] = CompositeDomainName(domain.DomainName, domain.DomainId)
+	}
+	return domainNames, nil
+}
+
+// GetDomainName returns the composite domain name of the domain with the given domain id.
+func (d *dnsClient) GetDomainName(ctx context.Context, domainId string) (string, error) {
+	domains, err := d.getDomains()
+	if err != nil {
+		return "", err
+	}
+	domain, ok := domains[domainId]
+	if !ok {
+		return "", fmt.Errorf("DNS domain with id %s not found", domainId)
+	}
+	return CompositeDomainName(domain.DomainName, domain.DomainId), nil
 }
 
 // CreateOrUpdateDomainRecords creates or updates the domain records with the given domain name, name, record type,
@@ -68,6 +71,7 @@ func (d *dnsClient) GetDomainNames(ctx context.Context) ([]string, error) {
 // * For each element in values that doesn't have an existing domain record, a new domain record is created.
 // * For each existing domain record that doesn't have a corresponding element in values, the existing record is deleted.
 func (d *dnsClient) CreateOrUpdateDomainRecords(ctx context.Context, domainName, name, recordType string, values []string, ttl int64) error {
+	domainName, _ = DomainNameAndId(domainName)
 	rr, err := getRR(name, domainName)
 	if err != nil {
 		return err
@@ -103,6 +107,7 @@ func (d *dnsClient) CreateOrUpdateDomainRecords(ctx context.Context, domainName,
 
 // DeleteDomainRecords deletes the domain records with the given domain name, name and record type.
 func (d *dnsClient) DeleteDomainRecords(ctx context.Context, domainName, name, recordType string) error {
+	domainName, _ = DomainNameAndId(domainName)
 	rr, err := getRR(name, domainName)
 	if err != nil {
 		return err
@@ -117,6 +122,29 @@ func (d *dnsClient) DeleteDomainRecords(ctx context.Context, domainName, name, r
 		}
 	}
 	return nil
+}
+
+// getDomains returns all domains.
+func (d *dnsClient) getDomains() (map[string]alidns.Domain, error) {
+	domains := make(map[string]alidns.Domain)
+	pageSize, pageNumber := 20, 1
+	req := alidns.CreateDescribeDomainsRequest()
+	req.PageSize = requests.NewInteger(pageSize)
+	for {
+		req.PageNumber = requests.NewInteger(pageNumber)
+		resp, err := d.Client.DescribeDomains(req)
+		if err != nil {
+			return nil, err
+		}
+		for _, domain := range resp.Domains.Domain {
+			domains[domain.DomainId] = domain
+		}
+		if resp.PageNumber*int64(pageSize) >= resp.TotalCount {
+			break
+		}
+		pageNumber++
+	}
+	return domains, nil
 }
 
 // getDomainRecords returns the domain records with the given domain name, rr, and record type.
@@ -194,4 +222,22 @@ func isDomainRecordDoesNotExistError(err error) bool {
 		}
 	}
 	return false
+}
+
+// CompositeDomainName composes and returns a composite domain name from the given domain name and id,
+// in the format <domainName>:<domainId>
+func CompositeDomainName(domainName, domainId string) string {
+	if domainId != "" {
+		return domainName + ":" + domainId
+	}
+	return domainName
+}
+
+// DomainNameAndId decomposes the given composite domain name in the format <domainName>:<domainId>
+// into its constituent domain name and id.
+func DomainNameAndId(compositeDomainName string) (string, string) {
+	if parts := strings.Split(compositeDomainName, ":"); len(parts) == 2 {
+		return parts[0], parts[1]
+	}
+	return compositeDomainName, ""
 }

@@ -65,11 +65,26 @@ func (mr *MockDNSMockRecorder) DeleteDomainRecords(arg0, arg1, arg2, arg3 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDomainRecords", reflect.TypeOf((*MockDNS)(nil).DeleteDomainRecords), arg0, arg1, arg2, arg3)
 }
 
+// GetDomainName mocks base method.
+func (m *MockDNS) GetDomainName(arg0 context.Context, arg1 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDomainName", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDomainName indicates an expected call of GetDomainName.
+func (mr *MockDNSMockRecorder) GetDomainName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDomainName", reflect.TypeOf((*MockDNS)(nil).GetDomainName), arg0, arg1)
+}
+
 // GetDomainNames mocks base method.
-func (m *MockDNS) GetDomainNames(arg0 context.Context) ([]string, error) {
+func (m *MockDNS) GetDomainNames(arg0 context.Context) (map[string]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDomainNames", arg0)
-	ret0, _ := ret[0].([]string)
+	ret0, _ := ret[0].(map[string]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

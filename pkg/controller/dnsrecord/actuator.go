@@ -17,6 +17,7 @@ package dnsrecord
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -144,8 +145,21 @@ func (a *actuator) Migrate(ctx context.Context, dns *extensionsv1alpha1.DNSRecor
 
 func (a *actuator) getDomainName(ctx context.Context, dns *extensionsv1alpha1.DNSRecord, dnsClient alicloudclient.DNS) (string, error) {
 	switch {
-	case dns.Spec.Zone != nil && *dns.Spec.Zone != "":
-		return *dns.Spec.Zone, nil
+	case dns.Spec.Zone != nil && *dns.Spec.Zone != "" && (dns.Status.Zone == nil || *dns.Status.Zone == "" || !zoneMatchesDomainName(*dns.Spec.Zone, *dns.Status.Zone)):
+		if isDomainName(*dns.Spec.Zone) {
+			return *dns.Spec.Zone, nil
+		}
+		// The value specified in dns.Spec.Zone is not a domain name, so assume it's a domain id,
+		// and try to determine the domain name by getting the name of the domain with this id
+		domainName, err := dnsClient.GetDomainName(ctx, *dns.Spec.Zone)
+		if err != nil {
+			return "", &controllererror.RequeueAfterError{
+				Cause:        fmt.Errorf("could not get DNS domain name for domain id %s: %+v", *dns.Spec.Zone, err),
+				RequeueAfter: requeueAfterOnProviderError,
+			}
+		}
+		a.logger.Info("Got DNS domain name", "domainName", domainName, "dnsrecord", kutil.ObjectName(dns))
+		return domainName, nil
 	case dns.Status.Zone != nil && *dns.Status.Zone != "":
 		return *dns.Status.Zone, nil
 	default:
@@ -159,12 +173,25 @@ func (a *actuator) getDomainName(ctx context.Context, dns *extensionsv1alpha1.DN
 			}
 		}
 		a.logger.Info("Got DNS domain names", "domainNames", domainNames, "dnsrecord", kutil.ObjectName(dns))
-		domainName := dnsrecord.FindZoneForName(toMap(domainNames), dns.Spec.Name)
+		domainName := dnsrecord.FindZoneForName(domainNames, dns.Spec.Name)
 		if domainName == "" {
 			return "", fmt.Errorf("could not find DNS domain name for name %s", dns.Spec.Name)
 		}
 		return domainName, nil
 	}
+}
+
+func zoneMatchesDomainName(zone, domainName string) bool {
+	domainName, domainId := alicloudclient.DomainNameAndId(domainName)
+	if isDomainName(zone) {
+		return zone == domainName
+	}
+	return zone == domainId
+}
+
+// isDomainName returns true if the given zone contains at least one dot, false otherwise.
+func isDomainName(zone string) bool {
+	return strings.Contains(zone, ".")
 }
 
 func getRegion(dns *extensionsv1alpha1.DNSRecord) string {
@@ -174,12 +201,4 @@ func getRegion(dns *extensionsv1alpha1.DNSRecord) string {
 	default:
 		return alicloud.DefaultDNSRegion
 	}
-}
-
-func toMap(ss []string) map[string]string {
-	m := make(map[string]string)
-	for _, s := range ss {
-		m[s] = s
-	}
-	return m
 }

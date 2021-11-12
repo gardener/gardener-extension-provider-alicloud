@@ -157,7 +157,8 @@ type dnsClient struct {
 
 // DNS is an interface which declares DNS related methods.
 type DNS interface {
-	GetDomainNames(context.Context) ([]string, error)
+	GetDomainNames(context.Context) (map[string]string, error)
+	GetDomainName(context.Context, string) (string, error)
 	CreateOrUpdateDomainRecords(context.Context, string, string, string, []string, int64) error
 	DeleteDomainRecords(context.Context, string, string, string) error
 }
