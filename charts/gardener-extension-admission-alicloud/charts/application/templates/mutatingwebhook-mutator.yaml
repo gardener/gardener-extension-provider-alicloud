@@ -25,7 +25,7 @@ webhooks:
       name: {{ include "name" . }}
       path: /webhooks/mutate/shoots
     {{- end }}
-    caBundle: {{ required ".Values.webhookConfig.caBundle is required" (b64enc .Values.global.webhookConfig.caBundle) }}
+    caBundle: {{ required ".Values.global.webhookConfig.caBundle is required" .Values.global.webhookConfig.caBundle | b64enc }}
   failurePolicy: Fail
   matchPolicy: Equivalent
   namespaceSelector: {}
