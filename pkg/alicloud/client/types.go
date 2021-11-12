@@ -25,6 +25,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
+	"k8s.io/apimachinery/pkg/util/cache"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -153,6 +154,8 @@ type VPCInfo struct {
 // dnsClient implements the DNS interface.
 type dnsClient struct {
 	alidns.Client
+	accessKeyID  string
+	domainsCache *cache.Expiring
 }
 
 // DNS is an interface which declares DNS related methods.

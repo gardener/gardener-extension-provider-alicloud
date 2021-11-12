@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 
@@ -25,6 +26,10 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/gardener/gardener/pkg/utils"
+)
+
+const (
+	domainsCacheTTL = 1 * time.Hour
 )
 
 // NewDNSClient creates a new DNS client with given region, accessKeyID, and accessKeySecret.
@@ -35,13 +40,15 @@ func (f *clientFactory) NewDNSClient(region, accessKeyID, accessKeySecret string
 	}
 
 	return &dnsClient{
-		*client,
+		Client:       *client,
+		accessKeyID:  accessKeyID,
+		domainsCache: f.domainsCache,
 	}, nil
 }
 
 // GetDomainNames returns a map of all domain names mapped to their composite domain names.
 func (d *dnsClient) GetDomainNames(ctx context.Context) (map[string]string, error) {
-	domains, err := d.getDomains()
+	domains, err := d.getDomainsWithCache()
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +61,7 @@ func (d *dnsClient) GetDomainNames(ctx context.Context) (map[string]string, erro
 
 // GetDomainName returns the composite domain name of the domain with the given domain id.
 func (d *dnsClient) GetDomainName(ctx context.Context, domainId string) (string, error) {
-	domains, err := d.getDomains()
+	domains, err := d.getDomainsWithCache()
 	if err != nil {
 		return "", err
 	}
@@ -122,6 +129,18 @@ func (d *dnsClient) DeleteDomainRecords(ctx context.Context, domainName, name, r
 		}
 	}
 	return nil
+}
+
+func (d *dnsClient) getDomainsWithCache() (map[string]alidns.Domain, error) {
+	if v, ok := d.domainsCache.Get(d.accessKeyID); ok {
+		return v.(map[string]alidns.Domain), nil
+	}
+	domains, err := d.getDomains()
+	if err != nil {
+		return nil, err
+	}
+	d.domainsCache.Set(d.accessKeyID, domains, domainsCacheTTL)
+	return domains, nil
 }
 
 // getDomains returns all domains.
