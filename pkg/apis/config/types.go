@@ -45,6 +45,8 @@ type ControllerConfiguration struct {
 	ETCD ETCD
 	// HealthCheckConfig is the config for the health check controller
 	HealthCheckConfig *healthcheckconfig.HealthCheckConfig
+	// CSI is the config for CSI plugin components
+	CSI *CSI
 }
 
 // KubeAPIServer is a KubeAPIServer configuration.
@@ -79,4 +81,10 @@ type ETCDStorage struct {
 type ETCDBackup struct {
 	// Schedule is the etcd backup schedule.
 	Schedule *string
+}
+
+// CSI is csi components configuration.
+type CSI struct {
+	// EnableADController enables disks to be attached/detached from csi-attacher
+	EnableADController *bool
 }

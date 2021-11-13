@@ -48,6 +48,9 @@ type ControllerConfiguration struct {
 	// HealthCheckConfig is the config for the health check controller
 	// +optional
 	HealthCheckConfig *healthcheckconfigv1alpha1.HealthCheckConfig `json:"healthCheckConfig,omitempty"`
+	// CSI is the config for CSI plugin components
+	// +optional
+	CSI *CSI `json:"csi,omitempty"`
 }
 
 // KubeAPIServer is a KubeAPIServer configuration.
@@ -85,4 +88,11 @@ type ETCDBackup struct {
 	// Schedule is the etcd backup schedule.
 	// +optional
 	Schedule *string `json:"schedule,omitempty"`
+}
+
+// CSI is csi components configuration.
+type CSI struct {
+	// EnableADController enables disks to be attached/detached from csi-provisioner
+	// +optional
+	EnableADController *bool `json:"enableADController,omitempty"`
 }

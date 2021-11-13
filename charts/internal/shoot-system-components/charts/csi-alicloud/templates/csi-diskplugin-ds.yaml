@@ -39,6 +39,10 @@ spec:
         - "--csi-address=/csi/csi.sock"
         - --kubelet-registration-path=/var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock
         env:
+{{- if .Values.enableADController }}
+        - name: DISK_AD_CONTROLLER
+          value: {{ .Values.enableADController | quote }}
+{{- end }}
         - name: KUBE_NODE_NAME
           valueFrom:
             fieldRef:

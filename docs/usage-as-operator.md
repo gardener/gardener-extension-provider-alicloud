@@ -107,64 +107,54 @@ machineImageOwnerSecret:
 
 As a result, a Secret named `machine-image-owner` by default will be created in namespace of Alicloud provider extension.
 
-Operators can also configure a whitelist of machine image IDs that are not to be shared with end-users as below:
+Operators should also maintain custom image IDs which are to be shared with end-users as below:
 
 ```yaml
-whitelistedImageIDs:
+toBeSharedImageIDs:
 - <image_id_1>
 - <image_id_2>
 - <image_id_3>
 ```
 
-### Example `ControllerRegistration` manifest for enabling customized machine images
+### Example `ControllerDeployment` manifest for enabling customized machine images
 
 ```yaml
 apiVersion: core.gardener.cloud/v1beta1
-kind: ControllerRegistration
+kind: ControllerDeployment
 metadata:
   name: extension-provider-alicloud
 spec:
-  deployment:
-    type: helm
-    providerConfig:
-      chart: |
-        H4sIFAAAAAAA/yk...
-      values:
-        config:
-          machineImageOwnerSecret:
-            accessKeyID: <base64_encoded_access_key_id>
-            accessKeySecret: <base64_encoded_access_key_secret>
-          whitelistedImageIDs:
-          - <image_id_1>
-          - <image_id_2>
+  type: helm
+   providerConfig:
+    chart: |
+      H4sIFAAAAAAA/yk...
+    values:
+      config:
+        machineImageOwnerSecret:
+          accessKeyID: <base64_encoded_access_key_id>
+          accessKeySecret: <base64_encoded_access_key_secret>
+        toBeSharedImageIDs:
+        - <image_id_1>
+        - <image_id_2>
+        ...
+        machineImages:
+        - name: customized_coreos
+          regions:
+          - imageID: <image_id_in_eu_central_1>
+            region: eu-central-1
+          - imageID: <image_id_in_cn_shanghai>
+            region: cn-shanghai
           ...
-          machineImages:
-          - name: customized_coreos
-            regions:
-            - imageID: <image_id_in_eu_central_1>
-              region: eu-central-1
-            - imageID: <image_id_in_cn_shanghai>
-              region: cn-shanghai
-            ...
-            version: 2191.4.1
-          ...
-        resources:
-          limits:
-            cpu: 500m
-            memory: 1Gi
-          requests:
-            memory: 128Mi
-  resources:
-  - kind: BackupBucket
-    type: alicloud
-  - kind: BackupEntry
-    type: alicloud
-  - kind: ControlPlane
-    type: alicloud
-  - kind: Infrastructure
-    type: alicloud
-  - kind: Worker
-    type: alicloud
+          version: 2191.4.1
+        ...
+        csi:
+          enableADController: true
+      resources:
+        limits:
+          cpu: 500m
+          memory: 1Gi
+        requests:
+          memory: 128Mi
 ```
 
 ## `Seed` resource

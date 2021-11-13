@@ -179,6 +179,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			configFileOpts.Completed().ApplyService(&alicloudcontrolplaneexposure.DefaultAddOptions.Service)
 			configFileOpts.Completed().ApplyService(&shoot.DefaultAddOptions.Service)
 			configFileOpts.Completed().ApplyHealthCheckConfig(&healthcheck.DefaultAddOptions.HealthCheckConfig)
+			configFileOpts.Completed().ApplyCSI(&alicloudcontrolplane.DefaultAddOptions.CSI)
 			healthCheckCtrlOpts.Completed().Apply(&healthcheck.DefaultAddOptions.Controller)
 			backupBucketCtrlOpts.Completed().Apply(&alicloudbackupbucket.DefaultAddOptions.Controller)
 			backupEntryCtrlOpts.Completed().Apply(&alicloudbackupentry.DefaultAddOptions.Controller)
