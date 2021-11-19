@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
@@ -154,8 +155,9 @@ type VPCInfo struct {
 // dnsClient implements the DNS interface.
 type dnsClient struct {
 	alidns.Client
-	accessKeyID  string
-	domainsCache *cache.Expiring
+	accessKeyID       string
+	domainsCache      *cache.Expiring
+	domainsCacheMutex *sync.Mutex
 }
 
 // DNS is an interface which declares DNS related methods.

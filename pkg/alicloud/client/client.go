@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -43,7 +44,8 @@ func ComputeStorageEndpoint(region string) string {
 }
 
 type clientFactory struct {
-	domainsCache *cache.Expiring
+	domainsCache      *cache.Expiring
+	domainsCacheMutex sync.Mutex
 }
 
 // NewClientFactory creates a new clientFactory instance that can be used to instantiate Alicloud clients.

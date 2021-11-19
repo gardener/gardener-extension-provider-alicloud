@@ -40,9 +40,10 @@ func (f *clientFactory) NewDNSClient(region, accessKeyID, accessKeySecret string
 	}
 
 	return &dnsClient{
-		Client:       *client,
-		accessKeyID:  accessKeyID,
-		domainsCache: f.domainsCache,
+		Client:            *client,
+		accessKeyID:       accessKeyID,
+		domainsCache:      f.domainsCache,
+		domainsCacheMutex: &f.domainsCacheMutex,
 	}, nil
 }
 
@@ -132,6 +133,15 @@ func (d *dnsClient) DeleteDomainRecords(ctx context.Context, domainName, name, r
 }
 
 func (d *dnsClient) getDomainsWithCache() (map[string]alidns.Domain, error) {
+	// cache.Expiring Get and Set methods are concurrency-safe.
+	// However, if an accessKeyID is not present in the cache and multiple DNSRecords are reconciled at the same time,
+	// it may happen that getDomains is called multiple times instead of just one, so use a mutex to guard against this.
+	// It is ok to use a shared mutex here as far as the number of accessKeyIDs using custom domains is low.
+	// This may need to be revisited with a larger number of such accessKeyIDs to avoid them blocking each other
+	// during the (potentially long-running) call to getDomains.
+	d.domainsCacheMutex.Lock()
+	defer d.domainsCacheMutex.Unlock()
+
 	if v, ok := d.domainsCache.Get(d.accessKeyID); ok {
 		return v.(map[string]alidns.Domain), nil
 	}
