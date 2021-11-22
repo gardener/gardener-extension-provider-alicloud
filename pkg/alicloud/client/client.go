@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -30,6 +31,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -41,11 +43,16 @@ func ComputeStorageEndpoint(region string) string {
 	return fmt.Sprintf("https://oss-%s.aliyuncs.com/", region)
 }
 
-type clientFactory struct{}
+type clientFactory struct {
+	domainsCache      *cache.Expiring
+	domainsCacheMutex sync.Mutex
+}
 
 // NewClientFactory creates a new clientFactory instance that can be used to instantiate Alicloud clients.
 func NewClientFactory() ClientFactory {
-	return &clientFactory{}
+	return &clientFactory{
+		domainsCache: cache.NewExpiring(),
+	}
 }
 
 // NewOSSClient creates an new OSS client with given endpoint, accessKeyID, and accessKeySecret.

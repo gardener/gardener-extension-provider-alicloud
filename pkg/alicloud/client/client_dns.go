@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 
@@ -25,6 +26,10 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/gardener/gardener/pkg/utils"
+)
+
+const (
+	domainsCacheTTL = 1 * time.Hour
 )
 
 // NewDNSClient creates a new DNS client with given region, accessKeyID, and accessKeySecret.
@@ -35,31 +40,37 @@ func (f *clientFactory) NewDNSClient(region, accessKeyID, accessKeySecret string
 	}
 
 	return &dnsClient{
-		*client,
+		Client:            *client,
+		accessKeyID:       accessKeyID,
+		domainsCache:      f.domainsCache,
+		domainsCacheMutex: &f.domainsCacheMutex,
 	}, nil
 }
 
-// GetDomainNames returns a list of all domain names.
-func (d *dnsClient) GetDomainNames(ctx context.Context) ([]string, error) {
-	var domains []string
-	pageSize, pageNumber := 20, 1
-	req := alidns.CreateDescribeDomainsRequest()
-	req.PageSize = requests.NewInteger(pageSize)
-	for {
-		req.PageNumber = requests.NewInteger(pageNumber)
-		resp, err := d.Client.DescribeDomains(req)
-		if err != nil {
-			return nil, err
-		}
-		for _, domain := range resp.Domains.Domain {
-			domains = append(domains, domain.DomainName)
-		}
-		if resp.PageNumber*int64(pageSize) >= resp.TotalCount {
-			break
-		}
-		pageNumber++
+// GetDomainNames returns a map of all domain names mapped to their composite domain names.
+func (d *dnsClient) GetDomainNames(ctx context.Context) (map[string]string, error) {
+	domains, err := d.getDomainsWithCache()
+	if err != nil {
+		return nil, err
 	}
-	return domains, nil
+	domainNames := make(map[string]string)
+	for _, domain := range domains {
+		domainNames[domain.DomainName] = CompositeDomainName(domain.DomainName, domain.DomainId)
+	}
+	return domainNames, nil
+}
+
+// GetDomainName returns the composite domain name of the domain with the given domain id.
+func (d *dnsClient) GetDomainName(ctx context.Context, domainId string) (string, error) {
+	domains, err := d.getDomainsWithCache()
+	if err != nil {
+		return "", err
+	}
+	domain, ok := domains[domainId]
+	if !ok {
+		return "", fmt.Errorf("DNS domain with id %s not found", domainId)
+	}
+	return CompositeDomainName(domain.DomainName, domain.DomainId), nil
 }
 
 // CreateOrUpdateDomainRecords creates or updates the domain records with the given domain name, name, record type,
@@ -68,6 +79,7 @@ func (d *dnsClient) GetDomainNames(ctx context.Context) ([]string, error) {
 // * For each element in values that doesn't have an existing domain record, a new domain record is created.
 // * For each existing domain record that doesn't have a corresponding element in values, the existing record is deleted.
 func (d *dnsClient) CreateOrUpdateDomainRecords(ctx context.Context, domainName, name, recordType string, values []string, ttl int64) error {
+	domainName, _ = DomainNameAndId(domainName)
 	rr, err := getRR(name, domainName)
 	if err != nil {
 		return err
@@ -103,6 +115,7 @@ func (d *dnsClient) CreateOrUpdateDomainRecords(ctx context.Context, domainName,
 
 // DeleteDomainRecords deletes the domain records with the given domain name, name and record type.
 func (d *dnsClient) DeleteDomainRecords(ctx context.Context, domainName, name, recordType string) error {
+	domainName, _ = DomainNameAndId(domainName)
 	rr, err := getRR(name, domainName)
 	if err != nil {
 		return err
@@ -117,6 +130,50 @@ func (d *dnsClient) DeleteDomainRecords(ctx context.Context, domainName, name, r
 		}
 	}
 	return nil
+}
+
+func (d *dnsClient) getDomainsWithCache() (map[string]alidns.Domain, error) {
+	// cache.Expiring Get and Set methods are concurrency-safe.
+	// However, if an accessKeyID is not present in the cache and multiple DNSRecords are reconciled at the same time,
+	// it may happen that getDomains is called multiple times instead of just one, so use a mutex to guard against this.
+	// It is ok to use a shared mutex here as far as the number of accessKeyIDs using custom domains is low.
+	// This may need to be revisited with a larger number of such accessKeyIDs to avoid them blocking each other
+	// during the (potentially long-running) call to getDomains.
+	d.domainsCacheMutex.Lock()
+	defer d.domainsCacheMutex.Unlock()
+
+	if v, ok := d.domainsCache.Get(d.accessKeyID); ok {
+		return v.(map[string]alidns.Domain), nil
+	}
+	domains, err := d.getDomains()
+	if err != nil {
+		return nil, err
+	}
+	d.domainsCache.Set(d.accessKeyID, domains, domainsCacheTTL)
+	return domains, nil
+}
+
+// getDomains returns all domains.
+func (d *dnsClient) getDomains() (map[string]alidns.Domain, error) {
+	domains := make(map[string]alidns.Domain)
+	pageSize, pageNumber := 20, 1
+	req := alidns.CreateDescribeDomainsRequest()
+	req.PageSize = requests.NewInteger(pageSize)
+	for {
+		req.PageNumber = requests.NewInteger(pageNumber)
+		resp, err := d.Client.DescribeDomains(req)
+		if err != nil {
+			return nil, err
+		}
+		for _, domain := range resp.Domains.Domain {
+			domains[domain.DomainId] = domain
+		}
+		if resp.PageNumber*int64(pageSize) >= resp.TotalCount {
+			break
+		}
+		pageNumber++
+	}
+	return domains, nil
 }
 
 // getDomainRecords returns the domain records with the given domain name, rr, and record type.
@@ -194,4 +251,22 @@ func isDomainRecordDoesNotExistError(err error) bool {
 		}
 	}
 	return false
+}
+
+// CompositeDomainName composes and returns a composite domain name from the given domain name and id,
+// in the format <domainName>:<domainId>
+func CompositeDomainName(domainName, domainId string) string {
+	if domainId != "" {
+		return domainName + ":" + domainId
+	}
+	return domainName
+}
+
+// DomainNameAndId decomposes the given composite domain name in the format <domainName>:<domainId>
+// into its constituent domain name and id.
+func DomainNameAndId(compositeDomainName string) (string, string) {
+	if parts := strings.Split(compositeDomainName, ":"); len(parts) == 2 {
+		return parts[0], parts[1]
+	}
+	return compositeDomainName, ""
 }
