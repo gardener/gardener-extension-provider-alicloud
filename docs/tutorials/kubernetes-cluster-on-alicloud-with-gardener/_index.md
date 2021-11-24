@@ -24,11 +24,11 @@ Gardener allows you to create a Kubernetes cluster on different infrastructure p
 
 1. Choose *Secrets*, then the plus icon <img src="images/plus-icon.png"> and select *AliCloud*.
 
-    <img src="images/create-secret-alicloud.png">
+    <img src="images/alicloud-create-secret.png">
 
 1. To copy the policy for Alibaba Cloud from the Gardener dashboard, click on the help icon <img src="images/help-icon.png"> for Alibaba Cloud secrets, and choose copy <img src="images/copy-icon.png">.
 
-    <img src="images/gardener-copy-policy.png">
+    <img src="images/alicloud-copy-policy.png">
 
 1. Create a custom policy in Alibaba Cloud:
      1. Log on to your Alibaba account and choose *RAM* \> *Permissions* \> *Policies*. 
@@ -46,28 +46,28 @@ Gardener allows you to create a Kubernetes cluster on different infrastructure p
      1. Choose *RAM* \> *Users*.
      1. Choose *Create User*.
 
-          <img src="images/gardener-create-user.png">
+          <img src="images/alicloud-create-user.png">
 
      1. Enter a logon and display name for your user.
      1. Select *Open API Access*.
      1. Choose *OK*.
 
-          <img src="images/gardener-input-user.png">
+          <img src="images/alicloud-input-user.png">
 
      > After the user is created, `AccessKeyId` and `AccessKeySecret` are generated and displayed. Remember to save them. The `AccessKey` is used later to create secrets for Gardener.
 
-     <img src="images/gardener-user-created.png">
+     <img src="images/alicloud-user-created.png">
       
 1. Assign the policy you created to the technical user:
      1. Choose *RAM* \> *Permissions* \> *Grants*.
      1. Choose *Grant Permission*.
 
-          <img src="images/grant-permission.png">
+          <img src="images/alicloud-grant-permission.png">
 
      1. Select *Alibaba Cloud Account*. 
      1. Assign the policy you’ve created before to the technical user.
 
-          <img src="images/assign-policy.png">
+          <img src="images/alicloud-assign-policy.png">
 
 1. Create your secret.
 
@@ -82,7 +82,7 @@ Gardener allows you to create a Kubernetes cluster on different infrastructure p
 
 1. To create a new cluster, choose *Clusters* and then the plus sign in the upper right corner.
 
-    <img src="images/new-cluster.png">
+    <img src="images/alicloud-new-cluster.png">
 
 1. In the *Create Cluster* section:
     1. Select *AliCloud* in the *Infrastructure* tab.
