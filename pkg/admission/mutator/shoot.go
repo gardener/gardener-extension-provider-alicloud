@@ -22,6 +22,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -30,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -82,8 +84,7 @@ func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1bet
 				volume := &worker.DataVolumes[i]
 				if volume.Encrypted == nil {
 					logger.Info("set encrypted disk by default for data disk")
-					encrypted := true
-					volume.Encrypted = &encrypted
+					volume.Encrypted = pointer.BoolPtr(true)
 				}
 			}
 		}
@@ -97,8 +98,7 @@ func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1bet
 				continue
 			}
 			logger.Info("Customized Image is used and we set encrypted disk by default for system disk")
-			encrypted := true
-			worker.Volume.Encrypted = &encrypted
+			worker.Volume.Encrypted = pointer.BoolPtr(true)
 		}
 
 	}
@@ -131,8 +131,6 @@ func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1
 		secretRef = secretBinding.SecretRef.Name
 		secretKey = kutil.Key(secretBinding.SecretRef.Namespace, secretRef)
 	)
-	// Explicitly use the client.Reader to prevent controller-runtime to start Informer for Secrets
-	// under the hood. The latter increases the memory usage of the component.
 	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
 		return false, err
 	}
@@ -168,34 +166,15 @@ func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVe
 	if err := kutil.LookupObject(ctx, s.virtualGardenclient, s.apiReader, cloudProfileKey, cloudProfile); err != nil {
 		return imageId, err
 	}
-	//logger.Info("Got CloudProfile", "profile Detail", cloudProfile)
 	cloudProfileConfig, err := s.getCloudProfileConfig(cloudProfile)
 	if err != nil {
 		return imageId, err
 	}
-	//	logger.Info("Got CloudProfileConfig", "Config", cloudProfileConfig)
-	//	logger.Info("Images in Config", "Images", cloudProfileConfig.MachineImages)
-	for _, machineImage := range cloudProfileConfig.MachineImages {
-		name := machineImage.Name
-		if imageName == name {
-			versions := machineImage.Versions
-			for _, version := range versions {
-				if version.Version == *imageVersion {
-					regions := version.Regions
-					for _, region := range regions {
-						if region.Name == imageRegion {
-							imageId = region.ID
-						}
-					}
-				}
-			}
-		}
-	}
-	return imageId, nil
+	imageId, err = helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
+	return imageId, err
 }
 func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
 	var cloudProfileConfig *api.CloudProfileConfig = &api.CloudProfileConfig{}
-	//	logger.Info("ProvideConfig", "Raw", cloudProfile.Spec.ProviderConfig.Raw)
 	if _, _, err := s.decoder.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", kutil.ObjectName(cloudProfile), err)
 	}
