@@ -67,7 +67,7 @@ func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error
 		if !ok {
 			return fmt.Errorf("wrong object type %T for old object", old)
 		}
-		return s.mutateShootUpdate(oldShoot, shoot)
+		return s.mutateShootUpdate(ctx, oldShoot, shoot)
 	} else {
 		return s.mutateShootCreation(ctx, shoot)
 	}
@@ -76,31 +76,34 @@ func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error
 func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1beta1.Shoot) error {
 	logger.Info("Starting Shoot Creation Mutation")
 	for _, worker := range shoot.Spec.Provider.Workers {
-		imageName := worker.Machine.Image.Name
-		imageVersion := worker.Machine.Image.Version
-		logger.Info("Check ImageName: " + imageName + "; ImageVesion: " + *imageVersion)
-		if worker.DataVolumes != nil {
-			for i := range worker.DataVolumes {
-				volume := &worker.DataVolumes[i]
-				if volume.Encrypted == nil {
-					logger.Info("set encrypted disk by default for data disk")
-					volume.Encrypted = pointer.BoolPtr(true)
-				}
+		s.setDefaultForEncryptedDisk(ctx, shoot, &worker)
+	}
+	return nil
+}
+func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *corev1beta1.Shoot, worker *corev1beta1.Worker) error {
+	imageName := worker.Machine.Image.Name
+	imageVersion := worker.Machine.Image.Version
+	logger.Info("Check ImageName: " + imageName + "; ImageVesion: " + *imageVersion)
+	if worker.DataVolumes != nil {
+		for i := range worker.DataVolumes {
+			volume := &worker.DataVolumes[i]
+			if volume.Encrypted == nil {
+				logger.Info("Set encrypted disk by default for data disk")
+				volume.Encrypted = pointer.BoolPtr(true)
 			}
 		}
-		if worker.Volume != nil && worker.Volume.Encrypted == nil {
-			//don't set encrypted disk by default if image is system image
-			isCustomizeImage, err := s.isCustomizedImage(ctx, shoot, imageName, imageVersion)
-			if err != nil {
-				return err
-			}
-			if !isCustomizeImage {
-				continue
-			}
-			logger.Info("Customized Image is used and we set encrypted disk by default for system disk")
-			worker.Volume.Encrypted = pointer.BoolPtr(true)
+	}
+	if worker.Volume != nil && worker.Volume.Encrypted == nil {
+		//don't set encrypted disk by default if image is system image
+		isCustomizeImage, err := s.isCustomizedImage(ctx, shoot, imageName, imageVersion)
+		if err != nil {
+			return err
 		}
-
+		if !isCustomizeImage {
+			return nil
+		}
+		logger.Info("Customized Image is used and we set encrypted disk by default for system disk")
+		worker.Volume.Encrypted = pointer.BoolPtr(true)
 	}
 	return nil
 }
@@ -181,14 +184,66 @@ func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProf
 
 	return cloudProfileConfig, nil
 }
-func (s *shootMutator) mutateShootUpdate(oldShoot, shoot *corev1beta1.Shoot) error {
+func (s *shootMutator) mutateShootUpdate(ctx context.Context, oldShoot, shoot *corev1beta1.Shoot) error {
+	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
+		s.mutateShootUpdateForEncryptedDisk(ctx, oldShoot, shoot)
+	}
 	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
 		s.mutateForEncryptedSystemDiskChange(oldShoot, shoot)
 	}
-
 	return nil
 }
+func (s *shootMutator) mutateShootUpdateForEncryptedDisk(ctx context.Context, oldshoot, shoot *corev1beta1.Shoot) {
+	for _, worker := range shoot.Spec.Provider.Workers {
+		oldWorker := getWorkerByName(oldshoot, worker.Name)
+		if oldWorker == nil {
+			logger.Info("Set default value of encrypted disk for newly added worker")
+			s.setDefaultForEncryptedDisk(ctx, shoot, &worker)
+			continue
+		}
+		if worker.Volume != nil && worker.Volume.Encrypted == nil && oldWorker.Volume != nil && oldWorker.Volume.Encrypted != nil {
+			logger.Info("Encrypted disk flag for system disk is not set, keep old value")
+			worker.Volume.Encrypted = oldWorker.Volume.Encrypted
+		}
+		oldDataVolumes := oldWorker.DataVolumes
+		for i := range worker.DataVolumes {
+			dataVolume := &worker.DataVolumes[i]
+			oldDataVolume := getVolumeByName(oldDataVolumes, dataVolume.Name)
+			if oldDataVolume == nil {
+				if dataVolume.Encrypted == nil {
+					logger.Info("Set encrypted disk by default for newly added data disk")
+					dataVolume.Encrypted = pointer.BoolPtr(true)
+				}
+			}
+			if dataVolume.Encrypted == nil && oldDataVolume.Encrypted != nil {
+				logger.Info("Encrypted disk flag for data disk is not set, keep old value")
+				dataVolume.Encrypted = oldDataVolume.Encrypted
 
+			}
+		}
+
+	}
+}
+func getWorkerByName(shoot *corev1beta1.Shoot, workerName string) *corev1beta1.Worker {
+
+	for _, worker := range shoot.Spec.Provider.Workers {
+		if worker.Name == workerName {
+			return &worker
+		}
+	}
+	return nil
+}
+func getVolumeByName(dataVolumes []corev1beta1.DataVolume, volumeName string) *corev1beta1.DataVolume {
+	if dataVolumes == nil {
+		return nil
+	}
+	for _, volume := range dataVolumes {
+		if volume.Name == volumeName {
+			return &volume
+		}
+	}
+	return nil
+}
 func (s *shootMutator) mutateForEncryptedSystemDiskChange(oldShoot, shoot *corev1beta1.Shoot) {
 	if requireNewEncryptedImage(oldShoot.Spec.Provider.Workers, shoot.Spec.Provider.Workers) {
 		logger.Info("Need to reconcile infra as new encrypted system disk found in workers", "name", shoot.Name, "namespace", shoot.Namespace)
