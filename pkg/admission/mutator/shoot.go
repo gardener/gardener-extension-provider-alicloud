@@ -76,7 +76,9 @@ func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error
 func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1beta1.Shoot) error {
 	logger.Info("Starting Shoot Creation Mutation")
 	for _, worker := range shoot.Spec.Provider.Workers {
-		s.setDefaultForEncryptedDisk(ctx, shoot, &worker)
+		if err := s.setDefaultForEncryptedDisk(ctx, shoot, &worker); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -116,8 +118,8 @@ func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1
 		return false, fmt.Errorf("can't find imageID")
 	}
 	logger.Info("Got ImageID", "ImageID", imageId)
-	s.isOwnedbyAliCloud(ctx, shoot, imageId, region)
-	return true, nil
+	isOwnedByAli, err := s.isOwnedbyAliCloud(ctx, shoot, imageId, region)
+	return !isOwnedByAli, err
 }
 func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1.Shoot, imageId string, region string) (bool, error) {
 
@@ -186,19 +188,23 @@ func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProf
 }
 func (s *shootMutator) mutateShootUpdate(ctx context.Context, oldShoot, shoot *corev1beta1.Shoot) error {
 	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
-		s.mutateShootUpdateForEncryptedDisk(ctx, oldShoot, shoot)
+		if err := s.mutateShootUpdateForEncryptedDisk(ctx, oldShoot, shoot); err != nil {
+			return err
+		}
 	}
 	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
 		s.mutateForEncryptedSystemDiskChange(oldShoot, shoot)
 	}
 	return nil
 }
-func (s *shootMutator) mutateShootUpdateForEncryptedDisk(ctx context.Context, oldshoot, shoot *corev1beta1.Shoot) {
+func (s *shootMutator) mutateShootUpdateForEncryptedDisk(ctx context.Context, oldshoot, shoot *corev1beta1.Shoot) error {
 	for _, worker := range shoot.Spec.Provider.Workers {
 		oldWorker := getWorkerByName(oldshoot, worker.Name)
 		if oldWorker == nil {
 			logger.Info("Set default value of encrypted disk for newly added worker")
-			s.setDefaultForEncryptedDisk(ctx, shoot, &worker)
+			if err := s.setDefaultForEncryptedDisk(ctx, shoot, &worker); err != nil {
+				return err
+			}
 			continue
 		}
 		if worker.Volume != nil && worker.Volume.Encrypted == nil && oldWorker.Volume != nil && oldWorker.Volume.Encrypted != nil {
@@ -214,6 +220,7 @@ func (s *shootMutator) mutateShootUpdateForEncryptedDisk(ctx context.Context, ol
 					logger.Info("Set encrypted disk by default for newly added data disk")
 					dataVolume.Encrypted = pointer.BoolPtr(true)
 				}
+				continue
 			}
 			if dataVolume.Encrypted == nil && oldDataVolume.Encrypted != nil {
 				logger.Info("Encrypted disk flag for data disk is not set, keep old value")
@@ -223,6 +230,7 @@ func (s *shootMutator) mutateShootUpdateForEncryptedDisk(ctx context.Context, ol
 		}
 
 	}
+	return nil
 }
 func getWorkerByName(shoot *corev1beta1.Shoot, workerName string) *corev1beta1.Worker {
 
