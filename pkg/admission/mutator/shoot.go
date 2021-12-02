@@ -115,7 +115,7 @@ func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1
 	logger.Info("Checking in cloudProfie", "CloudProfile", cloudProfile, "Region", region)
 	imageId, err := s.getImageId(ctx, imageName, imageVersion, region, cloudProfile)
 	if err != nil || imageId == "" {
-		return false, fmt.Errorf("can't find imageID")
+		return false, err
 	}
 	logger.Info("Got ImageID", "ImageID", imageId)
 	isOwnedByAli, err := s.isOwnedbyAliCloud(ctx, shoot, imageId, region)
@@ -167,16 +167,14 @@ func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVe
 		cloudProfile    = &corev1beta1.CloudProfile{}
 		cloudProfileKey = kutil.Key(cloudProfileName)
 	)
-	imageId := ""
 	if err := kutil.LookupObject(ctx, s.virtualGardenclient, s.apiReader, cloudProfileKey, cloudProfile); err != nil {
-		return imageId, err
+		return "", err
 	}
 	cloudProfileConfig, err := s.getCloudProfileConfig(cloudProfile)
 	if err != nil {
-		return imageId, err
+		return "", err
 	}
-	imageId, err = helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
-	return imageId, err
+	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
 }
 func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
 	var cloudProfileConfig *api.CloudProfileConfig = &api.CloudProfileConfig{}
