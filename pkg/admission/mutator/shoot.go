@@ -21,8 +21,7 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
+	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -31,6 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -43,17 +43,43 @@ const (
 )
 
 // NewShootMutator returns a new instance of a shoot validator.
-func NewShootMutator(virtualGardenclient client.Client, apiReader client.Reader, decoder runtime.Decoder) extensionswebhook.Mutator {
+func NewShootMutator() extensionswebhook.Mutator {
 
 	alicloudclientFactory := alicloudclient.NewClientFactory()
-	return &shootMutator{virtualGardenclient: virtualGardenclient, apiReader: apiReader, decoder: decoder, alicloudClientFactory: alicloudclientFactory}
+	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
+}
+
+// NewShootMutator with parameter returns a new instance of a shoot validator.
+func NewShootMutatorWithDeps(alicloudclientFactory alicloudclient.ClientFactory) extensionswebhook.Mutator {
+
+	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
 }
 
 type shootMutator struct {
-	virtualGardenclient   client.Client
+	client                client.Client
 	apiReader             client.Reader
 	decoder               runtime.Decoder
+	lenientDecoder        runtime.Decoder
 	alicloudClientFactory alicloudclient.ClientFactory
+}
+
+// InjectScheme injects the given scheme into the validator.
+func (s *shootMutator) InjectScheme(scheme *runtime.Scheme) error {
+	s.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
+	s.lenientDecoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
+	return nil
+}
+
+// InjectClient injects the given client into the validator.
+func (s *shootMutator) InjectClient(client client.Client) error {
+	s.client = client
+	return nil
+}
+
+// InjectAPIReader injects the given apiReader into the validator.
+func (s *shootMutator) InjectAPIReader(apiReader client.Reader) error {
+	s.apiReader = apiReader
+	return nil
 }
 
 func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error {
@@ -127,7 +153,7 @@ func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1
 		secretBinding    = &corev1beta1.SecretBinding{}
 		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
 	)
-	if err := kutil.LookupObject(ctx, s.virtualGardenclient, s.apiReader, secretBindingKey, secretBinding); err != nil {
+	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
 		return false, err
 	}
 
@@ -167,17 +193,42 @@ func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVe
 		cloudProfile    = &corev1beta1.CloudProfile{}
 		cloudProfileKey = kutil.Key(cloudProfileName)
 	)
-	if err := kutil.LookupObject(ctx, s.virtualGardenclient, s.apiReader, cloudProfileKey, cloudProfile); err != nil {
+	if err := kutil.LookupObject(ctx, s.client, s.apiReader, cloudProfileKey, cloudProfile); err != nil {
 		return "", err
 	}
 	cloudProfileConfig, err := s.getCloudProfileConfig(cloudProfile)
 	if err != nil {
 		return "", err
 	}
-	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
+	return FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
 }
-func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
-	var cloudProfileConfig *api.CloudProfileConfig = &api.CloudProfileConfig{}
+
+// FindImageForRegionFromCloudProfile takes a list of machine images, and the desired image name, version, and region.
+// It tries to find the image with the given name and version in the desired region.
+// If no image is found then an error is returned.
+func FindImageForRegionFromCloudProfile(cloudProfileConfig *alicloudv1alpha1.CloudProfileConfig, imageName, imageVersion, regionName string) (string, error) {
+	if cloudProfileConfig != nil {
+		for _, machineImage := range cloudProfileConfig.MachineImages {
+			if machineImage.Name != imageName {
+				continue
+			}
+			for _, version := range machineImage.Versions {
+				if imageVersion != version.Version {
+					continue
+				}
+				for _, mapping := range version.Regions {
+					if regionName == mapping.Name {
+						return mapping.ID, nil
+					}
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("could not find an image for name %q in version %q", imageName, imageVersion)
+}
+func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*alicloudv1alpha1.CloudProfileConfig, error) {
+	var cloudProfileConfig *alicloudv1alpha1.CloudProfileConfig = &alicloudv1alpha1.CloudProfileConfig{}
 	if _, _, err := s.decoder.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", kutil.ObjectName(cloudProfile), err)
 	}
