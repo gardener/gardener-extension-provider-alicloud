@@ -84,12 +84,13 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, node
 		allErrs = append(allErrs, vpcCIDR.ValidateParse()...)
 		allErrs = append(allErrs, vpcCIDR.ValidateSubset(nodes)...)
 		allErrs = append(allErrs, vpcCIDR.ValidateSubset(cidrs...)...)
-		allErrs = append(allErrs, vpcCIDR.ValidateNotSubset(pods, services)...)
+		allErrs = append(allErrs, vpcCIDR.ValidateNotOverlap(pods, services)...)
 	}
 
 	// make sure that VPC cidrs don't overlap with each other
-	allErrs = append(allErrs, cidrvalidation.ValidateCIDROverlap(cidrs, cidrs, false)...)
-	allErrs = append(allErrs, cidrvalidation.ValidateCIDROverlap([]cidrvalidation.CIDR{pods, services}, cidrs, false)...)
+	allErrs = append(allErrs, cidrvalidation.ValidateCIDROverlap(cidrs, false)...)
+	allErrs = append(allErrs, pods.ValidateNotOverlap(cidrs...)...)
+	allErrs = append(allErrs, services.ValidateNotOverlap(cidrs...)...)
 
 	return allErrs
 }
