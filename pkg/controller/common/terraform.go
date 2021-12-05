@@ -59,7 +59,6 @@ func NewTerraformer(logger logr.Logger, factory terraformer.Factory, config *res
 
 	owner := metav1.NewControllerRef(infra, extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.InfrastructureResource))
 	return tf.
-		UseV2(true).
 		SetLogLevel("info").
 		SetTerminationGracePeriodSeconds(630).
 		SetDeadlineCleaning(5 * time.Minute).
