@@ -21,7 +21,8 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -200,35 +201,11 @@ func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVe
 	if err != nil {
 		return "", err
 	}
-	return FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
+	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
 }
 
-// FindImageForRegionFromCloudProfile takes a list of machine images, and the desired image name, version, and region.
-// It tries to find the image with the given name and version in the desired region.
-// If no image is found then an error is returned.
-func FindImageForRegionFromCloudProfile(cloudProfileConfig *alicloudv1alpha1.CloudProfileConfig, imageName, imageVersion, regionName string) (string, error) {
-	if cloudProfileConfig != nil {
-		for _, machineImage := range cloudProfileConfig.MachineImages {
-			if machineImage.Name != imageName {
-				continue
-			}
-			for _, version := range machineImage.Versions {
-				if imageVersion != version.Version {
-					continue
-				}
-				for _, mapping := range version.Regions {
-					if regionName == mapping.Name {
-						return mapping.ID, nil
-					}
-				}
-			}
-		}
-	}
-
-	return "", fmt.Errorf("could not find an image for name %q in version %q", imageName, imageVersion)
-}
-func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*alicloudv1alpha1.CloudProfileConfig, error) {
-	var cloudProfileConfig *alicloudv1alpha1.CloudProfileConfig = &alicloudv1alpha1.CloudProfileConfig{}
+func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
+	var cloudProfileConfig *api.CloudProfileConfig = &api.CloudProfileConfig{}
 	if _, _, err := s.decoder.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", kutil.ObjectName(cloudProfile), err)
 	}
