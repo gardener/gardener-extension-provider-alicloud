@@ -317,7 +317,6 @@ var _ = Describe("Mutating Shoot", func() {
 
 				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
 				ecsClient.EXPECT().CheckIfImageExists(ctx, imageId).Return(false, nil),
-				//ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(false, nil)
 			)
 			err := shoot.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())

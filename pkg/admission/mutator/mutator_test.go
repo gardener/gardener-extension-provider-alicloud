@@ -23,5 +23,5 @@ import (
 
 func TestMutator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Suite")
+	RunSpecs(t, "Shoot mutation Suite")
 }
