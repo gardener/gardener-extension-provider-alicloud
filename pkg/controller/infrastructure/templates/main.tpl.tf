@@ -17,7 +17,6 @@ resource "alicloud_vpc" "vpc" {
 
 resource "alicloud_nat_gateway" "nat_gateway" {
   vpc_id            = {{ .vpc.id }}
-  specification     = "Small"
   name              = "{{ .clusterName }}-natgw"
   nat_type          = "Enhanced"
   vswitch_id        = alicloud_vswitch.vsw_z0.id
