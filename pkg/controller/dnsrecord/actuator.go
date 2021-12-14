@@ -23,10 +23,11 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/dnsrecord"
-	controllererror "github.com/gardener/gardener/extensions/pkg/controller/error"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	extensionsv1alpha1helper "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1/helper"
+	"github.com/gardener/gardener/pkg/controllerutils"
+	reconcilerutils "github.com/gardener/gardener/pkg/controllerutils/reconciler"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	"k8s.io/client-go/util/retry"
@@ -78,7 +79,7 @@ func (a *actuator) Reconcile(ctx context.Context, dns *extensionsv1alpha1.DNSRec
 	ttl := extensionsv1alpha1helper.GetDNSRecordTTL(dns.Spec.TTL)
 	a.logger.Info("Creating or updating DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "values", dns.Spec.Values, "dnsrecord", kutil.ObjectName(dns))
 	if err := dnsClient.CreateOrUpdateDomainRecords(ctx, domainName, dns.Spec.Name, string(dns.Spec.RecordType), dns.Spec.Values, ttl); err != nil {
-		return &controllererror.RequeueAfterError{
+		return &reconcilerutils.RequeueAfterError{
 			Cause:        fmt.Errorf("could not create or update DNS records in domain %s with name %s, type %s, and values %v: %+v", domainName, dns.Spec.Name, dns.Spec.RecordType, dns.Spec.Values, err),
 			RequeueAfter: requeueAfterOnProviderError,
 		}
@@ -89,7 +90,7 @@ func (a *actuator) Reconcile(ctx context.Context, dns *extensionsv1alpha1.DNSRec
 		name, recordType := dnsrecord.GetMetaRecordName(dns.Spec.Name), "TXT"
 		a.logger.Info("Deleting meta DNS records", "domainName", domainName, "name", name, "type", recordType, "dnsrecord", kutil.ObjectName(dns))
 		if err := dnsClient.DeleteDomainRecords(ctx, domainName, name, recordType); err != nil {
-			return &controllererror.RequeueAfterError{
+			return &reconcilerutils.RequeueAfterError{
 				Cause:        fmt.Errorf("could not delete meta DNS records in domain %s with name %s and type %s: %+v", domainName, name, recordType, err),
 				RequeueAfter: requeueAfterOnProviderError,
 			}
@@ -97,7 +98,7 @@ func (a *actuator) Reconcile(ctx context.Context, dns *extensionsv1alpha1.DNSRec
 	}
 
 	// Update resource status
-	return extensionscontroller.TryUpdateStatus(ctx, retry.DefaultBackoff, a.Client(), dns, func() error {
+	return controllerutils.TryUpdateStatus(ctx, retry.DefaultBackoff, a.Client(), dns, func() error {
 		dns.Status.Zone = &domainName
 		return nil
 	})
@@ -124,7 +125,7 @@ func (a *actuator) Delete(ctx context.Context, dns *extensionsv1alpha1.DNSRecord
 	// Delete DNS records
 	a.logger.Info("Deleting DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "dnsrecord", kutil.ObjectName(dns))
 	if err := dnsClient.DeleteDomainRecords(ctx, domainName, dns.Spec.Name, string(dns.Spec.RecordType)); err != nil {
-		return &controllererror.RequeueAfterError{
+		return &reconcilerutils.RequeueAfterError{
 			Cause:        fmt.Errorf("could not delete DNS records in domain %s with name %s and type %s: %+v", domainName, dns.Spec.Name, dns.Spec.RecordType, err),
 			RequeueAfter: requeueAfterOnProviderError,
 		}
@@ -153,7 +154,7 @@ func (a *actuator) getDomainName(ctx context.Context, dns *extensionsv1alpha1.DN
 		// and try to determine the domain name by getting the name of the domain with this id
 		domainName, err := dnsClient.GetDomainName(ctx, *dns.Spec.Zone)
 		if err != nil {
-			return "", &controllererror.RequeueAfterError{
+			return "", &reconcilerutils.RequeueAfterError{
 				Cause:        fmt.Errorf("could not get DNS domain name for domain id %s: %+v", *dns.Spec.Zone, err),
 				RequeueAfter: requeueAfterOnProviderError,
 			}
@@ -167,7 +168,7 @@ func (a *actuator) getDomainName(ctx context.Context, dns *extensionsv1alpha1.DN
 		// getting all domain names of the account and searching for the longest domain name that is a suffix of dns.spec.Name
 		domainNames, err := dnsClient.GetDomainNames(ctx)
 		if err != nil {
-			return "", &controllererror.RequeueAfterError{
+			return "", &reconcilerutils.RequeueAfterError{
 				Cause:        fmt.Errorf("could not get DNS domain names: %+v", err),
 				RequeueAfter: requeueAfterOnProviderError,
 			}

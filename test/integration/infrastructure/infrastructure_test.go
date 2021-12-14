@@ -77,8 +77,8 @@ var _ = Describe("Infrastructure tests", func() {
 			UseExistingCluster: pointer.BoolPtr(true),
 			CRDInstallOptions: envtest.CRDInstallOptions{
 				Paths: []string{
-					filepath.Join(repoRoot, "example", "20-crd-cluster.yaml"),
-					filepath.Join(repoRoot, "example", "20-crd-infrastructure.yaml"),
+					filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_clusters.yaml"),
+					filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_infrastructures.yaml"),
 				},
 			},
 		}

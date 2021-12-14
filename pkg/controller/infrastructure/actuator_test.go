@@ -250,7 +250,6 @@ var _ = Describe("Actuator", func() {
 					terraformerFactory.EXPECT().NewForConfig(gomock.Any(), &restConfig, TerraformerPurpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 						Return(terraformer, nil),
 
-					terraformer.EXPECT().UseV2(true).Return(terraformer),
 					terraformer.EXPECT().SetLogLevel("info").Return(terraformer),
 					terraformer.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(terraformer),
 					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
@@ -350,7 +349,6 @@ var _ = Describe("Actuator", func() {
 					terraformerFactory.EXPECT().NewForConfig(gomock.Any(), &restConfig, TerraformerPurpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 						Return(terraformer, nil),
 
-					terraformer.EXPECT().UseV2(true).Return(terraformer),
 					terraformer.EXPECT().SetLogLevel("info").Return(terraformer),
 					terraformer.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(terraformer),
 					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
