@@ -174,6 +174,16 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services)
 				Expect(errorList).To(BeEmpty())
 			})
+
+			It("should allow specifying valid config", func() {
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services)
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should allow specifying valid config with podsCIDR=nil and servicesCIDR=nil", func() {
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, nil, nil)
+				Expect(errorList).To(BeEmpty())
+			})
 		})
 	})
 
