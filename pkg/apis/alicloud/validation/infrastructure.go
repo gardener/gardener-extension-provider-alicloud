@@ -89,10 +89,10 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, node
 
 	// make sure that VPC cidrs don't overlap with each other
 	allErrs = append(allErrs, cidrvalidation.ValidateCIDROverlap(cidrs, false)...)
-	if podsCIDR != nil {
+	if pods != nil {
 		allErrs = append(allErrs, pods.ValidateNotOverlap(cidrs...)...)
 	}
-	if servicesCIDR != nil {
+	if services != nil {
 		allErrs = append(allErrs, services.ValidateNotOverlap(cidrs...)...)
 	}
 
