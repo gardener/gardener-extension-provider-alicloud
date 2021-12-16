@@ -26,7 +26,6 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
-	"github.com/gardener/gardener/pkg/mock/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,6 +43,7 @@ import (
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/go-logr/logr"
 	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 	mockinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/controller/infrastructure"
 )
