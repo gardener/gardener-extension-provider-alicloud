@@ -34,7 +34,8 @@ import (
 const (
 	terraformVarAccessKeyID     = "TF_VAR_ACCESS_KEY_ID"
 	terraformVarAccessKeySecret = "TF_VAR_ACCESS_KEY_SECRET"
-	terraformProvider           = "provider.alicloud"
+	terraformProvider           = "provider[\"registry.terraform.io/hashicorp/alicloud\"]"
+	terraformProviderOld        = "provider.alicloud"
 )
 
 type tfState struct {
@@ -117,7 +118,7 @@ func IsStateEmpty(ctx context.Context, tf terraformer.Terraformer) (bool, error)
 	}
 
 	for _, res := range state.Resources {
-		if res.Provider == terraformProvider && len(res.Instances) > 0 {
+		if (res.Provider == terraformProvider || res.Provider == terraformProviderOld) && len(res.Instances) > 0 {
 			return false, nil
 		}
 	}
