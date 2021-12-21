@@ -88,6 +88,7 @@ config:
     backendLoadBalancerSpec: slb.s1.small
 
 gardener:
+  version: ""
   seed:
     provider: alicloud
     volumeProvider: csi
