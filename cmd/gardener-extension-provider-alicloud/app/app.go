@@ -180,6 +180,18 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			// add common meta types to schema for controller-runtime to use v1.ListOptions
 			metav1.AddToGroupVersion(scheme, machinev1alpha1.SchemeGroupVersion)
 
+			useTokenRequestor, err := controller.UseTokenRequestor(generalOpts.Completed().GardenerVersion)
+			if err != nil {
+				controllercmd.LogErrAndExit(err, "Could not determine whether token requestor should be used")
+			}
+			alicloudworker.DefaultAddOptions.UseTokenRequestor = useTokenRequestor
+
+			useProjectedTokenMount, err := controller.UseServiceAccountTokenVolumeProjection(generalOpts.Completed().GardenerVersion)
+			if err != nil {
+				controllercmd.LogErrAndExit(err, "Could not determine whether service account token volume projection should be used")
+			}
+			alicloudworker.DefaultAddOptions.UseProjectedTokenMount = useProjectedTokenMount
+
 			configFileOpts.Completed().ApplyMachineImageOwnerSecretRef(&alicloudinfrastructure.DefaultAddOptions.MachineImageOwnerSecretRef)
 			configFileOpts.Completed().ApplyToBeSharedImageIDs(&alicloudinfrastructure.DefaultAddOptions.ToBeSharedImageIDs)
 			configFileOpts.Completed().ApplyETCDStorage(&alicloudcontrolplaneexposure.DefaultAddOptions.ETCDStorage)
