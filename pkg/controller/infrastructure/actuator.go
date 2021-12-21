@@ -35,7 +35,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/controllerutils"
 	"github.com/gardener/gardener/pkg/utils/flow"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
@@ -43,7 +42,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -586,11 +584,10 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return err
 	}
 
-	return controllerutils.TryUpdateStatus(ctx, retry.DefaultBackoff, a.Client(), infra, func() error {
-		infra.Status.ProviderStatus = &runtime.RawExtension{Object: status}
-		infra.Status.State = &runtime.RawExtension{Raw: stateByte}
-		return nil
-	})
+	patch := client.MergeFrom(infra.DeepCopy())
+	infra.Status.ProviderStatus = &runtime.RawExtension{Object: status}
+	infra.Status.State = &runtime.RawExtension{Raw: stateByte}
+	return a.Client().Status().Patch(ctx, infra, patch)
 }
 
 func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *extensionsv1alpha1.Infrastructure) error {
