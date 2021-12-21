@@ -40,8 +40,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:csi-attacher
 subjects:
+{{- if .Values.global.useTokenRequestor }}
+- kind: ServiceAccount
+  name: csi-attacher
+  namespace: kube-system
+{{- else }}
 - kind: User
   name: system:csi-attacher
+{{- end }}
 roleRef:
   kind: ClusterRole
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-attacher
@@ -66,8 +72,14 @@ metadata:
   name: csi-attacher
   namespace: kube-system
 subjects:
+{{- if .Values.global.useTokenRequestor }}
+- kind: ServiceAccount
+  name: csi-attacher
+  namespace: kube-system
+{{- else }}
 - kind: User
   name: system:csi-attacher
+{{- end }}
 roleRef:
   kind: Role
   name: csi-attacher

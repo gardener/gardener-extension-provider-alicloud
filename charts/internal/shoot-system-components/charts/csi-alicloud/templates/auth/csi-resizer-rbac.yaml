@@ -38,8 +38,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:csi-resizer
 subjects:
+{{- if .Values.global.useTokenRequestor }}
+- kind: ServiceAccount
+  name: csi-resizer
+  namespace: kube-system
+{{- else }}
 - kind: User
   name: system:csi-resizer
+{{- end }}
 roleRef:
   kind: ClusterRole
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-resizer
@@ -65,8 +71,14 @@ metadata:
   name: csi-resizer
   namespace: kube-system
 subjects:
+{{- if .Values.global.useTokenRequestor }}
+- kind: ServiceAccount
+  name: csi-resizer
+  namespace: kube-system
+{{- else }}
 - kind: User
   name: system:csi-resizer
+{{- end }}
 roleRef:
   kind: Role
   name: csi-resizer
