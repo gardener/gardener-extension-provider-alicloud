@@ -138,7 +138,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 						fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace):     "1",
 						fmt.Sprintf("kubernetes.io/role/worker/%s", w.worker.Namespace): "1",
 					},
-					removeLabelWithoutValue(pool.Labels),
+					getLabelsWithValue(pool.Labels),
 				),
 				"secret": map[string]interface{}{
 					"userData": string(pool.UserData),
@@ -183,7 +183,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 	return nil
 }
-func removeLabelWithoutValue(labels map[string]string) map[string]string {
+func getLabelsWithValue(labels map[string]string) map[string]string {
 	out := make(map[string]string)
 	for key, value := range labels {
 		if len(value) > 0 {
