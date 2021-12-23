@@ -36,4 +36,4 @@ spec:
       config:
       - name: REGION
         type: env
-        value: cn-shanghai
+        value: ap-southeast-2
