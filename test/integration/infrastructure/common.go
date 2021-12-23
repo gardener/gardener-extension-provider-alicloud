@@ -47,6 +47,15 @@ func validateFlags() {
 	}
 }
 
+func getImageId(region string) string {
+	regionImageMap := map[string]string{
+		"cn-shanghai":  "m-uf6a3012pcuemma21nfk",
+		"eu-central-1": "m-gw83xpc3q3yzpoahhckf",
+	}
+
+	return regionImageMap[region]
+}
+
 func getSingleZone(region string) string {
 	regionZoneMap := map[string]string{
 		"cn-shanghai":  "cn-shanghai-g",
