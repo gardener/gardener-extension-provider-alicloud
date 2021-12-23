@@ -138,7 +138,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 						fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace):     "1",
 						fmt.Sprintf("kubernetes.io/role/worker/%s", w.worker.Namespace): "1",
 					},
-					pool.Labels,
+					getLabelsWithValue(pool.Labels),
 				),
 				"secret": map[string]interface{}{
 					"userData": string(pool.UserData),
@@ -183,7 +183,15 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 	return nil
 }
-
+func getLabelsWithValue(labels map[string]string) map[string]string {
+	out := make(map[string]string)
+	for key, value := range labels {
+		if len(value) > 0 {
+			out[key] = value
+		}
+	}
+	return out
+}
 func computeDisks(namespace string, pool extensionsv1alpha1.WorkerPool) (map[string]interface{}, error) {
 	// handle root disk
 	volumeSize, err := worker.DiskSize(pool.Volume.Size)
