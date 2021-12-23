@@ -4,7 +4,7 @@ metadata:
 spec:
   owner: DL_5bac5a9aecb2116334000005@exchange.sap.corp
   description: Integration test for infrastructure creation and deletion
-  activeDeadlineSeconds: 3600
+  activeDeadlineSeconds: 5400
 
   command: [bash, -c]
   args:
