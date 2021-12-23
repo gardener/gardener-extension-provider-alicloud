@@ -50,7 +50,7 @@ func NewShootMutator() extensionswebhook.Mutator {
 	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
 }
 
-// NewShootMutator with parameter returns a new instance of a shoot validator.
+// NewShootMutatorWithDeps with parameter returns a new instance of a shoot validator.
 func NewShootMutatorWithDeps(alicloudclientFactory alicloudclient.ClientFactory) extensionswebhook.Mutator {
 
 	return &shootMutator{alicloudClientFactory: alicloudclientFactory}

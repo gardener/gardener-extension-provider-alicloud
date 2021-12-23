@@ -95,7 +95,7 @@ var _ = Describe("Mutating Shoot", func() {
 
 		scheme = runtime.NewScheme()
 		install.Install(scheme)
-		controller.AddToScheme(scheme)
+		Expect(controller.AddToScheme(scheme)).To(Succeed())
 		serializer = json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{Yaml: true})
 		alicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)
 		ecsClient = mockalicloudclient.NewMockECS(ctrl)
