@@ -43,14 +43,14 @@ const (
 	MutatorPath = "/webhooks/mutate"
 )
 
-// NewShootMutator returns a new instance of a shoot validator.
+// NewShootMutator returns a new instance of a shoot mutator.
 func NewShootMutator() extensionswebhook.Mutator {
 
 	alicloudclientFactory := alicloudclient.NewClientFactory()
 	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
 }
 
-// NewShootMutatorWithDeps with parameter returns a new instance of a shoot validator.
+// NewShootMutatorWithDeps with parameter returns a new instance of a shoot mutator.
 func NewShootMutatorWithDeps(alicloudclientFactory alicloudclient.ClientFactory) extensionswebhook.Mutator {
 
 	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
@@ -64,20 +64,20 @@ type shootMutator struct {
 	alicloudClientFactory alicloudclient.ClientFactory
 }
 
-// InjectScheme injects the given scheme into the validator.
+// InjectScheme injects the given scheme into the mutator.
 func (s *shootMutator) InjectScheme(scheme *runtime.Scheme) error {
 	s.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 	s.lenientDecoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
 	return nil
 }
 
-// InjectClient injects the given client into the validator.
+// InjectClient injects the given client into the mutator.
 func (s *shootMutator) InjectClient(client client.Client) error {
 	s.client = client
 	return nil
 }
 
-// InjectAPIReader injects the given apiReader into the validator.
+// InjectAPIReader injects the given apiReader into the mutator.
 func (s *shootMutator) InjectAPIReader(apiReader client.Reader) error {
 	s.apiReader = apiReader
 	return nil
