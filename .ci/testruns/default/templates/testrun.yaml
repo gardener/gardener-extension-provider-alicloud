@@ -36,4 +36,4 @@ spec:
       config:
       - name: REGION
         type: env
-        value: eu-central-1
+        value: ap-southeast-2

@@ -242,11 +242,11 @@ func (ie *imageEncryptor) getEncrytpedImageIDFromStack(stackId string) (string, 
 }
 
 func (ie *imageEncryptor) getStackName() string {
-	return GetEncryptImageStackName(ie.imageName, ie.imageVersion)
+	return GetEncryptImageStackName(ie.imageName, ie.imageVersion, ie.regionID)
 }
 
 // GetEncryptImageStackName returns the encrypt image stack name for the given image name and version.
-func GetEncryptImageStackName(imageName, imageVersion string) string {
-	var rosNameFormat = "encrypt_image_%s_%s"
-	return strings.ReplaceAll(fmt.Sprintf(rosNameFormat, imageName, imageVersion), ".", "-")
+func GetEncryptImageStackName(imageName, imageVersion, regionID string) string {
+	var rosNameFormat = "encrypt_image_%s_%s_%s"
+	return strings.ReplaceAll(fmt.Sprintf(rosNameFormat, imageName, imageVersion, regionID), ".", "-")
 }
