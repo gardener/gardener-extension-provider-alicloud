@@ -14,7 +14,9 @@ resource "alicloud_vpc" "vpc" {
     delete = "5m"
   }
 }
+{{- end }}
 
+{{ if .natGateway.create -}}
 resource "alicloud_nat_gateway" "nat_gateway" {
   vpc_id            = {{ .vpc.id }}
   name              = "{{ .clusterName }}-natgw"

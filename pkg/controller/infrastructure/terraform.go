@@ -81,8 +81,9 @@ func (terraformOps) ComputeCreateVPCInitializerValues(config *v1alpha1.Infrastru
 			VPCCIDR:   *config.Networks.VPC.CIDR,
 		},
 		NATGateway: NATGateway{
-			NATGatewayID: TerraformDefaultNATGatewayID,
-			SNATTableIDs: TerraformDefaultSNATTableIDs,
+			CreateNATGateway: true,
+			NATGatewayID:     TerraformDefaultNATGatewayID,
+			SNATTableIDs:     TerraformDefaultSNATTableIDs,
 		},
 		EIP: EIP{
 			InternetChargeType: internetChargeType,
@@ -92,20 +93,28 @@ func (terraformOps) ComputeCreateVPCInitializerValues(config *v1alpha1.Infrastru
 
 // ComputeUseVPCInitializerValues computes the InitializerValues to use an existing VPC.
 func (terraformOps) ComputeUseVPCInitializerValues(config *v1alpha1.InfrastructureConfig, info *alicloudclient.VPCInfo) *InitializerValues {
-	return &InitializerValues{
+	values := &InitializerValues{
 		VPC: VPC{
 			CreateVPC: false,
 			VPCID:     strconv.Quote(*config.Networks.VPC.ID),
 			VPCCIDR:   info.CIDR,
 		},
 		NATGateway: NATGateway{
-			NATGatewayID: strconv.Quote(info.NATGatewayID),
-			SNATTableIDs: strconv.Quote(info.SNATTableIDs),
+			CreateNATGateway: false,
+			NATGatewayID:     strconv.Quote(info.NATGatewayID),
+			SNATTableIDs:     strconv.Quote(info.SNATTableIDs),
 		},
 		EIP: EIP{
 			InternetChargeType: info.InternetChargeType,
 		},
 	}
+	if config.Networks.VPC.GardenerManagedNATGateway != nil && *config.Networks.VPC.GardenerManagedNATGateway {
+		values.NATGateway.CreateNATGateway = true
+		values.NATGateway.NATGatewayID = TerraformDefaultNATGatewayID
+		values.NATGateway.SNATTableIDs = TerraformDefaultSNATTableIDs
+	}
+
+	return values
 }
 
 // ComputeTerraformerChartValues computes the values necessary for the infrastructure Terraform chart.
@@ -146,6 +155,7 @@ func (terraformOps) ComputeChartValues(
 			"cidr":   values.VPC.VPCCIDR,
 		},
 		"natGateway": map[string]interface{}{
+			"create":       values.NATGateway.CreateNATGateway,
 			"id":           values.NATGateway.NATGatewayID,
 			"sNatTableIDs": values.NATGateway.SNATTableIDs,
 		},

@@ -324,6 +324,11 @@ func (in *VPC) DeepCopyInto(out *VPC) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.GardenerManagedNATGateway != nil {
+		in, out := &in.GardenerManagedNATGateway, &out.GardenerManagedNATGateway
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
