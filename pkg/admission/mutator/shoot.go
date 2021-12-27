@@ -181,11 +181,7 @@ func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1
 	if exist, err := shootECSClient.CheckIfImageExists(ctx, imageId); err != nil {
 		return false, err
 	} else if exist {
-		if ownedByAliCloud, err := shootECSClient.CheckIfImageOwnedByAliCloud(imageId); err != nil {
-			return false, err
-		} else if ownedByAliCloud {
-			return true, nil
-		}
+		return shootECSClient.CheckIfImageOwnedByAliCloud(imageId)
 	}
 	return false, nil
 }
@@ -214,7 +210,7 @@ func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProf
 }
 func (s *shootMutator) mutateShootUpdate(ctx context.Context, oldShoot, shoot *corev1beta1.Shoot) error {
 	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
-		if err := s.mutateShootUpdateForEncryptedDisk(ctx, oldShoot, shoot); err != nil {
+		if err := s.triggerInfraUpdateForNewEncryptedSystemDisk(ctx, oldShoot, shoot); err != nil {
 			return err
 		}
 	}
@@ -223,7 +219,7 @@ func (s *shootMutator) mutateShootUpdate(ctx context.Context, oldShoot, shoot *c
 	}
 	return nil
 }
-func (s *shootMutator) mutateShootUpdateForEncryptedDisk(ctx context.Context, oldshoot, shoot *corev1beta1.Shoot) error {
+func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(ctx context.Context, oldshoot, shoot *corev1beta1.Shoot) error {
 	for _, worker := range shoot.Spec.Provider.Workers {
 		oldWorker := getWorkerByName(oldshoot, worker.Name)
 		if oldWorker == nil {
