@@ -665,7 +665,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>GardenerManagedNATGateway indicates whether Gardener should create NATGateway in the VPC.</p>
+<p>GardenerManagedNATGateway indicates whether Gardener should create NATGateway in the VPC.
+This will only take effect if VPC ID is set.</p>
 </td>
 </tr>
 </tbody>

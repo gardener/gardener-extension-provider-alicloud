@@ -100,18 +100,13 @@ func (terraformOps) ComputeUseVPCInitializerValues(config *v1alpha1.Infrastructu
 			VPCCIDR:   info.CIDR,
 		},
 		NATGateway: NATGateway{
-			CreateNATGateway: false,
+			CreateNATGateway: config.Networks.VPC.GardenerManagedNATGateway != nil && *config.Networks.VPC.GardenerManagedNATGateway,
 			NATGatewayID:     strconv.Quote(info.NATGatewayID),
 			SNATTableIDs:     strconv.Quote(info.SNATTableIDs),
 		},
 		EIP: EIP{
 			InternetChargeType: info.InternetChargeType,
 		},
-	}
-	if config.Networks.VPC.GardenerManagedNATGateway != nil && *config.Networks.VPC.GardenerManagedNATGateway {
-		values.NATGateway.CreateNATGateway = true
-		values.NATGateway.NATGatewayID = TerraformDefaultNATGatewayID
-		values.NATGateway.SNATTableIDs = TerraformDefaultSNATTableIDs
 	}
 
 	return values

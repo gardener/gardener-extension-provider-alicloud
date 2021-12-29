@@ -174,9 +174,28 @@ func (a *actuator) getInitializerValues(
 
 	vpcID := *config.Networks.VPC.ID
 
-	vpcInfo, err := vpcClient.GetVPCInfo(ctx, vpcID)
-	if err != nil {
-		return nil, err
+	vpcInfo := &alicloudclient.VPCInfo{
+		NATGatewayID: TerraformDefaultNATGatewayID,
+		SNATTableIDs: TerraformDefaultSNATTableIDs,
+	}
+	if config.Networks.VPC.GardenerManagedNATGateway != nil && *config.Networks.VPC.GardenerManagedNATGateway {
+		vpc, err := vpcClient.GetVPCWithID(ctx, vpcID)
+		if err != nil {
+			return nil, err
+		}
+
+		internetChargeType, err := vpcClient.FetchEIPInternetChargeType(ctx, nil, vpcID)
+		if err != nil {
+			return nil, err
+		}
+
+		vpcInfo.CIDR = vpc[0].CidrBlock
+		vpcInfo.InternetChargeType = internetChargeType
+	} else {
+		vpcInfo, err = vpcClient.GetVPCInfo(ctx, vpcID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return a.terraformChartOps.ComputeUseVPCInitializerValues(config, vpcInfo), nil

@@ -62,8 +62,9 @@ var _ = Describe("TerraformChartOps", func() {
 					VPCCIDR:   cidr,
 				},
 				NATGateway: NATGateway{
-					NATGatewayID: TerraformDefaultNATGatewayID,
-					SNATTableIDs: TerraformDefaultSNATTableIDs,
+					CreateNATGateway: true,
+					NATGatewayID:     TerraformDefaultNATGatewayID,
+					SNATTableIDs:     TerraformDefaultSNATTableIDs,
 				},
 				EIP: EIP{
 					InternetChargeType: internetChargeType,
@@ -161,8 +162,9 @@ var _ = Describe("TerraformChartOps", func() {
 						VPCID:     vpcID,
 					},
 					NATGateway: NATGateway{
-						NATGatewayID: natGatewayID,
-						SNATTableIDs: sNATTableIDs,
+						CreateNATGateway: true,
+						NATGatewayID:     natGatewayID,
+						SNATTableIDs:     sNATTableIDs,
 					},
 					EIP: EIP{
 						InternetChargeType: internetChargeType,
@@ -180,6 +182,7 @@ var _ = Describe("TerraformChartOps", func() {
 					"id":     vpcID,
 				},
 				"natGateway": map[string]interface{}{
+					"create":       true,
 					"id":           natGatewayID,
 					"sNatTableIDs": sNATTableIDs,
 				},
