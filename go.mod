@@ -18,6 +18,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/tools v0.1.7
 	k8s.io/api v0.22.2
 	k8s.io/apiextensions-apiserver v0.22.2

@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -30,6 +31,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,6 +46,11 @@ func ComputeStorageEndpoint(region string) string {
 }
 
 type clientFactory struct {
+	limit             rate.Limit
+	burst             int
+	waitTimeout       time.Duration
+	rateLimiters      *cache.Expiring
+	rateLimitersMutex sync.Mutex
 	domainsCache      *cache.Expiring
 	domainsCacheMutex sync.Mutex
 }
@@ -51,6 +58,17 @@ type clientFactory struct {
 // NewClientFactory creates a new clientFactory instance that can be used to instantiate Alicloud clients.
 func NewClientFactory() ClientFactory {
 	return &clientFactory{
+		domainsCache: cache.NewExpiring(),
+	}
+}
+
+// NewClientFactoryWithRateLimit creates a new clientFactory instance that can be used to instantiate Alicloud dns clients.
+func NewClientFactoryWithRateLimit(limit rate.Limit, burst int, waitTimeout time.Duration) ClientFactory {
+	return &clientFactory{
+		limit:        limit,
+		burst:        burst,
+		waitTimeout:  waitTimeout,
+		rateLimiters: cache.NewExpiring(),
 		domainsCache: cache.NewExpiring(),
 	}
 }

@@ -15,8 +15,11 @@
 package dnsrecord
 
 import (
+	"time"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"golang.org/x/time/rate"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/dnsrecord"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -31,10 +34,22 @@ var (
 	logger = log.Log.WithName("alicloud-dnsrecord-controller")
 )
 
+// RateLimiterOptions are the options for provider rate limiters.
+type RateLimiterOptions struct {
+	// Limit is the rate limit for provider operations.
+	Limit rate.Limit
+	// Burst is the rete limiter burst for provider  operations.
+	Burst int
+	// WaitTimeout is the timeout for rate limiter waits
+	WaitTimeout time.Duration
+}
+
 // AddOptions are options to apply when adding the Alicloud dnsrecord controller to the manager.
 type AddOptions struct {
 	// Controller are the controller.Options.
 	Controller controller.Options
+	// Ratelimiter are the RateLimiterOptions
+	RateLimiter RateLimiterOptions
 	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
 	IgnoreOperationAnnotation bool
 }
@@ -43,7 +58,7 @@ type AddOptions struct {
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return dnsrecord.Add(mgr, dnsrecord.AddArgs{
-		Actuator:          NewActuator(alicloudclient.NewClientFactory(), logger),
+		Actuator:          NewActuator(alicloudclient.NewClientFactoryWithRateLimit(opts.RateLimiter.Limit, opts.RateLimiter.Burst, opts.RateLimiter.WaitTimeout), logger),
 		ControllerOptions: opts.Controller,
 		Predicates:        dnsrecord.DefaultPredicates(opts.IgnoreOperationAnnotation),
 		Type:              alicloud.DNSType,

@@ -17,6 +17,7 @@ package client
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
@@ -26,6 +27,8 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
+	"github.com/go-logr/logr"
+	"golang.org/x/time/rate"
 	"k8s.io/apimachinery/pkg/util/cache"
 
 	corev1 "k8s.io/api/core/v1"
@@ -155,9 +158,12 @@ type VPCInfo struct {
 // dnsClient implements the DNS interface.
 type dnsClient struct {
 	alidns.Client
-	accessKeyID       string
-	domainsCache      *cache.Expiring
-	domainsCacheMutex *sync.Mutex
+	accessKeyID            string
+	domainsCache           *cache.Expiring
+	domainsCacheMutex      *sync.Mutex
+	RateLimiter            *rate.Limiter
+	RateLimiterWaitTimeout time.Duration
+	Logger                 logr.Logger
 }
 
 // DNS is an interface which declares DNS related methods.
