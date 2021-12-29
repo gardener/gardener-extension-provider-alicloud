@@ -174,10 +174,7 @@ func (a *actuator) getInitializerValues(
 
 	vpcID := *config.Networks.VPC.ID
 
-	vpcInfo := &alicloudclient.VPCInfo{
-		NATGatewayID: TerraformDefaultNATGatewayID,
-		SNATTableIDs: TerraformDefaultSNATTableIDs,
-	}
+	vpcInfo := &alicloudclient.VPCInfo{}
 	if config.Networks.VPC.GardenerManagedNATGateway != nil && *config.Networks.VPC.GardenerManagedNATGateway {
 		vpc, err := vpcClient.GetVPCWithID(ctx, vpcID)
 		if err != nil {
