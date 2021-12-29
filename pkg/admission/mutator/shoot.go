@@ -19,11 +19,20 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/controllerutils"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -34,15 +43,47 @@ const (
 	MutatorPath = "/webhooks/mutate"
 )
 
-// NewShootMutator returns a new instance of a shoot validator.
+// NewShootMutator returns a new instance of a shoot mutator.
 func NewShootMutator() extensionswebhook.Mutator {
-	return &shootMutator{}
+
+	alicloudclientFactory := alicloudclient.NewClientFactory()
+	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
+}
+
+// NewShootMutatorWithDeps with parameter returns a new instance of a shoot mutator.
+func NewShootMutatorWithDeps(alicloudclientFactory alicloudclient.ClientFactory) extensionswebhook.Mutator {
+
+	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
 }
 
 type shootMutator struct {
+	client                client.Client
+	apiReader             client.Reader
+	decoder               runtime.Decoder
+	lenientDecoder        runtime.Decoder
+	alicloudClientFactory alicloudclient.ClientFactory
 }
 
-func (s *shootMutator) Mutate(_ context.Context, new, old client.Object) error {
+// InjectScheme injects the given scheme into the mutator.
+func (s *shootMutator) InjectScheme(scheme *runtime.Scheme) error {
+	s.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
+	s.lenientDecoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
+	return nil
+}
+
+// InjectClient injects the given client into the mutator.
+func (s *shootMutator) InjectClient(client client.Client) error {
+	s.client = client
+	return nil
+}
+
+// InjectAPIReader injects the given apiReader into the mutator.
+func (s *shootMutator) InjectAPIReader(apiReader client.Reader) error {
+	s.apiReader = apiReader
+	return nil
+}
+
+func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error {
 	shoot, ok := new.(*corev1beta1.Shoot)
 	if !ok {
 		return fmt.Errorf("wrong object type %T", new)
@@ -53,21 +94,186 @@ func (s *shootMutator) Mutate(_ context.Context, new, old client.Object) error {
 		if !ok {
 			return fmt.Errorf("wrong object type %T for old object", old)
 		}
-		return s.mutateShootUpdate(oldShoot, shoot)
+		return s.mutateShootUpdate(ctx, oldShoot, shoot)
+	} else {
+		return s.mutateShootCreation(ctx, shoot)
 	}
 
-	// Only consider update for now.
+}
+func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1beta1.Shoot) error {
+	logger.Info("Starting Shoot Creation Mutation")
+	for _, worker := range shoot.Spec.Provider.Workers {
+		if err := s.setDefaultForEncryptedDisk(ctx, shoot, &worker); err != nil {
+			return err
+		}
+	}
 	return nil
 }
+func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *corev1beta1.Shoot, worker *corev1beta1.Worker) error {
+	imageName := worker.Machine.Image.Name
+	imageVersion := worker.Machine.Image.Version
+	logger.Info("Check ImageName: " + imageName + "; ImageVesion: " + *imageVersion)
+	if worker.DataVolumes != nil {
+		for i := range worker.DataVolumes {
+			volume := &worker.DataVolumes[i]
+			if volume.Encrypted == nil {
+				logger.Info("Set encrypted disk by default for data disk")
+				volume.Encrypted = pointer.BoolPtr(true)
+			}
+		}
+	}
+	if worker.Volume != nil && worker.Volume.Encrypted == nil {
+		//don't set encrypted disk by default if image is system image
+		isCustomizeImage, err := s.isCustomizedImage(ctx, shoot, imageName, imageVersion)
+		if err != nil {
+			return err
+		}
+		if !isCustomizeImage {
+			return nil
+		}
+		logger.Info("Customized Image is used and we set encrypted disk by default for system disk")
+		worker.Volume.Encrypted = pointer.BoolPtr(true)
+	}
+	return nil
+}
+func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1.Shoot, imageName string, imageVersion *string) (bool, error) {
+	cloudProfile := shoot.Spec.CloudProfileName
+	region := shoot.Spec.Region
+	logger.Info("Checking in cloudProfie", "CloudProfile", cloudProfile, "Region", region)
+	imageId, err := s.getImageId(ctx, imageName, imageVersion, region, cloudProfile)
+	if err != nil || imageId == "" {
+		return false, err
+	}
+	logger.Info("Got ImageID", "ImageID", imageId)
+	isOwnedByAli, err := s.isOwnedbyAliCloud(ctx, shoot, imageId, region)
+	return !isOwnedByAli, err
+}
+func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1.Shoot, imageId string, region string) (bool, error) {
 
-func (s *shootMutator) mutateShootUpdate(oldShoot, shoot *corev1beta1.Shoot) error {
+	var (
+		secretBinding    = &corev1beta1.SecretBinding{}
+		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
+	)
+	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
+		return false, err
+	}
+
+	var (
+		secret    = &corev1.Secret{}
+		secretRef = secretBinding.SecretRef.Name
+		secretKey = kutil.Key(secretBinding.SecretRef.Namespace, secretRef)
+	)
+	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
+		return false, err
+	}
+	accessKeyID, ok := secret.Data[alicloud.AccessKeyID]
+	if !ok {
+		return false, fmt.Errorf("missing %q field in secret %s", alicloud.AccessKeyID, secretRef)
+	}
+	accessKeySecret, ok := secret.Data[alicloud.AccessKeySecret]
+	if !ok {
+		return false, fmt.Errorf("missing %q field in secret %s", alicloud.AccessKeySecret, secretRef)
+	}
+	shootECSClient, err := s.alicloudClientFactory.NewECSClient(region, string(accessKeyID), string(accessKeySecret))
+	if err != nil {
+		return false, err
+	}
+	if exist, err := shootECSClient.CheckIfImageExists(ctx, imageId); err != nil {
+		return false, err
+	} else if exist {
+		return shootECSClient.CheckIfImageOwnedByAliCloud(imageId)
+	}
+	return false, nil
+}
+func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVersion *string, imageRegion string, cloudProfileName string) (string, error) {
+	var (
+		cloudProfile    = &corev1beta1.CloudProfile{}
+		cloudProfileKey = kutil.Key(cloudProfileName)
+	)
+	if err := kutil.LookupObject(ctx, s.client, s.apiReader, cloudProfileKey, cloudProfile); err != nil {
+		return "", err
+	}
+	cloudProfileConfig, err := s.getCloudProfileConfig(cloudProfile)
+	if err != nil {
+		return "", err
+	}
+	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
+}
+
+func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
+	var cloudProfileConfig *api.CloudProfileConfig = &api.CloudProfileConfig{}
+	if _, _, err := s.decoder.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
+		return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", kutil.ObjectName(cloudProfile), err)
+	}
+
+	return cloudProfileConfig, nil
+}
+func (s *shootMutator) mutateShootUpdate(ctx context.Context, oldShoot, shoot *corev1beta1.Shoot) error {
+	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
+		if err := s.triggerInfraUpdateForNewEncryptedSystemDisk(ctx, oldShoot, shoot); err != nil {
+			return err
+		}
+	}
 	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
 		s.mutateForEncryptedSystemDiskChange(oldShoot, shoot)
 	}
-
 	return nil
 }
+func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(ctx context.Context, oldshoot, shoot *corev1beta1.Shoot) error {
+	for _, worker := range shoot.Spec.Provider.Workers {
+		oldWorker := getWorkerByName(oldshoot, worker.Name)
+		if oldWorker == nil {
+			logger.Info("Set default value of encrypted disk for newly added worker")
+			if err := s.setDefaultForEncryptedDisk(ctx, shoot, &worker); err != nil {
+				return err
+			}
+			continue
+		}
+		if worker.Volume != nil && worker.Volume.Encrypted == nil && oldWorker.Volume != nil && oldWorker.Volume.Encrypted != nil {
+			logger.Info("Encrypted disk flag for system disk is not set, keep old value")
+			worker.Volume.Encrypted = oldWorker.Volume.Encrypted
+		}
+		oldDataVolumes := oldWorker.DataVolumes
+		for i := range worker.DataVolumes {
+			dataVolume := &worker.DataVolumes[i]
+			oldDataVolume := getVolumeByName(oldDataVolumes, dataVolume.Name)
+			if oldDataVolume == nil {
+				if dataVolume.Encrypted == nil {
+					logger.Info("Set encrypted disk by default for newly added data disk")
+					dataVolume.Encrypted = pointer.BoolPtr(true)
+				}
+				continue
+			}
+			if dataVolume.Encrypted == nil && oldDataVolume.Encrypted != nil {
+				logger.Info("Encrypted disk flag for data disk is not set, keep old value")
+				dataVolume.Encrypted = oldDataVolume.Encrypted
 
+			}
+		}
+
+	}
+	return nil
+}
+func getWorkerByName(shoot *corev1beta1.Shoot, workerName string) *corev1beta1.Worker {
+
+	for _, worker := range shoot.Spec.Provider.Workers {
+		if worker.Name == workerName {
+			return &worker
+		}
+	}
+	return nil
+}
+func getVolumeByName(dataVolumes []corev1beta1.DataVolume, volumeName string) *corev1beta1.DataVolume {
+	if dataVolumes == nil {
+		return nil
+	}
+	for _, volume := range dataVolumes {
+		if volume.Name == volumeName {
+			return &volume
+		}
+	}
+	return nil
+}
 func (s *shootMutator) mutateForEncryptedSystemDiskChange(oldShoot, shoot *corev1beta1.Shoot) {
 	if requireNewEncryptedImage(oldShoot.Spec.Provider.Workers, shoot.Spec.Provider.Workers) {
 		logger.Info("Need to reconcile infra as new encrypted system disk found in workers", "name", shoot.Name, "namespace", shoot.Namespace)
