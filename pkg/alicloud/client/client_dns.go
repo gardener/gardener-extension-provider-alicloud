@@ -337,3 +337,11 @@ func DomainNameAndId(compositeDomainName string) (string, string) {
 	}
 	return compositeDomainName, ""
 }
+
+// IsThrottlingError returns true if the error is a throttling error.
+func IsThrottlingError(err error) bool {
+	if alierr, ok := err.(errors.Error); ok && strings.Contains(alierr.Message(), "Throttling") {
+		return true
+	}
+	return false
+}
