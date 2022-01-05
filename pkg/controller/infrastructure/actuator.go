@@ -181,13 +181,8 @@ func (a *actuator) getInitializerValues(
 			return nil, err
 		}
 
-		internetChargeType, err := vpcClient.FetchEIPInternetChargeType(ctx, nil, vpcID)
-		if err != nil {
-			return nil, err
-		}
-
 		vpcInfo.CIDR = vpc[0].CidrBlock
-		vpcInfo.InternetChargeType = internetChargeType
+		vpcInfo.InternetChargeType = alicloudclient.DefaultInternetChargeType
 	} else {
 		vpcInfo, err = vpcClient.GetVPCInfo(ctx, vpcID)
 		if err != nil {

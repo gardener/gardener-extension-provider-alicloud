@@ -125,6 +125,8 @@ You can freely choose a private CIDR range.
 Gardener will create an Enhanced NATGateway in the VPC and associate it with a VSwitch created in the first zone in the `networks.zones`.
 * Please note that when `networks.vpc.id` is present, and `networks.vpc.gardenerManagedNATGateway` is `false` or not set, you have to **manually** create an Enhance NATGateway
 and associate it with a VSwitch that you **manually** created. In this case, make sure the worker CIDRs in `networks.zones` do not overlap with the one you created.
+If a NATGateway is created manually and a shoot is created in the same VPC with `networks.vpc.gardenerManagedNATGateway` set `true`, you need to manually adjust the route rule accordingly.
+You may refer to [here](https://www.alibabacloud.com/help/en/doc-detail/121139.html).
 
 The `networks.zones` section describes which subnets you want to create in availability zones.
 For every zone, the Alicloud extension creates one subnet:
