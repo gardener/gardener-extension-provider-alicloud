@@ -35,7 +35,7 @@ const (
 	rateLimiterCacheTTL = 1 * time.Hour
 )
 
-// RateLimiterWaitError is an error to be reported if waiting for a aliyun dns  rate limiter fails.
+// RateLimiterWaitError is an error to be reported if waiting for a aliyun dns rate limiter fails.
 // This can only happen if the wait time would exceed the configured wait timeout.
 type RateLimiterWaitError struct {
 	Cause error
@@ -190,7 +190,7 @@ func (d *dnsClient) getDomainsWithCache(ctx context.Context) (map[string]alidns.
 
 // getDomains returns all domains.
 func (d *dnsClient) getDomains(ctx context.Context) (map[string]alidns.Domain, error) {
-	if err := d.waitForRoute53RateLimiter(ctx); err != nil {
+	if err := d.waitForAliDNSRateLimiter(ctx); err != nil {
 		return nil, err
 	}
 
@@ -217,7 +217,7 @@ func (d *dnsClient) getDomains(ctx context.Context) (map[string]alidns.Domain, e
 
 // getDomainRecords returns the domain records with the given domain name, rr, and record type.
 func (d *dnsClient) getDomainRecords(ctx context.Context, domainName, rr, recordType string) (map[string]alidns.Record, error) {
-	if err := d.waitForRoute53RateLimiter(ctx); err != nil {
+	if err := d.waitForAliDNSRateLimiter(ctx); err != nil {
 		return nil, err
 	}
 
@@ -246,7 +246,7 @@ func (d *dnsClient) getDomainRecords(ctx context.Context, domainName, rr, record
 }
 
 func (d *dnsClient) createDomainRecord(ctx context.Context, domainName, rr, recordType, value string, ttl int64) error {
-	if err := d.waitForRoute53RateLimiter(ctx); err != nil {
+	if err := d.waitForAliDNSRateLimiter(ctx); err != nil {
 		return err
 	}
 
@@ -261,7 +261,7 @@ func (d *dnsClient) createDomainRecord(ctx context.Context, domainName, rr, reco
 }
 
 func (d *dnsClient) updateDomainRecord(ctx context.Context, id, rr, recordType, value string, ttl int64) error {
-	if err := d.waitForRoute53RateLimiter(ctx); err != nil {
+	if err := d.waitForAliDNSRateLimiter(ctx); err != nil {
 		return err
 	}
 
@@ -276,7 +276,7 @@ func (d *dnsClient) updateDomainRecord(ctx context.Context, id, rr, recordType, 
 }
 
 func (d *dnsClient) deleteDomainRecord(ctx context.Context, id string) error {
-	if err := d.waitForRoute53RateLimiter(ctx); err != nil {
+	if err := d.waitForAliDNSRateLimiter(ctx); err != nil {
 		return err
 	}
 
@@ -288,7 +288,7 @@ func (d *dnsClient) deleteDomainRecord(ctx context.Context, id string) error {
 	return nil
 }
 
-func (c *dnsClient) waitForRoute53RateLimiter(ctx context.Context) error {
+func (c *dnsClient) waitForAliDNSRateLimiter(ctx context.Context) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, c.RateLimiterWaitTimeout)
 	defer cancel()
 	t := time.Now()
