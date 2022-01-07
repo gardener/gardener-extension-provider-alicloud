@@ -156,12 +156,12 @@ func (a *actuator) getDomainName(ctx context.Context, dns *extensionsv1alpha1.DN
 		// getting all domain names of the account and searching for the longest domain name that is a suffix of dns.spec.Name
 		domainNames, err := dnsClient.GetDomainNames(ctx)
 		if err != nil {
-			return "", fmt.Errorf("could not get DNS domain names: %+v", err)
+			return "", wrapAliClientError(err, "could not get DNS domain names")
 		}
 		a.logger.Info("Got DNS domain names", "domainNames", domainNames, "dnsrecord", kutil.ObjectName(dns))
 		domainName := dnsrecord.FindZoneForName(domainNames, dns.Spec.Name)
 		if domainName == "" {
-			return "", wrapAliClientError(err, fmt.Sprintf("could not find DNS domain name for name %s", dns.Spec.Name))
+			return "", fmt.Errorf("could not find DNS domain name for name %s", dns.Spec.Name)
 		}
 		return domainName, nil
 	}
