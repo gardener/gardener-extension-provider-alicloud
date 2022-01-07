@@ -288,15 +288,15 @@ func (d *dnsClient) deleteDomainRecord(ctx context.Context, id string) error {
 	return nil
 }
 
-func (c *dnsClient) waitForAliDNSRateLimiter(ctx context.Context) error {
-	timeoutCtx, cancel := context.WithTimeout(ctx, c.RateLimiterWaitTimeout)
+func (d *dnsClient) waitForAliDNSRateLimiter(ctx context.Context) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, d.RateLimiterWaitTimeout)
 	defer cancel()
 	t := time.Now()
-	if err := c.RateLimiter.Wait(timeoutCtx); err != nil {
+	if err := d.RateLimiter.Wait(timeoutCtx); err != nil {
 		return &RateLimiterWaitError{Cause: err}
 	}
-	if waitDuration := time.Since(t); waitDuration.Seconds() > 1/float64(c.RateLimiter.Limit()) {
-		c.Logger.Info("Waited for client-side aliyun DNS rate limiter", "waitDuration", waitDuration.String())
+	if waitDuration := time.Since(t); waitDuration.Seconds() > 1/float64(d.RateLimiter.Limit()) {
+		d.Logger.Info("Waited for client-side aliyun DNS rate limiter", "waitDuration", waitDuration.String())
 	}
 	return nil
 }
