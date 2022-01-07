@@ -107,6 +107,7 @@ networks:
   vpc: # specify either 'id' or 'cidr'
   # id: my-vpc
     cidr: 10.250.0.0/16
+  # gardenerManagedNATGateway: true
   zones:
   - name: eu-central-1a
     workers: 10.250.1.0/24
@@ -120,6 +121,12 @@ The `networks.vpc` section describes whether you want to create the shoot cluste
 * If `networks.vpc.cidr` is given then you have to specify the VPC CIDR of a new VPC that will be created during shoot creation.
 You can freely choose a private CIDR range.
 * Either `networks.vpc.id` or `networks.vpc.cidr` must be present, but not both at the same time.
+* When `networks.vpc.id` is present, in addition, you can also choose to set `networks.vpc.gardenerManagedNATGateway`. It is by default `false`. When it is set to `true`,
+Gardener will create an Enhanced NATGateway in the VPC and associate it with a VSwitch created in the first zone in the `networks.zones`.
+* Please note that when `networks.vpc.id` is present, and `networks.vpc.gardenerManagedNATGateway` is `false` or not set, you have to **manually** create an Enhance NATGateway
+and associate it with a VSwitch that you **manually** created. In this case, make sure the worker CIDRs in `networks.zones` do not overlap with the one you created.
+If a NATGateway is created manually and a shoot is created in the same VPC with `networks.vpc.gardenerManagedNATGateway` set `true`, you need to manually adjust the route rule accordingly.
+You may refer to [here](https://www.alibabacloud.com/help/en/doc-detail/121139.html).
 
 The `networks.zones` section describes which subnets you want to create in availability zones.
 For every zone, the Alicloud extension creates one subnet:

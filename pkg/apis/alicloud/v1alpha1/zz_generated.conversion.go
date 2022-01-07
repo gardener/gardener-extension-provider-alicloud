@@ -484,6 +484,7 @@ func Convert_alicloud_SecurityGroup_To_v1alpha1_SecurityGroup(in *alicloud.Secur
 func autoConvert_v1alpha1_VPC_To_alicloud_VPC(in *VPC, out *alicloud.VPC, s conversion.Scope) error {
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.CIDR = (*string)(unsafe.Pointer(in.CIDR))
+	out.GardenerManagedNATGateway = (*bool)(unsafe.Pointer(in.GardenerManagedNATGateway))
 	return nil
 }
 
@@ -495,6 +496,7 @@ func Convert_v1alpha1_VPC_To_alicloud_VPC(in *VPC, out *alicloud.VPC, s conversi
 func autoConvert_alicloud_VPC_To_v1alpha1_VPC(in *alicloud.VPC, out *VPC, s conversion.Scope) error {
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.CIDR = (*string)(unsafe.Pointer(in.CIDR))
+	out.GardenerManagedNATGateway = (*bool)(unsafe.Pointer(in.GardenerManagedNATGateway))
 	return nil
 }
 

@@ -656,6 +656,19 @@ string
 <p>CIDR is the CIDR of a VPC to create.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>gardenerManagedNATGateway</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GardenerManagedNATGateway indicates whether Gardener should create NATGateway in the VPC.
+This will only take effect if VPC ID is set.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.VPCStatus">VPCStatus

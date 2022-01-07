@@ -46,6 +46,10 @@ type VPC struct {
 	// CIDR is the CIDR of a VPC to create.
 	// +optional
 	CIDR *string `json:"cidr,omitempty"`
+	// GardenerManagedNATGateway indicates whether Gardener should create NATGateway in the VPC.
+	// This will only take effect if VPC ID is set.
+	// +optional
+	GardenerManagedNATGateway *bool `json:"gardenerManagedNATGateway,omitempty"`
 }
 
 // VPCStatus contains output information about the VPC.

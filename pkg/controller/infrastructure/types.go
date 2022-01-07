@@ -52,8 +52,9 @@ type VPC struct {
 
 // NATGateway contains values of NATGateway used to render terraform charts.
 type NATGateway struct {
-	NATGatewayID string
-	SNATTableIDs string
+	CreateNATGateway bool
+	NATGatewayID     string
+	SNATTableIDs     string
 }
 
 // EIP contains values of EIP used to render terraform charts
