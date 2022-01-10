@@ -147,7 +147,7 @@ func (ie *imageEncryptor) createStack() (string, error) {
 	parameters := []ros.CreateStackParameters{
 		{ParameterKey: "ImageId", ParameterValue: ie.sourceImageID},
 		{ParameterKey: "DestinationDescription", ParameterValue: fmt.Sprintf("copied from image %s", ie.sourceImageID)},
-		{ParameterKey: "DestinationImageName", ParameterValue: fmt.Sprintf("%s-%s-encrypted", ie.imageName, ie.imageVersion)},
+		{ParameterKey: "DestinationImageName", ParameterValue: fmt.Sprintf("%s-%s-%s-encrypted", ie.imageName, ie.imageVersion, ie.regionID)},
 		{ParameterKey: "DestinationRegionId", ParameterValue: ie.regionID},
 	}
 	stackRequest.Parameters = &parameters
@@ -231,10 +231,10 @@ func (ie *imageEncryptor) getEncrytpedImageIDFromStack(stackId string) (string, 
 	}
 
 	if len(response.Outputs) != 1 {
-		return "", false, fmt.Errorf("The length output for stack %s should be 1 but got %v.\n Output is %v\n The length", stackId, len(response.Outputs), response.Outputs)
+		return "", false, fmt.Errorf("the length output for stack %s should be 1 but got %v.\n Output is %v", stackId, len(response.Outputs), response.Outputs)
 	}
 
-	if "ImageId" != response.Outputs[0]["OutputKey"] {
+	if response.Outputs[0]["OutputKey"] != "ImageId" {
 		return "", false, fmt.Errorf("output doesn't contain key 'OutputKey' in stack %s", stackId)
 	}
 
