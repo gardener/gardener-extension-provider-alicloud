@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
@@ -84,8 +85,13 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		}
 
 		// options for the dnsrecord controller
-		dnsRecordCtrlOpts = &controllercmd.ControllerOptions{
-			MaxConcurrentReconciles: 5,
+		dnsRecordCtrlOpts = &alicloudcmd.DNSRecordControllerOptions{
+			ControllerOptions: controllercmd.ControllerOptions{
+				MaxConcurrentReconciles: 5,
+			},
+			ProviderClientQPS:         25,
+			ProviderClientBurst:       1,
+			ProviderClientWaitTimeout: 2 * time.Second,
 		}
 
 		// options for the infrastructure controller
@@ -185,6 +191,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			backupEntryCtrlOpts.Completed().Apply(&alicloudbackupentry.DefaultAddOptions.Controller)
 			controlPlaneCtrlOpts.Completed().Apply(&alicloudcontrolplane.DefaultAddOptions.Controller)
 			dnsRecordCtrlOpts.Completed().Apply(&aliclouddnsrecord.DefaultAddOptions.Controller)
+			dnsRecordCtrlOpts.Completed().ApplyRateLimiter(&aliclouddnsrecord.DefaultAddOptions.RateLimiter)
 			infraCtrlOpts.Completed().Apply(&alicloudinfrastructure.DefaultAddOptions.Controller)
 			reconcileOpts.Completed().Apply(&alicloudinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation)
 			reconcileOpts.Completed().Apply(&alicloudcontrolplane.DefaultAddOptions.IgnoreOperationAnnotation)

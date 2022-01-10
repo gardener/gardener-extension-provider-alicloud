@@ -26,6 +26,9 @@ controllers:
     concurrentSyncs: 5
   dnsrecord:
     concurrentSyncs: 5
+    providerClientQPS: 25
+    providerClientBurst: 1
+    providerClientWaitTimeout: 2s
   healthcheck:
     concurrentSyncs: 5
   infrastructure:
