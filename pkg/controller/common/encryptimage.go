@@ -147,7 +147,7 @@ func (ie *imageEncryptor) createStack() (string, error) {
 	parameters := []ros.CreateStackParameters{
 		{ParameterKey: "ImageId", ParameterValue: ie.sourceImageID},
 		{ParameterKey: "DestinationDescription", ParameterValue: fmt.Sprintf("copied from image %s", ie.sourceImageID)},
-		{ParameterKey: "DestinationImageName", ParameterValue: fmt.Sprintf("%s-%s-encrypted-%s", ie.imageName, ie.imageVersion, ie.regionID)},
+		{ParameterKey: "DestinationImageName", ParameterValue: fmt.Sprintf("%s-%s-%s-encrypted", ie.imageName, ie.imageVersion, ie.regionID)},
 		{ParameterKey: "DestinationRegionId", ParameterValue: ie.regionID},
 	}
 	stackRequest.Parameters = &parameters
