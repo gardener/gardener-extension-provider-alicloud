@@ -231,7 +231,7 @@ func (ie *imageEncryptor) getEncrytpedImageIDFromStack(stackId string) (string, 
 	}
 
 	if len(response.Outputs) != 1 {
-		return "", false, fmt.Errorf("the length output for stack %s should be 1 but got %v.\n Output is %v\n The length", stackId, len(response.Outputs), response.Outputs)
+		return "", false, fmt.Errorf("the length output for stack %s should be 1 but got %v.\n Output is %v", stackId, len(response.Outputs), response.Outputs)
 	}
 
 	if response.Outputs[0]["OutputKey"] != "ImageId" {
