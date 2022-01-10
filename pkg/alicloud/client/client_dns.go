@@ -42,7 +42,7 @@ type RateLimiterWaitError struct {
 }
 
 func (e *RateLimiterWaitError) Error() string {
-	return fmt.Sprintf("could not wait for client-side route53 rate limiter: %+v", e.Cause)
+	return fmt.Sprintf("could not wait for client-side aliyun dns rate limiter: %+v", e.Cause)
 }
 
 // NewDNSClient creates a new DNS client with given region, accessKeyID, and accessKeySecret.
