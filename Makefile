@@ -41,6 +41,13 @@ ACCESS_KEY_SECRET_FILE := .kube-secrets/alicloud/access_key_secret.secret
 VPC_ID_FILE            := .kube-secrets/alicloud/vpc_id.secret
 
 #########################################
+# Tools                                 #
+#########################################
+
+TOOLS_DIR := hack/tools
+include vendor/github.com/gardener/gardener/hack/tools.mk
+
+#########################################
 # Rules for local development scenarios #
 #########################################
 
@@ -120,6 +127,10 @@ check-generate:
 check:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/... ./test/...
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-charts.sh ./charts
+
+.PHONY: check-docforge
+check-docforge: $(DOCFORGE)
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-docforge.sh $(REPO_ROOT) $(REPO_ROOT)/.docforge/manifest.yaml ".docforge/;docs/" "gardener-extension-provider-alicloud" false
 
 .PHONY: generate
 generate:
