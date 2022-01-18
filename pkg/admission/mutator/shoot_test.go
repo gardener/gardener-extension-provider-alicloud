@@ -324,7 +324,7 @@ var _ = Describe("Mutating Shoot", func() {
 			Expect(*newShoot.Spec.Provider.Workers[1].DataVolumes[0].Encrypted).To(BeTrue())
 			Expect(*newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted).To(BeTrue())
 		})
-		It("Should Keep encrypted flag unchanged if shoot was created in old version and this flag is not set explictly", func() {
+		It("Should Keep encrypted flag unchanged if shoot was created in old version and this flag is not set explicitly", func() {
 			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
 			sameName := "worker1"
@@ -342,7 +342,7 @@ var _ = Describe("Mutating Shoot", func() {
 			Expect(newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted == nil).To(BeTrue())
 
 		})
-		It("Should keep default encrypted flag unchanged if shoot is created in new version and this flag is not set explictly", func() {
+		It("Should keep default encrypted flag unchanged if shoot is created in new version and this flag is not set explicitly", func() {
 			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
 			sameName := "worker1"
