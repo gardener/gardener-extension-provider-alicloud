@@ -200,7 +200,7 @@ func verifyStackExists(ctx context.Context, clientFactory alicloudclient.ClientF
 			return retry.MinorError(err)
 		}
 		if len(listStacksResponse.Stacks) == 0 {
-			return retry.MinorError(fmt.Errorf("stack %s doesn't exit", stackName))
+			return retry.MinorError(fmt.Errorf("stack %s doesn't exist", stackName))
 		}
 
 		getStackRequest := ros.CreateGetStackRequest()
