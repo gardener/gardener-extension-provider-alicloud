@@ -58,11 +58,6 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 		}
 	}
 
-	// Delete any older version of AlicloudMachineClass CRs.
-	if err := w.Client().DeleteAllOf(ctx, &machinev1alpha1.AlicloudMachineClass{}, client.InNamespace(w.worker.Namespace)); err != nil {
-		return err
-	}
-
 	return w.seedChartApplier.Apply(ctx, filepath.Join(alicloud.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses}))
 }
 
