@@ -23,10 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/utils/pointer"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	apiv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
@@ -51,6 +47,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("Machines", func() {
@@ -520,17 +517,14 @@ var _ = Describe("Machines", func() {
 
 				It("should return the expected machine deployments for profile image types", func() {
 					workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, cluster)
-					gomock.InOrder(
-						c.EXPECT().DeleteAllOf(context.TODO(), &machinev1alpha1.AlicloudMachineClass{}, client.InNamespace(namespace)),
-						chartApplier.EXPECT().
-							Apply(
-								context.TODO(),
-								filepath.Join(alicloud.InternalChartsPath, "machineclass"),
-								namespace,
-								"machineclass",
-								kubernetes.Values(machineClasses),
-							),
-					)
+					chartApplier.EXPECT().
+						Apply(
+							context.TODO(),
+							filepath.Join(alicloud.InternalChartsPath, "machineclass"),
+							namespace,
+							"machineclass",
+							kubernetes.Values(machineClasses),
+						)
 
 					// Test workerDelegate.DeployMachineClasses()
 					err := workerDelegate.DeployMachineClasses(context.TODO())
@@ -583,15 +577,6 @@ var _ = Describe("Machines", func() {
 
 				// Deliberately setting InfrastructureProviderStatus to empty
 				w.Spec.InfrastructureProviderStatus = &runtime.RawExtension{}
-				err := workerDelegate.DeployMachineClasses(context.TODO())
-				Expect(err).To(HaveOccurred())
-			})
-
-			It("should return error when failing to delete AlicloudMachineClass", func() {
-				workerDelegate, _ = NewWorkerDelegate(common.NewClientContext(c, scheme, decoder), chartApplier, "", w, cluster)
-				c.EXPECT().DeleteAllOf(context.TODO(), &machinev1alpha1.AlicloudMachineClass{}, client.InNamespace(namespace)).Return(fmt.Errorf("fake error"))
-
-				// Test workerDelegate.DeployMachineClasses()
 				err := workerDelegate.DeployMachineClasses(context.TODO())
 				Expect(err).To(HaveOccurred())
 			})
