@@ -311,3 +311,7 @@ spec:
     nginx-ingress:
       enabled: true
 ```
+
+## Kubernetes Versions per Worker Pool
+
+This extension supports `gardener/gardener`'s `WorkerPoolKubernetesVersion` feature gate, i.e., having [worker pools with overridden Kubernetes versions](https://github.com/gardener/gardener/blob/8a9c88866ec5fce59b5acf57d4227eeeb73669d7/example/90-shoot.yaml#L69-L70) since `gardener-extension-provider-alicloud@v1.33`.
