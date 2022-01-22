@@ -23,6 +23,7 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
+	versionutils "github.com/gardener/gardener/pkg/utils/version"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -84,9 +85,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, ver *semver.Version
 	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--feature-gates=",
 		"CSIDriverRegistry=false", ",")
 
-	kVersion16 := semver.MustParse("v1.16")
-
-	if ver.LessThan(kVersion16) {
+	if versionutils.ConstraintK8sLess116.Check(ver) {
 		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
 			"ExpandCSIVolumes=true", ",")
 		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
@@ -99,7 +98,7 @@ func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
-func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, old []*unit.UnitOption) ([]*unit.UnitOption, error) {
+func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, gctx gcontext.GardenContext, _ *semver.Version, new, old []*unit.UnitOption) ([]*unit.UnitOption, error) {
 	if opt := extensionswebhook.UnitOptionWithSectionAndName(new, "Service", "ExecStart"); opt != nil {
 		command := extensionswebhook.DeserializeCommandLine(opt.Value)
 		command = ensureKubeletCommandLineArgs(command)
@@ -139,15 +138,12 @@ func ensureKubeletCommandLineArgs(command []string) []string {
 }
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
-func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, old *kubeletconfigv1beta1.KubeletConfiguration) error {
-	// Ensure CSI-related feature gates
-	if new.FeatureGates == nil {
-		new.FeatureGates = make(map[string]bool)
-	}
-
-	kVersion16 := semver.MustParse("v1.16")
-
-	if kubeletVersion.LessThan(kVersion16) {
+func (e *ensurer) EnsureKubeletConfiguration(_ context.Context, _ gcontext.GardenContext, kubeletVersion *semver.Version, new, _ *kubeletconfigv1beta1.KubeletConfiguration) error {
+	if versionutils.ConstraintK8sLess116.Check(kubeletVersion) {
+		// Ensure CSI-related feature gates
+		if new.FeatureGates == nil {
+			new.FeatureGates = make(map[string]bool)
+		}
 		new.FeatureGates["ExpandCSIVolumes"] = true
 	}
 
