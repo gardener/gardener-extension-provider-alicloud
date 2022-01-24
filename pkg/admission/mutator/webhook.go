@@ -18,7 +18,6 @@ import (
 	extensionspredicate "github.com/gardener/gardener/extensions/pkg/predicate"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -35,8 +34,8 @@ func NewShootsWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Name:       ShootMutatorName,
 		Path:       MutatorPath + "/shoots",
 		Predicates: []predicate.Predicate{extensionspredicate.GardenCoreProviderType(alicloud.Type)},
-		Mutators: map[extensionswebhook.Mutator][]client.Object{
-			NewShootMutator(): {&corev1beta1.Shoot{}},
+		Mutators: map[extensionswebhook.Mutator][]extensionswebhook.Type{
+			NewShootMutator(): {{Obj: &corev1beta1.Shoot{}}},
 		},
 	})
 }

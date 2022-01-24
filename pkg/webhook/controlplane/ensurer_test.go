@@ -18,13 +18,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/coreos/go-systemd/v22/unit"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/test"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+
+	"github.com/Masterminds/semver"
+	"github.com/coreos/go-systemd/v22/unit"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -225,7 +227,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeletServiceUnitOptions method and check the result
-			opts, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), eContext15, oldUnitOptions, nil)
+			opts, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), eContext15, semver.MustParse("1.15.0"), oldUnitOptions, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(opts).To(Equal(newUnitOptions))
 		})
@@ -252,7 +254,7 @@ var _ = Describe("Ensurer", func() {
 
 			// Call EnsureKubeletConfiguration method and check the result
 			// 1.15
-			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext15, oldKubeletConfig15, nil)
+			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext15, semver.MustParse("1.15.0"), oldKubeletConfig15, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(oldKubeletConfig15).To(Equal(newKubeletConfig15))
 		})

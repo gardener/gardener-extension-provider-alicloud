@@ -298,9 +298,7 @@ var _ = Describe("Actuator", func() {
 						}, nil),
 					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
 					c.EXPECT().Status().Return(c),
-					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: infra.Namespace, Name: infra.Name}, &infra),
-
-					c.EXPECT().Update(ctx, &infra),
+					c.EXPECT().Patch(ctx, &infra, gomock.Any()),
 				)
 
 				expectInject(inject.ClientInto(c, actuator))
@@ -396,9 +394,7 @@ var _ = Describe("Actuator", func() {
 						}, nil),
 					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
 					c.EXPECT().Status().Return(c),
-					c.EXPECT().Get(ctx, client.ObjectKey{Namespace: infra.Namespace, Name: infra.Name}, &infra),
-
-					c.EXPECT().Update(ctx, &infra),
+					c.EXPECT().Patch(ctx, &infra, gomock.Any()),
 				)
 
 				expectInject(inject.ClientInto(c, actuator))
