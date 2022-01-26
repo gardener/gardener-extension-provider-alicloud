@@ -23,11 +23,13 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
-	versionutils "github.com/gardener/gardener/pkg/utils/version"
+	"github.com/gardener/gardener/pkg/utils/version"
+
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
+	"k8s.io/utils/pointer"
 )
 
 // NewEnsurer creates a new controlplane ensurer.
@@ -85,7 +87,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, ver *semver.Version
 	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--feature-gates=",
 		"CSIDriverRegistry=false", ",")
 
-	if versionutils.ConstraintK8sLess116.Check(ver) {
+	if version.ConstraintK8sLess116.Check(ver) {
 		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
 			"ExpandCSIVolumes=true", ",")
 		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
@@ -98,10 +100,10 @@ func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
-func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, gctx gcontext.GardenContext, _ *semver.Version, new, old []*unit.UnitOption) ([]*unit.UnitOption, error) {
+func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, old []*unit.UnitOption) ([]*unit.UnitOption, error) {
 	if opt := extensionswebhook.UnitOptionWithSectionAndName(new, "Service", "ExecStart"); opt != nil {
 		command := extensionswebhook.DeserializeCommandLine(opt.Value)
-		command = ensureKubeletCommandLineArgs(command)
+		command = ensureKubeletCommandLineArgs(command, kubeletVersion)
 		opt.Value = extensionswebhook.SerializeCommandLine(command, 1, " \\\n    ")
 	}
 
@@ -125,26 +127,34 @@ func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, gctx gcon
 	return new, nil
 }
 
-func ensureKubeletCommandLineArgs(command []string) []string {
+func ensureKubeletCommandLineArgs(command []string, kubeletVersion *semver.Version) []string {
 	// TODO: Figure out how to provide the provider-id via the kubelet config file (as of Kubernetes 1.19 the kubelet config
 	// offers a new `providerID` field which can be used, and it's expected that `--provider-id` will be deprecated eventually).
 	// Today, the problem is that the provider ID is determined dynamically using the script above, but the kubelet config cannot
 	// reference environment variables like it's possible today with the CLI parameters.
 	// See https://github.com/kubernetes/kubernetes/pull/90494
 	command = extensionswebhook.EnsureStringWithPrefix(command, "--provider-id=", "${PROVIDER_ID}")
-	command = extensionswebhook.EnsureStringWithPrefix(command, "--cloud-provider=", "external")
-	command = extensionswebhook.EnsureStringWithPrefix(command, "--enable-controller-attach-detach=", "true")
+
+	if !version.ConstraintK8sGreaterEqual123.Check(kubeletVersion) {
+		command = extensionswebhook.EnsureStringWithPrefix(command, "--cloud-provider=", "external")
+		command = extensionswebhook.EnsureStringWithPrefix(command, "--enable-controller-attach-detach=", "true")
+	}
+
 	return command
 }
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
-func (e *ensurer) EnsureKubeletConfiguration(_ context.Context, _ gcontext.GardenContext, kubeletVersion *semver.Version, new, _ *kubeletconfigv1beta1.KubeletConfiguration) error {
-	if versionutils.ConstraintK8sLess116.Check(kubeletVersion) {
+func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, old *kubeletconfigv1beta1.KubeletConfiguration) error {
+	if version.ConstraintK8sLess116.Check(kubeletVersion) {
 		// Ensure CSI-related feature gates
 		if new.FeatureGates == nil {
 			new.FeatureGates = make(map[string]bool)
 		}
 		new.FeatureGates["ExpandCSIVolumes"] = true
+	}
+
+	if version.ConstraintK8sGreaterEqual123.Check(kubeletVersion) {
+		new.EnableControllerAttachDetach = pointer.Bool(true)
 	}
 
 	return nil
