@@ -42,8 +42,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:csi-snapshotter
 subjects:
+{{- if .Values.global.useTokenRequestor }}
+- kind: ServiceAccount
+  name: csi-snapshotter
+  namespace: kube-system
+{{- else }}
 - kind: User
   name: system:csi-snapshotter
+{{- end }}
 roleRef:
   kind: ClusterRole
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-snapshotter
@@ -67,8 +73,14 @@ metadata:
   name: csi-snapshotter
   namespace: kube-system
 subjects:
+{{- if .Values.global.useTokenRequestor }}
+- kind: ServiceAccount
+  name: csi-snapshotter
+  namespace: kube-system
+{{- else }}
 - kind: User
   name: system:csi-snapshotter
+{{- end }}
 roleRef:
   kind: Role
   name: csi-snapshotter

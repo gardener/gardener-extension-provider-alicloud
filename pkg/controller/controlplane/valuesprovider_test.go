@@ -134,6 +134,9 @@ var _ = Describe("ValuesProvider", func() {
 		}
 
 		controlPlaneChartValues = map[string]interface{}{
+			"global": map[string]interface{}{
+				"useTokenRequestor": true,
+			},
 			"alicloud-cloud-controller-manager": map[string]interface{}{
 				"replicas":          1,
 				"clusterName":       namespace,
@@ -176,6 +179,10 @@ var _ = Describe("ValuesProvider", func() {
 		}
 
 		controlPlaneShootChartValues = map[string]interface{}{
+			"global": map[string]interface{}{
+				"useTokenRequestor":      true,
+				"useProjectedTokenMount": true,
+			},
 			"csi-alicloud": map[string]interface{}{
 				"credential": map[string]interface{}{
 					"accessKeyID":     "Zm9v",
@@ -205,7 +212,7 @@ var _ = Describe("ValuesProvider", func() {
 			client := mockclient.NewMockClient(ctrl)
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
 			// Create valuesProvider
-			vp := NewValuesProvider(logger, csi)
+			vp := NewValuesProvider(logger, csi, true, true)
 			err := vp.(inject.Scheme).InjectScheme(scheme)
 			Expect(err).NotTo(HaveOccurred())
 			err = vp.(inject.Client).InjectClient(client)
@@ -225,7 +232,7 @@ var _ = Describe("ValuesProvider", func() {
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
 
 			// Create valuesProvider
-			vp := NewValuesProvider(logger, csi)
+			vp := NewValuesProvider(logger, csi, true, true)
 			err := vp.(inject.Client).InjectClient(client)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -238,7 +245,7 @@ var _ = Describe("ValuesProvider", func() {
 
 	Describe("#GetControlPlaneShootCRDsChartValues", func() {
 		It("should return correct control plane shoot CRDs chart values ", func() {
-			vp := NewValuesProvider(logger, csi)
+			vp := NewValuesProvider(logger, csi, true, true)
 
 			values, err := vp.GetControlPlaneShootCRDsChartValues(context.TODO(), cp, cluster)
 			Expect(err).NotTo(HaveOccurred())
