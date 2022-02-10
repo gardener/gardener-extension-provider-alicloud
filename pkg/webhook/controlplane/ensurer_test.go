@@ -18,17 +18,17 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Masterminds/semver"
+	"github.com/coreos/go-systemd/v22/unit"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/test"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-
-	"github.com/Masterminds/semver"
-	"github.com/coreos/go-systemd/v22/unit"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -50,6 +50,17 @@ var _ = Describe("Ensurer", func() {
 					Spec: gardencorev1beta1.ShootSpec{
 						Kubernetes: gardencorev1beta1.Kubernetes{
 							Version: "1.15.0",
+						},
+					},
+				},
+			},
+		)
+		eContext16 = gcontext.NewInternalGardenContext(
+			&extensionscontroller.Cluster{
+				Shoot: &gardencorev1beta1.Shoot{
+					Spec: gardencorev1beta1.ShootSpec{
+						Kubernetes: gardencorev1beta1.Kubernetes{
+							Version: "1.16.0",
 						},
 					},
 				},
@@ -234,30 +245,34 @@ var _ = Describe("Ensurer", func() {
 	})
 
 	Describe("#EnsureKubeletConfiguration", func() {
-		It("should modify existing elements of kubelet configuration", func() {
-			var (
-				oldKubeletConfig15 = &kubeletconfigv1beta1.KubeletConfiguration{
-					FeatureGates: map[string]bool{
-						"Foo": true,
-					},
-				}
-				newKubeletConfig15 = &kubeletconfigv1beta1.KubeletConfiguration{
-					FeatureGates: map[string]bool{
-						"Foo":              true,
-						"ExpandCSIVolumes": true,
-					},
-				}
-			)
+		DescribeTable("should modify existing elements of kubelet configuration",
+			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version, expectExpandCSIVolumesFeatureGate bool) {
+				var (
+					oldKubeletConfig = &kubeletconfigv1beta1.KubeletConfiguration{
+						FeatureGates: map[string]bool{
+							"Foo": true,
+						},
+					}
+					newKubeletConfig = oldKubeletConfig.DeepCopy()
+				)
 
-			// Create ensurer
-			ensurer := NewEnsurer(logger)
+				if expectExpandCSIVolumesFeatureGate {
+					newKubeletConfig.FeatureGates["ExpandCSIVolumes"] = true
+				}
 
-			// Call EnsureKubeletConfiguration method and check the result
-			// 1.15
-			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext15, semver.MustParse("1.15.0"), oldKubeletConfig15, nil)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(oldKubeletConfig15).To(Equal(newKubeletConfig15))
-		})
+				// Create ensurer
+				ensurer := NewEnsurer(logger)
+
+				// Call EnsureKubeletConfiguration method and check the result
+				err := ensurer.EnsureKubeletConfiguration(context.TODO(), gctx, kubeletVersion, oldKubeletConfig, nil)
+				Expect(err).To(Not(HaveOccurred()))
+				Expect(oldKubeletConfig).To(Equal(newKubeletConfig))
+			},
+
+			Entry("control plane, kubelet < 1.16", eContext15, semver.MustParse("1.15.0"), true),
+			Entry("control plane >= 1.16, kubelet < 1.16", eContext16, semver.MustParse("1.15.0"), true),
+			Entry("control plane, kubelet >= 1.16", eContext16, semver.MustParse("1.16.0"), false),
+		)
 	})
 })
 
