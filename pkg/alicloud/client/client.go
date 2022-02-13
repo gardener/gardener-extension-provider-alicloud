@@ -221,6 +221,110 @@ func (c *ecsClient) CheckIfImageExists(ctx context.Context, imageID string) (boo
 	return response.TotalCount > 0, nil
 }
 
+// GetSecurityGroup return security group metadata by security group name
+func (c *ecsClient) GetSecurityGroup(name string) (*ecs.DescribeSecurityGroupsResponse, error) {
+	request := ecs.CreateDescribeSecurityGroupsRequest()
+	request.SetScheme("HTTPS")
+	request.SecurityGroupName = name
+	return c.DescribeSecurityGroups(request)
+}
+
+// GetInstances return instance metadata by instance name
+func (c *ecsClient) GetInstances(name string) (*ecs.DescribeInstancesResponse, error) {
+	request := ecs.CreateDescribeInstancesRequest()
+	request.SetScheme("HTTPS")
+	request.InstanceName = name
+	return c.DescribeInstances(request)
+}
+
+// GetInstanceType return metadata of instance type
+func (c *ecsClient) GetInstanceType(cores int, zoneID string) (*ecs.DescribeAvailableResourceResponse, error) {
+	request := ecs.CreateDescribeAvailableResourceRequest()
+	request.SetScheme("HTTPS")
+	request.DestinationResource = "InstanceType"
+	request.InstanceChargeType = "PostPaid"
+	request.NetworkCategory = "vpc"
+	request.Cores = requests.NewInteger(cores)
+	request.ZoneId = zoneID
+	return c.DescribeAvailableResource(request)
+}
+
+// CreateInstance create a instance
+func (c *ecsClient) CreateInstances(instanceName, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID, userData string) (*ecs.RunInstancesResponse, error) {
+	request := ecs.CreateRunInstancesRequest()
+	request.SetScheme("HTTPS")
+	request.ImageId = imageID
+	request.InstanceName = instanceName
+	request.SecurityGroupId = securityGroupID
+	request.InstanceType = instanceTypeID
+	request.ZoneId = zoneID
+	request.VSwitchId = vSwitchId
+	// assign public IP addresses to the new instances if InternetMaxBandwidthOut parameter to a value greater than 0
+	request.InternetMaxBandwidthOut = requests.NewInteger(5)
+	request.UserData = userData
+	return c.RunInstances(request)
+}
+
+// DeleteInstance delete a instance
+func (c *ecsClient) DeleteInstances(id string, force bool) error {
+	request := ecs.CreateDeleteInstanceRequest()
+	request.SetScheme("HTTPS")
+	request.InstanceId = id
+	request.Force = requests.NewBoolean(force)
+	_, err := c.DeleteInstance(request)
+	return err
+}
+
+// CreateSecurityGroups create a security group
+func (c *ecsClient) CreateSecurityGroups(vpcId, name string) (*ecs.CreateSecurityGroupResponse, error) {
+	request := ecs.CreateCreateSecurityGroupRequest()
+	request.SetScheme("HTTPS")
+	request.VpcId = vpcId
+	request.SecurityGroupName = name
+	return c.CreateSecurityGroup(request)
+}
+
+// DeleteSecurityGroups delete a security Group
+func (c *ecsClient) DeleteSecurityGroups(id string) error {
+	request := ecs.CreateDeleteSecurityGroupRequest()
+	request.SetScheme("HTTPS")
+	request.SecurityGroupId = id
+	_, err := c.DeleteSecurityGroup(request)
+	return err
+}
+
+// AllocatePublicIp allocate public ip
+func (c *ecsClient) AllocatePublicIp(id string) (*ecs.AllocatePublicIpAddressResponse, error) {
+	request := ecs.CreateAllocatePublicIpAddressRequest()
+	request.SetScheme("HTTPS")
+	request.InstanceId = id
+	return c.AllocatePublicIpAddress(request)
+}
+
+// CreateIngressRule create ingress rule
+func (c *ecsClient) CreateIngressRule(request *ecs.AuthorizeSecurityGroupRequest) error {
+	_, err := c.AuthorizeSecurityGroup(request)
+	return err
+}
+
+// CreateEgressRule create egress rule
+func (c *ecsClient) CreateEgressRule(request *ecs.AuthorizeSecurityGroupEgressRequest) error {
+	_, err := c.AuthorizeSecurityGroupEgress(request)
+	return err
+}
+
+// RevokeIngressRule revoke ingress rule
+func (c *ecsClient) RevokeIngressRule(request *ecs.RevokeSecurityGroupRequest) error {
+	_, err := c.RevokeSecurityGroup(request)
+	return err
+}
+
+// RevokeEgressRule revoke egress rule
+func (c *ecsClient) RevokeEgressRule(request *ecs.RevokeSecurityGroupEgressRequest) error {
+	_, err := c.RevokeSecurityGroupEgress(request)
+	return err
+}
+
 // CheckIfImageOwnedByAliCloud checks if the given image ID is owned by AliCloud
 func (c *ecsClient) CheckIfImageOwnedByAliCloud(imageID string) (bool, error) {
 	request := ecs.CreateDescribeImagesRequest()
@@ -506,6 +610,48 @@ func (c *vpcClient) GetVPCInfo(ctx context.Context, vpcID string) (*VPCInfo, err
 		NATGatewayID:       natGateways[0].NatGatewayId,
 		SNATTableIDs:       strings.Join(natGateway.SnatTableIds.SnatTableId, ","),
 		InternetChargeType: internetChargeType,
+	}, nil
+}
+
+// GetVPCInfoByName gets info of an existing VPC by VPC name
+func (c *vpcClient) GetVPCInfoByName(name string) (*VPCInfo, error) {
+	request := vpc.CreateDescribeVpcsRequest()
+	request.VpcName = name
+
+	vpc, err := c.DescribeVpcs(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vpc.Vpcs.Vpc) == 0 {
+		return nil, fmt.Errorf("shoot vpc must be not empty")
+	}
+
+	if len(vpc.Vpcs.Vpc[0].VSwitchIds.VSwitchId) == 0 {
+		return nil, fmt.Errorf("vswitch must be not empty")
+	}
+
+	return &VPCInfo{
+		VSwitchID: vpc.Vpcs.Vpc[0].VSwitchIds.VSwitchId[0],
+		VPCID:     vpc.Vpcs.Vpc[0].VpcId,
+	}, nil
+}
+
+// GetVSwitchesInfoByID get info of VSwitch by ID
+func (c *vpcClient) GetVSwitchesInfoByID(id string) (*VSwitchInfo, error) {
+	request := vpc.CreateDescribeVSwitchesRequest()
+	request.VSwitchId = id
+	vswitches, err := c.DescribeVSwitches(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vswitches.VSwitches.VSwitch) == 0 {
+		return nil, fmt.Errorf("vswitches not found")
+	}
+
+	return &VSwitchInfo{
+		ZoneID: vswitches.VSwitches.VSwitch[0].ZoneId,
 	}, nil
 }
 

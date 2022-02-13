@@ -37,3 +37,10 @@ spec:
       - name: REGION
         type: env
         value: ap-southeast-2
+  - name: bastion-test
+    definition:
+      name: bastion-test
+      config:
+      - name: REGION
+        type: env
+        value: eu-central-1

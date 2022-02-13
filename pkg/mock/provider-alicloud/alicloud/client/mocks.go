@@ -199,6 +199,21 @@ func (m *MockECS) EXPECT() *MockECSMockRecorder {
 	return m.recorder
 }
 
+// AllocatePublicIp mocks base method.
+func (m *MockECS) AllocatePublicIp(arg0 string) (*ecs.AllocatePublicIpAddressResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AllocatePublicIp", arg0)
+	ret0, _ := ret[0].(*ecs.AllocatePublicIpAddressResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AllocatePublicIp indicates an expected call of AllocatePublicIp.
+func (mr *MockECSMockRecorder) AllocatePublicIp(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocatePublicIp", reflect.TypeOf((*MockECS)(nil).AllocatePublicIp), arg0)
+}
+
 // CheckIfImageExists mocks base method.
 func (m *MockECS) CheckIfImageExists(arg0 context.Context, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
@@ -227,6 +242,92 @@ func (m *MockECS) CheckIfImageOwnedByAliCloud(arg0 string) (bool, error) {
 func (mr *MockECSMockRecorder) CheckIfImageOwnedByAliCloud(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfImageOwnedByAliCloud", reflect.TypeOf((*MockECS)(nil).CheckIfImageOwnedByAliCloud), arg0)
+}
+
+// CreateEgressRule mocks base method.
+func (m *MockECS) CreateEgressRule(arg0 *ecs.AuthorizeSecurityGroupEgressRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEgressRule", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateEgressRule indicates an expected call of CreateEgressRule.
+func (mr *MockECSMockRecorder) CreateEgressRule(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEgressRule", reflect.TypeOf((*MockECS)(nil).CreateEgressRule), arg0)
+}
+
+// CreateIngressRule mocks base method.
+func (m *MockECS) CreateIngressRule(arg0 *ecs.AuthorizeSecurityGroupRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateIngressRule", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateIngressRule indicates an expected call of CreateIngressRule.
+func (mr *MockECSMockRecorder) CreateIngressRule(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIngressRule", reflect.TypeOf((*MockECS)(nil).CreateIngressRule), arg0)
+}
+
+// CreateInstances mocks base method.
+func (m *MockECS) CreateInstances(arg0, arg1, arg2, arg3, arg4, arg5, arg6 string) (*ecs.RunInstancesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateInstances", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret0, _ := ret[0].(*ecs.RunInstancesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateInstances indicates an expected call of CreateInstances.
+func (mr *MockECSMockRecorder) CreateInstances(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstances", reflect.TypeOf((*MockECS)(nil).CreateInstances), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+}
+
+// CreateSecurityGroups mocks base method.
+func (m *MockECS) CreateSecurityGroups(arg0, arg1 string) (*ecs.CreateSecurityGroupResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSecurityGroups", arg0, arg1)
+	ret0, _ := ret[0].(*ecs.CreateSecurityGroupResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSecurityGroups indicates an expected call of CreateSecurityGroups.
+func (mr *MockECSMockRecorder) CreateSecurityGroups(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecurityGroups", reflect.TypeOf((*MockECS)(nil).CreateSecurityGroups), arg0, arg1)
+}
+
+// DeleteInstances mocks base method.
+func (m *MockECS) DeleteInstances(arg0 string, arg1 bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteInstances", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteInstances indicates an expected call of DeleteInstances.
+func (mr *MockECSMockRecorder) DeleteInstances(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstances", reflect.TypeOf((*MockECS)(nil).DeleteInstances), arg0, arg1)
+}
+
+// DeleteSecurityGroups mocks base method.
+func (m *MockECS) DeleteSecurityGroups(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSecurityGroups", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteSecurityGroups indicates an expected call of DeleteSecurityGroups.
+func (mr *MockECSMockRecorder) DeleteSecurityGroups(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecurityGroups", reflect.TypeOf((*MockECS)(nil).DeleteSecurityGroups), arg0)
 }
 
 // DescribeKeyPairs mocks base method.
@@ -286,6 +387,79 @@ func (m *MockECS) DetachECSInstancesFromSSHKeyPair(arg0 string) error {
 func (mr *MockECSMockRecorder) DetachECSInstancesFromSSHKeyPair(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachECSInstancesFromSSHKeyPair", reflect.TypeOf((*MockECS)(nil).DetachECSInstancesFromSSHKeyPair), arg0)
+}
+
+// GetInstanceType mocks base method.
+func (m *MockECS) GetInstanceType(arg0 int, arg1 string) (*ecs.DescribeAvailableResourceResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstanceType", arg0, arg1)
+	ret0, _ := ret[0].(*ecs.DescribeAvailableResourceResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstanceType indicates an expected call of GetInstanceType.
+func (mr *MockECSMockRecorder) GetInstanceType(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceType", reflect.TypeOf((*MockECS)(nil).GetInstanceType), arg0, arg1)
+}
+
+// GetInstances mocks base method.
+func (m *MockECS) GetInstances(arg0 string) (*ecs.DescribeInstancesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstances", arg0)
+	ret0, _ := ret[0].(*ecs.DescribeInstancesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstances indicates an expected call of GetInstances.
+func (mr *MockECSMockRecorder) GetInstances(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstances", reflect.TypeOf((*MockECS)(nil).GetInstances), arg0)
+}
+
+// GetSecurityGroup mocks base method.
+func (m *MockECS) GetSecurityGroup(arg0 string) (*ecs.DescribeSecurityGroupsResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSecurityGroup", arg0)
+	ret0, _ := ret[0].(*ecs.DescribeSecurityGroupsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSecurityGroup indicates an expected call of GetSecurityGroup.
+func (mr *MockECSMockRecorder) GetSecurityGroup(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecurityGroup", reflect.TypeOf((*MockECS)(nil).GetSecurityGroup), arg0)
+}
+
+// RevokeEgressRule mocks base method.
+func (m *MockECS) RevokeEgressRule(arg0 *ecs.RevokeSecurityGroupEgressRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeEgressRule", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeEgressRule indicates an expected call of RevokeEgressRule.
+func (mr *MockECSMockRecorder) RevokeEgressRule(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeEgressRule", reflect.TypeOf((*MockECS)(nil).RevokeEgressRule), arg0)
+}
+
+// RevokeIngressRule mocks base method.
+func (m *MockECS) RevokeIngressRule(arg0 *ecs.RevokeSecurityGroupRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeIngressRule", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeIngressRule indicates an expected call of RevokeIngressRule.
+func (mr *MockECSMockRecorder) RevokeIngressRule(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeIngressRule", reflect.TypeOf((*MockECS)(nil).RevokeIngressRule), arg0)
 }
 
 // ShareImageToAccount mocks base method.
@@ -684,6 +858,21 @@ func (mr *MockVPCMockRecorder) GetVPCInfo(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVPCInfo", reflect.TypeOf((*MockVPC)(nil).GetVPCInfo), arg0, arg1)
 }
 
+// GetVPCInfoByName mocks base method.
+func (m *MockVPC) GetVPCInfoByName(arg0 string) (*client.VPCInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVPCInfoByName", arg0)
+	ret0, _ := ret[0].(*client.VPCInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVPCInfoByName indicates an expected call of GetVPCInfoByName.
+func (mr *MockVPCMockRecorder) GetVPCInfoByName(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVPCInfoByName", reflect.TypeOf((*MockVPC)(nil).GetVPCInfoByName), arg0)
+}
+
 // GetVPCWithID mocks base method.
 func (m *MockVPC) GetVPCWithID(arg0 context.Context, arg1 string) ([]vpc.Vpc, error) {
 	m.ctrl.T.Helper()
@@ -697,6 +886,21 @@ func (m *MockVPC) GetVPCWithID(arg0 context.Context, arg1 string) ([]vpc.Vpc, er
 func (mr *MockVPCMockRecorder) GetVPCWithID(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVPCWithID", reflect.TypeOf((*MockVPC)(nil).GetVPCWithID), arg0, arg1)
+}
+
+// GetVSwitchesInfoByID mocks base method.
+func (m *MockVPC) GetVSwitchesInfoByID(arg0 string) (*client.VSwitchInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVSwitchesInfoByID", arg0)
+	ret0, _ := ret[0].(*client.VSwitchInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVSwitchesInfoByID indicates an expected call of GetVSwitchesInfoByID.
+func (mr *MockVPCMockRecorder) GetVSwitchesInfoByID(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVSwitchesInfoByID", reflect.TypeOf((*MockVPC)(nil).GetVSwitchesInfoByID), arg0)
 }
 
 // MockOSS is a mock of OSS interface.
