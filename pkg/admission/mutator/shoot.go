@@ -201,7 +201,7 @@ func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVe
 }
 
 func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
-	var cloudProfileConfig *api.CloudProfileConfig = &api.CloudProfileConfig{}
+	var cloudProfileConfig = &api.CloudProfileConfig{}
 	if _, _, err := s.decoder.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", kutil.ObjectName(cloudProfile), err)
 	}

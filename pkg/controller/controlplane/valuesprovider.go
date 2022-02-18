@@ -79,6 +79,21 @@ func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
 				},
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         "csi-controller-ali-plugin",
+						CommonName:   "system:csi-controller-ali-plugin",
+						Organization: []string{user.SystemPrivilegedGroup},
+						CertType:     secrets.ClientCert,
+						SigningCA:    cas[v1beta1constants.SecretNameCACluster],
+					},
+					KubeConfigRequests: []secrets.KubeConfigRequest{
+						{
+							ClusterName:   clusterName,
+							APIServerHost: v1beta1constants.DeploymentNameKubeAPIServer,
+						},
+					},
+				},
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         "csi-attacher",
 						CommonName:   "system:csi-attacher",
 						Organization: []string{user.SystemPrivilegedGroup},
@@ -160,6 +175,7 @@ func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
 func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 	return []*gutil.ShootAccessSecret{
 		gutil.NewShootAccessSecret("cloud-controller-manager", namespace),
+		gutil.NewShootAccessSecret("csi-controller-ali-plugin", namespace),
 		gutil.NewShootAccessSecret("csi-attacher", namespace),
 		gutil.NewShootAccessSecret("csi-provisioner", namespace),
 		gutil.NewShootAccessSecret("csi-snapshotter", namespace),
@@ -170,6 +186,7 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 
 var legacySecretNamesToCleanup = []string{
 	"cloud-controller-manager",
+	"csi-controller-ali-plugin",
 	"csi-attacher",
 	"csi-provisioner",
 	"csi-snapshotter",
@@ -241,6 +258,12 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":psp:csi-disk-plugin-alicloud"},
 				{Type: &policyv1beta1.PodSecurityPolicy{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ".kube-system.csi-disk-plugin-alicloud"},
 				{Type: extensionscontroller.GetVerticalPodAutoscalerObject(), Name: "csi-diskplugin-alicloud"},
+				// csi-controller-ali-plugin
+				{Type: &corev1.ServiceAccount{}, Name: "csi-controller-ali-plugin"},
+				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-controller-ali-plugin"},
+				{Type: &corev1.ServiceAccount{}, Name: "csi-controller-ali-plugin"},
+				{Type: &rbacv1.Role{}, Name: "csi-controller-ali-plugin"},
+				{Type: &rbacv1.RoleBinding{}, Name: "csi-controller-ali-plugin"},
 				// csi-attacher
 				{Type: &corev1.ServiceAccount{}, Name: "csi-attacher"},
 				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-attacher"},
@@ -470,11 +493,12 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
 				"podAnnotations": map[string]interface{}{
-					"checksum/secret-csi-attacher":    checksums["csi-attacher"],
-					"checksum/secret-csi-provisioner": checksums["csi-provisioner"],
-					"checksum/secret-csi-snapshotter": checksums["csi-snapshotter"],
-					"checksum/secret-csi-resizer":     checksums["csi-resizer"],
-					"checksum/secret-cloudprovider":   checksums[v1beta1constants.SecretNameCloudProvider],
+					"checksum/secret-csi-controller-ali-plugin": checksums["csi-controller-ali-plugin"],
+					"checksum/secret-csi-attacher":              checksums["csi-attacher"],
+					"checksum/secret-csi-provisioner":           checksums["csi-provisioner"],
+					"checksum/secret-csi-snapshotter":           checksums["csi-snapshotter"],
+					"checksum/secret-csi-resizer":               checksums["csi-resizer"],
+					"checksum/secret-cloudprovider":             checksums[v1beta1constants.SecretNameCloudProvider],
 				},
 			},
 			"csiSnapshotController": map[string]interface{}{
