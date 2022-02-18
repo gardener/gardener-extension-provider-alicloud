@@ -16,7 +16,7 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["persistentvolumes"]
-  verbs: ["get", "list", "watch", "update"]
+  verbs: ["get", "list", "watch", "update", "patch"]
 - apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get", "list", "watch", "update"]
@@ -25,7 +25,7 @@ rules:
   verbs: ["get", "list", "watch"]
 - apiGroups: ["storage.k8s.io"]
   resources: ["volumeattachments"]
-  verbs: ["get", "list", "watch", "update"]
+  verbs: ["get", "list", "watch", "update", "patch"]
 {{- if semverCompare ">= 1.17" .Values.kubernetesVersion }}
 - apiGroups: [ "storage.k8s.io" ]
   resources: [ "volumeattachments/status" ]

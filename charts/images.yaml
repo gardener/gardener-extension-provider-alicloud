@@ -59,8 +59,8 @@ images:
   tag: v0.5.0
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
-  repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
-  tag: v1.22.8-e84838c-aliyun
+  repository: registry.eu-central-1.aliyuncs.com/gardener-de/alicloud-csi-plugin
+  tag: v1.16.9-11c14d43  # temp build for hotfix on v1.22.8-e84838c-aliyun, see PR https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver/pull/609
 - name: csi-liveness-probe
   sourceRepository: github.com/kubernetes-csi/livenessprobe
   repository: k8s.gcr.io/sig-storage/livenessprobe
