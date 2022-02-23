@@ -29,8 +29,9 @@ import (
 	"github.com/gardener/gardener/pkg/features"
 	"github.com/gardener/gardener/pkg/utils"
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	"github.com/gardener/gardener/pkg/utils/timewindow"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
+	featuresvalidation "github.com/gardener/gardener/pkg/utils/validation/features"
 	versionutils "github.com/gardener/gardener/pkg/utils/version"
 
 	"github.com/Masterminds/semver"
@@ -243,7 +244,6 @@ func ValidateShootSpecUpdate(newSpec, oldSpec *core.ShootSpec, newObjectMeta met
 	allErrs = append(allErrs, validateAddonsUpdate(newSpec.Addons, oldSpec.Addons, metav1.HasAnnotation(newObjectMeta, v1beta1constants.AnnotationShootUseAsSeed), fldPath.Child("addons"))...)
 	allErrs = append(allErrs, validateDNSUpdate(newSpec.DNS, oldSpec.DNS, seedGotAssigned, fldPath.Child("dns"))...)
 	allErrs = append(allErrs, validateKubernetesVersionUpdate(newSpec.Kubernetes.Version, oldSpec.Kubernetes.Version, fldPath.Child("kubernetes", "version"))...)
-	allErrs = append(allErrs, validateKubeProxyUpdate(newSpec.Kubernetes.KubeProxy, oldSpec.Kubernetes.KubeProxy, newSpec.Kubernetes.Version, fldPath.Child("kubernetes", "kubeProxy"))...)
 	allErrs = append(allErrs, validateKubeControllerManagerUpdate(newSpec.Kubernetes.KubeControllerManager, oldSpec.Kubernetes.KubeControllerManager, fldPath.Child("kubernetes", "kubeControllerManager"))...)
 	allErrs = append(allErrs, ValidateProviderUpdate(&newSpec.Provider, &oldSpec.Provider, fldPath.Child("provider"))...)
 
@@ -422,22 +422,6 @@ func validateKubeControllerManagerUpdate(newConfig, oldConfig *core.KubeControll
 
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(nodeCIDRMaskNew, nodeCIDRMaskOld, fldPath.Child("nodeCIDRMaskSize"))...)
 
-	return allErrs
-}
-
-func validateKubeProxyUpdate(newConfig, oldConfig *core.KubeProxyConfig, version string, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-	newMode := core.ProxyModeIPTables
-	oldMode := core.ProxyModeIPTables
-	if newConfig != nil && newConfig.Mode != nil {
-		newMode = *newConfig.Mode
-	}
-	if oldConfig != nil && oldConfig.Mode != nil {
-		oldMode = *oldConfig.Mode
-	}
-	if ok, _ := versionutils.CheckVersionMeetsConstraint(version, "< 1.16"); ok {
-		allErrs = append(allErrs, apivalidation.ValidateImmutableField(newMode, oldMode, fldPath.Child("mode"))...)
-	}
 	return allErrs
 }
 
@@ -779,7 +763,7 @@ func validateKubernetes(kubernetes core.Kubernetes, dockerConfigured bool, fldPa
 			}
 		}
 
-		allErrs = append(allErrs, ValidateFeatureGates(kubeAPIServer.FeatureGates, kubernetes.Version, fldPath.Child("kubeAPIServer", "featureGates"))...)
+		allErrs = append(allErrs, featuresvalidation.ValidateFeatureGates(kubeAPIServer.FeatureGates, kubernetes.Version, fldPath.Child("kubeAPIServer", "featureGates"))...)
 	}
 
 	allErrs = append(allErrs, validateKubeControllerManager(kubernetes.KubeControllerManager, kubernetes.Version, fldPath.Child("kubeControllerManager"))...)
@@ -879,13 +863,7 @@ func ValidateClusterAutoscaler(autoScaler core.ClusterAutoscaler, k8sVersion str
 	}
 
 	if ignoreTaints := autoScaler.IgnoreTaints; ignoreTaints != nil {
-		k8sVersionIs116OrGreater, _ := versionutils.CompareVersions(k8sVersion, ">=", "1.16")
-
-		if k8sVersionIs116OrGreater {
-			allErrs = append(allErrs, validateClusterAutoscalerIgnoreTaints(ignoreTaints, fldPath.Child("ignoreTaints"))...)
-		} else {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("ignoreTaints"), autoScaler.IgnoreTaints, "ignoreTaints cannot be specified for kubernetes version < 1.16"))
-		}
+		allErrs = append(allErrs, validateClusterAutoscalerIgnoreTaints(ignoreTaints, fldPath.Child("ignoreTaints"))...)
 	}
 
 	return allErrs
@@ -946,7 +924,7 @@ func validateKubeControllerManager(kcm *core.KubeControllerManagerConfig, versio
 			}
 		}
 
-		allErrs = append(allErrs, ValidateFeatureGates(kcm.FeatureGates, version, fldPath.Child("featureGates"))...)
+		allErrs = append(allErrs, featuresvalidation.ValidateFeatureGates(kcm.FeatureGates, version, fldPath.Child("featureGates"))...)
 	}
 
 	return allErrs
@@ -955,7 +933,7 @@ func validateKubeControllerManager(kcm *core.KubeControllerManagerConfig, versio
 func validateKubeScheduler(ks *core.KubeSchedulerConfig, version string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if ks != nil {
-		allErrs = append(allErrs, ValidateFeatureGates(ks.FeatureGates, version, fldPath.Child("featureGates"))...)
+		allErrs = append(allErrs, featuresvalidation.ValidateFeatureGates(ks.FeatureGates, version, fldPath.Child("featureGates"))...)
 	}
 	return allErrs
 }
@@ -968,7 +946,7 @@ func validateKubeProxy(kp *core.KubeProxyConfig, version string, fldPath *field.
 		} else if mode := *kp.Mode; !availableProxyMode.Has(string(mode)) {
 			allErrs = append(allErrs, field.NotSupported(fldPath.Child("mode"), mode, availableProxyMode.List()))
 		}
-		allErrs = append(allErrs, ValidateFeatureGates(kp.FeatureGates, version, fldPath.Child("featureGates"))...)
+		allErrs = append(allErrs, featuresvalidation.ValidateFeatureGates(kp.FeatureGates, version, fldPath.Child("featureGates"))...)
 	}
 	return allErrs
 }
@@ -1006,7 +984,7 @@ func validateMaintenance(maintenance *core.Maintenance, fldPath *field.Path) fie
 	}
 
 	if maintenance.TimeWindow != nil {
-		maintenanceTimeWindow, err := utils.ParseMaintenanceTimeWindow(maintenance.TimeWindow.Begin, maintenance.TimeWindow.End)
+		maintenanceTimeWindow, err := timewindow.ParseMaintenanceTimeWindow(maintenance.TimeWindow.Begin, maintenance.TimeWindow.End)
 		if err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("timeWindow", "begin/end"), maintenance.TimeWindow, err.Error()))
 		} else {
@@ -1239,7 +1217,7 @@ func ValidateKubeletConfig(kubeletConfig core.KubeletConfig, version string, doc
 	if kubeletConfig.ImageGCHighThresholdPercent != nil && kubeletConfig.ImageGCLowThresholdPercent != nil && *kubeletConfig.ImageGCLowThresholdPercent >= *kubeletConfig.ImageGCHighThresholdPercent {
 		allErrs = append(allErrs, field.Forbidden(fldPath.Child("imageGCLowThresholdPercent"), "imageGCLowThresholdPercent must be less than imageGCHighThresholdPercent"))
 	}
-	allErrs = append(allErrs, ValidateFeatureGates(kubeletConfig.FeatureGates, version, fldPath.Child("featureGates"))...)
+	allErrs = append(allErrs, featuresvalidation.ValidateFeatureGates(kubeletConfig.FeatureGates, version, fldPath.Child("featureGates"))...)
 	return allErrs
 }
 
@@ -1627,22 +1605,6 @@ func ValidateContainerRuntimes(containerRuntime []core.ContainerRuntime, fldPath
 			allErrs = append(allErrs, field.Duplicate(fldPath.Index(i).Child("type"), fmt.Sprintf("must specify different type, %s already exist", cr.Type)))
 		}
 		crSet[cr.Type] = true
-	}
-
-	return allErrs
-}
-
-// ValidateFeatureGates validates the given Kubernetes feature gates against the given Kubernetes version.
-func ValidateFeatureGates(featureGates map[string]bool, version string, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	for featureGate := range featureGates {
-		supported, err := kutil.IsFeatureGateSupported(featureGate, version)
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child(featureGate), featureGate, err.Error()))
-		} else if !supported {
-			allErrs = append(allErrs, field.Forbidden(fldPath.Child(featureGate), fmt.Sprintf("not supported in Kubernetes version %s", version)))
-		}
 	}
 
 	return allErrs
