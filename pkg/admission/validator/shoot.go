@@ -19,11 +19,14 @@ import (
 	"fmt"
 	"reflect"
 
+	alicloudAPI "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
+	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	corev1 "k8s.io/api/core/v1"
@@ -44,14 +47,16 @@ var (
 
 // NewShootValidator returns a new instance of a shoot validator.
 func NewShootValidator() extensionswebhook.Validator {
-	return &shoot{}
+	alicloudclientFactory := alicloudclient.NewClientFactory()
+	return &shoot{alicloudClientFactory: alicloudclientFactory}
 }
 
 type shoot struct {
-	client         client.Client
-	apiReader      client.Reader
-	decoder        runtime.Decoder
-	lenientDecoder runtime.Decoder
+	client                client.Client
+	apiReader             client.Reader
+	decoder               runtime.Decoder
+	lenientDecoder        runtime.Decoder
+	alicloudClientFactory alicloudclient.ClientFactory
 }
 
 // InjectScheme injects the given scheme into the validator.
@@ -91,10 +96,12 @@ func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
 	return s.validateShootCreation(ctx, shoot)
 }
 
-func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
-
+func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
+	if err := s.validateEnhancedNatGateway(ctx, shoot, infraConfig); err != nil {
+		return err
+	}
 	// Provider validation
-	if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking.Nodes, shoot.Spec.Networking.Pods, shoot.Spec.Networking.Services); len(errList) != 0 {
+	if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking.Nodes, shoot.Spec.Networking.Pods, shoot.Spec.Networking.Services, shoot.Spec.Region); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 	if cpConfig != nil {
@@ -203,4 +210,53 @@ func (s *shoot) validateShootSecret(ctx context.Context, shoot *core.Shoot) erro
 	}
 
 	return alicloudvalidation.ValidateCloudProviderSecret(secret)
+}
+func (s *shoot) validateEnhancedNatGateway(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig) error {
+	if len(infraConfig.Networks.Zones) < 1 {
+		return nil
+	}
+	firstZoneId := infraConfig.Networks.Zones[0].Name
+	if zones, err := s.getEnhancedNatGatewayAvailableZones(ctx, shoot); err != nil {
+		return err
+	} else {
+		for _, zone := range zones {
+			if zone == firstZoneId {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("Please choose correct zone!")
+}
+func (s *shoot) getEnhancedNatGatewayAvailableZones(ctx context.Context, shoot *core.Shoot) ([]string, error) {
+	regionID := shoot.Spec.Region
+	var (
+		secretBinding    = &corev1beta1.SecretBinding{}
+		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
+	)
+	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
+		return nil, err
+	}
+
+	var (
+		secret    = &corev1.Secret{}
+		secretRef = secretBinding.SecretRef.Name
+		secretKey = kutil.Key(secretBinding.SecretRef.Namespace, secretRef)
+	)
+	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
+		return nil, err
+	}
+	accessKeyID, ok := secret.Data[alicloudAPI.AccessKeyID]
+	if !ok {
+		return nil, fmt.Errorf("missing %q field in secret %s", alicloudAPI.AccessKeyID, secretRef)
+	}
+	accessKeySecret, ok := secret.Data[alicloudAPI.AccessKeySecret]
+	if !ok {
+		return nil, fmt.Errorf("missing %q field in secret %s", alicloudAPI.AccessKeySecret, secretRef)
+	}
+	shootVPCClient, err := s.alicloudClientFactory.NewVPCClient(regionID, string(accessKeyID), string(accessKeySecret))
+	if err != nil {
+		return nil, err
+	}
+	return shootVPCClient.GetEnhanhcedNatGatewayAvailableZones(ctx, regionID)
+
 }

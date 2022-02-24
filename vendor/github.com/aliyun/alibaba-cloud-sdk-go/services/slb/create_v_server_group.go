@@ -21,7 +21,6 @@ import (
 )
 
 // CreateVServerGroup invokes the slb.CreateVServerGroup API synchronously
-// api document: https://help.aliyun.com/api/slb/createvservergroup.html
 func (client *Client) CreateVServerGroup(request *CreateVServerGroupRequest) (response *CreateVServerGroupResponse, err error) {
 	response = CreateCreateVServerGroupResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) CreateVServerGroup(request *CreateVServerGroupRequest) (re
 }
 
 // CreateVServerGroupWithChan invokes the slb.CreateVServerGroup API asynchronously
-// api document: https://help.aliyun.com/api/slb/createvservergroup.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateVServerGroupWithChan(request *CreateVServerGroupRequest) (<-chan *CreateVServerGroupResponse, <-chan error) {
 	responseChan := make(chan *CreateVServerGroupResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) CreateVServerGroupWithChan(request *CreateVServerGroupRequ
 }
 
 // CreateVServerGroupWithCallback invokes the slb.CreateVServerGroup API asynchronously
-// api document: https://help.aliyun.com/api/slb/createvservergroup.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateVServerGroupWithCallback(request *CreateVServerGroupRequest, callback func(response *CreateVServerGroupResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -90,8 +85,8 @@ type CreateVServerGroupRequest struct {
 // CreateVServerGroupResponse is the response struct for api CreateVServerGroup
 type CreateVServerGroupResponse struct {
 	*responses.BaseResponse
-	RequestId      string                             `json:"RequestId" xml:"RequestId"`
 	VServerGroupId string                             `json:"VServerGroupId" xml:"VServerGroupId"`
+	RequestId      string                             `json:"RequestId" xml:"RequestId"`
 	BackendServers BackendServersInCreateVServerGroup `json:"BackendServers" xml:"BackendServers"`
 }
 
@@ -100,7 +95,7 @@ func CreateCreateVServerGroupRequest() (request *CreateVServerGroupRequest) {
 	request = &CreateVServerGroupRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "CreateVServerGroup", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "CreateVServerGroup", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

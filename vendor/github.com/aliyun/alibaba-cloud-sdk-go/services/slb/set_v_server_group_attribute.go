@@ -21,7 +21,6 @@ import (
 )
 
 // SetVServerGroupAttribute invokes the slb.SetVServerGroupAttribute API synchronously
-// api document: https://help.aliyun.com/api/slb/setvservergroupattribute.html
 func (client *Client) SetVServerGroupAttribute(request *SetVServerGroupAttributeRequest) (response *SetVServerGroupAttributeResponse, err error) {
 	response = CreateSetVServerGroupAttributeResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) SetVServerGroupAttribute(request *SetVServerGroupAttribute
 }
 
 // SetVServerGroupAttributeWithChan invokes the slb.SetVServerGroupAttribute API asynchronously
-// api document: https://help.aliyun.com/api/slb/setvservergroupattribute.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) SetVServerGroupAttributeWithChan(request *SetVServerGroupAttributeRequest) (<-chan *SetVServerGroupAttributeResponse, <-chan error) {
 	responseChan := make(chan *SetVServerGroupAttributeResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) SetVServerGroupAttributeWithChan(request *SetVServerGroupA
 }
 
 // SetVServerGroupAttributeWithCallback invokes the slb.SetVServerGroupAttribute API asynchronously
-// api document: https://help.aliyun.com/api/slb/setvservergroupattribute.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) SetVServerGroupAttributeWithCallback(request *SetVServerGroupAttributeRequest, callback func(response *SetVServerGroupAttributeResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -90,9 +85,9 @@ type SetVServerGroupAttributeRequest struct {
 // SetVServerGroupAttributeResponse is the response struct for api SetVServerGroupAttribute
 type SetVServerGroupAttributeResponse struct {
 	*responses.BaseResponse
-	RequestId        string                                   `json:"RequestId" xml:"RequestId"`
 	VServerGroupId   string                                   `json:"VServerGroupId" xml:"VServerGroupId"`
 	VServerGroupName string                                   `json:"VServerGroupName" xml:"VServerGroupName"`
+	RequestId        string                                   `json:"RequestId" xml:"RequestId"`
 	BackendServers   BackendServersInSetVServerGroupAttribute `json:"BackendServers" xml:"BackendServers"`
 }
 
@@ -101,7 +96,7 @@ func CreateSetVServerGroupAttributeRequest() (request *SetVServerGroupAttributeR
 	request = &SetVServerGroupAttributeRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "SetVServerGroupAttribute", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "SetVServerGroupAttribute", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

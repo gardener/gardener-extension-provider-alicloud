@@ -21,7 +21,6 @@ import (
 )
 
 // ListTagResources invokes the ecs.ListTagResources API synchronously
-// api document: https://help.aliyun.com/api/ecs/listtagresources.html
 func (client *Client) ListTagResources(request *ListTagResourcesRequest) (response *ListTagResourcesResponse, err error) {
 	response = CreateListTagResourcesResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) ListTagResources(request *ListTagResourcesRequest) (respon
 }
 
 // ListTagResourcesWithChan invokes the ecs.ListTagResources API asynchronously
-// api document: https://help.aliyun.com/api/ecs/listtagresources.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ListTagResourcesWithChan(request *ListTagResourcesRequest) (<-chan *ListTagResourcesResponse, <-chan error) {
 	responseChan := make(chan *ListTagResourcesResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) ListTagResourcesWithChan(request *ListTagResourcesRequest)
 }
 
 // ListTagResourcesWithCallback invokes the ecs.ListTagResources API asynchronously
-// api document: https://help.aliyun.com/api/ecs/listtagresources.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ListTagResourcesWithCallback(request *ListTagResourcesRequest, callback func(response *ListTagResourcesResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -95,15 +90,15 @@ type ListTagResourcesTag struct {
 
 // ListTagResourcesTagFilter is a repeated param struct in ListTagResourcesRequest
 type ListTagResourcesTagFilter struct {
-	TagKey    string    `name:"TagKey"`
 	TagValues *[]string `name:"TagValues" type:"Repeated"`
+	TagKey    string    `name:"TagKey"`
 }
 
 // ListTagResourcesResponse is the response struct for api ListTagResources
 type ListTagResourcesResponse struct {
 	*responses.BaseResponse
-	RequestId    string       `json:"RequestId" xml:"RequestId"`
 	NextToken    string       `json:"NextToken" xml:"NextToken"`
+	RequestId    string       `json:"RequestId" xml:"RequestId"`
 	TagResources TagResources `json:"TagResources" xml:"TagResources"`
 }
 

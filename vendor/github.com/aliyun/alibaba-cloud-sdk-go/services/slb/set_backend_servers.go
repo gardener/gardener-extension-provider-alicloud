@@ -21,7 +21,6 @@ import (
 )
 
 // SetBackendServers invokes the slb.SetBackendServers API synchronously
-// api document: https://help.aliyun.com/api/slb/setbackendservers.html
 func (client *Client) SetBackendServers(request *SetBackendServersRequest) (response *SetBackendServersResponse, err error) {
 	response = CreateSetBackendServersResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) SetBackendServers(request *SetBackendServersRequest) (resp
 }
 
 // SetBackendServersWithChan invokes the slb.SetBackendServers API asynchronously
-// api document: https://help.aliyun.com/api/slb/setbackendservers.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) SetBackendServersWithChan(request *SetBackendServersRequest) (<-chan *SetBackendServersResponse, <-chan error) {
 	responseChan := make(chan *SetBackendServersResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) SetBackendServersWithChan(request *SetBackendServersReques
 }
 
 // SetBackendServersWithCallback invokes the slb.SetBackendServers API asynchronously
-// api document: https://help.aliyun.com/api/slb/setbackendservers.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) SetBackendServersWithCallback(request *SetBackendServersRequest, callback func(response *SetBackendServersResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -89,8 +84,8 @@ type SetBackendServersRequest struct {
 // SetBackendServersResponse is the response struct for api SetBackendServers
 type SetBackendServersResponse struct {
 	*responses.BaseResponse
-	RequestId      string                            `json:"RequestId" xml:"RequestId"`
 	LoadBalancerId string                            `json:"LoadBalancerId" xml:"LoadBalancerId"`
+	RequestId      string                            `json:"RequestId" xml:"RequestId"`
 	BackendServers BackendServersInSetBackendServers `json:"BackendServers" xml:"BackendServers"`
 }
 
@@ -99,7 +94,7 @@ func CreateSetBackendServersRequest() (request *SetBackendServersRequest) {
 	request = &SetBackendServersRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "SetBackendServers", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "SetBackendServers", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

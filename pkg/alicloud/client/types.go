@@ -100,6 +100,7 @@ type VPC interface {
 	GetVPCWithID(ctx context.Context, vpcID string) ([]vpc.Vpc, error)
 	GetNatGatewaysWithVPCID(ctx context.Context, vpcID string) ([]vpc.NatGateway, error)
 	GetEIPWithID(ctx context.Context, eipID string) ([]vpc.EipAddress, error)
+	GetEnhanhcedNatGatewayAvailableZones(ctx context.Context, region string) ([]string, error)
 	GetVPCInfo(ctx context.Context, vpcID string) (*VPCInfo, error)
 	FetchEIPInternetChargeType(ctx context.Context, natGateway *vpc.NatGateway, vpcID string) (string, error)
 

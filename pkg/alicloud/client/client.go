@@ -423,6 +423,21 @@ func (f *clientFactory) NewVPCClient(region, accessKeyID, accessKeySecret string
 	}, nil
 }
 
+// GetEnhanhcedNatGatewayAvailableZones returns zones in which Enhanced NatGateway is available with given region
+func (c *vpcClient) GetEnhanhcedNatGatewayAvailableZones(ctx context.Context, region string) ([]string, error) {
+	request := vpc.CreateListEnhanhcedNatGatewayAvailableZonesRequest()
+	request.RegionId = region
+	response, err := c.ListEnhanhcedNatGatewayAvailableZones(request)
+	if err != nil {
+		return nil, err
+	}
+	zoneIDs := make([]string, 0, len(response.Zones))
+	for _, zone := range response.Zones {
+		zoneIDs = append(zoneIDs, zone.ZoneId)
+	}
+	return zoneIDs, nil
+}
+
 // GetVPCWithID returns VPC with given vpcID.
 func (c *vpcClient) GetVPCWithID(ctx context.Context, vpcID string) ([]vpc.Vpc, error) {
 	request := vpc.CreateDescribeVpcsRequest()

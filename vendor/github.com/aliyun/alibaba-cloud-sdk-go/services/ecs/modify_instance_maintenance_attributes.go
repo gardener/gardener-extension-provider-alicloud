@@ -21,7 +21,6 @@ import (
 )
 
 // ModifyInstanceMaintenanceAttributes invokes the ecs.ModifyInstanceMaintenanceAttributes API synchronously
-// api document: https://help.aliyun.com/api/ecs/modifyinstancemaintenanceattributes.html
 func (client *Client) ModifyInstanceMaintenanceAttributes(request *ModifyInstanceMaintenanceAttributesRequest) (response *ModifyInstanceMaintenanceAttributesResponse, err error) {
 	response = CreateModifyInstanceMaintenanceAttributesResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) ModifyInstanceMaintenanceAttributes(request *ModifyInstanc
 }
 
 // ModifyInstanceMaintenanceAttributesWithChan invokes the ecs.ModifyInstanceMaintenanceAttributes API asynchronously
-// api document: https://help.aliyun.com/api/ecs/modifyinstancemaintenanceattributes.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ModifyInstanceMaintenanceAttributesWithChan(request *ModifyInstanceMaintenanceAttributesRequest) (<-chan *ModifyInstanceMaintenanceAttributesResponse, <-chan error) {
 	responseChan := make(chan *ModifyInstanceMaintenanceAttributesResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) ModifyInstanceMaintenanceAttributesWithChan(request *Modif
 }
 
 // ModifyInstanceMaintenanceAttributesWithCallback invokes the ecs.ModifyInstanceMaintenanceAttributes API asynchronously
-// api document: https://help.aliyun.com/api/ecs/modifyinstancemaintenanceattributes.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ModifyInstanceMaintenanceAttributesWithCallback(request *ModifyInstanceMaintenanceAttributesRequest, callback func(response *ModifyInstanceMaintenanceAttributesResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -82,13 +77,14 @@ type ModifyInstanceMaintenanceAttributesRequest struct {
 	ResourceOwnerAccount string                                                  `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string                                                  `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer                                        `position:"Query" name:"OwnerId"`
+	NotifyOnMaintenance  requests.Boolean                                        `position:"Query" name:"NotifyOnMaintenance"`
 	InstanceId           *[]string                                               `position:"Query" name:"InstanceId"  type:"Repeated"`
 }
 
 // ModifyInstanceMaintenanceAttributesMaintenanceWindow is a repeated param struct in ModifyInstanceMaintenanceAttributesRequest
 type ModifyInstanceMaintenanceAttributesMaintenanceWindow struct {
-	StartTime string `name:"StartTime"`
 	EndTime   string `name:"EndTime"`
+	StartTime string `name:"StartTime"`
 }
 
 // ModifyInstanceMaintenanceAttributesResponse is the response struct for api ModifyInstanceMaintenanceAttributes

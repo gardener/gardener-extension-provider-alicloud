@@ -21,7 +21,6 @@ import (
 )
 
 // DescribeAccessControlListAttribute invokes the slb.DescribeAccessControlListAttribute API synchronously
-// api document: https://help.aliyun.com/api/slb/describeaccesscontrollistattribute.html
 func (client *Client) DescribeAccessControlListAttribute(request *DescribeAccessControlListAttributeRequest) (response *DescribeAccessControlListAttributeResponse, err error) {
 	response = CreateDescribeAccessControlListAttributeResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) DescribeAccessControlListAttribute(request *DescribeAccess
 }
 
 // DescribeAccessControlListAttributeWithChan invokes the slb.DescribeAccessControlListAttribute API asynchronously
-// api document: https://help.aliyun.com/api/slb/describeaccesscontrollistattribute.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) DescribeAccessControlListAttributeWithChan(request *DescribeAccessControlListAttributeRequest) (<-chan *DescribeAccessControlListAttributeResponse, <-chan error) {
 	responseChan := make(chan *DescribeAccessControlListAttributeResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) DescribeAccessControlListAttributeWithChan(request *Descri
 }
 
 // DescribeAccessControlListAttributeWithCallback invokes the slb.DescribeAccessControlListAttribute API asynchronously
-// api document: https://help.aliyun.com/api/slb/describeaccesscontrollistattribute.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) DescribeAccessControlListAttributeWithCallback(request *DescribeAccessControlListAttributeRequest, callback func(response *DescribeAccessControlListAttributeResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -89,13 +84,14 @@ type DescribeAccessControlListAttributeRequest struct {
 // DescribeAccessControlListAttributeResponse is the response struct for api DescribeAccessControlListAttribute
 type DescribeAccessControlListAttributeResponse struct {
 	*responses.BaseResponse
-	RequestId        string           `json:"RequestId" xml:"RequestId"`
-	AclId            string           `json:"AclId" xml:"AclId"`
-	AclName          string           `json:"AclName" xml:"AclName"`
-	AddressIPVersion string           `json:"AddressIPVersion" xml:"AddressIPVersion"`
-	ResourceGroupId  string           `json:"ResourceGroupId" xml:"ResourceGroupId"`
-	AclEntrys        AclEntrys        `json:"AclEntrys" xml:"AclEntrys"`
-	RelatedListeners RelatedListeners `json:"RelatedListeners" xml:"RelatedListeners"`
+	ServiceManagedMode string           `json:"ServiceManagedMode" xml:"ServiceManagedMode"`
+	AclId              string           `json:"AclId" xml:"AclId"`
+	AddressIPVersion   string           `json:"AddressIPVersion" xml:"AddressIPVersion"`
+	RequestId          string           `json:"RequestId" xml:"RequestId"`
+	ResourceGroupId    string           `json:"ResourceGroupId" xml:"ResourceGroupId"`
+	AclName            string           `json:"AclName" xml:"AclName"`
+	AclEntrys          AclEntrys        `json:"AclEntrys" xml:"AclEntrys"`
+	RelatedListeners   RelatedListeners `json:"RelatedListeners" xml:"RelatedListeners"`
 }
 
 // CreateDescribeAccessControlListAttributeRequest creates a request to invoke DescribeAccessControlListAttribute API
@@ -103,7 +99,7 @@ func CreateDescribeAccessControlListAttributeRequest() (request *DescribeAccessC
 	request = &DescribeAccessControlListAttributeRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "DescribeAccessControlListAttribute", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "DescribeAccessControlListAttribute", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

@@ -21,7 +21,6 @@ import (
 )
 
 // DescribeMasterSlaveServerGroupAttribute invokes the slb.DescribeMasterSlaveServerGroupAttribute API synchronously
-// api document: https://help.aliyun.com/api/slb/describemasterslaveservergroupattribute.html
 func (client *Client) DescribeMasterSlaveServerGroupAttribute(request *DescribeMasterSlaveServerGroupAttributeRequest) (response *DescribeMasterSlaveServerGroupAttributeResponse, err error) {
 	response = CreateDescribeMasterSlaveServerGroupAttributeResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) DescribeMasterSlaveServerGroupAttribute(request *DescribeM
 }
 
 // DescribeMasterSlaveServerGroupAttributeWithChan invokes the slb.DescribeMasterSlaveServerGroupAttribute API asynchronously
-// api document: https://help.aliyun.com/api/slb/describemasterslaveservergroupattribute.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) DescribeMasterSlaveServerGroupAttributeWithChan(request *DescribeMasterSlaveServerGroupAttributeRequest) (<-chan *DescribeMasterSlaveServerGroupAttributeResponse, <-chan error) {
 	responseChan := make(chan *DescribeMasterSlaveServerGroupAttributeResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) DescribeMasterSlaveServerGroupAttributeWithChan(request *D
 }
 
 // DescribeMasterSlaveServerGroupAttributeWithCallback invokes the slb.DescribeMasterSlaveServerGroupAttribute API asynchronously
-// api document: https://help.aliyun.com/api/slb/describemasterslaveservergroupattribute.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) DescribeMasterSlaveServerGroupAttributeWithCallback(request *DescribeMasterSlaveServerGroupAttributeRequest, callback func(response *DescribeMasterSlaveServerGroupAttributeResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -88,10 +83,11 @@ type DescribeMasterSlaveServerGroupAttributeRequest struct {
 // DescribeMasterSlaveServerGroupAttributeResponse is the response struct for api DescribeMasterSlaveServerGroupAttribute
 type DescribeMasterSlaveServerGroupAttributeResponse struct {
 	*responses.BaseResponse
+	ServiceManagedMode         string                                                             `json:"ServiceManagedMode" xml:"ServiceManagedMode"`
 	RequestId                  string                                                             `json:"RequestId" xml:"RequestId"`
 	LoadBalancerId             string                                                             `json:"LoadBalancerId" xml:"LoadBalancerId"`
-	MasterSlaveServerGroupId   string                                                             `json:"MasterSlaveServerGroupId" xml:"MasterSlaveServerGroupId"`
 	MasterSlaveServerGroupName string                                                             `json:"MasterSlaveServerGroupName" xml:"MasterSlaveServerGroupName"`
+	MasterSlaveServerGroupId   string                                                             `json:"MasterSlaveServerGroupId" xml:"MasterSlaveServerGroupId"`
 	MasterSlaveBackendServers  MasterSlaveBackendServersInDescribeMasterSlaveServerGroupAttribute `json:"MasterSlaveBackendServers" xml:"MasterSlaveBackendServers"`
 }
 
@@ -100,7 +96,7 @@ func CreateDescribeMasterSlaveServerGroupAttributeRequest() (request *DescribeMa
 	request = &DescribeMasterSlaveServerGroupAttributeRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "DescribeMasterSlaveServerGroupAttribute", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "DescribeMasterSlaveServerGroupAttribute", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

@@ -21,7 +21,6 @@ import (
 )
 
 // CreateTLSCipherPolicy invokes the slb.CreateTLSCipherPolicy API synchronously
-// api document: https://help.aliyun.com/api/slb/createtlscipherpolicy.html
 func (client *Client) CreateTLSCipherPolicy(request *CreateTLSCipherPolicyRequest) (response *CreateTLSCipherPolicyResponse, err error) {
 	response = CreateCreateTLSCipherPolicyResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) CreateTLSCipherPolicy(request *CreateTLSCipherPolicyReques
 }
 
 // CreateTLSCipherPolicyWithChan invokes the slb.CreateTLSCipherPolicy API asynchronously
-// api document: https://help.aliyun.com/api/slb/createtlscipherpolicy.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateTLSCipherPolicyWithChan(request *CreateTLSCipherPolicyRequest) (<-chan *CreateTLSCipherPolicyResponse, <-chan error) {
 	responseChan := make(chan *CreateTLSCipherPolicyResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) CreateTLSCipherPolicyWithChan(request *CreateTLSCipherPoli
 }
 
 // CreateTLSCipherPolicyWithCallback invokes the slb.CreateTLSCipherPolicy API asynchronously
-// api document: https://help.aliyun.com/api/slb/createtlscipherpolicy.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateTLSCipherPolicyWithCallback(request *CreateTLSCipherPolicyRequest, callback func(response *CreateTLSCipherPolicyResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -89,8 +84,8 @@ type CreateTLSCipherPolicyRequest struct {
 // CreateTLSCipherPolicyResponse is the response struct for api CreateTLSCipherPolicy
 type CreateTLSCipherPolicyResponse struct {
 	*responses.BaseResponse
-	RequestId         string `json:"RequestId" xml:"RequestId"`
 	TLSCipherPolicyId string `json:"TLSCipherPolicyId" xml:"TLSCipherPolicyId"`
+	RequestId         string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateCreateTLSCipherPolicyRequest creates a request to invoke CreateTLSCipherPolicy API
@@ -98,7 +93,7 @@ func CreateCreateTLSCipherPolicyRequest() (request *CreateTLSCipherPolicyRequest
 	request = &CreateTLSCipherPolicyRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "CreateTLSCipherPolicy", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "CreateTLSCipherPolicy", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

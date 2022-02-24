@@ -21,7 +21,6 @@ import (
 )
 
 // CreateAccessControlList invokes the slb.CreateAccessControlList API synchronously
-// api document: https://help.aliyun.com/api/slb/createaccesscontrollist.html
 func (client *Client) CreateAccessControlList(request *CreateAccessControlListRequest) (response *CreateAccessControlListResponse, err error) {
 	response = CreateCreateAccessControlListResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) CreateAccessControlList(request *CreateAccessControlListRe
 }
 
 // CreateAccessControlListWithChan invokes the slb.CreateAccessControlList API asynchronously
-// api document: https://help.aliyun.com/api/slb/createaccesscontrollist.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateAccessControlListWithChan(request *CreateAccessControlListRequest) (<-chan *CreateAccessControlListResponse, <-chan error) {
 	responseChan := make(chan *CreateAccessControlListResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) CreateAccessControlListWithChan(request *CreateAccessContr
 }
 
 // CreateAccessControlListWithCallback invokes the slb.CreateAccessControlList API asynchronously
-// api document: https://help.aliyun.com/api/slb/createaccesscontrollist.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateAccessControlListWithCallback(request *CreateAccessControlListRequest, callback func(response *CreateAccessControlListResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -90,8 +85,8 @@ type CreateAccessControlListRequest struct {
 // CreateAccessControlListResponse is the response struct for api CreateAccessControlList
 type CreateAccessControlListResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	AclId     string `json:"AclId" xml:"AclId"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateCreateAccessControlListRequest creates a request to invoke CreateAccessControlList API
@@ -99,7 +94,7 @@ func CreateCreateAccessControlListRequest() (request *CreateAccessControlListReq
 	request = &CreateAccessControlListRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "CreateAccessControlList", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "CreateAccessControlList", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }
