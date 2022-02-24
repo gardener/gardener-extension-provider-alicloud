@@ -21,7 +21,7 @@ import (
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener/pkg/apis/core"
-	"github.com/gardener/gardener/pkg/apis/core/validation"
+	validationutils "github.com/gardener/gardener/pkg/utils/validation"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -115,7 +115,7 @@ func ValidateWorkersUpdate(oldWorkers, newWorkers []core.Worker, fldPath *field.
 	for i, newWorker := range newWorkers {
 		for _, oldWorker := range oldWorkers {
 			if newWorker.Name == oldWorker.Name {
-				if validation.ShouldEnforceImmutability(newWorker.Zones, oldWorker.Zones) {
+				if validationutils.ShouldEnforceImmutability(newWorker.Zones, oldWorker.Zones) {
 					allErrs = append(allErrs, apivalidation.ValidateImmutableField(newWorker.Zones, oldWorker.Zones, fldPath.Index(i).Child("zones"))...)
 				}
 				break

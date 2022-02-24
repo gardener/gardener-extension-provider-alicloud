@@ -47,12 +47,12 @@ func TestController(t *testing.T) {
 var _ = Describe("Ensurer", func() {
 	var (
 		ctrl       *gomock.Controller
-		eContext15 = gcontext.NewInternalGardenContext(
+		eContext18 = gcontext.NewInternalGardenContext(
 			&extensionscontroller.Cluster{
 				Shoot: &gardencorev1beta1.Shoot{
 					Spec: gardencorev1beta1.ShootSpec{
 						Kubernetes: gardencorev1beta1.Kubernetes{
-							Version: "1.15.0",
+							Version: "1.18.0",
 						},
 					},
 				},
@@ -93,11 +93,10 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
-			// 1.15
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext15, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext18, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
-			checkKubeAPIServerDeployment(dep, []string{"ExpandCSIVolumes=true", "ExpandInUsePersistentVolumes=true"})
+			checkKubeAPIServerDeployment(dep, []string{})
 
 		})
 
@@ -130,11 +129,10 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
-			// 1.15
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext15, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext18, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
-			checkKubeAPIServerDeployment(dep, []string{"ExpandCSIVolumes=true", "ExpandInUsePersistentVolumes=true"})
+			checkKubeAPIServerDeployment(dep, []string{})
 		})
 	})
 
@@ -161,7 +159,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext15, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext18, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -191,7 +189,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext15, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext18, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -247,8 +245,8 @@ var _ = Describe("Ensurer", func() {
 				Expect(opts).To(Equal(newUnitOptions))
 			},
 
-			Entry("kubelet version < 1.23", eContext15, semver.MustParse("1.15.0"), "external", true),
-			Entry("kubelet version >= 1.23", eContext15, semver.MustParse("1.23.0"), "", false),
+			Entry("kubelet version < 1.23", eContext18, semver.MustParse("1.20.0"), "external", true),
+			Entry("kubelet version >= 1.23", eContext18, semver.MustParse("1.23.0"), "", false),
 		)
 	})
 
@@ -287,9 +285,8 @@ var _ = Describe("Ensurer", func() {
 				Expect(&kubeletConfig).To(Equal(newKubeletConfig))
 			},
 
-			Entry("kubelet < 1.15", eContext15, semver.MustParse("1.15.0"), "ExpandCSIVolumes", nil),
-			Entry("1.15 <= kubelet < 1.23", eContext15, semver.MustParse("1.18.0"), "", nil),
-			Entry("kubelet >= 1.23", eContext15, semver.MustParse("1.23.0"), "", pointer.Bool(true)),
+			Entry("1.18 <= kubelet < 1.23", eContext18, semver.MustParse("1.20.0"), "", nil),
+			Entry("kubelet >= 1.23", eContext18, semver.MustParse("1.23.0"), "", pointer.Bool(true)),
 		)
 	})
 })

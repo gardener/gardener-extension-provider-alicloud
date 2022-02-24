@@ -86,13 +86,6 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, ver *semver.Version
 		"CSINodeInfo=false", ",")
 	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--feature-gates=",
 		"CSIDriverRegistry=false", ",")
-
-	if version.ConstraintK8sLess116.Check(ver) {
-		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
-			"ExpandCSIVolumes=true", ",")
-		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
-			"ExpandInUsePersistentVolumes=true", ",")
-	}
 }
 
 func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
@@ -145,14 +138,6 @@ func ensureKubeletCommandLineArgs(command []string, kubeletVersion *semver.Versi
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
 func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, old *kubeletconfigv1beta1.KubeletConfiguration) error {
-	if version.ConstraintK8sLess116.Check(kubeletVersion) {
-		// Ensure CSI-related feature gates
-		if new.FeatureGates == nil {
-			new.FeatureGates = make(map[string]bool)
-		}
-		new.FeatureGates["ExpandCSIVolumes"] = true
-	}
-
 	if version.ConstraintK8sGreaterEqual123.Check(kubeletVersion) {
 		new.EnableControllerAttachDetach = pointer.Bool(true)
 	}
