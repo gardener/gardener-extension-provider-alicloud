@@ -205,7 +205,8 @@ func (d *dnsClient) getDomains(ctx context.Context) (map[string]alidns.Domain, e
 			return nil, err
 		}
 		for _, domain := range resp.Domains.Domain {
-			domains[domain.DomainId] = domain
+
+			domains[domain.DomainId] = getDomainFromResponse(domain)
 		}
 		if resp.PageNumber*int64(pageSize) >= resp.TotalCount {
 			break
@@ -213,6 +214,40 @@ func (d *dnsClient) getDomains(ctx context.Context) (map[string]alidns.Domain, e
 		pageNumber++
 	}
 	return domains, nil
+}
+func getDomainFromResponse(domainFromResp alidns.DomainInDescribeDomains) alidns.Domain {
+	return alidns.Domain{
+		DomainId:        domainFromResp.DomainId,
+		DomainName:      domainFromResp.DomainName,
+		AliDomain:       domainFromResp.AliDomain,
+		CreateTimestamp: domainFromResp.CreateTimestamp,
+		//ExpireTimestamp: ,
+		InstanceEndTime: domainFromResp.InstanceEndTime,
+		CreateTime:      domainFromResp.CreateTime,
+		//		SourceProtocol:  domainFromResp.SourceProtocol,
+		GroupName:   domainFromResp.GroupName,
+		VersionCode: domainFromResp.VersionCode,
+		//		UpdateTimestamp: domainFromResp.UpdateTimestamp,
+		RecordCount:     domainFromResp.RecordCount,
+		InstanceExpired: domainFromResp.InstanceExpired,
+		ResourceGroupId: domainFromResp.ResourceGroupId,
+		//		CacheTtlMin:     domainFromResp.CacheTtlMin,
+		InstanceId: domainFromResp.InstanceId,
+		//ExpireTime:,
+		GroupId: domainFromResp.GroupId,
+		//		SourceEdns:       domainFromResp.SourceEdns,
+		RegistrantEmail: domainFromResp.RegistrantEmail,
+		VersionName:     domainFromResp.VersionName,
+		//		UpdateTime:       domainFromResp.UpdateTime,
+		Remark: domainFromResp.Remark,
+		//		CacheTtlMax:      domainFromResp.CacheTtlMax,
+		PunyCode: domainFromResp.PunyCode,
+		Starmark: domainFromResp.Starmark,
+		//		DnsServers:       domainFromResp.DnsServers,
+		Tags: domainFromResp.Tags,
+		//		SourceDnsServers: domainFromResp.SourceDnsServers,
+	}
+
 }
 
 // getDomainRecords returns the domain records with the given domain name, rr, and record type.

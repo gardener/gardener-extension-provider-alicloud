@@ -29,11 +29,12 @@ var _ = Describe("InfrastructureConfig validation", func() {
 	var (
 		infrastructureConfig *apisalicloud.InfrastructureConfig
 
-		pods        = "100.96.0.0/11"
-		services    = "100.64.0.0/13"
-		nodes       = "10.250.0.0/16"
-		vpc         = "10.0.0.0/8"
-		invalidCIDR = "invalid-cidr"
+		pods                 = "100.96.0.0/11"
+		services             = "100.64.0.0/13"
+		nodes                = "10.250.0.0/16"
+		vpc                  = "10.0.0.0/8"
+		invalidCIDR          = "invalid-cidr"
+		validNatGatewayZones []string
 	)
 
 	BeforeEach(func() {
@@ -54,6 +55,9 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				},
 			},
 		}
+		validNatGatewayZones = make([]string, 2)
+		validNatGatewayZones = append(validNatGatewayZones, "zone1")
+		validNatGatewayZones = append(validNatGatewayZones, "zone2")
 	})
 
 	Describe("#ValidateInfrastructureConfig", func() {
@@ -61,7 +65,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid invalid VPC CIDRs", func() {
 				infrastructureConfig.Networks.VPC.CIDR = &invalidCIDR
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services, validNatGatewayZones)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -73,7 +77,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid invalid workers CIDR", func() {
 				infrastructureConfig.Networks.Zones[0].Workers = invalidCIDR
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services, validNatGatewayZones)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -85,7 +89,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid workers CIDR which are not in Nodes CIDR", func() {
 				infrastructureConfig.Networks.Zones[0].Workers = "1.1.1.1/32"
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services, validNatGatewayZones)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -102,7 +106,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				notOverlappingCIDR := "1.1.1.1/32"
 				infrastructureConfig.Networks.Zones[0].Workers = notOverlappingCIDR
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &notOverlappingCIDR, &pods, &services)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &notOverlappingCIDR, &pods, &services, validNatGatewayZones)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -121,7 +125,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid Pod CIDR to overlap with VPC CIDR", func() {
 				podCIDR := "10.0.0.1/32"
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &podCIDR, &services)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &podCIDR, &services, validNatGatewayZones)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -132,7 +136,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid Services CIDR to overlap with VPC CIDR", func() {
 				servicesCIDR := "10.0.0.1/32"
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &servicesCIDR)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &servicesCIDR, validNatGatewayZones)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -151,7 +155,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				infrastructureConfig.Networks.Zones[0].Workers = "10.250.3.8/24"
 				infrastructureConfig.Networks.VPC = apisalicloud.VPC{CIDR: &vpcCIDR}
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodeCIDR, &podCIDR, &serviceCIDR)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodeCIDR, &podCIDR, &serviceCIDR, validNatGatewayZones)
 
 				Expect(errorList).To(HaveLen(2))
 				Expect(errorList).To(ConsistOfFields(Fields{
@@ -171,19 +175,30 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					EIPAllocationID: &ipAllocID,
 				}
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services, validNatGatewayZones)
 				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should allow specifying valid config", func() {
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services, validNatGatewayZones)
 				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should allow specifying valid config with podsCIDR=nil and servicesCIDR=nil", func() {
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, nil, nil)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, nil, nil, validNatGatewayZones)
 				Expect(errorList).To(BeEmpty())
 			})
+			It("should forbid if first zone is not in valid zone list", func() {
+				infrastructureConfig.Networks.Zones[0].Name = "not-support-enhancenatgateway"
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &nodes, &pods, &services, validNatGatewayZones)
+				Expect(errorList).To(ConsistOfFields(Fields{
+					"Type":     Equal(field.ErrorTypeNotSupported),
+					"Field":    Equal("networks.zones[0]"),
+					"BadValue": Equal("not-support-enhancenatgateway"),
+					"Detail":   ContainSubstring("supported values"),
+				}))
+			})
+
 		})
 	})
 

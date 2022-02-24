@@ -26,7 +26,6 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
-	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	corev1 "k8s.io/api/core/v1"
@@ -97,11 +96,12 @@ func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
 }
 
 func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
-	if err := s.validateEnhancedNatGateway(ctx, shoot, infraConfig); err != nil {
+	natGatewayZones, err := s.getEnhancedNatGatewayAvailableZones(ctx, shoot)
+	if err != nil {
 		return err
 	}
 	// Provider validation
-	if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking.Nodes, shoot.Spec.Networking.Pods, shoot.Spec.Networking.Services, shoot.Spec.Region); len(errList) != 0 {
+	if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking.Nodes, shoot.Spec.Networking.Pods, shoot.Spec.Networking.Services, natGatewayZones); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 	if cpConfig != nil {
@@ -211,26 +211,10 @@ func (s *shoot) validateShootSecret(ctx context.Context, shoot *core.Shoot) erro
 
 	return alicloudvalidation.ValidateCloudProviderSecret(secret)
 }
-func (s *shoot) validateEnhancedNatGateway(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig) error {
-	if len(infraConfig.Networks.Zones) < 1 {
-		return nil
-	}
-	firstZoneId := infraConfig.Networks.Zones[0].Name
-	if zones, err := s.getEnhancedNatGatewayAvailableZones(ctx, shoot); err != nil {
-		return err
-	} else {
-		for _, zone := range zones {
-			if zone == firstZoneId {
-				return nil
-			}
-		}
-	}
-	return fmt.Errorf("Please choose correct zone!")
-}
 func (s *shoot) getEnhancedNatGatewayAvailableZones(ctx context.Context, shoot *core.Shoot) ([]string, error) {
 	regionID := shoot.Spec.Region
 	var (
-		secretBinding    = &corev1beta1.SecretBinding{}
+		secretBinding    = &gardencorev1beta1.SecretBinding{}
 		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
 	)
 	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
