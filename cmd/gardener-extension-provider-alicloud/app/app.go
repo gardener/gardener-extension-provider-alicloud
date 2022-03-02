@@ -192,6 +192,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				controllercmd.LogErrAndExit(err, "Could not determine whether service account token volume projection should be used")
 			}
 			alicloudcontrolplane.DefaultAddOptions.UseProjectedTokenMount = useProjectedTokenMount
+			alicloudinfrastructure.DefaultAddOptions.UseProjectedTokenMount = useProjectedTokenMount
 			alicloudworker.DefaultAddOptions.UseProjectedTokenMount = useProjectedTokenMount
 
 			configFileOpts.Completed().ApplyMachineImageOwnerSecretRef(&alicloudinfrastructure.DefaultAddOptions.MachineImageOwnerSecretRef)
