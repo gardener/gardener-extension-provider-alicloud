@@ -51,7 +51,8 @@ import (
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/test/framework"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
@@ -62,26 +63,26 @@ const (
 	setupContextTimeout   = 2 * time.Minute
 )
 
-var _ = ginkgo.Describe("Provider-alicloud integration test: health checks", func() {
+var _ = Describe("Provider-alicloud integration test: health checks", func() {
 	f := createShootFramework()
 
-	ginkgo.Context("ControlPlane", func() {
+	Context("ControlPlane", func() {
 
-		ginkgo.Context("Condition type: ShootControlPlaneHealthy", func() {
+		Context("Condition type: ShootControlPlaneHealthy", func() {
 			f.Serial().Release().CIt(fmt.Sprintf("ControlPlane CRD should contain unhealthy condition because the deployment '%s' cannot be found in the shoot namespace in the seed", alicloud.CloudControllerManagerName), func(ctx context.Context) {
 				err := healthcheckoperation.ControlPlaneHealthCheckDeleteSeedDeployment(ctx, f, f.Shoot.GetName(), alicloud.CloudControllerManagerName, gardencorev1beta1.ShootControlPlaneHealthy)
 				framework.ExpectNoError(err)
 			}, timeout)
 		})
 
-		ginkgo.Context("Condition type: ShootControlPlaneHealthy", func() {
+		Context("Condition type: ShootControlPlaneHealthy", func() {
 			f.Serial().Release().CIt(fmt.Sprintf("ControlPlane CRD should contain unhealthy condition because the deployment '%s' cannot be found in the shoot namespace in the seed", alicloud.CSIPluginController), func(ctx context.Context) {
 				err := healthcheckoperation.ControlPlaneHealthCheckDeleteSeedDeployment(ctx, f, f.Shoot.GetName(), alicloud.CSIPluginController, gardencorev1beta1.ShootControlPlaneHealthy)
 				framework.ExpectNoError(err)
 			}, timeout)
 		})
 
-		ginkgo.Context("Condition type: ShootSystemComponentsHealthy", func() {
+		Context("Condition type: ShootSystemComponentsHealthy", func() {
 			f.Serial().Release().CIt(fmt.Sprintf("ControlPlane CRD should contain unhealthy condition due to ManagedResource ('%s') unhealthy", genericcontrolplaneactuator.ControlPlaneShootChartResourceName), func(ctx context.Context) {
 				err := healthcheckoperation.ControlPlaneHealthCheckWithManagedResource(ctx, setupContextTimeout, f, genericcontrolplaneactuator.ControlPlaneShootChartResourceName, gardencorev1beta1.ShootSystemComponentsHealthy)
 				framework.ExpectNoError(err)
@@ -89,23 +90,23 @@ var _ = ginkgo.Describe("Provider-alicloud integration test: health checks", fun
 		})
 	})
 
-	ginkgo.Context("Worker", func() {
+	Context("Worker", func() {
 
-		ginkgo.Context("Condition type: ShootControlPlaneHealthy", func() {
+		Context("Condition type: ShootControlPlaneHealthy", func() {
 			f.Serial().Release().CIt(fmt.Sprintf("Worker CRD should contain unhealthy condition because the deployment '%s' cannot be found in the shoot namespace in the seed", alicloud.MachineControllerManagerName), func(ctx context.Context) {
 				err := healthcheckoperation.WorkerHealthCheckDeleteSeedDeployment(ctx, f, f.Shoot.GetName(), alicloud.MachineControllerManagerName, gardencorev1beta1.ShootControlPlaneHealthy)
 				framework.ExpectNoError(err)
 			}, timeout)
 		})
 
-		ginkgo.Context("Condition type: ShootSystemComponentsHealthy", func() {
+		Context("Condition type: ShootSystemComponentsHealthy", func() {
 			f.Serial().Release().CIt(fmt.Sprintf("Worker CRD should contain unhealthy condition due to ManagedResource ('%s') unhealthy", genericworkeractuator.McmShootResourceName), func(ctx context.Context) {
 				err := healthcheckoperation.WorkerHealthCheckWithManagedResource(ctx, setupContextTimeout, f, genericworkeractuator.McmShootResourceName, gardencorev1beta1.ShootSystemComponentsHealthy)
 				framework.ExpectNoError(err)
 			}, timeout)
 		})
 
-		ginkgo.Context("Condition type: ShootEveryNodeReady", func() {
+		Context("Condition type: ShootEveryNodeReady", func() {
 			f.Serial().Release().CIt("Worker CRD should contain unhealthy condition because not enough machines are available", func(ctx context.Context) {
 				err := healthcheckoperation.MachineDeletionHealthCheck(ctx, f)
 				framework.ExpectNoError(err)

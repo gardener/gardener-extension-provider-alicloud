@@ -26,7 +26,7 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/extensions"
 	"github.com/gardener/gardener/test/framework"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -64,7 +64,7 @@ var _ = Describe("Infrastructure tests", func() {
 		availabilityZone string
 	)
 
-	BeforeSuite(func() {
+	BeforeEach(func() {
 		repoRoot := filepath.Join("..", "..", "..")
 
 		logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
@@ -123,7 +123,7 @@ var _ = Describe("Infrastructure tests", func() {
 
 	})
 
-	AfterSuite(func() {
+	AfterEach(func() {
 		defer func() {
 			By("stopping manager")
 			mgrCancel()
