@@ -218,7 +218,7 @@ func verifyStackExists(ctx context.Context, clientFactory alicloudclient.ClientF
 			return retry.MinorError(err)
 		}
 
-		if "CREATE_COMPLETE" == getStackResponse.Status {
+		if getStackResponse.Status == "CREATE_COMPLETE" {
 			return retry.Ok()
 		}
 
