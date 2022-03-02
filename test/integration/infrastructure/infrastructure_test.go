@@ -119,7 +119,6 @@ var _ = BeforeSuite(func() {
 
 	By("ensure encrypted image is cleaned in the current account")
 	Expect(deleteEncryptedImageStackIfExists(mgrContext, clientFactory)).To(Succeed())
-
 })
 
 var _ = AfterSuite(func() {
@@ -251,7 +250,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 		return err
 	}
 
-	if enableEncryptedImage {
+	if *enableEncryptedImage {
 		By("wait until encrypted image is ready")
 		if err := verifyStackExists(ctx, clientFactory); err != nil {
 			return err
@@ -281,7 +280,7 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 	By("verify infrastructure creation")
 	infrastructureIdentifiers = verifyCreation(ctx, clientFactory, infra, providerStatus, providerConfig)
 
-	if enableEncryptedImage {
+	if *enableEncryptedImage {
 		By("verify image prepared in infrastructure status")
 		if err := verifyImageInfraStatus(providerStatus); err != nil {
 			return err

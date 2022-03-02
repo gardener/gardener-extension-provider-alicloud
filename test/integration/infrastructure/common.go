@@ -24,15 +24,15 @@ const (
 	natGatewayCIDR = "10.250.128.0/21" // Enhanced NatGateway need bind with VSwitch, natGatewayCIDR is used for this VSwitch
 	natGatewayType = "Enhanced"
 
-	secretName           = "cloudprovider"
-	enableEncryptedImage = true
-	availableStatus      = "Available"
+	secretName      = "cloudprovider"
+	availableStatus = "Available"
 )
 
 var (
-	accessKeyID     = flag.String("access-key-id", "", "Alicloud access key id")
-	accessKeySecret = flag.String("access-key-secret", "", "Alicloud access key secret")
-	region          = flag.String("region", "", "Alicloud region")
+	accessKeyID          = flag.String("access-key-id", "", "Alicloud access key id")
+	accessKeySecret      = flag.String("access-key-secret", "", "Alicloud access key secret")
+	region               = flag.String("region", "", "Alicloud region")
+	enableEncryptedImage = flag.Bool("enable-encrypted-image", false, "Enable encrypted image or not")
 )
 
 func validateFlags() {

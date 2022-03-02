@@ -104,7 +104,7 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 							Name:       pointer.StringPtr("workgroup"),
 							Type:       pointer.StringPtr("cloud_efficiency"),
 							VolumeSize: "200Gi",
-							Encrypted:  pointer.BoolPtr(enableEncryptedImage),
+							Encrypted:  enableEncryptedImage,
 						},
 					},
 				},
@@ -246,6 +246,6 @@ func verifyImageInfraStatus(status *alicloudv1alpha1.InfrastructureStatus) error
 		machineImages = append(machineImages, *converted)
 	}
 
-	_, err := helper.FindMachineImage(machineImages, imageName, imageVersion, enableEncryptedImage)
+	_, err := helper.FindMachineImage(machineImages, imageName, imageVersion, *enableEncryptedImage)
 	return err
 }
