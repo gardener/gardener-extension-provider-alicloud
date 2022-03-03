@@ -245,10 +245,10 @@ var _ = Describe("Infrastructure tests", func() {
 				5*time.Minute,
 				nil,
 			)
-			Expect(err).To(MatchError(ContainSubstring("error validating provider credentials")))
+			Expect(err).To(MatchError(ContainSubstring("Specified access key is not found")))
 			var errorWithCode *gardencorev1beta1helper.ErrorWithCodes
 			Expect(errors.As(err, &errorWithCode)).To(BeTrue())
-			Expect(errorWithCode.Codes()).To(ConsistOf(gardencorev1beta1.ErrorInfraUnauthorized, gardencorev1beta1.ErrorInfraInsufficientPrivileges))
+			Expect(errorWithCode.Codes()).To(ConsistOf(gardencorev1beta1.ErrorInfraUnauthenticated, gardencorev1beta1.ErrorConfigurationProblem))
 		})
 	})
 })
