@@ -17,7 +17,10 @@ package infrastructure
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	"path/filepath"
 	"time"
 
@@ -127,17 +130,15 @@ var _ = AfterSuite(func() {
 		mgrCancel()
 	}()
 
+	By("running cleanup actions")
+	framework.RunCleanupActions()
+
 	By("stopping test environment")
 	Expect(testEnv.Stop()).To(Succeed())
 })
 
 var _ = Describe("Infrastructure tests", func() {
-
 	Context("with infrastructure that requests new vpc (networks.vpc.cidr)", func() {
-		AfterEach(func() {
-			framework.RunCleanupActions()
-		})
-
 		It("should successfully create and delete", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR: pointer.StringPtr(vpcCIDR),
@@ -149,20 +150,12 @@ var _ = Describe("Infrastructure tests", func() {
 	})
 
 	Context("with infrastructure that requests existing vpc", func() {
-		var (
-			identifiers infrastructureIdentifiers
-		)
-
-		BeforeEach(func() {
-			identifiers = prepareVPC(ctx, clientFactory, *region, vpcCIDR, natGatewayCIDR)
-		})
-
-		AfterEach(func() {
-			framework.RunCleanupActions()
-			cleanupVPC(ctx, clientFactory, identifiers)
-		})
-
 		It("should successfully create and delete", func() {
+			identifiers := prepareVPC(ctx, clientFactory, *region, vpcCIDR, natGatewayCIDR)
+			defer func() {
+				cleanupVPC(ctx, clientFactory, identifiers)
+			}()
+
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				ID: identifiers.vpcID,
 			}, availabilityZone)
@@ -171,39 +164,129 @@ var _ = Describe("Infrastructure tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
+
+	Context("with invalid credentials", func() {
+		It("should fail creation but succeed deletion", func() {
+			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
+				CIDR: pointer.StringPtr(vpcCIDR),
+			}, availabilityZone)
+
+			var (
+				namespace *corev1.Namespace
+				cluster   *extensionsv1alpha1.Cluster
+				infra     *extensionsv1alpha1.Infrastructure
+				err       error
+			)
+
+			framework.AddCleanupAction(func() {
+				By("cleaning up namespace and cluster")
+				Expect(client.IgnoreNotFound(c.Delete(ctx, namespace))).To(Succeed())
+				Expect(client.IgnoreNotFound(c.Delete(ctx, cluster))).To(Succeed())
+			})
+
+			defer func() {
+				By("delete infrastructure")
+				Expect(client.IgnoreNotFound(c.Delete(ctx, infra))).To(Succeed())
+
+				By("wait until infrastructure is deleted")
+				// deletion should succeed even though creation failed with invalid credentials (no-op)
+				err := extensions.WaitUntilExtensionObjectDeleted(
+					ctx,
+					c,
+					logger,
+					infra,
+					extensionsv1alpha1.InfrastructureResource,
+					10*time.Second,
+					30*time.Minute,
+				)
+				Expect(err).NotTo(HaveOccurred())
+			}()
+
+			By("create namespace for test execution")
+			namespace = &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "provider-alicloud-test-",
+				},
+			}
+			Expect(c.Create(ctx, namespace)).To(Succeed())
+
+			By("deploy invalid cloudprovider secret into namespace")
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: namespace.Name,
+				},
+				Data: map[string][]byte{
+					alicloud.AccessKeyID:     []byte("invalid"),
+					alicloud.AccessKeySecret: []byte("fake"),
+				},
+			}
+			Expect(c.Create(ctx, secret)).To(Succeed())
+
+			By("create cluster which contains information of shoot info. It is used for encrypted image testing")
+			cluster, err = newCluster(namespace.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(c.Create(ctx, cluster)).To(Succeed())
+
+			By("create infrastructure")
+			infra, err = newInfrastructure(namespace.Name, providerConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(c.Create(ctx, infra)).To(Succeed())
+
+			By("wait until infrastructure creation has failed")
+			err = extensions.WaitUntilExtensionObjectReady(
+				ctx,
+				c,
+				logger,
+				infra,
+				extensionsv1alpha1.InfrastructureResource,
+				10*time.Second,
+				30*time.Second,
+				5*time.Minute,
+				nil,
+			)
+			Expect(err).To(MatchError(ContainSubstring("error validating provider credentials")))
+			var errorWithCode *gardencorev1beta1helper.ErrorWithCodes
+			Expect(errors.As(err, &errorWithCode)).To(BeTrue())
+			Expect(errorWithCode.Codes()).To(ConsistOf(gardencorev1beta1.ErrorInfraUnauthorized, gardencorev1beta1.ErrorInfraInsufficientPrivileges))
+		})
+	})
 })
 
 func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
 	var (
-		infra                     *extensionsv1alpha1.Infrastructure
 		namespace                 *corev1.Namespace
 		cluster                   *extensionsv1alpha1.Cluster
+		infra                     *extensionsv1alpha1.Infrastructure
 		infrastructureIdentifiers infrastructureIdentifiers
 		err                       error
 	)
 
-	var cleanupHandle framework.CleanupActionHandle
-	cleanupHandle = framework.AddCleanupAction(func() {
+	framework.AddCleanupAction(func() {
+		By("cleaning up namespace and cluster")
+		Expect(client.IgnoreNotFound(c.Delete(ctx, namespace))).To(Succeed())
+		Expect(client.IgnoreNotFound(c.Delete(ctx, cluster))).To(Succeed())
+	})
+
+	defer func() {
 		By("delete infrastructure")
 		Expect(client.IgnoreNotFound(c.Delete(ctx, infra))).To(Succeed())
 
 		By("wait until infrastructure is deleted")
 		err := extensions.WaitUntilExtensionObjectDeleted(
-			ctx, c, logger,
+			ctx,
+			c,
+			logger,
 			infra,
-			"Infrastructure",
-			10*time.Second, 30*time.Minute,
+			extensionsv1alpha1.InfrastructureResource,
+			10*time.Second,
+			30*time.Minute,
 		)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("verify infrastructure deletion")
 		verifyDeletion(ctx, clientFactory, infrastructureIdentifiers)
-
-		Expect(client.IgnoreNotFound(c.Delete(ctx, namespace))).To(Succeed())
-		Expect(client.IgnoreNotFound(c.Delete(ctx, cluster))).To(Succeed())
-
-		framework.RemoveCleanupAction(cleanupHandle)
-	})
+	}()
 
 	By("create namespace for test execution")
 	namespace = &corev1.Namespace{
@@ -259,10 +342,15 @@ func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, provide
 
 	By("wait until infrastructure is created")
 	if err := extensions.WaitUntilExtensionObjectReady(
-		ctx, c, logger,
+		ctx,
+		c,
+		logger,
 		infra,
-		"Infrastucture",
-		10*time.Second, 30*time.Second, 16*time.Minute, nil,
+		extensionsv1alpha1.InfrastructureResource,
+		10*time.Second,
+		30*time.Second,
+		16*time.Minute,
+		nil,
 	); err != nil {
 		return err
 	}
