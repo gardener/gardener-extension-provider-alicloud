@@ -51,8 +51,17 @@ type tfStateResource struct {
 }
 
 // NewTerraformer creates a new Terraformer.
-func NewTerraformer(logger logr.Logger, factory terraformer.Factory, config *rest.Config, purpose string, infra *extensionsv1alpha1.Infrastructure) (terraformer.Terraformer, error) {
-
+func NewTerraformer(
+	logger logr.Logger,
+	factory terraformer.Factory,
+	config *rest.Config,
+	purpose string,
+	infra *extensionsv1alpha1.Infrastructure,
+	useProjectedTokenMount bool,
+) (
+	terraformer.Terraformer,
+	error,
+) {
 	tf, err := factory.NewForConfig(logger, config, purpose, infra.Namespace, infra.Name, imagevector.TerraformerImage())
 	if err != nil {
 		return nil, err
@@ -60,6 +69,7 @@ func NewTerraformer(logger logr.Logger, factory terraformer.Factory, config *res
 
 	owner := metav1.NewControllerRef(infra, extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.InfrastructureResource))
 	return tf.
+		UseProjectedTokenMount(useProjectedTokenMount).
 		SetLogLevel("info").
 		SetTerminationGracePeriodSeconds(630).
 		SetDeadlineCleaning(5 * time.Minute).
@@ -68,8 +78,18 @@ func NewTerraformer(logger logr.Logger, factory terraformer.Factory, config *res
 }
 
 // NewTerraformerWithAuth creates a new Terraformer and initializes it with the credentials.
-func NewTerraformerWithAuth(logger logr.Logger, factory terraformer.Factory, config *rest.Config, purpose string, infra *extensionsv1alpha1.Infrastructure) (terraformer.Terraformer, error) {
-	tf, err := NewTerraformer(logger, factory, config, purpose, infra)
+func NewTerraformerWithAuth(
+	logger logr.Logger,
+	factory terraformer.Factory,
+	config *rest.Config,
+	purpose string,
+	infra *extensionsv1alpha1.Infrastructure,
+	useProjectedTokenMount bool,
+) (
+	terraformer.Terraformer,
+	error,
+) {
+	tf, err := NewTerraformer(logger, factory, config, purpose, infra, useProjectedTokenMount)
 	if err != nil {
 		return nil, err
 	}

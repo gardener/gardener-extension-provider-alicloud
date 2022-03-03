@@ -141,6 +141,7 @@ var _ = Describe("Actuator", func() {
 					terraformChartOps,
 					nil,
 					nil,
+					false,
 				)
 				c = mockclient.NewMockClient(ctrl)
 				initializer = mockterraformer.NewMockInitializer(ctrl)
@@ -250,6 +251,7 @@ var _ = Describe("Actuator", func() {
 					terraformerFactory.EXPECT().NewForConfig(gomock.Any(), &restConfig, TerraformerPurpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 						Return(terraformer, nil),
 
+					terraformer.EXPECT().UseProjectedTokenMount(false).Return(terraformer),
 					terraformer.EXPECT().SetLogLevel("info").Return(terraformer),
 					terraformer.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(terraformer),
 					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
@@ -347,6 +349,7 @@ var _ = Describe("Actuator", func() {
 					terraformerFactory.EXPECT().NewForConfig(gomock.Any(), &restConfig, TerraformerPurpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 						Return(terraformer, nil),
 
+					terraformer.EXPECT().UseProjectedTokenMount(false).Return(terraformer),
 					terraformer.EXPECT().SetLogLevel("info").Return(terraformer),
 					terraformer.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(terraformer),
 					terraformer.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(terraformer),
