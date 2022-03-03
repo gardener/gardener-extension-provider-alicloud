@@ -55,7 +55,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestGardenerSuite(t *testing.T) {
-	RunSpecs(t, "AWS Test Suite")
+	RunSpecs(t, "AliCloud Test Suite")
 }
 
 var _ = ReportAfterSuite("Report to Elasticsearch", func(report Report) {

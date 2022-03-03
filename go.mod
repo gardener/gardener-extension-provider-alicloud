@@ -13,7 +13,6 @@ require (
 	github.com/gardener/machine-controller-manager v0.41.0
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.6.0
-	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/ginkgo/v2 v2.1.0
 	github.com/onsi/gomega v1.18.0
 	github.com/sirupsen/logrus v1.8.1
