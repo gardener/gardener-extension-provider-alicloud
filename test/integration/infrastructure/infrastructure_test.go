@@ -153,9 +153,9 @@ var _ = Describe("Infrastructure tests", func() {
 	Context("with infrastructure that requests existing vpc", func() {
 		It("should successfully create and delete", func() {
 			identifiers := prepareVPC(ctx, clientFactory, *region, vpcCIDR, natGatewayCIDR)
-			defer func() {
+			framework.AddCleanupAction(func() {
 				cleanupVPC(ctx, clientFactory, identifiers)
-			}()
+			})
 
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				ID: identifiers.vpcID,
@@ -624,6 +624,7 @@ func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 	vpcClient, err := clientFactory.NewVPCClient(region, *accessKeyID, *accessKeySecret)
 	Expect(err).NotTo(HaveOccurred())
 	createVpcReq := vpc.CreateCreateVpcRequest()
+	createVpcReq.VpcName = "provider-alicloud-infra-test"
 	createVpcReq.CidrBlock = vpcCIDR
 	createVpcReq.RegionId = region
 	createVPCsResp, err := vpcClient.CreateVpc(createVpcReq)
