@@ -517,7 +517,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 }
 
 func (vp *valuesProvider) enableCSIADController() bool {
-	return vp.csi.EnableADController == nil || *vp.csi.EnableADController
+	return vp.csi.EnableADController != nil && *vp.csi.EnableADController
 }
 
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
