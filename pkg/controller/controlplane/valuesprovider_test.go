@@ -158,7 +158,7 @@ var _ = Describe("ValuesProvider", func() {
 				"replicas":           1,
 				"regionID":           "eu-central-1",
 				"kubernetesVersion":  "1.20.0",
-				"enableADController": true,
+				"enableADController": false,
 				"csiPluginController": map[string]interface{}{
 					"snapshotPrefix":         "myshoot",
 					"persistentVolumePrefix": "myshoot",
@@ -191,7 +191,7 @@ var _ = Describe("ValuesProvider", func() {
 					"accessKeySecret": "YmFy",
 				},
 				"kubernetesVersion":  "1.20.0",
-				"enableADController": true,
+				"enableADController": false,
 				"vpaEnabled":         true,
 			},
 		}
