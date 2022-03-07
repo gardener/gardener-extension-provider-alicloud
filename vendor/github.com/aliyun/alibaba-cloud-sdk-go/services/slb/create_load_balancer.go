@@ -21,7 +21,6 @@ import (
 )
 
 // CreateLoadBalancer invokes the slb.CreateLoadBalancer API synchronously
-// api document: https://help.aliyun.com/api/slb/createloadbalancer.html
 func (client *Client) CreateLoadBalancer(request *CreateLoadBalancerRequest) (response *CreateLoadBalancerResponse, err error) {
 	response = CreateCreateLoadBalancerResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) CreateLoadBalancer(request *CreateLoadBalancerRequest) (re
 }
 
 // CreateLoadBalancerWithChan invokes the slb.CreateLoadBalancer API asynchronously
-// api document: https://help.aliyun.com/api/slb/createloadbalancer.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateLoadBalancerWithChan(request *CreateLoadBalancerRequest) (<-chan *CreateLoadBalancerResponse, <-chan error) {
 	responseChan := make(chan *CreateLoadBalancerResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) CreateLoadBalancerWithChan(request *CreateLoadBalancerRequ
 }
 
 // CreateLoadBalancerWithCallback invokes the slb.CreateLoadBalancer API asynchronously
-// api document: https://help.aliyun.com/api/slb/createloadbalancer.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateLoadBalancerWithCallback(request *CreateLoadBalancerRequest, callback func(response *CreateLoadBalancerResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -83,10 +78,12 @@ type CreateLoadBalancerRequest struct {
 	LoadBalancerName             string           `position:"Query" name:"LoadBalancerName"`
 	SlaveZoneId                  string           `position:"Query" name:"SlaveZoneId"`
 	LoadBalancerSpec             string           `position:"Query" name:"LoadBalancerSpec"`
+	AutoRenewPeriod              requests.Integer `position:"Query" name:"AutoRenewPeriod"`
 	OwnerId                      requests.Integer `position:"Query" name:"OwnerId"`
 	Tags                         string           `position:"Query" name:"Tags"`
 	VSwitchId                    string           `position:"Query" name:"VSwitchId"`
 	EnableVpcVipFlow             string           `position:"Query" name:"EnableVpcVipFlow"`
+	AutoRenew                    requests.Boolean `position:"Query" name:"AutoRenew"`
 	InternetChargeType           string           `position:"Query" name:"InternetChargeType"`
 	PricingCycle                 string           `position:"Query" name:"PricingCycle"`
 	AccessKeyId                  string           `position:"Query" name:"access_key_id"`
@@ -103,6 +100,7 @@ type CreateLoadBalancerRequest struct {
 	Bandwidth                    requests.Integer `position:"Query" name:"Bandwidth"`
 	OwnerAccount                 string           `position:"Query" name:"OwnerAccount"`
 	ModificationProtectionStatus string           `position:"Query" name:"ModificationProtectionStatus"`
+	InstanceListenerType         string           `position:"Query" name:"InstanceListenerType"`
 	VpcId                        string           `position:"Query" name:"VpcId"`
 	PayType                      string           `position:"Query" name:"PayType"`
 	Ratio                        requests.Integer `position:"Query" name:"Ratio"`
@@ -111,16 +109,16 @@ type CreateLoadBalancerRequest struct {
 // CreateLoadBalancerResponse is the response struct for api CreateLoadBalancer
 type CreateLoadBalancerResponse struct {
 	*responses.BaseResponse
+	VpcId            string `json:"VpcId" xml:"VpcId"`
+	AddressIPVersion string `json:"AddressIPVersion" xml:"AddressIPVersion"`
+	VSwitchId        string `json:"VSwitchId" xml:"VSwitchId"`
 	RequestId        string `json:"RequestId" xml:"RequestId"`
+	LoadBalancerName string `json:"LoadBalancerName" xml:"LoadBalancerName"`
 	LoadBalancerId   string `json:"LoadBalancerId" xml:"LoadBalancerId"`
 	ResourceGroupId  string `json:"ResourceGroupId" xml:"ResourceGroupId"`
 	Address          string `json:"Address" xml:"Address"`
-	LoadBalancerName string `json:"LoadBalancerName" xml:"LoadBalancerName"`
-	VpcId            string `json:"VpcId" xml:"VpcId"`
-	VSwitchId        string `json:"VSwitchId" xml:"VSwitchId"`
 	NetworkType      string `json:"NetworkType" xml:"NetworkType"`
 	OrderId          int64  `json:"OrderId" xml:"OrderId"`
-	AddressIPVersion string `json:"AddressIPVersion" xml:"AddressIPVersion"`
 }
 
 // CreateCreateLoadBalancerRequest creates a request to invoke CreateLoadBalancer API
@@ -128,7 +126,7 @@ func CreateCreateLoadBalancerRequest() (request *CreateLoadBalancerRequest) {
 	request = &CreateLoadBalancerRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "CreateLoadBalancer", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "CreateLoadBalancer", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

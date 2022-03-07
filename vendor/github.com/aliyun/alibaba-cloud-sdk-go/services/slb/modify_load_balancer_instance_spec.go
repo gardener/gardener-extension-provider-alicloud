@@ -21,7 +21,6 @@ import (
 )
 
 // ModifyLoadBalancerInstanceSpec invokes the slb.ModifyLoadBalancerInstanceSpec API synchronously
-// api document: https://help.aliyun.com/api/slb/modifyloadbalancerinstancespec.html
 func (client *Client) ModifyLoadBalancerInstanceSpec(request *ModifyLoadBalancerInstanceSpecRequest) (response *ModifyLoadBalancerInstanceSpecResponse, err error) {
 	response = CreateModifyLoadBalancerInstanceSpecResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) ModifyLoadBalancerInstanceSpec(request *ModifyLoadBalancer
 }
 
 // ModifyLoadBalancerInstanceSpecWithChan invokes the slb.ModifyLoadBalancerInstanceSpec API asynchronously
-// api document: https://help.aliyun.com/api/slb/modifyloadbalancerinstancespec.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ModifyLoadBalancerInstanceSpecWithChan(request *ModifyLoadBalancerInstanceSpecRequest) (<-chan *ModifyLoadBalancerInstanceSpecResponse, <-chan error) {
 	responseChan := make(chan *ModifyLoadBalancerInstanceSpecResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) ModifyLoadBalancerInstanceSpecWithChan(request *ModifyLoad
 }
 
 // ModifyLoadBalancerInstanceSpecWithCallback invokes the slb.ModifyLoadBalancerInstanceSpec API asynchronously
-// api document: https://help.aliyun.com/api/slb/modifyloadbalancerinstancespec.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ModifyLoadBalancerInstanceSpecWithCallback(request *ModifyLoadBalancerInstanceSpecRequest, callback func(response *ModifyLoadBalancerInstanceSpecResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -90,8 +85,8 @@ type ModifyLoadBalancerInstanceSpecRequest struct {
 // ModifyLoadBalancerInstanceSpecResponse is the response struct for api ModifyLoadBalancerInstanceSpec
 type ModifyLoadBalancerInstanceSpecResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	OrderId   int64  `json:"OrderId" xml:"OrderId"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateModifyLoadBalancerInstanceSpecRequest creates a request to invoke ModifyLoadBalancerInstanceSpec API
@@ -99,7 +94,7 @@ func CreateModifyLoadBalancerInstanceSpecRequest() (request *ModifyLoadBalancerI
 	request = &ModifyLoadBalancerInstanceSpecRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "ModifyLoadBalancerInstanceSpec", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "ModifyLoadBalancerInstanceSpec", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

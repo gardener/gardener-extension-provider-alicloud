@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.442
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1492
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.1+incompatible
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/gardener/etcd-druid v0.7.0

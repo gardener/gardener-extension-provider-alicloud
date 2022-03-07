@@ -21,7 +21,6 @@ import (
 )
 
 // DescribeNetworkInterfaces invokes the ecs.DescribeNetworkInterfaces API synchronously
-// api document: https://help.aliyun.com/api/ecs/describenetworkinterfaces.html
 func (client *Client) DescribeNetworkInterfaces(request *DescribeNetworkInterfacesRequest) (response *DescribeNetworkInterfacesResponse, err error) {
 	response = CreateDescribeNetworkInterfacesResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) DescribeNetworkInterfaces(request *DescribeNetworkInterfac
 }
 
 // DescribeNetworkInterfacesWithChan invokes the ecs.DescribeNetworkInterfaces API asynchronously
-// api document: https://help.aliyun.com/api/ecs/describenetworkinterfaces.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) DescribeNetworkInterfacesWithChan(request *DescribeNetworkInterfacesRequest) (<-chan *DescribeNetworkInterfacesResponse, <-chan error) {
 	responseChan := make(chan *DescribeNetworkInterfacesResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) DescribeNetworkInterfacesWithChan(request *DescribeNetwork
 }
 
 // DescribeNetworkInterfacesWithCallback invokes the ecs.DescribeNetworkInterfaces API asynchronously
-// api document: https://help.aliyun.com/api/ecs/describenetworkinterfaces.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) DescribeNetworkInterfacesWithCallback(request *DescribeNetworkInterfacesRequest, callback func(response *DescribeNetworkInterfacesResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -96,6 +91,7 @@ type DescribeNetworkInterfacesRequest struct {
 	PrimaryIpAddress     string                          `position:"Query" name:"PrimaryIpAddress"`
 	MaxResults           requests.Integer                `position:"Query" name:"MaxResults"`
 	NetworkInterfaceId   *[]string                       `position:"Query" name:"NetworkInterfaceId"  type:"Repeated"`
+	Ipv6Address          *[]string                       `position:"Query" name:"Ipv6Address"  type:"Repeated"`
 	Status               string                          `position:"Query" name:"Status"`
 }
 
@@ -108,11 +104,11 @@ type DescribeNetworkInterfacesTag struct {
 // DescribeNetworkInterfacesResponse is the response struct for api DescribeNetworkInterfaces
 type DescribeNetworkInterfacesResponse struct {
 	*responses.BaseResponse
+	NextToken            string               `json:"NextToken" xml:"NextToken"`
+	PageSize             int                  `json:"PageSize" xml:"PageSize"`
+	PageNumber           int                  `json:"PageNumber" xml:"PageNumber"`
 	RequestId            string               `json:"RequestId" xml:"RequestId"`
 	TotalCount           int                  `json:"TotalCount" xml:"TotalCount"`
-	PageNumber           int                  `json:"PageNumber" xml:"PageNumber"`
-	PageSize             int                  `json:"PageSize" xml:"PageSize"`
-	NextToken            string               `json:"NextToken" xml:"NextToken"`
 	NetworkInterfaceSets NetworkInterfaceSets `json:"NetworkInterfaceSets" xml:"NetworkInterfaceSets"`
 }
 

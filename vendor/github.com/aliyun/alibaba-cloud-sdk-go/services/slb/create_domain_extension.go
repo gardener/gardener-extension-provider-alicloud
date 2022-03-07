@@ -21,7 +21,6 @@ import (
 )
 
 // CreateDomainExtension invokes the slb.CreateDomainExtension API synchronously
-// api document: https://help.aliyun.com/api/slb/createdomainextension.html
 func (client *Client) CreateDomainExtension(request *CreateDomainExtensionRequest) (response *CreateDomainExtensionResponse, err error) {
 	response = CreateCreateDomainExtensionResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) CreateDomainExtension(request *CreateDomainExtensionReques
 }
 
 // CreateDomainExtensionWithChan invokes the slb.CreateDomainExtension API asynchronously
-// api document: https://help.aliyun.com/api/slb/createdomainextension.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateDomainExtensionWithChan(request *CreateDomainExtensionRequest) (<-chan *CreateDomainExtensionResponse, <-chan error) {
 	responseChan := make(chan *CreateDomainExtensionResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) CreateDomainExtensionWithChan(request *CreateDomainExtensi
 }
 
 // CreateDomainExtensionWithCallback invokes the slb.CreateDomainExtension API asynchronously
-// api document: https://help.aliyun.com/api/slb/createdomainextension.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) CreateDomainExtensionWithCallback(request *CreateDomainExtensionRequest, callback func(response *CreateDomainExtensionResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -100,8 +95,8 @@ type CreateDomainExtensionServerCertificate struct {
 // CreateDomainExtensionResponse is the response struct for api CreateDomainExtension
 type CreateDomainExtensionResponse struct {
 	*responses.BaseResponse
-	RequestId         string `json:"RequestId" xml:"RequestId"`
 	ListenerPort      int    `json:"ListenerPort" xml:"ListenerPort"`
+	RequestId         string `json:"RequestId" xml:"RequestId"`
 	DomainExtensionId string `json:"DomainExtensionId" xml:"DomainExtensionId"`
 }
 
@@ -110,7 +105,7 @@ func CreateCreateDomainExtensionRequest() (request *CreateDomainExtensionRequest
 	request = &CreateDomainExtensionRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "CreateDomainExtension", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "CreateDomainExtension", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

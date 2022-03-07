@@ -21,7 +21,6 @@ import (
 )
 
 // PurchaseStorageCapacityUnit invokes the ecs.PurchaseStorageCapacityUnit API synchronously
-// api document: https://help.aliyun.com/api/ecs/purchasestoragecapacityunit.html
 func (client *Client) PurchaseStorageCapacityUnit(request *PurchaseStorageCapacityUnitRequest) (response *PurchaseStorageCapacityUnitResponse, err error) {
 	response = CreatePurchaseStorageCapacityUnitResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) PurchaseStorageCapacityUnit(request *PurchaseStorageCapaci
 }
 
 // PurchaseStorageCapacityUnitWithChan invokes the ecs.PurchaseStorageCapacityUnit API asynchronously
-// api document: https://help.aliyun.com/api/ecs/purchasestoragecapacityunit.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) PurchaseStorageCapacityUnitWithChan(request *PurchaseStorageCapacityUnitRequest) (<-chan *PurchaseStorageCapacityUnitResponse, <-chan error) {
 	responseChan := make(chan *PurchaseStorageCapacityUnitResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) PurchaseStorageCapacityUnitWithChan(request *PurchaseStora
 }
 
 // PurchaseStorageCapacityUnitWithCallback invokes the ecs.PurchaseStorageCapacityUnit API asynchronously
-// api document: https://help.aliyun.com/api/ecs/purchasestoragecapacityunit.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) PurchaseStorageCapacityUnitWithCallback(request *PurchaseStorageCapacityUnitRequest, callback func(response *PurchaseStorageCapacityUnitResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -76,26 +71,33 @@ func (client *Client) PurchaseStorageCapacityUnitWithCallback(request *PurchaseS
 // PurchaseStorageCapacityUnitRequest is the request struct for api PurchaseStorageCapacityUnit
 type PurchaseStorageCapacityUnitRequest struct {
 	*requests.RpcRequest
-	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
-	ClientToken          string           `position:"Query" name:"ClientToken"`
-	Description          string           `position:"Query" name:"Description"`
-	StartTime            string           `position:"Query" name:"StartTime"`
-	Capacity             requests.Integer `position:"Query" name:"Capacity"`
-	Period               requests.Integer `position:"Query" name:"Period"`
-	Amount               requests.Integer `position:"Query" name:"Amount"`
-	FromApp              string           `position:"Query" name:"FromApp"`
-	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
-	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
-	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
-	PeriodUnit           string           `position:"Query" name:"PeriodUnit"`
-	Name                 string           `position:"Query" name:"Name"`
+	ResourceOwnerId      requests.Integer                  `position:"Query" name:"ResourceOwnerId"`
+	ClientToken          string                            `position:"Query" name:"ClientToken"`
+	Description          string                            `position:"Query" name:"Description"`
+	StartTime            string                            `position:"Query" name:"StartTime"`
+	Capacity             requests.Integer                  `position:"Query" name:"Capacity"`
+	Tag                  *[]PurchaseStorageCapacityUnitTag `position:"Query" name:"Tag"  type:"Repeated"`
+	Period               requests.Integer                  `position:"Query" name:"Period"`
+	Amount               requests.Integer                  `position:"Query" name:"Amount"`
+	FromApp              string                            `position:"Query" name:"FromApp"`
+	ResourceOwnerAccount string                            `position:"Query" name:"ResourceOwnerAccount"`
+	OwnerAccount         string                            `position:"Query" name:"OwnerAccount"`
+	OwnerId              requests.Integer                  `position:"Query" name:"OwnerId"`
+	PeriodUnit           string                            `position:"Query" name:"PeriodUnit"`
+	Name                 string                            `position:"Query" name:"Name"`
+}
+
+// PurchaseStorageCapacityUnitTag is a repeated param struct in PurchaseStorageCapacityUnitRequest
+type PurchaseStorageCapacityUnitTag struct {
+	Key   string `name:"Key"`
+	Value string `name:"Value"`
 }
 
 // PurchaseStorageCapacityUnitResponse is the response struct for api PurchaseStorageCapacityUnit
 type PurchaseStorageCapacityUnitResponse struct {
 	*responses.BaseResponse
-	RequestId              string                 `json:"RequestId" xml:"RequestId"`
 	OrderId                string                 `json:"OrderId" xml:"OrderId"`
+	RequestId              string                 `json:"RequestId" xml:"RequestId"`
 	StorageCapacityUnitIds StorageCapacityUnitIds `json:"StorageCapacityUnitIds" xml:"StorageCapacityUnitIds"`
 }
 

@@ -21,7 +21,6 @@ import (
 )
 
 // SetLoadBalancerUDPListenerAttribute invokes the slb.SetLoadBalancerUDPListenerAttribute API synchronously
-// api document: https://help.aliyun.com/api/slb/setloadbalancerudplistenerattribute.html
 func (client *Client) SetLoadBalancerUDPListenerAttribute(request *SetLoadBalancerUDPListenerAttributeRequest) (response *SetLoadBalancerUDPListenerAttributeResponse, err error) {
 	response = CreateSetLoadBalancerUDPListenerAttributeResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) SetLoadBalancerUDPListenerAttribute(request *SetLoadBalanc
 }
 
 // SetLoadBalancerUDPListenerAttributeWithChan invokes the slb.SetLoadBalancerUDPListenerAttribute API asynchronously
-// api document: https://help.aliyun.com/api/slb/setloadbalancerudplistenerattribute.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) SetLoadBalancerUDPListenerAttributeWithChan(request *SetLoadBalancerUDPListenerAttributeRequest) (<-chan *SetLoadBalancerUDPListenerAttributeResponse, <-chan error) {
 	responseChan := make(chan *SetLoadBalancerUDPListenerAttributeResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) SetLoadBalancerUDPListenerAttributeWithChan(request *SetLo
 }
 
 // SetLoadBalancerUDPListenerAttributeWithCallback invokes the slb.SetLoadBalancerUDPListenerAttribute API asynchronously
-// api document: https://help.aliyun.com/api/slb/setloadbalancerudplistenerattribute.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) SetLoadBalancerUDPListenerAttributeWithCallback(request *SetLoadBalancerUDPListenerAttributeRequest, callback func(response *SetLoadBalancerUDPListenerAttributeResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -77,14 +72,20 @@ func (client *Client) SetLoadBalancerUDPListenerAttributeWithCallback(request *S
 type SetLoadBalancerUDPListenerAttributeRequest struct {
 	*requests.RpcRequest
 	ResourceOwnerId           requests.Integer                                `position:"Query" name:"ResourceOwnerId"`
+	HealthCheckURI            string                                          `position:"Query" name:"HealthCheckURI"`
 	AclStatus                 string                                          `position:"Query" name:"AclStatus"`
+	FullNatEnabled            requests.Boolean                                `position:"Query" name:"FullNatEnabled"`
 	AclType                   string                                          `position:"Query" name:"AclType"`
 	MasterSlaveServerGroup    string                                          `position:"Query" name:"MasterSlaveServerGroup"`
+	FailoverStrategy          string                                          `position:"Query" name:"FailoverStrategy"`
 	PersistenceTimeout        requests.Integer                                `position:"Query" name:"PersistenceTimeout"`
 	VpcIds                    string                                          `position:"Query" name:"VpcIds"`
+	MasterSlaveModeEnabled    requests.Boolean                                `position:"Query" name:"MasterSlaveModeEnabled"`
 	VServerGroupId            string                                          `position:"Query" name:"VServerGroupId"`
 	AclId                     string                                          `position:"Query" name:"AclId"`
 	PortRange                 *[]SetLoadBalancerUDPListenerAttributePortRange `position:"Query" name:"PortRange"  type:"Repeated"`
+	HealthCheckMethod         string                                          `position:"Query" name:"HealthCheckMethod"`
+	HealthCheckDomain         string                                          `position:"Query" name:"HealthCheckDomain"`
 	OwnerId                   requests.Integer                                `position:"Query" name:"OwnerId"`
 	Tags                      string                                          `position:"Query" name:"Tags"`
 	LoadBalancerId            string                                          `position:"Query" name:"LoadBalancerId"`
@@ -92,20 +93,28 @@ type SetLoadBalancerUDPListenerAttributeRequest struct {
 	HealthCheckReq            string                                          `position:"Query" name:"healthCheckReq"`
 	HealthCheckInterval       requests.Integer                                `position:"Query" name:"HealthCheckInterval"`
 	HealthCheckExp            string                                          `position:"Query" name:"healthCheckExp"`
+	FailoverThreshold         requests.Integer                                `position:"Query" name:"FailoverThreshold"`
+	ProxyProtocolV2Enabled    requests.Boolean                                `position:"Query" name:"ProxyProtocolV2Enabled"`
 	ConnectionDrain           string                                          `position:"Query" name:"ConnectionDrain"`
+	HealthCheckSwitch         string                                          `position:"Query" name:"HealthCheckSwitch"`
 	AccessKeyId               string                                          `position:"Query" name:"access_key_id"`
 	HealthCheckConnectTimeout requests.Integer                                `position:"Query" name:"HealthCheckConnectTimeout"`
+	SlaveServerGroupId        string                                          `position:"Query" name:"SlaveServerGroupId"`
+	QuicVersion               string                                          `position:"Query" name:"QuicVersion"`
 	Description               string                                          `position:"Query" name:"Description"`
 	UnhealthyThreshold        requests.Integer                                `position:"Query" name:"UnhealthyThreshold"`
 	HealthyThreshold          requests.Integer                                `position:"Query" name:"HealthyThreshold"`
 	Scheduler                 string                                          `position:"Query" name:"Scheduler"`
 	MaxConnection             requests.Integer                                `position:"Query" name:"MaxConnection"`
+	MasterServerGroupId       string                                          `position:"Query" name:"MasterServerGroupId"`
 	ListenerPort              requests.Integer                                `position:"Query" name:"ListenerPort"`
+	HealthCheckType           string                                          `position:"Query" name:"HealthCheckType"`
 	ResourceOwnerAccount      string                                          `position:"Query" name:"ResourceOwnerAccount"`
 	Bandwidth                 requests.Integer                                `position:"Query" name:"Bandwidth"`
 	OwnerAccount              string                                          `position:"Query" name:"OwnerAccount"`
 	ConnectionDrainTimeout    requests.Integer                                `position:"Query" name:"ConnectionDrainTimeout"`
 	HealthCheckConnectPort    requests.Integer                                `position:"Query" name:"HealthCheckConnectPort"`
+	HealthCheckHttpCode       string                                          `position:"Query" name:"HealthCheckHttpCode"`
 	VServerGroup              string                                          `position:"Query" name:"VServerGroup"`
 }
 
@@ -126,7 +135,7 @@ func CreateSetLoadBalancerUDPListenerAttributeRequest() (request *SetLoadBalance
 	request = &SetLoadBalancerUDPListenerAttributeRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "SetLoadBalancerUDPListenerAttribute", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "SetLoadBalancerUDPListenerAttribute", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }

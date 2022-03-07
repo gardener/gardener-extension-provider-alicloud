@@ -639,6 +639,21 @@ func (mr *MockVPCMockRecorder) GetEIPWithID(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIPWithID", reflect.TypeOf((*MockVPC)(nil).GetEIPWithID), arg0, arg1)
 }
 
+// GetEnhanhcedNatGatewayAvailableZones mocks base method.
+func (m *MockVPC) GetEnhanhcedNatGatewayAvailableZones(arg0 context.Context, arg1 string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEnhanhcedNatGatewayAvailableZones", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEnhanhcedNatGatewayAvailableZones indicates an expected call of GetEnhanhcedNatGatewayAvailableZones.
+func (mr *MockVPCMockRecorder) GetEnhanhcedNatGatewayAvailableZones(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnhanhcedNatGatewayAvailableZones", reflect.TypeOf((*MockVPC)(nil).GetEnhanhcedNatGatewayAvailableZones), arg0, arg1)
+}
+
 // GetNatGatewaysWithVPCID mocks base method.
 func (m *MockVPC) GetNatGatewaysWithVPCID(arg0 context.Context, arg1 string) ([]vpc.NatGateway, error) {
 	m.ctrl.T.Helper()

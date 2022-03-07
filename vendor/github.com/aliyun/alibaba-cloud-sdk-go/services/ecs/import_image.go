@@ -21,7 +21,6 @@ import (
 )
 
 // ImportImage invokes the ecs.ImportImage API synchronously
-// api document: https://help.aliyun.com/api/ecs/importimage.html
 func (client *Client) ImportImage(request *ImportImageRequest) (response *ImportImageResponse, err error) {
 	response = CreateImportImageResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) ImportImage(request *ImportImageRequest) (response *Import
 }
 
 // ImportImageWithChan invokes the ecs.ImportImage API asynchronously
-// api document: https://help.aliyun.com/api/ecs/importimage.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ImportImageWithChan(request *ImportImageRequest) (<-chan *ImportImageResponse, <-chan error) {
 	responseChan := make(chan *ImportImageResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) ImportImageWithChan(request *ImportImageRequest) (<-chan *
 }
 
 // ImportImageWithCallback invokes the ecs.ImportImage API asynchronously
-// api document: https://help.aliyun.com/api/ecs/importimage.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ImportImageWithCallback(request *ImportImageRequest, callback func(response *ImportImageResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -112,9 +107,9 @@ type ImportImageTag struct {
 type ImportImageResponse struct {
 	*responses.BaseResponse
 	RequestId string `json:"RequestId" xml:"RequestId"`
+	ImageId   string `json:"ImageId" xml:"ImageId"`
 	TaskId    string `json:"TaskId" xml:"TaskId"`
 	RegionId  string `json:"RegionId" xml:"RegionId"`
-	ImageId   string `json:"ImageId" xml:"ImageId"`
 }
 
 // CreateImportImageRequest creates a request to invoke ImportImage API

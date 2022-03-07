@@ -21,7 +21,6 @@ import (
 )
 
 // ListTLSCipherPolicies invokes the slb.ListTLSCipherPolicies API synchronously
-// api document: https://help.aliyun.com/api/slb/listtlscipherpolicies.html
 func (client *Client) ListTLSCipherPolicies(request *ListTLSCipherPoliciesRequest) (response *ListTLSCipherPoliciesResponse, err error) {
 	response = CreateListTLSCipherPoliciesResponse()
 	err = client.DoAction(request, response)
@@ -29,8 +28,6 @@ func (client *Client) ListTLSCipherPolicies(request *ListTLSCipherPoliciesReques
 }
 
 // ListTLSCipherPoliciesWithChan invokes the slb.ListTLSCipherPolicies API asynchronously
-// api document: https://help.aliyun.com/api/slb/listtlscipherpolicies.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ListTLSCipherPoliciesWithChan(request *ListTLSCipherPoliciesRequest) (<-chan *ListTLSCipherPoliciesResponse, <-chan error) {
 	responseChan := make(chan *ListTLSCipherPoliciesResponse, 1)
 	errChan := make(chan error, 1)
@@ -53,8 +50,6 @@ func (client *Client) ListTLSCipherPoliciesWithChan(request *ListTLSCipherPolici
 }
 
 // ListTLSCipherPoliciesWithCallback invokes the slb.ListTLSCipherPolicies API asynchronously
-// api document: https://help.aliyun.com/api/slb/listtlscipherpolicies.html
-// asynchronous document: https://help.aliyun.com/document_detail/66220.html
 func (client *Client) ListTLSCipherPoliciesWithCallback(request *ListTLSCipherPoliciesRequest, callback func(response *ListTLSCipherPoliciesResponse, err error)) <-chan int {
 	result := make(chan int, 1)
 	err := client.AddAsyncTask(func() {
@@ -91,10 +86,10 @@ type ListTLSCipherPoliciesRequest struct {
 // ListTLSCipherPoliciesResponse is the response struct for api ListTLSCipherPolicies
 type ListTLSCipherPoliciesResponse struct {
 	*responses.BaseResponse
-	RequestId         string            `json:"RequestId" xml:"RequestId"`
 	NextToken         string            `json:"NextToken" xml:"NextToken"`
-	IsTruncated       bool              `json:"IsTruncated" xml:"IsTruncated"`
+	RequestId         string            `json:"RequestId" xml:"RequestId"`
 	TotalCount        int               `json:"TotalCount" xml:"TotalCount"`
+	IsTruncated       bool              `json:"IsTruncated" xml:"IsTruncated"`
 	TLSCipherPolicies []TLSCipherPolicy `json:"TLSCipherPolicies" xml:"TLSCipherPolicies"`
 }
 
@@ -103,7 +98,7 @@ func CreateListTLSCipherPoliciesRequest() (request *ListTLSCipherPoliciesRequest
 	request = &ListTLSCipherPoliciesRequest{
 		RpcRequest: &requests.RpcRequest{},
 	}
-	request.InitWithApiInfo("Slb", "2014-05-15", "ListTLSCipherPolicies", "slb", "openAPI")
+	request.InitWithApiInfo("Slb", "2014-05-15", "ListTLSCipherPolicies", "Slb", "openAPI")
 	request.Method = requests.POST
 	return
 }
