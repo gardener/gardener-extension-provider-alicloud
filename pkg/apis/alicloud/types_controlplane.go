@@ -26,10 +26,19 @@ type ControlPlaneConfig struct {
 
 	// CloudControllerManager contains configuration settings for the cloud-controller-manager.
 	CloudControllerManager *CloudControllerManagerConfig
+
+	// CSI is the config for CSI plugin components.
+	CSI *CSI
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
 type CloudControllerManagerConfig struct {
 	// FeatureGates contains information about enabled feature gates.
 	FeatureGates map[string]bool
+}
+
+// CSI is csi components configuration.
+type CSI struct {
+	// EnableADController enables disks to be attached/detached from controller server of CSI Plugin.
+	EnableADController *bool
 }

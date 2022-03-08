@@ -177,7 +177,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>EnableADController enables disks to be attached/detached from csi-provisioner</p>
+<p>EnableADController enables disks to be attached/detached from csi-provisioner
+Deprecated</p>
 </td>
 </tr>
 </tbody>

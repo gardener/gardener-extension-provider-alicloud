@@ -86,5 +86,6 @@ type ETCDBackup struct {
 // CSI is csi components configuration.
 type CSI struct {
 	// EnableADController enables disks to be attached/detached from csi-attacher
+	// Deprecated
 	EnableADController *bool
 }

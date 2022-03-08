@@ -94,5 +94,6 @@ type ETCDBackup struct {
 type CSI struct {
 	// EnableADController enables disks to be attached/detached from csi-provisioner
 	// +optional
+	// Deprecated
 	EnableADController *bool `json:"enableADController,omitempty"`
 }
