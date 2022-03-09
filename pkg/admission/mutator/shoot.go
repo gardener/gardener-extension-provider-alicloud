@@ -19,10 +19,13 @@ import (
 	"fmt"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
+	apisalicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -45,29 +48,28 @@ const (
 
 // NewShootMutator returns a new instance of a shoot mutator.
 func NewShootMutator() extensionswebhook.Mutator {
-
 	alicloudclientFactory := alicloudclient.NewClientFactory()
-	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
+	return NewShootMutatorWithDeps(alicloudclientFactory)
 }
 
 // NewShootMutatorWithDeps with parameter returns a new instance of a shoot mutator.
 func NewShootMutatorWithDeps(alicloudclientFactory alicloudclient.ClientFactory) extensionswebhook.Mutator {
-
 	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
 }
 
 type shootMutator struct {
 	client                client.Client
 	apiReader             client.Reader
-	decoder               runtime.Decoder
-	lenientDecoder        runtime.Decoder
+	codec                 runtime.Codec
 	alicloudClientFactory alicloudclient.ClientFactory
 }
 
 // InjectScheme injects the given scheme into the mutator.
 func (s *shootMutator) InjectScheme(scheme *runtime.Scheme) error {
-	s.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
-	s.lenientDecoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
+	codecFactory := serializer.NewCodecFactory(scheme, serializer.EnableStrict)
+	decoder := codecFactory.UniversalDecoder()
+	serializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{})
+	s.codec = runtime.NewCodec(serializer, decoder)
 	return nil
 }
 
@@ -94,21 +96,30 @@ func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error
 		if !ok {
 			return fmt.Errorf("wrong object type %T for old object", old)
 		}
-		return s.mutateShootUpdate(ctx, oldShoot, shoot)
+		return s.mutateShootUpdate(ctx, shoot, oldShoot)
 	} else {
 		return s.mutateShootCreation(ctx, shoot)
 	}
 
 }
+
 func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1beta1.Shoot) error {
 	logger.Info("Starting Shoot Creation Mutation")
+
+	err := s.mutateControlPlaneConfigForCreate(shoot)
+	if err != nil {
+		return err
+	}
+
 	for _, worker := range shoot.Spec.Provider.Workers {
 		if err := s.setDefaultForEncryptedDisk(ctx, shoot, &worker); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
+
 func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *corev1beta1.Shoot, worker *corev1beta1.Worker) error {
 	imageName := worker.Machine.Image.Name
 	imageVersion := worker.Machine.Image.Version
@@ -136,6 +147,7 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 	}
 	return nil
 }
+
 func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1.Shoot, imageName string, imageVersion *string) (bool, error) {
 	cloudProfile := shoot.Spec.CloudProfileName
 	region := shoot.Spec.Region
@@ -148,8 +160,8 @@ func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1
 	isOwnedByAli, err := s.isOwnedbyAliCloud(ctx, shoot, imageId, region)
 	return !isOwnedByAli, err
 }
-func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1.Shoot, imageId string, region string) (bool, error) {
 
+func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1.Shoot, imageId string, region string) (bool, error) {
 	var (
 		secretBinding    = &corev1beta1.SecretBinding{}
 		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
@@ -185,6 +197,7 @@ func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1
 	}
 	return false, nil
 }
+
 func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVersion *string, imageRegion string, cloudProfileName string) (string, error) {
 	var (
 		cloudProfile    = &corev1beta1.CloudProfile{}
@@ -202,24 +215,30 @@ func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVe
 
 func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
 	var cloudProfileConfig = &api.CloudProfileConfig{}
-	if _, _, err := s.decoder.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
+	if _, _, err := s.codec.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", kutil.ObjectName(cloudProfile), err)
 	}
 
 	return cloudProfileConfig, nil
 }
-func (s *shootMutator) mutateShootUpdate(ctx context.Context, oldShoot, shoot *corev1beta1.Shoot) error {
-	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
-		if err := s.triggerInfraUpdateForNewEncryptedSystemDisk(ctx, oldShoot, shoot); err != nil {
+
+func (s *shootMutator) mutateShootUpdate(ctx context.Context, shoot, oldShoot *corev1beta1.Shoot) error {
+	if !equality.Semantic.DeepEqual(shoot.Spec, oldShoot.Spec) {
+		if err := s.mutateControlPlaneConfigForUpdate(shoot, oldShoot); err != nil {
+			return err
+		}
+
+		if err := s.triggerInfraUpdateForNewEncryptedSystemDisk(ctx, shoot, oldShoot); err != nil {
 			return err
 		}
 	}
-	if !equality.Semantic.DeepEqual(oldShoot.Spec, shoot.Spec) {
-		s.mutateForEncryptedSystemDiskChange(oldShoot, shoot)
+	if !equality.Semantic.DeepEqual(shoot.Spec, oldShoot.Spec) {
+		s.mutateForEncryptedSystemDiskChange(shoot, oldShoot)
 	}
 	return nil
 }
-func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(ctx context.Context, oldshoot, shoot *corev1beta1.Shoot) error {
+
+func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(ctx context.Context, shoot, oldshoot *corev1beta1.Shoot) error {
 	for _, worker := range shoot.Spec.Provider.Workers {
 		oldWorker := getWorkerByName(oldshoot, worker.Name)
 		if oldWorker == nil {
@@ -254,6 +273,7 @@ func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(ctx context.C
 	}
 	return nil
 }
+
 func getWorkerByName(shoot *corev1beta1.Shoot, workerName string) *corev1beta1.Worker {
 
 	for _, worker := range shoot.Spec.Provider.Workers {
@@ -263,6 +283,7 @@ func getWorkerByName(shoot *corev1beta1.Shoot, workerName string) *corev1beta1.W
 	}
 	return nil
 }
+
 func getVolumeByName(dataVolumes []corev1beta1.DataVolume, volumeName string) *corev1beta1.DataVolume {
 	if dataVolumes == nil {
 		return nil
@@ -274,8 +295,9 @@ func getVolumeByName(dataVolumes []corev1beta1.DataVolume, volumeName string) *c
 	}
 	return nil
 }
-func (s *shootMutator) mutateForEncryptedSystemDiskChange(oldShoot, shoot *corev1beta1.Shoot) {
-	if requireNewEncryptedImage(oldShoot.Spec.Provider.Workers, shoot.Spec.Provider.Workers) {
+
+func (s *shootMutator) mutateForEncryptedSystemDiskChange(shoot, oldShoot *corev1beta1.Shoot) {
+	if requireNewEncryptedImage(shoot.Spec.Provider.Workers, oldShoot.Spec.Provider.Workers) {
 		logger.Info("Need to reconcile infra as new encrypted system disk found in workers", "name", shoot.Name, "namespace", shoot.Namespace)
 		if shoot.Annotations == nil {
 			shoot.Annotations = make(map[string]string)
@@ -287,7 +309,7 @@ func (s *shootMutator) mutateForEncryptedSystemDiskChange(oldShoot, shoot *corev
 
 // Check encrypted flag in new workers' volumes. If it is changed to be true, check for old workers
 // if there is already a volume is set to be encrypted and also the OS version is the same.
-func requireNewEncryptedImage(oldWorkers, newWorkers []corev1beta1.Worker) bool {
+func requireNewEncryptedImage(newWorkers, oldWorkers []corev1beta1.Worker) bool {
 	var imagesEncrypted []*corev1beta1.ShootMachineImage
 	for _, w := range oldWorkers {
 		if w.Volume != nil && w.Volume.Encrypted != nil && *w.Volume.Encrypted {
@@ -316,4 +338,92 @@ func requireNewEncryptedImage(oldWorkers, newWorkers []corev1beta1.Worker) bool 
 	}
 
 	return false
+}
+
+func (s *shootMutator) decodeControlPlaneConfig(provider *corev1beta1.Provider) (*apisalicloudv1alpha1.ControlPlaneConfig, error) {
+	cpConfig := &apisalicloudv1alpha1.ControlPlaneConfig{}
+
+	if provider.ControlPlaneConfig != nil {
+		if _, _, err := s.codec.Decode(provider.ControlPlaneConfig.Raw, nil, cpConfig); err != nil {
+			return nil, fmt.Errorf("could not decode providerConfig of controlplane: %w", err)
+		}
+	}
+
+	return cpConfig, nil
+}
+
+func (s *shootMutator) convertToRawExtension(obj runtime.Object) (*runtime.RawExtension, error) {
+	if obj == nil {
+		return nil, nil
+	}
+
+	data, err := runtime.Encode(s.codec, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	return &runtime.RawExtension{
+		Raw: data,
+	}, nil
+
+}
+
+func (s *shootMutator) mutateControlPlaneConfigForCreate(shoot *corev1beta1.Shoot) error {
+	cpConfig, err := s.decodeControlPlaneConfig(&shoot.Spec.Provider)
+	if err != nil {
+		return err
+	}
+
+	if cpConfig.CSI == nil {
+		cpConfig.CSI = &apisalicloudv1alpha1.CSI{
+			EnableADController: pointer.BoolPtr(true),
+		}
+	} else {
+		if cpConfig.CSI.EnableADController == nil {
+			cpConfig.CSI.EnableADController = pointer.BoolPtr(true)
+		}
+	}
+
+	raw, err := s.convertToRawExtension(cpConfig)
+	if err != nil {
+		return err
+	}
+
+	shoot.Spec.Provider.ControlPlaneConfig = raw
+
+	return nil
+}
+
+func (s *shootMutator) mutateControlPlaneConfigForUpdate(newShoot, oldShoot *corev1beta1.Shoot) error {
+	oldCPConfig, err := s.decodeControlPlaneConfig(&oldShoot.Spec.Provider)
+	if err != nil {
+		return err
+	}
+
+	newCPConfig, err := s.decodeControlPlaneConfig(&newShoot.Spec.Provider)
+	if err != nil {
+		return err
+	}
+
+	changed := false
+	// If EnableADController in new shoot is nil, keep the old value
+	if oldCPConfig.CSI != nil {
+		if newCPConfig.CSI == nil {
+			newCPConfig.CSI = &apisalicloudv1alpha1.CSI{EnableADController: oldCPConfig.CSI.EnableADController}
+			changed = true
+		} else if newCPConfig.CSI.EnableADController == nil {
+			newCPConfig.CSI.EnableADController = oldCPConfig.CSI.EnableADController
+			changed = true
+		}
+	}
+
+	if changed {
+		raw, err := s.convertToRawExtension(newCPConfig)
+		if err != nil {
+			return err
+		}
+		newShoot.Spec.Provider.ControlPlaneConfig = raw
+	}
+
+	return nil
 }
