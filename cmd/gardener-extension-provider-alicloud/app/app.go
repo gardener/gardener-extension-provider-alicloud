@@ -32,18 +32,20 @@ import (
 	alicloudworker "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
 	alicloudcontrolplaneexposure "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplaneexposure"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/shoot"
-	genericcontrolplaneactuator "github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	genericcontrolplaneactuator "github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/spf13/cobra"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	autoscalingv1beta2 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1beta2"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/component-base/version/verflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -222,12 +224,12 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			alicloudcontrolplane.DefaultAddOptions.ShootWebhooks = shootWebhooks
 
 			// Update shoot webhook configuration in case the webhook server port has changed.
-			c, err := client.New(restOpts.Completed().Config, client.Options{})
-			if err != nil {
-				controllercmd.LogErrAndExit(err, "Error creating client for startup tasks")
-			}
-			if err := genericcontrolplaneactuator.ReconcileShootWebhooksForAllNamespaces(ctx, c, alicloud.Name, alicloud.Type, mgr.GetWebhookServer().Port, shootWebhooks); err != nil {
-				controllercmd.LogErrAndExit(err, "Error ensuring shoot webhooks in all namespaces")
+			if err := mgr.Add(&shootWebhookReconciler{
+				restConfig:        restOpts.Completed().Config,
+				webhookServerPort: mgr.GetWebhookServer().Port,
+				shootWebhooks:     shootWebhooks,
+			}); err != nil {
+				controllercmd.LogErrAndExit(err, "Error adding runnable for reconciling shoot webhooks in all namespaces")
 			}
 
 			if err := controllerSwitches.Completed().AddToManager(mgr); err != nil {
@@ -244,4 +246,23 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	aggOption.AddFlags(cmd.Flags())
 
 	return cmd
+}
+
+type shootWebhookReconciler struct {
+	restConfig        *rest.Config
+	webhookServerPort int
+	shootWebhooks     []admissionregistrationv1.MutatingWebhook
+}
+
+func (s *shootWebhookReconciler) NeedLeaderElection() bool {
+	return true
+}
+
+func (s *shootWebhookReconciler) Start(ctx context.Context) error {
+	client, err := client.New(s.restConfig, client.Options{})
+	if err != nil {
+		return err
+	}
+
+	return genericcontrolplaneactuator.ReconcileShootWebhooksForAllNamespaces(ctx, client, alicloud.Name, alicloud.Type, s.webhookServerPort, s.shootWebhooks)
 }
