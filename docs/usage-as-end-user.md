@@ -157,10 +157,13 @@ An example `ControlPlaneConfig` for the Alicloud extension looks as follows:
 ```yaml
 apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
 kind: ControlPlaneConfig
+csi:
+  enableADController: true
 cloudControllerManager:
   featureGates:
     CustomResourceValidation: true
 ```
+The `csi.enableADController` is used as the value of environment [DISK_AD_CONTROLLER](https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver/blob/cd0788a0a440926d504d8f8fb7f6e738fe96f3ae/pkg/disk/nodeserver.go#L80), which is used for AliCloud csi-disk-plugin. This field is optional. When a new shoot is creatd, this field is automatically set true. For an existing shoot created in previous versions, it remains unchanged. If there are persistent volumes created before year 2021, please be cautious to set this field _true_ because they may fail to mount to nodes.
 
 The `cloudControllerManager.featureGates` contains a map of explicitly enabled or disabled feature gates.
 For production usage it's not recommend to use this field at all as you can enable alpha features or disable beta/stable features, potentially impacting the cluster stability.

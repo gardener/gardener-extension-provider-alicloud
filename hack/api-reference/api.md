@@ -109,6 +109,20 @@ CloudControllerManagerConfig
 <p>CloudControllerManager contains configuration settings for the cloud-controller-manager.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>csi</code></br>
+<em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.CSI">
+CSI
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CSI is the config for CSI plugin components.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.InfrastructureConfig">InfrastructureConfig
@@ -202,6 +216,37 @@ gets the mapping from name/version to the provider-specific machine image data i
 a version that is still in use gets removed from this componentconfig it cannot reconcile anymore existing <code>Worker</code>
 resources that are still using this version. Hence, it stores the used versions in the provider status to ensure
 reconciliation is possible.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.CSI">CSI
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.ControlPlaneConfig">ControlPlaneConfig</a>)
+</p>
+<p>
+<p>CSI is csi components configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>enableADController</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnableADController enables disks to be attached/detached from controller server of CSI Plugin.</p>
 </td>
 </tr>
 </tbody>

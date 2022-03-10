@@ -25,7 +25,6 @@ import (
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
-
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -346,21 +345,10 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	checksums map[string]string,
 	scaledDown bool,
 ) (map[string]interface{}, error) {
-	// Decode providerConfig
-	cpConfig := &apisalicloud.ControlPlaneConfig{}
-
-	// The custom decoder which disables the strict mode.
-	// "Zone" field in not required in "ControlPlaneConfig" any more, and it has already been removed in the struct, but
-	// still exists in shoots' yaml. So it should also be removed in the shoots' yaml.
-	// Here we leverage one custom decoder (disabled the strict mode) to make migration more smooth.
-	// TODO: should be removed in next release.
-	decoder := serializer.NewCodecFactory(vp.Scheme()).UniversalDecoder()
-	if cp.Spec.ProviderConfig != nil {
-		if _, _, err := decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
-			return nil, fmt.Errorf("could not decode providerConfig of controlplane '%s': %w", kutil.ObjectName(cp), err)
-		}
+	cpConfig, err := vp.decodeControlPlaneConfig(cp)
+	if err != nil {
+		return nil, err
 	}
-
 	// Get control plane chart values
 	return vp.getControlPlaneChartValues(ctx, cpConfig, cp, cluster, checksums, scaledDown)
 }
@@ -378,8 +366,13 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}
 
+	cpConfig, err := vp.decodeControlPlaneConfig(cp)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cluster, credentials)
+	return vp.getControlPlaneShootChartValues(cpConfig, cluster, credentials)
 }
 
 // GetControlPlaneShootCRDsChartValues returns the values for the control plane shoot CRDs chart applied by the generic actuator.
@@ -411,6 +404,23 @@ type cloudConfig struct {
 		AccessKeyID     string `json:"accessKeyID"`
 		AccessKeySecret string `json:"accessKeySecret"`
 	}
+}
+
+func (vp *valuesProvider) decodeControlPlaneConfig(cp *extensionsv1alpha1.ControlPlane) (*apisalicloud.ControlPlaneConfig, error) {
+	cpConfig := &apisalicloud.ControlPlaneConfig{}
+
+	// The custom decoder which disables the strict mode.
+	// "Zone" field in not required in "ControlPlaneConfig" any more, and it has already been removed in the struct, but
+	// still exists in shoots' yaml. So it should also be removed in the shoots' yaml.
+	// Here we leverage one custom decoder (disabled the strict mode) to make migration more smooth.
+	// TODO: should be removed in next release.
+	decoder := serializer.NewCodecFactory(vp.Scheme()).UniversalDecoder()
+	if cp.Spec.ProviderConfig != nil {
+		if _, _, err := decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
+			return nil, fmt.Errorf("could not decode providerConfig of controlplane '%s': %w", kutil.ObjectName(cp), err)
+		}
+	}
+	return cpConfig, nil
 }
 
 func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
@@ -488,7 +498,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"kubernetesVersion":  cluster.Shoot.Spec.Kubernetes.Version,
 			"regionID":           cp.Spec.Region,
 			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
-			"enableADController": vp.enableCSIADController(),
+			"enableADController": vp.enableCSIADController(cpConfig),
 			"csiPluginController": map[string]interface{}{
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
@@ -516,12 +526,13 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 	return values, nil
 }
 
-func (vp *valuesProvider) enableCSIADController() bool {
-	return vp.csi.EnableADController == nil || *vp.csi.EnableADController
+func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPlaneConfig) bool {
+	return vp.csi.EnableADController != nil && *vp.csi.EnableADController || cpConfig.CSI != nil && cpConfig.CSI.EnableADController != nil && *cpConfig.CSI.EnableADController
 }
 
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
 func (vp *valuesProvider) getControlPlaneShootChartValues(
+	cpConfig *apisalicloud.ControlPlaneConfig,
 	cluster *extensionscontroller.Cluster,
 	credentials *alicloud.Credentials,
 ) (map[string]interface{}, error) {
@@ -536,7 +547,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 				"accessKeySecret": base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret)),
 			},
 			"kubernetesVersion":  cluster.Shoot.Spec.Kubernetes.Version,
-			"enableADController": vp.enableCSIADController(),
+			"enableADController": vp.enableCSIADController(cpConfig),
 			"vpaEnabled":         gardencorev1beta1helper.ShootWantsVerticalPodAutoscaler(cluster.Shoot),
 		},
 	}

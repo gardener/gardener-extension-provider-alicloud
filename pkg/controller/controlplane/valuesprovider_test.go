@@ -34,6 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
@@ -69,6 +70,9 @@ var _ = Describe("ValuesProvider", func() {
 								FeatureGates: map[string]bool{
 									"CustomResourceValidation": true,
 								},
+							},
+							CSI: &apisalicloud.CSI{
+								EnableADController: pointer.BoolPtr(true),
 							},
 						}),
 					},
@@ -235,7 +239,9 @@ var _ = Describe("ValuesProvider", func() {
 
 			// Create valuesProvider
 			vp := NewValuesProvider(logger, csi, true, true)
-			err := vp.(inject.Client).InjectClient(client)
+			err := vp.(inject.Scheme).InjectScheme(scheme)
+			Expect(err).NotTo(HaveOccurred())
+			err = vp.(inject.Client).InjectClient(client)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Call GetControlPlaneShootChartValues method and check the result

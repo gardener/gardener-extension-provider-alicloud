@@ -20,6 +20,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
+	apisalicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
@@ -71,7 +72,7 @@ var _ = Describe("Mutating Shoot", func() {
 	var (
 		oldShoot              *corev1beta1.Shoot
 		newShoot              *corev1beta1.Shoot
-		shoot                 extensionswebhook.Mutator
+		mutator               extensionswebhook.Mutator
 		ctx                   context.Context
 		ctrl                  *gomock.Controller
 		c                     *mockclient.MockClient
@@ -84,7 +85,7 @@ var _ = Describe("Mutating Shoot", func() {
 		secret                *corev1.Secret
 
 		config       *api.CloudProfileConfig
-		configYAML   []byte
+		configJson   []byte
 		cloudProfile *corev1beta1.CloudProfile
 	)
 
@@ -96,15 +97,15 @@ var _ = Describe("Mutating Shoot", func() {
 		scheme = runtime.NewScheme()
 		install.Install(scheme)
 		Expect(controller.AddToScheme(scheme)).To(Succeed())
-		serializer = json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{Yaml: true})
+		serializer = json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{})
 		alicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)
 		ecsClient = mockalicloudclient.NewMockECS(ctrl)
 		ctx = context.TODO()
 
-		shoot = NewShootMutatorWithDeps(alicloudClientFactory)
-		expectInject(inject.ClientInto(c, shoot))
-		expectInject(inject.SchemeInto(scheme, shoot))
-		expectInject(inject.APIReaderInto(apiReader, shoot))
+		mutator = NewShootMutatorWithDeps(alicloudClientFactory)
+		expectInject(inject.ClientInto(c, mutator))
+		expectInject(inject.APIReaderInto(apiReader, mutator))
+		expectInject(inject.SchemeInto(scheme, mutator))
 
 		secretBinding = &corev1beta1.SecretBinding{
 			SecretRef: corev1.SecretReference{
@@ -144,17 +145,24 @@ var _ = Describe("Mutating Shoot", func() {
 			},
 		}
 
-		configYAML = expectEncode(runtime.Encode(serializer, config))
+		configJson = expectEncode(runtime.Encode(serializer, config))
 		cloudProfile = &corev1beta1.CloudProfile{
 			Spec: corev1beta1.CloudProfileSpec{
 				ProviderConfig: &runtime.RawExtension{
-					Raw: configYAML,
+					Raw: configJson,
 				},
 			},
 		}
+		controlPlaneConfig := &apisalicloudv1alpha1.ControlPlaneConfig{
+			CSI: &apisalicloudv1alpha1.CSI{
+				EnableADController: pointer.BoolPtr(false),
+			}}
 		oldShoot = &corev1beta1.Shoot{
 			Spec: corev1beta1.ShootSpec{
 				Provider: corev1beta1.Provider{
+					ControlPlaneConfig: &runtime.RawExtension{
+						Raw: expectEncode(
+							runtime.Encode(serializer, controlPlaneConfig))},
 					Workers: []corev1beta1.Worker{
 						{
 							Machine: corev1beta1.Machine{
@@ -214,6 +222,51 @@ var _ = Describe("Mutating Shoot", func() {
 	AfterEach(func() {
 		ctrl.Finish()
 	})
+	Context("#ControlPlaneConfig", func() {
+		It("should default EnableADController true if EnableADController is not set when creating a shoot ", func() {
+			gomock.InOrder(
+				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile) error {
+						*obj = *cloudProfile
+						return nil
+					},
+				),
+				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding) error {
+						*obj = *secretBinding
+						return nil
+					},
+				),
+				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret) error {
+						*obj = *secret
+						return nil
+					},
+				),
+
+				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
+				ecsClient.EXPECT().CheckIfImageExists(ctx, imageId).Return(false, nil),
+			)
+			err := mutator.Mutate(ctx, newShoot, nil)
+			Expect(err).NotTo(HaveOccurred())
+			cpConfig := &apisalicloudv1alpha1.ControlPlaneConfig{}
+			_, _, err = serializer.Decode(newShoot.Spec.Provider.ControlPlaneConfig.Raw, nil, cpConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cpConfig.CSI).NotTo(BeNil())
+			Expect(cpConfig.CSI.EnableADController).NotTo(BeNil())
+			Expect(*cpConfig.CSI.EnableADController).To(BeTrue())
+		})
+		It("should keep old EnableADController if EnableADController is not set when update a shoot ", func() {
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			cpConfig := &apisalicloudv1alpha1.ControlPlaneConfig{}
+			_, _, err = serializer.Decode(newShoot.Spec.Provider.ControlPlaneConfig.Raw, nil, cpConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cpConfig.CSI).NotTo(BeNil())
+			Expect(cpConfig.CSI.EnableADController).NotTo(BeNil())
+			Expect(*cpConfig.CSI.EnableADController).To(BeFalse())
+		})
+	})
 	Context("#Encrypted System Disk", func() {
 		It("should set encrypted flag as true for new shoot ", func() {
 			gomock.InOrder(
@@ -240,7 +293,7 @@ var _ = Describe("Mutating Shoot", func() {
 				ecsClient.EXPECT().CheckIfImageExists(ctx, imageId).Return(false, nil),
 				//ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(false, nil)
 			)
-			err := shoot.Mutate(ctx, newShoot, nil)
+			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*newShoot.Spec.Provider.Workers[0].Volume.Encrypted).To(BeTrue())
 			Expect(*newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted).To(BeTrue())
@@ -271,7 +324,7 @@ var _ = Describe("Mutating Shoot", func() {
 				ecsClient.EXPECT().CheckIfImageExists(ctx, imageId).Return(true, nil),
 				ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil),
 			)
-			err := shoot.Mutate(ctx, newShoot, nil)
+			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(newShoot.Spec.Provider.Workers[0].Volume.Encrypted == nil).To(BeTrue())
 			Expect(*newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted).To(BeTrue())
@@ -295,7 +348,6 @@ var _ = Describe("Mutating Shoot", func() {
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 
 			gomock.InOrder(
-
 				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile) error {
 						*obj = *cloudProfile
@@ -318,7 +370,7 @@ var _ = Describe("Mutating Shoot", func() {
 				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
 				ecsClient.EXPECT().CheckIfImageExists(ctx, imageId).Return(false, nil),
 			)
-			err := shoot.Mutate(ctx, newShoot, oldShoot)
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*newShoot.Spec.Provider.Workers[1].Volume.Encrypted).To(BeTrue())
 			Expect(*newShoot.Spec.Provider.Workers[1].DataVolumes[0].Encrypted).To(BeTrue())
@@ -336,7 +388,7 @@ var _ = Describe("Mutating Shoot", func() {
 			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 
-			err := shoot.Mutate(ctx, newShoot, oldShoot)
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(newShoot.Spec.Provider.Workers[0].Volume.Encrypted == nil).To(BeTrue())
 			Expect(newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted == nil).To(BeTrue())
@@ -354,7 +406,7 @@ var _ = Describe("Mutating Shoot", func() {
 			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 
-			err := shoot.Mutate(ctx, newShoot, oldShoot)
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*newShoot.Spec.Provider.Workers[0].Volume.Encrypted).To(BeTrue())
 			Expect(*newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted).To(BeTrue())
@@ -372,21 +424,21 @@ var _ = Describe("Mutating Shoot", func() {
 			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 
-			err := shoot.Mutate(ctx, newShoot, oldShoot)
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*newShoot.Spec.Provider.Workers[0].Volume.Encrypted).To(BeFalse())
 			Expect(*newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted).To(BeTrue())
 
 		})
 		It("should not reconcile infra if no system disk is encrypted", func() {
-			err := shoot.Mutate(ctx, newShoot, oldShoot)
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
 
 		It("should not reconcile infra if system disk is already encrypted", func() {
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(ctx, newShoot, oldShoot)
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
@@ -394,7 +446,7 @@ var _ = Describe("Mutating Shoot", func() {
 		It("should not reconcile infra if new version of machine is not encrypted", func() {
 			newShoot.Spec.Provider.Workers[1].Machine.Image.Version = pointer.StringPtr("2.0")
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(ctx, newShoot, oldShoot)
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
@@ -402,7 +454,7 @@ var _ = Describe("Mutating Shoot", func() {
 		It("should reconcile infra if new version of machine is added and it is encrypted", func() {
 			newShoot.Spec.Provider.Workers[0].Machine.Image.Version = pointer.StringPtr("2.0")
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(ctx, newShoot, oldShoot)
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeTrue())
 		})
@@ -410,9 +462,10 @@ var _ = Describe("Mutating Shoot", func() {
 		It("should reconcile infra if machine is changed to be encrypted", func() {
 			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			err := shoot.Mutate(ctx, newShoot, oldShoot)
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeTrue())
 		})
+
 	})
 })

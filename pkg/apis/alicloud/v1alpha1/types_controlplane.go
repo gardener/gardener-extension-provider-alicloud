@@ -28,6 +28,10 @@ type ControlPlaneConfig struct {
 	// CloudControllerManager contains configuration settings for the cloud-controller-manager.
 	// +optional
 	CloudControllerManager *CloudControllerManagerConfig `json:"cloudControllerManager,omitempty"`
+
+	// CSI is the config for CSI plugin components.
+	// +optional
+	CSI *CSI `json:"csi,omitempty"`
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
@@ -35,4 +39,11 @@ type CloudControllerManagerConfig struct {
 	// FeatureGates contains information about enabled feature gates.
 	// +optional
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+}
+
+// CSI is csi components configuration.
+type CSI struct {
+	// EnableADController enables disks to be attached/detached from controller server of CSI Plugin.
+	// +optional
+	EnableADController *bool `json:"enableADController,omitempty"`
 }
