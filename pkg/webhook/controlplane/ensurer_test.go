@@ -213,19 +213,22 @@ var _ = Describe("Ensurer", func() {
 		})
 
 		DescribeTable("should modify existing elements of kubelet.service unit options",
-			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version, cloudProvider string, withControllerAttachDetachFlag bool) {
+			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version, cloudProvider string, equalGreaterV123 bool) {
+				valueofPreStart := `/bin/sh -c "echo Z3JlcCAtc3EgUFJPVklERVJfSUQgL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmlmIFsgJD8gLW5lIDAgXTsgdGhlbgpNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQpQUk9WSURFUl9JRD1gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZGAuYHdnZXQgLXFPLSAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKZWNobyBQUk9WSURFUl9JRD0kUFJPVklERVJfSUQgPj4gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmVjaG8gUFJPVklERVJfSUQ9JFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmZpCg==| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
+				if equalGreaterV123 {
+					valueofPreStart = `/bin/sh -c "echo IyBzZXQgcHJvdmlkZXJpZCBpbiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CmdyZXAgLXNxIHBsYWNlX2hvbGRlcl9vZl9wcm92aWRlcmlkIC92YXIvbGliL2t1YmVsZXQvY29uZmlnL2t1YmVsZXQKaWYgWyAkPyAtZXEgMCBdOyB0aGVuCiAgICBNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQogICAgUFJPVklERVJfSUQ9YHdnZXQgLXFPLSAkTUVUQV9FUC9yZWdpb24taWQgJE1FVEFfRVAvcmVnaW9uLWlkYC5gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZCAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKICAgIHN1ZG8gc2VkICAtaSAicy9wbGFjZV9ob2xkZXJfb2ZfcHJvdmlkZXJpZC8ke1BST1ZJREVSX0lEfS9nIiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CiAgICBlY2hvICJwcm92aWRlcklEPSAkUFJPVklERVJfSUQgaGFzIGJlZW4gd3JpdHRlbiB0byAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0IgpmaQo=| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
+				}
 				newUnitOptions := []*unit.UnitOption{
 					{
 						Section: "Service",
 						Name:    "ExecStart",
 						Value: `/opt/bin/hyperkube kubelet \
-    --config=/var/lib/kubelet/config/kubelet \
-    --provider-id=${PROVIDER_ID}`,
+    --config=/var/lib/kubelet/config/kubelet`,
 					},
 					{
 						Section: "Service",
 						Name:    "ExecStartPre",
-						Value:   `/bin/sh -c "echo Z3JlcCAtc3EgUFJPVklERVJfSUQgL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmlmIFsgJD8gLW5lIDAgXTsgdGhlbgpNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQpQUk9WSURFUl9JRD1gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZGAuYHdnZXQgLXFPLSAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKZWNobyBQUk9WSURFUl9JRD0kUFJPVklERVJfSUQgPj4gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmVjaG8gUFJPVklERVJfSUQ9JFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmZpCg==| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`,
+						Value:   valueofPreStart,
 					},
 				}
 
@@ -234,7 +237,9 @@ var _ = Describe("Ensurer", func() {
     --cloud-provider=` + cloudProvider
 				}
 
-				if withControllerAttachDetachFlag {
+				if !equalGreaterV123 {
+					newUnitOptions[0].Value += ` \
+    --provider-id=${PROVIDER_ID}`
 					newUnitOptions[0].Value += ` \
     --enable-controller-attach-detach=true`
 				}
@@ -244,8 +249,8 @@ var _ = Describe("Ensurer", func() {
 				Expect(opts).To(Equal(newUnitOptions))
 			},
 
-			Entry("kubelet version < 1.23", eContext18, semver.MustParse("1.20.0"), "external", true),
-			Entry("kubelet version >= 1.23", eContext18, semver.MustParse("1.23.0"), "external", false),
+			Entry("kubelet version < 1.23", eContext18, semver.MustParse("1.20.0"), "external", false),
+			Entry("kubelet version >= 1.23", eContext18, semver.MustParse("1.23.0"), "external", true),
 		)
 	})
 
@@ -265,12 +270,21 @@ var _ = Describe("Ensurer", func() {
 		})
 
 		DescribeTable("should modify existing elements of kubelet configuration",
-			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version, csiFeatureGateName string, enableControllerAttachDetach *bool) {
+			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version, csiFeatureGateName string, equalGreaterV123 bool) {
+				var (
+					enableControllerAttachDetach *bool  = nil
+					providerId                   string = ""
+				)
+				if equalGreaterV123 {
+					enableControllerAttachDetach = pointer.Bool(true)
+					providerId = "place_holder_of_providerid"
+				}
 				newKubeletConfig := &kubeletconfigv1beta1.KubeletConfiguration{
 					FeatureGates: map[string]bool{
 						"Foo": true,
 					},
 					EnableControllerAttachDetach: enableControllerAttachDetach,
+					ProviderID:                   providerId,
 				}
 
 				if csiFeatureGateName != "" {
@@ -284,8 +298,8 @@ var _ = Describe("Ensurer", func() {
 				Expect(&kubeletConfig).To(Equal(newKubeletConfig))
 			},
 
-			Entry("1.18 <= kubelet < 1.23", eContext18, semver.MustParse("1.20.0"), "", nil),
-			Entry("kubelet >= 1.23", eContext18, semver.MustParse("1.23.0"), "", pointer.Bool(true)),
+			Entry("1.18 <= kubelet < 1.23", eContext18, semver.MustParse("1.20.0"), "", false),
+			Entry("kubelet >= 1.23", eContext18, semver.MustParse("1.23.0"), "", true),
 		)
 	})
 })
