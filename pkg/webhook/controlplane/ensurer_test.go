@@ -245,7 +245,7 @@ var _ = Describe("Ensurer", func() {
 			},
 
 			Entry("kubelet version < 1.23", eContext18, semver.MustParse("1.20.0"), "external", true),
-			Entry("kubelet version >= 1.23", eContext18, semver.MustParse("1.23.0"), "", false),
+			Entry("kubelet version >= 1.23", eContext18, semver.MustParse("1.23.0"), "external", false),
 		)
 	})
 

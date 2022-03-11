@@ -127,9 +127,9 @@ func ensureKubeletCommandLineArgs(command []string, kubeletVersion *semver.Versi
 	// reference environment variables like it's possible today with the CLI parameters.
 	// See https://github.com/kubernetes/kubernetes/pull/90494
 	command = extensionswebhook.EnsureStringWithPrefix(command, "--provider-id=", "${PROVIDER_ID}")
+	command = extensionswebhook.EnsureStringWithPrefix(command, "--cloud-provider=", "external")
 
 	if !version.ConstraintK8sGreaterEqual123.Check(kubeletVersion) {
-		command = extensionswebhook.EnsureStringWithPrefix(command, "--cloud-provider=", "external")
 		command = extensionswebhook.EnsureStringWithPrefix(command, "--enable-controller-attach-detach=", "true")
 	}
 
