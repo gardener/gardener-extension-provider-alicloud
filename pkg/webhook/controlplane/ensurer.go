@@ -99,37 +99,52 @@ func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, gctx gcon
 		command = ensureKubeletCommandLineArgs(command, kubeletVersion)
 		opt.Value = extensionswebhook.SerializeCommandLine(command, 1, " \\\n    ")
 	}
-
-	/*
-	 * # Set environment PROVIDER_ID to /var/lib/kubelet/extra_args
-	 *
-	 * grep -sq PROVIDER_ID /var/lib/kubelet/extra_args
-	 * if [ $? -ne 0 ]; then
-	 *   META_EP=http://100.100.100.200/latest/meta-data
-	 *   PROVIDER_ID=`wget -qO- $META_EP/region-id $META_EP/region-id`.`wget -qO- $META_EP/region-id $META_EP/instance-id`
-	 *   echo PROVIDER_ID=$PROVIDER_ID >> /var/lib/kubelet/extra_args
-	 *   echo PROVIDER_ID=$PROVIDER_ID has been written to /var/lib/kubelet/extra_args
-	 * fi
-	 */
 	new = extensionswebhook.EnsureUnitOption(new, &unit.UnitOption{
 		Section: "Service",
 		Name:    "ExecStartPre",
-		//This doesn't work: /bin/sh -c "$(echo  Z3JlcCAtc3EgUFJPVklERVJfSUQgL2V0Yy9lbnZpcm9ubWVudAppZiBbICQ.... | base64 -d)"
-		Value: `/bin/sh -c "echo Z3JlcCAtc3EgUFJPVklERVJfSUQgL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmlmIFsgJD8gLW5lIDAgXTsgdGhlbgpNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQpQUk9WSURFUl9JRD1gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZGAuYHdnZXQgLXFPLSAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKZWNobyBQUk9WSURFUl9JRD0kUFJPVklERVJfSUQgPj4gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmVjaG8gUFJPVklERVJfSUQ9JFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmZpCg==| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`,
+		Value:   getValueOfKubeletPreStart(kubeletVersion),
 	})
 	return new, nil
 }
-
+func getValueOfKubeletPreStart(kubeletVersion *semver.Version) string {
+	if version.ConstraintK8sGreaterEqual123.Check(kubeletVersion) {
+		/*
+			# set providerid in /var/lib/kubelet/config/kubelet
+			grep -sq place_holder_of_providerid /var/lib/kubelet/config/kubelet
+			if [ $? -eq 0 ]; then
+			    META_EP=http://100.100.100.200/latest/meta-data
+			    PROVIDER_ID=`wget -qO- $META_EP/region-id`.`wget -qO- $META_EP/instance-id`
+			    sudo sed  -i "s/place_holder_of_providerid/${PROVIDER_ID}/g" /var/lib/kubelet/config/kubelet
+			    echo "providerID= $PROVIDER_ID has been written to /var/lib/kubelet/config/kubelet"
+			fi
+		*/
+		return `/bin/sh -c "echo IyBzZXQgcHJvdmlkZXJpZCBpbiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CmdyZXAgLXNxIHBsYWNlX2hvbGRlcl9vZl9wcm92aWRlcmlkIC92YXIvbGliL2t1YmVsZXQvY29uZmlnL2t1YmVsZXQKaWYgWyAkPyAtZXEgMCBdOyB0aGVuCiAgICBNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQogICAgUFJPVklERVJfSUQ9YHdnZXQgLXFPLSAkTUVUQV9FUC9yZWdpb24taWRgLmB3Z2V0IC1xTy0gJE1FVEFfRVAvaW5zdGFuY2UtaWRgCiAgICBzdWRvIHNlZCAgLWkgInMvcGxhY2VfaG9sZGVyX29mX3Byb3ZpZGVyaWQvJHtQUk9WSURFUl9JRH0vZyIgL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldAogICAgZWNobyAicHJvdmlkZXJJRD0gJFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldCIKZmkK| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
+	} else {
+		/*
+		 * # Set environment PROVIDER_ID to /var/lib/kubelet/extra_args
+		 *
+		 * grep -sq PROVIDER_ID /var/lib/kubelet/extra_args
+		 * if [ $? -ne 0 ]; then
+		 *   META_EP=http://100.100.100.200/latest/meta-data
+		 *   PROVIDER_ID=`wget -qO- $META_EP/region-id`.`wget -qO- $META_EP/instance-id`
+		 *   echo PROVIDER_ID=$PROVIDER_ID >> /var/lib/kubelet/extra_args
+		 *   echo PROVIDER_ID=$PROVIDER_ID has been written to /var/lib/kubelet/extra_args
+		 * fi
+		 */
+		//This doesn't work: /bin/sh -c "$(echo  Z3JlcCAtc3EgUFJPVklERVJfSUQgL2V0Yy9lbnZpcm9ubWVudAppZiBbICQ.... | base64 -d)"
+		return `/bin/sh -c "echo Z3JlcCAtc3EgUFJPVklERVJfSUQgL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmlmIFsgJD8gLW5lIDAgXTsgdGhlbgpNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQpQUk9WSURFUl9JRD1gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZGAuYHdnZXQgLXFPLSAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKZWNobyBQUk9WSURFUl9JRD0kUFJPVklERVJfSUQgPj4gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmVjaG8gUFJPVklERVJfSUQ9JFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmZpCg==| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
+	}
+}
 func ensureKubeletCommandLineArgs(command []string, kubeletVersion *semver.Version) []string {
 	// TODO: Figure out how to provide the provider-id via the kubelet config file (as of Kubernetes 1.19 the kubelet config
 	// offers a new `providerID` field which can be used, and it's expected that `--provider-id` will be deprecated eventually).
 	// Today, the problem is that the provider ID is determined dynamically using the script above, but the kubelet config cannot
 	// reference environment variables like it's possible today with the CLI parameters.
 	// See https://github.com/kubernetes/kubernetes/pull/90494
-	command = extensionswebhook.EnsureStringWithPrefix(command, "--provider-id=", "${PROVIDER_ID}")
 	command = extensionswebhook.EnsureStringWithPrefix(command, "--cloud-provider=", "external")
 
 	if !version.ConstraintK8sGreaterEqual123.Check(kubeletVersion) {
+		command = extensionswebhook.EnsureStringWithPrefix(command, "--provider-id=", "${PROVIDER_ID}")
 		command = extensionswebhook.EnsureStringWithPrefix(command, "--enable-controller-attach-detach=", "true")
 	}
 
@@ -140,6 +155,7 @@ func ensureKubeletCommandLineArgs(command []string, kubeletVersion *semver.Versi
 func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, old *kubeletconfigv1beta1.KubeletConfiguration) error {
 	if version.ConstraintK8sGreaterEqual123.Check(kubeletVersion) {
 		new.EnableControllerAttachDetach = pointer.Bool(true)
+		new.ProviderID = "place_holder_of_providerid"
 	}
 
 	return nil
