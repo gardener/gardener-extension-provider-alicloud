@@ -113,12 +113,12 @@ func getValueOfKubeletPreStart(kubeletVersion *semver.Version) string {
 			grep -sq place_holder_of_providerid /var/lib/kubelet/config/kubelet
 			if [ $? -eq 0 ]; then
 			    META_EP=http://100.100.100.200/latest/meta-data
-			    PROVIDER_ID=`wget -qO- $META_EP/region-id $META_EP/region-id`.`wget -qO- $META_EP/region-id $META_EP/instance-id`
+			    PROVIDER_ID=`wget -qO- $META_EP/region-id`.`wget -qO- $META_EP/instance-id`
 			    sudo sed  -i "s/place_holder_of_providerid/${PROVIDER_ID}/g" /var/lib/kubelet/config/kubelet
 			    echo "providerID= $PROVIDER_ID has been written to /var/lib/kubelet/config/kubelet"
 			fi
 		*/
-		return `/bin/sh -c "echo IyBzZXQgcHJvdmlkZXJpZCBpbiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CmdyZXAgLXNxIHBsYWNlX2hvbGRlcl9vZl9wcm92aWRlcmlkIC92YXIvbGliL2t1YmVsZXQvY29uZmlnL2t1YmVsZXQKaWYgWyAkPyAtZXEgMCBdOyB0aGVuCiAgICBNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQogICAgUFJPVklERVJfSUQ9YHdnZXQgLXFPLSAkTUVUQV9FUC9yZWdpb24taWQgJE1FVEFfRVAvcmVnaW9uLWlkYC5gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZCAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKICAgIHN1ZG8gc2VkICAtaSAicy9wbGFjZV9ob2xkZXJfb2ZfcHJvdmlkZXJpZC8ke1BST1ZJREVSX0lEfS9nIiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CiAgICBlY2hvICJwcm92aWRlcklEPSAkUFJPVklERVJfSUQgaGFzIGJlZW4gd3JpdHRlbiB0byAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0IgpmaQo=| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
+		return `/bin/sh -c "echo IyBzZXQgcHJvdmlkZXJpZCBpbiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CmdyZXAgLXNxIHBsYWNlX2hvbGRlcl9vZl9wcm92aWRlcmlkIC92YXIvbGliL2t1YmVsZXQvY29uZmlnL2t1YmVsZXQKaWYgWyAkPyAtZXEgMCBdOyB0aGVuCiAgICBNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQogICAgUFJPVklERVJfSUQ9YHdnZXQgLXFPLSAkTUVUQV9FUC9yZWdpb24taWRgLmB3Z2V0IC1xTy0gJE1FVEFfRVAvaW5zdGFuY2UtaWRgCiAgICBzdWRvIHNlZCAgLWkgInMvcGxhY2VfaG9sZGVyX29mX3Byb3ZpZGVyaWQvJHtQUk9WSURFUl9JRH0vZyIgL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldAogICAgZWNobyAicHJvdmlkZXJJRD0gJFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldCIKZmkK| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
 	} else {
 		/*
 		 * # Set environment PROVIDER_ID to /var/lib/kubelet/extra_args
@@ -126,7 +126,7 @@ func getValueOfKubeletPreStart(kubeletVersion *semver.Version) string {
 		 * grep -sq PROVIDER_ID /var/lib/kubelet/extra_args
 		 * if [ $? -ne 0 ]; then
 		 *   META_EP=http://100.100.100.200/latest/meta-data
-		 *   PROVIDER_ID=`wget -qO- $META_EP/region-id $META_EP/region-id`.`wget -qO- $META_EP/region-id $META_EP/instance-id`
+		 *   PROVIDER_ID=`wget -qO- $META_EP/region-id`.`wget -qO- $META_EP/instance-id`
 		 *   echo PROVIDER_ID=$PROVIDER_ID >> /var/lib/kubelet/extra_args
 		 *   echo PROVIDER_ID=$PROVIDER_ID has been written to /var/lib/kubelet/extra_args
 		 * fi
