@@ -66,7 +66,7 @@ type shootMutator struct {
 
 // InjectScheme injects the given scheme into the mutator.
 func (s *shootMutator) InjectScheme(scheme *runtime.Scheme) error {
-	codecFactory := serializer.NewCodecFactory(scheme, serializer.EnableStrict)
+	codecFactory := serializer.NewCodecFactory(scheme)
 	decoder := codecFactory.UniversalDecoder()
 	serializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{})
 	s.codec = runtime.NewCodec(serializer, decoder)
