@@ -15,6 +15,7 @@
 package healthcheck
 
 import (
+	"context"
 	"time"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -47,7 +48,7 @@ var (
 // RegisterHealthChecks registers health checks for each extension resource
 // HealthChecks are grouped by extension (e.g worker), extension.type (e.g alicloud) and  Health Check Type (e.g SystemComponentsHealthy)
 func RegisterHealthChecks(mgr manager.Manager, opts healthcheck.DefaultAddArgs) error {
-	snapshotControllerPreCheckFunc := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
+	snapshotControllerPreCheckFunc := func(_ context.Context, _ client.Client, _ client.Object, cluster *extensionscontroller.Cluster) bool {
 		snapshotControllerEnabled, err := version.CompareVersions(cluster.Shoot.Spec.Kubernetes.Version, ">=", "1.17")
 		if err != nil {
 			return false
