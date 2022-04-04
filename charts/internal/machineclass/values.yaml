@@ -4,6 +4,14 @@
 #     foo: bar
 #   imageID: coreos_1745_7_0_64_30G_alibase_20180705.vhd
 #   instanceType: ecs.n1.medium
+#   nodeTemplate:
+#     capacity:
+#       cpu: 2
+#       gpu: 0
+#       memory: 4Gi
+#     instanceType: ecs.n1.medium
+#     region: cn-hangzhou
+#     zone: cn-hangzhou-e
 #   region: cn-hangzhou
 #   zoneID: cn-hangzhou-e
 #   securityGroupID: sg-1234567890

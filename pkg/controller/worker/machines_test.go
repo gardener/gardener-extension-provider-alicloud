@@ -43,6 +43,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -142,6 +143,10 @@ var _ = Describe("Machines", func() {
 				zone1        string
 				zone2        string
 
+				nodeCapacity      corev1.ResourceList
+				nodeTemplateZone1 machinev1alpha1.NodeTemplate
+				nodeTemplateZone2 machinev1alpha1.NodeTemplate
+
 				machineConfiguration *machinev1alpha1.MachineConfiguration
 
 				workerPoolHash1 string
@@ -204,6 +209,25 @@ var _ = Describe("Machines", func() {
 				vswitchZone2 = "vswitch-4321dbca"
 				zone1 = region + "a"
 				zone2 = region + "b"
+
+				nodeCapacity = corev1.ResourceList{
+					"cpu":    resource.MustParse("8"),
+					"gpu":    resource.MustParse("1"),
+					"memory": resource.MustParse("128Gi"),
+				}
+				nodeTemplateZone1 = machinev1alpha1.NodeTemplate{
+					Capacity:     nodeCapacity,
+					InstanceType: machineType,
+					Region:       region,
+					Zone:         zone1,
+				}
+
+				nodeTemplateZone2 = machinev1alpha1.NodeTemplate{
+					Capacity:     nodeCapacity,
+					InstanceType: machineType,
+					Region:       region,
+					Zone:         zone2,
+				}
 
 				machineConfiguration = &machinev1alpha1.MachineConfiguration{}
 
@@ -307,6 +331,9 @@ var _ = Describe("Machines", func() {
 								MaxSurge:       maxSurgePool1,
 								MaxUnavailable: maxUnavailablePool1,
 								MachineType:    machineType,
+								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
+									Capacity: nodeCapacity,
+								},
 								MachineImage: extensionsv1alpha1.MachineImage{
 									Name:    machineImageName,
 									Version: machineImageVersion,
@@ -342,6 +369,9 @@ var _ = Describe("Machines", func() {
 								MaxSurge:       maxSurgePool2,
 								MaxUnavailable: maxUnavailablePool2,
 								MachineType:    machineType,
+								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
+									Capacity: nodeCapacity,
+								},
 								MachineImage: extensionsv1alpha1.MachineImage{
 									Name:    machineImageName,
 									Version: machineImageVersion,
@@ -463,6 +493,11 @@ var _ = Describe("Machines", func() {
 					addNameAndSecretToMachineClass(machineClassPool1Zone2, machineClassWithHashPool1Zone2, w.Spec.SecretRef)
 					addNameAndSecretToMachineClass(machineClassPool2Zone1, machineClassWithHashPool2Zone1, w.Spec.SecretRef)
 					addNameAndSecretToMachineClass(machineClassPool2Zone2, machineClassWithHashPool2Zone2, w.Spec.SecretRef)
+
+					addNodeTemplateToMachineClass(machineClassPool1Zone1, nodeTemplateZone1)
+					addNodeTemplateToMachineClass(machineClassPool1Zone2, nodeTemplateZone2)
+					addNodeTemplateToMachineClass(machineClassPool2Zone1, nodeTemplateZone1)
+					addNodeTemplateToMachineClass(machineClassPool2Zone2, nodeTemplateZone2)
 
 					machineClasses = map[string]interface{}{"machineClasses": []map[string]interface{}{
 						machineClassPool1Zone1,
@@ -708,6 +743,10 @@ func useDefaultMachineClass(def map[string]interface{}, keyValues ...interface{}
 	}
 
 	return out
+}
+
+func addNodeTemplateToMachineClass(class map[string]interface{}, nodeTemplate machinev1alpha1.NodeTemplate) {
+	class["nodeTemplate"] = nodeTemplate
 }
 
 func addNameAndSecretToMachineClass(class map[string]interface{}, name string, credentialsSecretRef corev1.SecretReference) {

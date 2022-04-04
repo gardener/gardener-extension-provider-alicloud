@@ -163,6 +163,15 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				MachineConfiguration: genericworkeractuator.ReadMachineConfiguration(pool),
 			})
 
+			if pool.NodeTemplate != nil {
+				machineClassSpec["nodeTemplate"] = machinev1alpha1.NodeTemplate{
+					Capacity:     pool.NodeTemplate.Capacity,
+					InstanceType: pool.MachineType,
+					Region:       w.worker.Spec.Region,
+					Zone:         zone,
+				}
+			}
+
 			machineClassSpec["name"] = className
 			machineClassSpec["labels"] = map[string]string{
 				v1beta1constants.GardenerPurpose: genericworkeractuator.GardenPurposeMachineClass,
