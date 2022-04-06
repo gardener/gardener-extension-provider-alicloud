@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -43,7 +44,6 @@ import (
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/go-logr/logr"
 	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 	mockinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/controller/infrastructure"
 )
@@ -81,7 +81,6 @@ var _ = Describe("Actuator", func() {
 	Context("Actuator", func() {
 		var (
 			ctx                   context.Context
-			logger                *logr.MockLogger
 			alicloudClientFactory *mockalicloudclient.MockClientFactory
 			vpcClient             *mockalicloudclient.MockVPC
 			terraformerFactory    *mockterraformer.MockFactory
@@ -124,7 +123,6 @@ var _ = Describe("Actuator", func() {
 		Describe("#Reconcile", func() {
 			BeforeEach(func() {
 				ctx = context.TODO()
-				logger = logr.NewMockLogger(ctrl)
 				alicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)
 				vpcClient = mockalicloudclient.NewMockVPC(ctrl)
 				terraformerFactory = mockterraformer.NewMockFactory(ctrl)
@@ -135,7 +133,7 @@ var _ = Describe("Actuator", func() {
 				shootROSClient = mockalicloudclient.NewMockROS(ctrl)
 				terraformChartOps = mockinfrastructure.NewMockTerraformChartOps(ctrl)
 				actuator = NewActuatorWithDeps(
-					logger,
+					log.Log.WithName("test"),
 					alicloudClientFactory,
 					terraformerFactory,
 					terraformChartOps,
@@ -289,8 +287,6 @@ var _ = Describe("Actuator", func() {
 					alicloudClientFactory.EXPECT().NewROSClient(region, accessKeyID, accessKeySecret).Return(shootROSClient, nil),
 					alicloudClientFactory.EXPECT().NewSTSClient(region, accessKeyID, accessKeySecret).Return(shootSTSClient, nil),
 					shootSTSClient.EXPECT().GetAccountIDFromCallerIdentity(ctx).Return("", nil),
-					logger.EXPECT().Info("Preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
-					logger.EXPECT().Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
 
 					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID).
 						Return(map[string]string{
@@ -386,8 +382,6 @@ var _ = Describe("Actuator", func() {
 					alicloudClientFactory.EXPECT().NewROSClient(region, accessKeyID, accessKeySecret).Return(shootROSClient, nil),
 					alicloudClientFactory.EXPECT().NewSTSClient(region, accessKeyID, accessKeySecret).Return(shootSTSClient, nil),
 					shootSTSClient.EXPECT().GetAccountIDFromCallerIdentity(ctx).Return("", nil),
-					logger.EXPECT().Info("Preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
-					logger.EXPECT().Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name),
 
 					terraformer.EXPECT().GetStateOutputVariables(ctx, TerraformerOutputKeyVPCID, TerraformerOutputKeyVPCCIDR, TerraformerOutputKeySecurityGroupID).
 						Return(map[string]string{

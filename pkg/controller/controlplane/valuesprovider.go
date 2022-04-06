@@ -62,8 +62,8 @@ func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
 
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
+					Name: "cloud-controller-manager",
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         "cloud-controller-manager",
 						CommonName:   "system:cloud-controller-manager",
 						Organization: []string{user.SystemPrivilegedGroup},
 						CertType:     secrets.ClientCert,
@@ -77,8 +77,8 @@ func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: "csi-controller-ali-plugin",
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         "csi-controller-ali-plugin",
 						CommonName:   "system:csi-controller-ali-plugin",
 						Organization: []string{user.SystemPrivilegedGroup},
 						CertType:     secrets.ClientCert,
@@ -92,8 +92,8 @@ func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: "csi-attacher",
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         "csi-attacher",
 						CommonName:   "system:csi-attacher",
 						Organization: []string{user.SystemPrivilegedGroup},
 						CertType:     secrets.ClientCert,
@@ -107,8 +107,8 @@ func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: "csi-provisioner",
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         "csi-provisioner",
 						CommonName:   "system:csi-provisioner",
 						Organization: []string{user.SystemPrivilegedGroup},
 						CertType:     secrets.ClientCert,
@@ -122,8 +122,8 @@ func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: "csi-snapshotter",
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         "csi-snapshotter",
 						CommonName:   "system:csi-snapshotter",
 						Organization: []string{user.SystemPrivilegedGroup},
 						CertType:     secrets.ClientCert,
@@ -137,8 +137,8 @@ func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: "csi-resizer",
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         "csi-resizer",
 						CommonName:   "system:csi-resizer",
 						Organization: []string{user.SystemPrivilegedGroup},
 						CertType:     secrets.ClientCert,
@@ -152,8 +152,8 @@ func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: "csi-snapshot-controller",
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         "csi-snapshot-controller",
 						CommonName:   "system:csi-snapshot-controller",
 						Organization: []string{user.SystemPrivilegedGroup},
 						CertType:     secrets.ClientCert,
