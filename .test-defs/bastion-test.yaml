@@ -1,0 +1,19 @@
+kind: TestDefinition
+metadata:
+  name: bastion-test
+spec:
+  owner: DL_5bac5a9aecb2116334000005@exchange.sap.corp
+  description: Integration test for bastion creation and deletion
+  activeDeadlineSeconds: 1800
+
+  command: [bash, -c]
+  args:
+    - >-
+      go test -timeout=20m -mod=vendor ./test/integration/bastion
+      --v -ginkgo.v -ginkgo.progress -ginkgo.no-color
+      --kubeconfig=$TM_KUBECONFIG_PATH/testmachinery.config
+      --access-key-id=$ACCESS_KEY_ID
+      --access-key-secret=$ACCESS_KEY_SECRET
+      --region=$REGION
+
+  image: golang:1.17.5

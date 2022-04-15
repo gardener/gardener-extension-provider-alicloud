@@ -19,6 +19,7 @@ import (
 
 	backupbucketcontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupbucket"
 	backupentrycontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupentry"
+	bastioncontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/bastion"
 	controlplanecontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/controlplane"
 	dnsrecordcontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/dnsrecord"
 	healthcheckcontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/healthcheck"
@@ -30,6 +31,7 @@ import (
 
 	extensionsbackupbucketcontroller "github.com/gardener/gardener/extensions/pkg/controller/backupbucket"
 	extensionsbackupentrycontroller "github.com/gardener/gardener/extensions/pkg/controller/backupentry"
+	extensionsbastioncontroller "github.com/gardener/gardener/extensions/pkg/controller/bastion"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	extensionscontrolplanecontroller "github.com/gardener/gardener/extensions/pkg/controller/controlplane"
 	extensionsdnsrecordcontroller "github.com/gardener/gardener/extensions/pkg/controller/dnsrecord"
@@ -58,6 +60,7 @@ func ControllerSwitchOptions() *controllercmd.SwitchOptions {
 	return controllercmd.NewSwitchOptions(
 		controllercmd.Switch(extensionsbackupbucketcontroller.ControllerName, backupbucketcontroller.AddToManager),
 		controllercmd.Switch(extensionsbackupentrycontroller.ControllerName, backupentrycontroller.AddToManager),
+		controllercmd.Switch(extensionsbastioncontroller.ControllerName, bastioncontroller.AddToManager),
 		controllercmd.Switch(extensionscontrolplanecontroller.ControllerName, controlplanecontroller.AddToManager),
 		controllercmd.Switch(extensionsdnsrecordcontroller.ControllerName, dnsrecordcontroller.AddToManager),
 		controllercmd.Switch(extensionsinfrastructurecontroller.ControllerName, infrastructurecontroller.AddToManager),

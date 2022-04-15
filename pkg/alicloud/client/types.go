@@ -61,10 +61,22 @@ type ECS interface {
 	CheckIfImageExists(ctx context.Context, imageID string) (bool, error)
 	CheckIfImageOwnedByAliCloud(imageID string) (bool, error)
 	ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error
-	DescribeSecurityGroups(request *ecs.DescribeSecurityGroupsRequest) (response *ecs.DescribeSecurityGroupsResponse, err error)
-	DescribeSecurityGroupAttribute(request *ecs.DescribeSecurityGroupAttributeRequest) (response *ecs.DescribeSecurityGroupAttributeResponse, err error)
-	DescribeKeyPairs(request *ecs.DescribeKeyPairsRequest) (response *ecs.DescribeKeyPairsResponse, err error)
+	GetSecurityGroup(name string) (*ecs.DescribeSecurityGroupsResponse, error)
+	DescribeSecurityGroups(request *ecs.DescribeSecurityGroupsRequest) (*ecs.DescribeSecurityGroupsResponse, error)
+	DescribeSecurityGroupAttribute(request *ecs.DescribeSecurityGroupAttributeRequest) (*ecs.DescribeSecurityGroupAttributeResponse, error)
+	DescribeKeyPairs(request *ecs.DescribeKeyPairsRequest) (*ecs.DescribeKeyPairsResponse, error)
 	DetachECSInstancesFromSSHKeyPair(keyName string) error
+	GetInstances(name string) (*ecs.DescribeInstancesResponse, error)
+	GetInstanceType(core int, zoneID string) (*ecs.DescribeAvailableResourceResponse, error)
+	CreateInstances(instanceName, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID, userData string) (*ecs.RunInstancesResponse, error)
+	DeleteInstances(id string, force bool) error
+	CreateSecurityGroups(vpcId, name string) (*ecs.CreateSecurityGroupResponse, error)
+	DeleteSecurityGroups(id string) error
+	AllocatePublicIp(id string) (*ecs.AllocatePublicIpAddressResponse, error)
+	CreateIngressRule(request *ecs.AuthorizeSecurityGroupRequest) error
+	CreateEgressRule(request *ecs.AuthorizeSecurityGroupEgressRequest) error
+	RevokeIngressRule(request *ecs.RevokeSecurityGroupRequest) error
+	RevokeEgressRule(request *ecs.RevokeSecurityGroupEgressRequest) error
 }
 
 // stsClient implements the STS interface.
@@ -102,6 +114,7 @@ type VPC interface {
 	GetEIPWithID(ctx context.Context, eipID string) ([]vpc.EipAddress, error)
 	GetEnhanhcedNatGatewayAvailableZones(ctx context.Context, region string) ([]string, error)
 	GetVPCInfo(ctx context.Context, vpcID string) (*VPCInfo, error)
+	GetVPCInfoByName(name string) (*VPCInfo, error)
 	FetchEIPInternetChargeType(ctx context.Context, natGateway *vpc.NatGateway, vpcID string) (string, error)
 
 	CreateVpc(request *vpc.CreateVpcRequest) (response *vpc.CreateVpcResponse, err error)
@@ -109,6 +122,7 @@ type VPC interface {
 	DeleteVpc(request *vpc.DeleteVpcRequest) (response *vpc.DeleteVpcResponse, err error)
 	CreateVSwitch(request *vpc.CreateVSwitchRequest) (response *vpc.CreateVSwitchResponse, err error)
 	DescribeVSwitches(request *vpc.DescribeVSwitchesRequest) (response *vpc.DescribeVSwitchesResponse, err error)
+	GetVSwitchesInfoByID(name string) (*VSwitchInfo, error)
 	DeleteVSwitch(request *vpc.DeleteVSwitchRequest) (response *vpc.DeleteVSwitchResponse, err error)
 	CreateNatGateway(request *vpc.CreateNatGatewayRequest) (response *vpc.CreateNatGatewayResponse, err error)
 	DescribeNatGateways(request *vpc.DescribeNatGatewaysRequest) (response *vpc.DescribeNatGatewaysResponse, err error)
@@ -154,6 +168,13 @@ type VPCInfo struct {
 	NATGatewayID       string
 	SNATTableIDs       string
 	InternetChargeType string
+	VSwitchID          string
+	VPCID              string
+}
+
+// VSwitchInfo contains info about an existing VSwitchInfo.
+type VSwitchInfo struct {
+	ZoneID string
 }
 
 // dnsClient implements the DNS interface.

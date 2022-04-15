@@ -167,3 +167,12 @@ integration-test-infra:
 		--access-key-id='$(shell cat $(ACCESS_KEY_ID_FILE))' \
 		--access-key-secret='$(shell cat $(ACCESS_KEY_SECRET_FILE))' \
 		--region=$(REGION)
+
+.PHONY: integration-test-bastion
+integration-test-bastion:
+	@go test -timeout=0 -mod=vendor ./test/integration/bastion \
+		--v -ginkgo.v -ginkgo.progress \
+		--kubeconfig=${KUBECONFIG} \
+		--access-key-id='$(shell cat $(ACCESS_KEY_ID_FILE))' \
+		--access-key-secret='$(shell cat $(ACCESS_KEY_SECRET_FILE))' \
+		--region=$(REGION)
