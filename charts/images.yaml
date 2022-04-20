@@ -11,15 +11,12 @@ images:
   sourceRepository: github.com/gardener/machine-controller-manager-provider-alicloud
   repository: eu.gcr.io/gardener-project/gardener/machine-controller-manager-provider-alicloud
   tag: "v0.3.0"
+
 - name: alicloud-controller-manager
   sourceRepository: https://github.com/kubernetes/cloud-provider-alibaba-cloud
   repository: registry.eu-central-1.aliyuncs.com/gardener-de/alibaba-cloud-controller-manager
   tag: v1.9.3-372 # the upstream image is using non-semver tag (registry.cn-shanghai.aliyuncs.com/acs/cloud-controller-manager-amd64:v1.9.3.372-gcf3535b-aliyun).
-- name: csi-attacher
-  sourceRepository: https://github.com/kubernetes-csi/external-attacher
-  repository: k8s.gcr.io/sig-storage/csi-attacher
-  tag: v2.2.0
-  targetVersion: "< 1.17"
+
 - name: csi-attacher
   sourceRepository: https://github.com/kubernetes-csi/external-attacher
   repository: k8s.gcr.io/sig-storage/csi-attacher
@@ -32,27 +29,17 @@ images:
 - name: csi-provisioner
   sourceRepository: https://github.com/kubernetes-csi/external-provisioner
   repository: k8s.gcr.io/sig-storage/csi-provisioner
-  tag: v1.6.0
-  targetVersion: "< 1.17"
-- name: csi-provisioner
-  sourceRepository: https://github.com/kubernetes-csi/external-provisioner
-  repository: k8s.gcr.io/sig-storage/csi-provisioner
   tag: v2.1.2
   targetVersion: ">= 1.17"
 - name: csi-snapshotter
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
-  repository: quay.io/k8scsi/csi-snapshotter
-  tag: v1.2.2
-  targetVersion: "< 1.17"
-- name: csi-snapshotter
-  sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: k8s.gcr.io/sig-storage/csi-snapshotter
-  tag: v2.1.5
+  tag: v3.0.3
   targetVersion: ">= 1.17"
 - name: csi-snapshot-controller
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: k8s.gcr.io/sig-storage/snapshot-controller
-  tag: v2.1.5
+  tag: v3.0.3
 - name: csi-resizer
   sourceRepository: https://github.com/kubernetes-csi/external-resizer
   repository: k8s.gcr.io/sig-storage/csi-resizer
