@@ -72,16 +72,6 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 	}
 }
 
-var legacySecretNamesToCleanup = []string{
-	"cloud-controller-manager",
-	"csi-controller-ali-plugin",
-	"csi-attacher",
-	"csi-provisioner",
-	"csi-snapshotter",
-	"csi-resizer",
-	"csi-snapshot-controller",
-}
-
 var controlPlaneChart = &chart.Chart{
 	Name: "seed-controlplane",
 	Path: filepath.Join(alicloud.InternalChartsPath, "seed-controlplane"),
