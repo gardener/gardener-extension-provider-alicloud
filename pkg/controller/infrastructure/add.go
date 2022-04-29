@@ -38,15 +38,16 @@ type AddOptions struct {
 	MachineImageOwnerSecretRef *corev1.SecretReference
 	// ToBeSharedImageIDs specifies custom image IDs which need to be shared by shoots
 	ToBeSharedImageIDs []string
-	// UseProjectedTokenMount specifies whether the projected token mount shall be used for the terraformer.
-	UseProjectedTokenMount bool
+	// DisableProjectedTokenMount specifies whether the projected token mount shall be disabled for the terraformer.
+	// Used for testing only.
+	DisableProjectedTokenMount bool
 }
 
 // AddToManagerWithOptions adds a controller with the given AddOptions to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, options AddOptions) error {
 	return infrastructure.Add(mgr, infrastructure.AddArgs{
-		Actuator:          NewActuator(options.MachineImageOwnerSecretRef, options.ToBeSharedImageIDs, options.UseProjectedTokenMount),
+		Actuator:          NewActuator(options.MachineImageOwnerSecretRef, options.ToBeSharedImageIDs, options.DisableProjectedTokenMount),
 		ControllerOptions: options.Controller,
 		Predicates:        infrastructure.DefaultPredicates(options.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,
