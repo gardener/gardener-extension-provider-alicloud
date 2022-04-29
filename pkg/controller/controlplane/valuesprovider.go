@@ -25,6 +25,7 @@ import (
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -34,7 +35,7 @@ import (
 	"github.com/gardener/gardener/pkg/utils/chart"
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	"github.com/gardener/gardener/pkg/utils/secrets"
+	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -44,21 +45,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	autoscalingv1beta2 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1beta2"
 )
-
-func getSecretConfigsFuncs() secrets.Interface {
-	return &secrets.Secrets{
-		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-			v1beta1constants.SecretNameCACluster: {
-				Name:       v1beta1constants.SecretNameCACluster,
-				CommonName: "kubernetes",
-				CertType:   secrets.CACert,
-			},
-		},
-		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
-			return nil
-		},
-	}
-}
 
 func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 	return []*gutil.ShootAccessSecret{
@@ -217,6 +203,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
+	_ secretsmanager.Reader,
 	checksums map[string]string,
 	scaledDown bool,
 ) (map[string]interface{}, error) {
@@ -233,7 +220,8 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
-	checksums map[string]string,
+	_ secretsmanager.Reader,
+	_ map[string]string,
 ) (map[string]interface{}, error) {
 	// Get credentials from the referenced secret
 	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)

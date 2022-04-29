@@ -207,7 +207,7 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Call GetControlPlaneChartValues method and check the result
-			values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, checksums, false)
+			values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, nil, checksums, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneChartValues))
 		})
@@ -227,7 +227,7 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Call GetControlPlaneShootChartValues method and check the result
-			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, checksums)
+			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, nil, checksums)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneShootChartValues))
 		})
