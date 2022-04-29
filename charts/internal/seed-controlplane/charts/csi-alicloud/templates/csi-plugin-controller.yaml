@@ -36,11 +36,7 @@ spec:
         - "--endpoint=$(CSI_ENDPOINT)"
         - "--nodeid=dummy"
         - "--run-as-controller=true"
-        {{- if .Values.global.useTokenRequestor }}
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
-        {{- else }}
-        - "--kubeconfig=/var/lib/csi-controller-ali-plugin/kubeconfig"
-        {{- end }}
         - "--v=5"
         env:
 {{- if .Values.enableADController }}
@@ -86,24 +82,15 @@ spec:
         volumeMounts:
         - name: socket-dir
           mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
-        {{- if .Values.global.useTokenRequestor }}
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig-csi-controller-ali-plugin
           readOnly: true
-        {{- else }}
-        - name: csi-controller-ali-plugin
-          mountPath: /var/lib/csi-controller-ali-plugin
-        {{- end }}
       - name: alicloud-csi-attacher
         image: {{ index .Values.images "csi-attacher" }}
         args:
         - "--v=5"
         - "--csi-address=$(CSI_ENDPOINT)"
-        {{- if .Values.global.useTokenRequestor }}
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
-        {{- else }}
-        - "--kubeconfig=/var/lib/csi-attacher/kubeconfig"
-        {{- end }}
         - "--leader-election"
         - "--leader-election-namespace=kube-system"
         env:
@@ -118,25 +105,16 @@ spec:
 {{ toYaml .Values.csiPluginController.podResources.attacher | indent 12 }}
 {{- end }}
         volumeMounts:
-        {{- if .Values.global.useTokenRequestor }}
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig-csi-attacher
           readOnly: true
-        {{- else }}
-        - name: csi-attacher
-          mountPath: /var/lib/csi-attacher
-        {{- end }}
         - name: socket-dir
           mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
       - name: alicloud-csi-provisioner
         image: {{ index .Values.images "csi-provisioner" }}
         args:
         - "--csi-address=$(CSI_ENDPOINT)"
-        {{- if .Values.global.useTokenRequestor }}
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
-        {{- else }}
-        - "--kubeconfig=/var/lib/csi-provisioner/kubeconfig"
-        {{- end }}
         - "--feature-gates=Topology=True"
         - "--leader-election-namespace=kube-system"
         - "--volume-name-prefix=pv-{{ .Values.csiPluginController.persistentVolumePrefix }}"
@@ -159,23 +137,14 @@ spec:
         volumeMounts:
         - name: socket-dir
           mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
-        {{- if .Values.global.useTokenRequestor }}
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig-csi-provisioner
           readOnly: true
-        {{- else }}
-        - name: csi-provisioner
-          mountPath: /var/lib/csi-provisioner
-        {{- end }}
       - name: alicloud-csi-snapshotter
         image: {{ index .Values.images "csi-snapshotter" }}
         args:
         - "--csi-address=$(CSI_ENDPOINT)"
-        {{- if .Values.global.useTokenRequestor }}
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
-        {{- else }}
-        - "--kubeconfig=/var/lib/csi-snapshotter/kubeconfig"
-        {{- end }}
         - "--leader-election"
         - "--leader-election-namespace=kube-system"
         - "--snapshot-name-prefix=s-{{ .Values.csiPluginController.snapshotPrefix }}"
@@ -189,24 +158,15 @@ spec:
         volumeMounts:
         - name: socket-dir
           mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
-        {{- if .Values.global.useTokenRequestor }}
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig-csi-snapshotter
           readOnly: true
-        {{- else }}
-        - name: csi-snapshotter
-          mountPath: /var/lib/csi-snapshotter
-        {{- end }}
       - name: alicloud-csi-resizer
         image: {{ index .Values.images "csi-resizer" }}
         args:
         - "--v=5"
         - "--csi-address=$(ADDRESS)"
-        {{- if .Values.global.useTokenRequestor }}
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
-        {{- else }}
-        - "--kubeconfig=/var/lib/csi-resizer/kubeconfig"
-        {{- end }}
         - "--leader-election=true"
         - "--leader-election-namespace=kube-system"
         env:
@@ -217,14 +177,9 @@ spec:
 {{ toYaml .Values.csiPluginController.podResources.resizer | indent 12 }}
 {{- end}}
         volumeMounts:
-        {{- if .Values.global.useTokenRequestor }}
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig-csi-resizer
           readOnly: true
-        {{- else }}
-        - name: csi-resizer
-          mountPath: /var/lib/csi-resizer
-        {{- end }}
         - name: socket-dir
           mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
       - name: alicloud-csi-liveness-probe
@@ -241,101 +196,83 @@ spec:
       volumes:
       - name: socket-dir
         emptyDir: {}
-      {{- if .Values.global.useTokenRequestor }}
       - name: kubeconfig-csi-controller-ali-plugin
         projected:
           defaultMode: 420
           sources:
-            - secret:
-                items:
-                  - key: kubeconfig
-                    path: kubeconfig
-                name: generic-token-kubeconfig
-                optional: false
-            - secret:
-                items:
-                  - key: token
-                    path: token
-                name: shoot-access-csi-controller-ali-plugin
-                optional: false
+          - secret:
+              items:
+              - key: kubeconfig
+                path: kubeconfig
+              name: generic-token-kubeconfig
+              optional: false
+          - secret:
+              items:
+              - key: token
+                path: token
+              name: shoot-access-csi-controller-ali-plugin
+              optional: false
       - name: kubeconfig-csi-attacher
         projected:
           defaultMode: 420
           sources:
-            - secret:
-                items:
-                  - key: kubeconfig
-                    path: kubeconfig
-                name: generic-token-kubeconfig
-                optional: false
-            - secret:
-                items:
-                  - key: token
-                    path: token
-                name: shoot-access-csi-attacher
-                optional: false
+          - secret:
+              items:
+              - key: kubeconfig
+                path: kubeconfig
+              name: generic-token-kubeconfig
+              optional: false
+          - secret:
+              items:
+              - key: token
+                path: token
+              name: shoot-access-csi-attacher
+              optional: false
       - name: kubeconfig-csi-provisioner
         projected:
           defaultMode: 420
           sources:
-            - secret:
-                items:
-                  - key: kubeconfig
-                    path: kubeconfig
-                name: generic-token-kubeconfig
-                optional: false
-            - secret:
-                items:
-                  - key: token
-                    path: token
-                name: shoot-access-csi-provisioner
-                optional: false
+          - secret:
+              items:
+              - key: kubeconfig
+                path: kubeconfig
+              name: generic-token-kubeconfig
+              optional: false
+          - secret:
+              items:
+              - key: token
+                path: token
+              name: shoot-access-csi-provisioner
+              optional: false
       - name: kubeconfig-csi-snapshotter
         projected:
           defaultMode: 420
           sources:
-            - secret:
-                items:
-                  - key: kubeconfig
-                    path: kubeconfig
-                name: generic-token-kubeconfig
-                optional: false
-            - secret:
-                items:
-                  - key: token
-                    path: token
-                name: shoot-access-csi-snapshotter
-                optional: false
+          - secret:
+              items:
+              - key: kubeconfig
+                path: kubeconfig
+              name: generic-token-kubeconfig
+              optional: false
+          - secret:
+              items:
+              - key: token
+                path: token
+              name: shoot-access-csi-snapshotter
+              optional: false
       - name: kubeconfig-csi-resizer
         projected:
           defaultMode: 420
           sources:
-            - secret:
-                items:
-                  - key: kubeconfig
-                    path: kubeconfig
-                name: generic-token-kubeconfig
-                optional: false
-            - secret:
-                items:
-                  - key: token
-                    path: token
-                name: shoot-access-csi-resizer
-                optional: false
-      {{- else }}
-      - name: csi-controller-ali-plugin
-        secret:
-          secretName: csi-controller-ali-plugin
-      - name: csi-attacher
-        secret:
-          secretName: csi-attacher
-      - name: csi-provisioner
-        secret:
-          secretName: csi-provisioner
-      - name: csi-snapshotter
-        secret:
-          secretName: csi-snapshotter
-      - name: csi-resizer
-        secret:
-          secretName: csi-resizer
-      {{- end }}
+          - secret:
+              items:
+              - key: kubeconfig
+                path: kubeconfig
+              name: generic-token-kubeconfig
+              optional: false
+          - secret:
+              items:
+              - key: token
+                path: token
+              name: shoot-access-csi-resizer
+              optional: false

@@ -23,11 +23,10 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
-
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -139,9 +138,6 @@ var _ = Describe("ValuesProvider", func() {
 		}
 
 		controlPlaneChartValues = map[string]interface{}{
-			"global": map[string]interface{}{
-				"useTokenRequestor": true,
-			},
 			"alicloud-cloud-controller-manager": map[string]interface{}{
 				"replicas":          1,
 				"clusterName":       namespace,
@@ -185,10 +181,6 @@ var _ = Describe("ValuesProvider", func() {
 		}
 
 		controlPlaneShootChartValues = map[string]interface{}{
-			"global": map[string]interface{}{
-				"useTokenRequestor":      true,
-				"useProjectedTokenMount": true,
-			},
 			"csi-alicloud": map[string]interface{}{
 				"credential": map[string]interface{}{
 					"accessKeyID":     "Zm9v",
@@ -218,7 +210,7 @@ var _ = Describe("ValuesProvider", func() {
 			client := mockclient.NewMockClient(ctrl)
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
 			// Create valuesProvider
-			vp := NewValuesProvider(logger, csi, true, true)
+			vp := NewValuesProvider(logger, csi)
 			err := vp.(inject.Scheme).InjectScheme(scheme)
 			Expect(err).NotTo(HaveOccurred())
 			err = vp.(inject.Client).InjectClient(client)
@@ -238,7 +230,7 @@ var _ = Describe("ValuesProvider", func() {
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
 
 			// Create valuesProvider
-			vp := NewValuesProvider(logger, csi, true, true)
+			vp := NewValuesProvider(logger, csi)
 			err := vp.(inject.Scheme).InjectScheme(scheme)
 			Expect(err).NotTo(HaveOccurred())
 			err = vp.(inject.Client).InjectClient(client)
@@ -253,7 +245,7 @@ var _ = Describe("ValuesProvider", func() {
 
 	Describe("#GetControlPlaneShootCRDsChartValues", func() {
 		It("should return correct control plane shoot CRDs chart values ", func() {
-			vp := NewValuesProvider(logger, csi, true, true)
+			vp := NewValuesProvider(logger, csi)
 
 			values, err := vp.GetControlPlaneShootCRDsChartValues(context.TODO(), cp, cluster)
 			Expect(err).NotTo(HaveOccurred())

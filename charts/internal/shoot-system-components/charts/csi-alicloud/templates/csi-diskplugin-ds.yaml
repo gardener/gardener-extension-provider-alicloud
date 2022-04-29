@@ -14,10 +14,6 @@ spec:
     metadata:
       annotations:
         checksum/secret-csi-diskplugin-alicloud: {{ include (print $.Template.BasePath "/csi-diskplugin-secret.yaml") . | sha256sum }}
-        {{- if .Values.global.useProjectedTokenMount }}
-        # TODO(rfranzke): Remove in a future release.
-        security.gardener.cloud/trigger: rollout
-        {{- end }}
       labels:
         app: csi-disk-plugin-alicloud
         origin: gardener

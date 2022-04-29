@@ -38,14 +38,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:csi-provisioner
 subjects:
-{{- if .Values.global.useTokenRequestor }}
 - kind: ServiceAccount
   name: csi-provisioner
   namespace: kube-system
-{{- else }}
-- kind: User
-  name: system:csi-provisioner
-{{- end }}
 roleRef:
   kind: ClusterRole
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-provisioner
@@ -69,14 +64,9 @@ metadata:
   # replace with non-default namespace name
   namespace: kube-system
 subjects:
-{{- if .Values.global.useTokenRequestor }}
 - kind: ServiceAccount
   name: csi-provisioner
   namespace: kube-system
-{{- else }}
-- kind: User
-  name: system:csi-provisioner
-{{- end }}
 roleRef:
   kind: Role
   name: csi-provisioner

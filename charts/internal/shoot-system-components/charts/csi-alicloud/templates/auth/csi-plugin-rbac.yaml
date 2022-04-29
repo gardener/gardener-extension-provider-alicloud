@@ -3,9 +3,7 @@ kind: ServiceAccount
 metadata:
   name: csi-disk-plugin-alicloud
   namespace: kube-system
-{{- if .Values.global.useProjectedTokenMount }}
 automountServiceAccountToken: false
-{{- end }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
