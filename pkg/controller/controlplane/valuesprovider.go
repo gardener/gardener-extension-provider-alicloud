@@ -353,14 +353,14 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 		return nil, fmt.Errorf("could not build cloud controller config file content for controlplain '%s': %w", kutil.ObjectName(cp), err)
 	}
 	values := map[string]interface{}{
+		"global": map[string]interface{}{
+			"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
+		},
 		"alicloud-cloud-controller-manager": map[string]interface{}{
 			"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"clusterName":       cp.Namespace,
 			"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 			"podNetwork":        extensionscontroller.GetPodNetwork(cluster),
-			"podAnnotations": map[string]interface{}{
-				"checksum/secret-cloud-controller-manager": checksums["cloud-controller-manager"],
-			},
 			"podLabels": map[string]interface{}{
 				v1beta1constants.LabelPodMaintenanceRestart: "true",
 			},
@@ -375,19 +375,10 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
 				"podAnnotations": map[string]interface{}{
-					"checksum/secret-csi-controller-ali-plugin": checksums["csi-controller-ali-plugin"],
-					"checksum/secret-csi-attacher":              checksums["csi-attacher"],
-					"checksum/secret-csi-provisioner":           checksums["csi-provisioner"],
-					"checksum/secret-csi-snapshotter":           checksums["csi-snapshotter"],
-					"checksum/secret-csi-resizer":               checksums["csi-resizer"],
-					"checksum/secret-cloudprovider":             checksums[v1beta1constants.SecretNameCloudProvider],
+					"checksum/secret-cloudprovider": checksums[v1beta1constants.SecretNameCloudProvider],
 				},
 			},
-			"csiSnapshotController": map[string]interface{}{
-				"podAnnotations": map[string]interface{}{
-					"checksum/secret-csi-snapshot-controller": checksums["csi-snapshot-controller"],
-				},
-			},
+			"csiSnapshotController": map[string]interface{}{},
 		},
 	}
 

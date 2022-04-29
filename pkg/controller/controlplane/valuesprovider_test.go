@@ -40,7 +40,8 @@ import (
 )
 
 const (
-	namespace = "test"
+	namespace                        = "test"
+	genericTokenKubeconfigSecretName = "generic-token-kubeconfig-92e9ae14"
 )
 
 var _ = Describe("ValuesProvider", func() {
@@ -95,6 +96,11 @@ var _ = Describe("ValuesProvider", func() {
 
 		cidr    = "10.250.0.0/19"
 		cluster = &extensionscontroller.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					"generic-token-kubeconfig.secret.gardener.cloud/name": genericTokenKubeconfigSecretName,
+				},
+			},
 			Shoot: &gardencorev1beta1.Shoot{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "myshoot",
@@ -128,24 +134,17 @@ var _ = Describe("ValuesProvider", func() {
 
 		checksums = map[string]string{
 			v1beta1constants.SecretNameCloudProvider: "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
-			"csi-controller-ali-plugin":              "88ec99cc8fe711ecb9090242ac1200020e5d8c4d398e4f8da67b8a5eaf7efdeb",
-			"cloud-controller-manager":               "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
-			"csi-attacher":                           "2da58ad61c401a2af779a909d22fb42eed93a1524cbfdab974ceedb413fcb914",
-			"csi-provisioner":                        "f75b42d40ab501428c383dfb2336cb1fc892bbee1fc1d739675171e4acc4d911",
-			"csi-snapshotter":                        "bf417dd97dc3e8c2092bb5b2ba7b0f1093ebc4bb5952091ee554cf5b7ea74508",
-			"csi-snapshot-controller":                "4b7977b627acb0c1f74607cb31bd3a706a18ff1067121e31cec5e432a8f6ab15",
-			"csi-resizer":                            "5df115bd53f09da2d6d27bfb048c14dabd14a66608cfdba5ecd2d0687889cc6a",
 		}
 
 		controlPlaneChartValues = map[string]interface{}{
+			"global": map[string]interface{}{
+				"genericTokenKubeconfigSecretName": genericTokenKubeconfigSecretName,
+			},
 			"alicloud-cloud-controller-manager": map[string]interface{}{
 				"replicas":          1,
 				"clusterName":       namespace,
 				"kubernetesVersion": "1.20.0",
 				"podNetwork":        cidr,
-				"podAnnotations": map[string]interface{}{
-					"checksum/secret-cloud-controller-manager": "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
-				},
 				"podLabels": map[string]interface{}{
 					"maintenance.gardener.cloud/restart": "true",
 				},
@@ -163,20 +162,11 @@ var _ = Describe("ValuesProvider", func() {
 					"snapshotPrefix":         "myshoot",
 					"persistentVolumePrefix": "myshoot",
 					"podAnnotations": map[string]interface{}{
-						"checksum/secret-csi-controller-ali-plugin": "88ec99cc8fe711ecb9090242ac1200020e5d8c4d398e4f8da67b8a5eaf7efdeb",
-						"checksum/secret-csi-attacher":              "2da58ad61c401a2af779a909d22fb42eed93a1524cbfdab974ceedb413fcb914",
-						"checksum/secret-csi-provisioner":           "f75b42d40ab501428c383dfb2336cb1fc892bbee1fc1d739675171e4acc4d911",
-						"checksum/secret-csi-snapshotter":           "bf417dd97dc3e8c2092bb5b2ba7b0f1093ebc4bb5952091ee554cf5b7ea74508",
-						"checksum/secret-csi-resizer":               "5df115bd53f09da2d6d27bfb048c14dabd14a66608cfdba5ecd2d0687889cc6a",
-						"checksum/secret-cloudprovider":             "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
+						"checksum/secret-cloudprovider": "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
 					},
 				},
 
-				"csiSnapshotController": map[string]interface{}{
-					"podAnnotations": map[string]interface{}{
-						"checksum/secret-csi-snapshot-controller": "4b7977b627acb0c1f74607cb31bd3a706a18ff1067121e31cec5e432a8f6ab15",
-					},
-				},
+				"csiSnapshotController": map[string]interface{}{},
 			},
 		}
 
