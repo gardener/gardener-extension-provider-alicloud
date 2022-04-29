@@ -66,17 +66,17 @@ var _ = Describe("Terraform", func() {
 	Describe("#NewTerraformer", func() {
 		It("should create a new terraformer", func() {
 			var (
-				factory                = mockterraformer.NewMockFactory(ctrl)
-				tf                     = mockterraformer.NewMockTerraformer(ctrl)
-				config                 rest.Config
-				useProjectedTokenMount = false
+				factory                    = mockterraformer.NewMockFactory(ctrl)
+				tf                         = mockterraformer.NewMockTerraformer(ctrl)
+				config                     rest.Config
+				disableProjectedTokenMount = false
 			)
 
 			gomock.InOrder(
 				factory.EXPECT().
 					NewForConfig(gomock.Any(), &config, purpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 					Return(tf, nil),
-				tf.EXPECT().UseProjectedTokenMount(useProjectedTokenMount).Return(tf),
+				tf.EXPECT().UseProjectedTokenMount(!disableProjectedTokenMount).Return(tf),
 				tf.EXPECT().SetLogLevel("info").Return(tf),
 				tf.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(tf),
 				tf.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(tf),
@@ -84,7 +84,7 @@ var _ = Describe("Terraform", func() {
 				tf.EXPECT().SetOwnerRef(owner).Return(tf),
 			)
 
-			actual, err := NewTerraformer(logger, factory, &config, purpose, infra, useProjectedTokenMount)
+			actual, err := NewTerraformer(logger, factory, &config, purpose, infra, disableProjectedTokenMount)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actual).To(BeIdenticalTo(tf))
 		})
@@ -93,17 +93,17 @@ var _ = Describe("Terraform", func() {
 	Describe("#NewTerraformerWithAuth", func() {
 		It("should create a new terraformer and initialize it with the credentials", func() {
 			var (
-				factory                = mockterraformer.NewMockFactory(ctrl)
-				tf                     = mockterraformer.NewMockTerraformer(ctrl)
-				config                 rest.Config
-				useProjectedTokenMount = false
+				factory                    = mockterraformer.NewMockFactory(ctrl)
+				tf                         = mockterraformer.NewMockTerraformer(ctrl)
+				config                     rest.Config
+				disableProjectedTokenMount = false
 			)
 
 			gomock.InOrder(
 				factory.EXPECT().
 					NewForConfig(gomock.Any(), &config, purpose, infra.Namespace, infra.Name, imagevector.TerraformerImage()).
 					Return(tf, nil),
-				tf.EXPECT().UseProjectedTokenMount(useProjectedTokenMount).Return(tf),
+				tf.EXPECT().UseProjectedTokenMount(!disableProjectedTokenMount).Return(tf),
 				tf.EXPECT().SetLogLevel("info").Return(tf),
 				tf.EXPECT().SetTerminationGracePeriodSeconds(int64(630)).Return(tf),
 				tf.EXPECT().SetDeadlineCleaning(5*time.Minute).Return(tf),
@@ -112,7 +112,7 @@ var _ = Describe("Terraform", func() {
 				tf.EXPECT().SetEnvVars(TerraformerEnvVars(infra.Spec.SecretRef)).Return(tf),
 			)
 
-			actual, err := NewTerraformerWithAuth(logger, factory, &config, purpose, infra, useProjectedTokenMount)
+			actual, err := NewTerraformerWithAuth(logger, factory, &config, purpose, infra, disableProjectedTokenMount)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actual).To(BeIdenticalTo(tf))
 		})

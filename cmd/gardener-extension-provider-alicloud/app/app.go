@@ -197,14 +197,12 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				return fmt.Errorf("could not determine whether token requestor should be used: %w", err)
 			}
 			alicloudcontrolplane.DefaultAddOptions.UseTokenRequestor = useTokenRequestor
-			alicloudworker.DefaultAddOptions.UseTokenRequestor = useTokenRequestor
 
 			useProjectedTokenMount, err := controller.UseServiceAccountTokenVolumeProjection(generalOpts.Completed().GardenerVersion)
 			if err != nil {
 				return fmt.Errorf("could not determine whether service account token volume projection should be used: %w", err)
 			}
 			alicloudcontrolplane.DefaultAddOptions.UseProjectedTokenMount = useProjectedTokenMount
-			alicloudworker.DefaultAddOptions.UseProjectedTokenMount = useProjectedTokenMount
 
 			configFileOpts.Completed().ApplyMachineImageOwnerSecretRef(&alicloudinfrastructure.DefaultAddOptions.MachineImageOwnerSecretRef)
 			configFileOpts.Completed().ApplyToBeSharedImageIDs(&alicloudinfrastructure.DefaultAddOptions.ToBeSharedImageIDs)
