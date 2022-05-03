@@ -40,11 +40,7 @@ spec:
         imagePullPolicy: IfNotPresent
         command:
         - /cloud-controller-manager
-        {{- if .Values.global.useTokenRequestor }}
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
-        {{- else }}
-        - --kubeconfig=/var/lib/cloud-controller-manager/kubeconfig
-        {{- end }}
         - --address=0.0.0.0
         - --allow-untagged-cloud=true
         - --allocate-node-cidrs=true
@@ -78,14 +74,9 @@ spec:
 {{ toYaml .Values.resources | indent 10 }}
 {{- end }}
         volumeMounts:
-        {{- if .Values.global.useTokenRequestor }}
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig
           readOnly: true
-        {{- else }}
-        - name: cloud-controller-manager
-          mountPath: /var/lib/cloud-controller-manager
-        {{- end }}
         - name: cloud-provider-config
           mountPath: /etc/kubernetes/cloudprovider
       dnsPolicy: ClusterFirst
@@ -93,28 +84,22 @@ spec:
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: 30
       volumes:
-      {{- if .Values.global.useTokenRequestor }}
       - name: kubeconfig
         projected:
           defaultMode: 420
           sources:
           - secret:
               items:
-                - key: kubeconfig
-                  path: kubeconfig
-              name: generic-token-kubeconfig
+              - key: kubeconfig
+                path: kubeconfig
+              name: {{ .Values.global.genericTokenKubeconfigSecretName }}
               optional: false
           - secret:
               items:
-                - key: token
-                  path: token
+              - key: token
+                path: token
               name: shoot-access-cloud-controller-manager
               optional: false
-      {{- else }}
-      - name: cloud-controller-manager
-        secret:
-          secretName: cloud-controller-manager
-      {{- end }}
       - name: cloud-provider-config
         secret:
           secretName: cloud-provider-config

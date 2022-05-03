@@ -1,2 +1,2 @@
 global:
-  useTokenRequestor: false
+  genericTokenKubeconfigSecretName: generic-token-kubeconfig

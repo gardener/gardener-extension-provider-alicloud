@@ -25,6 +25,7 @@ import (
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -34,7 +35,7 @@ import (
 	"github.com/gardener/gardener/pkg/utils/chart"
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	"github.com/gardener/gardener/pkg/utils/secrets"
+	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -42,134 +43,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apiserver/pkg/authentication/user"
 	autoscalingv1beta2 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1beta2"
 )
-
-func getSecretConfigsFuncs(useTokenRequestor bool) secrets.Interface {
-	return &secrets.Secrets{
-		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-			v1beta1constants.SecretNameCACluster: {
-				Name:       v1beta1constants.SecretNameCACluster,
-				CommonName: "kubernetes",
-				CertType:   secrets.CACert,
-			},
-		},
-		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
-			if useTokenRequestor {
-				return nil
-			}
-
-			return []secrets.ConfigInterface{
-				&secrets.ControlPlaneSecretConfig{
-					Name: "cloud-controller-manager",
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						CommonName:   "system:cloud-controller-manager",
-						Organization: []string{user.SystemPrivilegedGroup},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1beta1constants.SecretNameCACluster],
-					},
-					KubeConfigRequests: []secrets.KubeConfigRequest{
-						{
-							ClusterName:   clusterName,
-							APIServerHost: v1beta1constants.DeploymentNameKubeAPIServer,
-						},
-					},
-				},
-				&secrets.ControlPlaneSecretConfig{
-					Name: "csi-controller-ali-plugin",
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						CommonName:   "system:csi-controller-ali-plugin",
-						Organization: []string{user.SystemPrivilegedGroup},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1beta1constants.SecretNameCACluster],
-					},
-					KubeConfigRequests: []secrets.KubeConfigRequest{
-						{
-							ClusterName:   clusterName,
-							APIServerHost: v1beta1constants.DeploymentNameKubeAPIServer,
-						},
-					},
-				},
-				&secrets.ControlPlaneSecretConfig{
-					Name: "csi-attacher",
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						CommonName:   "system:csi-attacher",
-						Organization: []string{user.SystemPrivilegedGroup},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1beta1constants.SecretNameCACluster],
-					},
-					KubeConfigRequests: []secrets.KubeConfigRequest{
-						{
-							ClusterName:   clusterName,
-							APIServerHost: v1beta1constants.DeploymentNameKubeAPIServer,
-						},
-					},
-				},
-				&secrets.ControlPlaneSecretConfig{
-					Name: "csi-provisioner",
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						CommonName:   "system:csi-provisioner",
-						Organization: []string{user.SystemPrivilegedGroup},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1beta1constants.SecretNameCACluster],
-					},
-					KubeConfigRequests: []secrets.KubeConfigRequest{
-						{
-							ClusterName:   clusterName,
-							APIServerHost: v1beta1constants.DeploymentNameKubeAPIServer,
-						},
-					},
-				},
-				&secrets.ControlPlaneSecretConfig{
-					Name: "csi-snapshotter",
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						CommonName:   "system:csi-snapshotter",
-						Organization: []string{user.SystemPrivilegedGroup},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1beta1constants.SecretNameCACluster],
-					},
-					KubeConfigRequests: []secrets.KubeConfigRequest{
-						{
-							ClusterName:   clusterName,
-							APIServerHost: v1beta1constants.DeploymentNameKubeAPIServer,
-						},
-					},
-				},
-				&secrets.ControlPlaneSecretConfig{
-					Name: "csi-resizer",
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						CommonName:   "system:csi-resizer",
-						Organization: []string{user.SystemPrivilegedGroup},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1beta1constants.SecretNameCACluster],
-					},
-					KubeConfigRequests: []secrets.KubeConfigRequest{
-						{
-							ClusterName:   clusterName,
-							APIServerHost: v1beta1constants.DeploymentNameKubeAPIServer,
-						},
-					},
-				},
-				&secrets.ControlPlaneSecretConfig{
-					Name: "csi-snapshot-controller",
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						CommonName:   "system:csi-snapshot-controller",
-						Organization: []string{user.SystemPrivilegedGroup},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1beta1constants.SecretNameCACluster],
-					},
-					KubeConfigRequests: []secrets.KubeConfigRequest{
-						{
-							ClusterName:   clusterName,
-							APIServerHost: v1beta1constants.DeploymentNameKubeAPIServer,
-						},
-					},
-				},
-			}
-		},
-	}
-}
 
 func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 	return []*gutil.ShootAccessSecret{
@@ -181,16 +56,6 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 		gutil.NewShootAccessSecret("csi-resizer", namespace),
 		gutil.NewShootAccessSecret("csi-snapshot-controller", namespace),
 	}
-}
-
-var legacySecretNamesToCleanup = []string{
-	"cloud-controller-manager",
-	"csi-controller-ali-plugin",
-	"csi-attacher",
-	"csi-provisioner",
-	"csi-snapshotter",
-	"csi-resizer",
-	"csi-snapshot-controller",
 }
 
 var controlPlaneChart = &chart.Chart{
@@ -318,12 +183,10 @@ var storageClassChart = &chart.Chart{
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(logger logr.Logger, csi config.CSI, useTokenRequestor, useProjectedTokenMount bool) genericactuator.ValuesProvider {
+func NewValuesProvider(logger logr.Logger, csi config.CSI) genericactuator.ValuesProvider {
 	return &valuesProvider{
-		logger:                 logger.WithName("alicloud-values-provider"),
-		csi:                    csi,
-		useTokenRequestor:      useTokenRequestor,
-		useProjectedTokenMount: useProjectedTokenMount,
+		logger: logger.WithName("alicloud-values-provider"),
+		csi:    csi,
 	}
 }
 
@@ -331,10 +194,8 @@ func NewValuesProvider(logger logr.Logger, csi config.CSI, useTokenRequestor, us
 type valuesProvider struct {
 	genericactuator.NoopValuesProvider
 	common.ClientContext
-	logger                 logr.Logger
-	csi                    config.CSI
-	useTokenRequestor      bool
-	useProjectedTokenMount bool
+	logger logr.Logger
+	csi    config.CSI
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -342,6 +203,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
+	_ secretsmanager.Reader,
 	checksums map[string]string,
 	scaledDown bool,
 ) (map[string]interface{}, error) {
@@ -358,7 +220,8 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
-	checksums map[string]string,
+	_ secretsmanager.Reader,
+	_ map[string]string,
 ) (map[string]interface{}, error) {
 	// Get credentials from the referenced secret
 	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
@@ -479,16 +342,13 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 	}
 	values := map[string]interface{}{
 		"global": map[string]interface{}{
-			"useTokenRequestor": vp.useTokenRequestor,
+			"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
 		},
 		"alicloud-cloud-controller-manager": map[string]interface{}{
 			"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"clusterName":       cp.Namespace,
 			"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 			"podNetwork":        extensionscontroller.GetPodNetwork(cluster),
-			"podAnnotations": map[string]interface{}{
-				"checksum/secret-cloud-controller-manager": checksums["cloud-controller-manager"],
-			},
 			"podLabels": map[string]interface{}{
 				v1beta1constants.LabelPodMaintenanceRestart: "true",
 			},
@@ -503,19 +363,10 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
 				"podAnnotations": map[string]interface{}{
-					"checksum/secret-csi-controller-ali-plugin": checksums["csi-controller-ali-plugin"],
-					"checksum/secret-csi-attacher":              checksums["csi-attacher"],
-					"checksum/secret-csi-provisioner":           checksums["csi-provisioner"],
-					"checksum/secret-csi-snapshotter":           checksums["csi-snapshotter"],
-					"checksum/secret-csi-resizer":               checksums["csi-resizer"],
-					"checksum/secret-cloudprovider":             checksums[v1beta1constants.SecretNameCloudProvider],
+					"checksum/secret-cloudprovider": checksums[v1beta1constants.SecretNameCloudProvider],
 				},
 			},
-			"csiSnapshotController": map[string]interface{}{
-				"podAnnotations": map[string]interface{}{
-					"checksum/secret-csi-snapshot-controller": checksums["csi-snapshot-controller"],
-				},
-			},
+			"csiSnapshotController": map[string]interface{}{},
 		},
 	}
 
@@ -537,10 +388,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 	credentials *alicloud.Credentials,
 ) (map[string]interface{}, error) {
 	values := map[string]interface{}{
-		"global": map[string]interface{}{
-			"useTokenRequestor":      vp.useTokenRequestor,
-			"useProjectedTokenMount": vp.useProjectedTokenMount,
-		},
 		"csi-alicloud": map[string]interface{}{
 			"credential": map[string]interface{}{
 				"accessKeyID":     base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeyID)),

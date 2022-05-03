@@ -57,7 +57,7 @@ var StatusTypeMeta = func() metav1.TypeMeta {
 }()
 
 // NewActuator instantiates an actuator with the default dependencies.
-func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, toBeSharedImageIDs []string, useProjectedTokenMount bool) infrastructure.Actuator {
+func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, toBeSharedImageIDs []string, disableProjectedTokenMount bool) infrastructure.Actuator {
 	return NewActuatorWithDeps(
 		log.Log.WithName("infrastructure-actuator"),
 		alicloudclient.NewClientFactory(),
@@ -65,7 +65,7 @@ func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, toBeSharedI
 		DefaultTerraformOps(),
 		machineImageOwnerSecretRef,
 		toBeSharedImageIDs,
-		useProjectedTokenMount,
+		disableProjectedTokenMount,
 	)
 }
 
@@ -77,7 +77,7 @@ func NewActuatorWithDeps(
 	terraformChartOps TerraformChartOps,
 	machineImageOwnerSecretRef *corev1.SecretReference,
 	toBeSharedImageIDs []string,
-	useProjectedTokenMount bool,
+	disableProjectedTokenMount bool,
 ) infrastructure.Actuator {
 	a := &actuator{
 		logger:                     logger,
@@ -86,7 +86,7 @@ func NewActuatorWithDeps(
 		terraformChartOps:          terraformChartOps,
 		machineImageOwnerSecretRef: machineImageOwnerSecretRef,
 		toBeSharedImageIDs:         toBeSharedImageIDs,
-		useProjectedTokenMount:     useProjectedTokenMount,
+		disableProjectedTokenMount: disableProjectedTokenMount,
 	}
 
 	return a
@@ -103,7 +103,7 @@ type actuator struct {
 
 	machineImageOwnerSecretRef *corev1.SecretReference
 	toBeSharedImageIDs         []string
-	useProjectedTokenMount     bool
+	disableProjectedTokenMount bool
 }
 
 // InjectAPIReader implements inject.APIReader and instantiates actuator.alicloudECSClient.
@@ -547,7 +547,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return err
 	}
 
-	tf, err := common.NewTerraformerWithAuth(a.logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.useProjectedTokenMount)
+	tf, err := common.NewTerraformerWithAuth(a.logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return err
 	}
@@ -641,7 +641,7 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
 	logger := a.logger.WithValues("infrastructure", client.ObjectKeyFromObject(infra), "operation", "delete")
 
-	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.useProjectedTokenMount)
+	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return err
 	}
@@ -698,7 +698,7 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 // Migrate implements infrastructure.Actuator.
 func (a *actuator) Migrate(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
 	logger := a.logger.WithValues("infrastructure", client.ObjectKeyFromObject(infra), "operation", "migrate")
-	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.useProjectedTokenMount)
+	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return err
 	}

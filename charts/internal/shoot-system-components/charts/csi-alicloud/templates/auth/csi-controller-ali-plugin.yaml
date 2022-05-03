@@ -12,14 +12,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:csi-controller-ali-plugin
 subjects:
-{{- if .Values.global.useTokenRequestor }}
 - kind: ServiceAccount
   name: csi-controller-ali-plugin
   namespace: kube-system
-{{- else }}
-- kind: User
-  name: system:csi-controller-ali-plugin
-{{- end }}
 roleRef:
   kind: ClusterRole
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-controller-ali-plugin
@@ -41,14 +36,9 @@ metadata:
   name: csi-controller-ali-plugin
   namespace: kube-system
 subjects:
-{{- if .Values.global.useTokenRequestor }}
 - kind: ServiceAccount
   name: csi-controller-ali-plugin
   namespace: kube-system
-{{- else }}
-- kind: User
-  name: system:csi-controller-ali-plugin
-{{- end }}
 roleRef:
   kind: Role
   name: csi-controller-ali-plugin

@@ -22,7 +22,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/util"
-	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -46,20 +45,15 @@ type AddOptions struct {
 	ShootWebhooks []admissionregistrationv1.MutatingWebhook
 	// CSI specifies the configuration for CSI components
 	CSI config.CSI
-	// UseTokenRequestor specifies whether the token requestor shall be used for the control plane components.
-	UseTokenRequestor bool
-	// UseProjectedTokenMount specifies whether the projected token mount shall be used for the
-	// control plane components.
-	UseProjectedTokenMount bool
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return controlplane.Add(mgr, controlplane.AddArgs{
-		Actuator: genericactuator.NewActuator(alicloud.Name, getSecretConfigsFuncs(opts.UseTokenRequestor), getShootAccessSecretsFunc(opts.UseTokenRequestor), getLegacySecretNamesToCleanup(opts.UseTokenRequestor), nil, nil, nil,
+		Actuator: genericactuator.NewActuator(alicloud.Name, nil, shootAccessSecretsFunc, nil, nil,
 			nil, controlPlaneChart, controlPlaneShootChart, controlPlaneShootCRDsChart, storageClassChart, nil,
-			NewValuesProvider(logger, opts.CSI, opts.UseTokenRequestor, opts.UseProjectedTokenMount), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
+			NewValuesProvider(logger, opts.CSI), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(opts.IgnoreOperationAnnotation),
@@ -70,17 +64,4 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 // AddToManager adds a controller with the default Options.
 func AddToManager(mgr manager.Manager) error {
 	return AddToManagerWithOptions(mgr, DefaultAddOptions)
-}
-
-func getShootAccessSecretsFunc(useTokenRequestor bool) func(string) []*gutil.ShootAccessSecret {
-	if useTokenRequestor {
-		return shootAccessSecretsFunc
-	}
-	return nil
-}
-func getLegacySecretNamesToCleanup(useTokenRequestor bool) []string {
-	if useTokenRequestor {
-		return legacySecretNamesToCleanup
-	}
-	return nil
 }
