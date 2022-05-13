@@ -47,6 +47,9 @@ const (
 	// CSIPluginImageName is the name of the CSI plugin image.
 	CSIPluginImageName = "csi-plugin-alicloud"
 
+	// CSISnapshotValidationWebhookImageName is the name of the csi-snapshot-validation-webhook image.
+	CSISnapshotValidationWebhookImageName = "csi-snapshot-validation-webhook"
+
 	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
 	MachineControllerManagerName = "machine-controller-manager"
 	// MachineControllerManagerVpaName is the name of the VerticalPodAutoscaler of the machine-controller-manager deployment.
@@ -63,6 +66,8 @@ const (
 	CSIPluginController = "csi-plugin-controller"
 	// CSISnapshotControllerName is a constant for the name of the csi-snapshot-controller Deployment in the Seed.
 	CSISnapshotControllerName = "csi-snapshot-controller"
+	// CSISnapshotValidation is the constant for the name of the csi-snapshot-validation-webhook component.
+	CSISnapshotValidation = "csi-snapshot-validation"
 
 	// CRDVolumeSnapshotClasses is a constant for the name of VolumeSnapshotClasses CRD.
 	CRDVolumeSnapshotClasses = "volumesnapshotclasses.snapshot.storage.k8s.io"
