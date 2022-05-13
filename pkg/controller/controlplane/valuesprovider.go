@@ -43,7 +43,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	autoscalingv1beta2 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1beta2"
+	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 )
 
 func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
@@ -70,7 +70,7 @@ var controlPlaneChart = &chart.Chart{
 				{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 				{Type: &corev1.Secret{}, Name: "cloud-provider-config"},
 				{Type: &corev1.ConfigMap{}, Name: "cloud-controller-manager-observability-config"},
-				{Type: &autoscalingv1beta2.VerticalPodAutoscaler{}, Name: "cloud-controller-manager-vpa"},
+				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "cloud-controller-manager-vpa"},
 			},
 		},
 		{
@@ -86,9 +86,9 @@ var controlPlaneChart = &chart.Chart{
 			},
 			Objects: []*chart.Object{
 				{Type: &appsv1.Deployment{}, Name: "csi-plugin-controller"},
-				{Type: &autoscalingv1beta2.VerticalPodAutoscaler{}, Name: "csi-plugin-controller-vpa"},
+				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-plugin-controller-vpa"},
 				{Type: &appsv1.Deployment{}, Name: "csi-snapshot-controller"},
-				{Type: &autoscalingv1beta2.VerticalPodAutoscaler{}, Name: "csi-snapshot-controller-vpa"},
+				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-controller-vpa"},
 				{Type: &corev1.ConfigMap{}, Name: "csi-plugin-controller-observability-config"},
 			},
 		},

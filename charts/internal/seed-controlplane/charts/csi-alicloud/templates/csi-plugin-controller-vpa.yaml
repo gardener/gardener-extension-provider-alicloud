@@ -1,5 +1,5 @@
 ---
-apiVersion: autoscaling.k8s.io/v1beta2
+apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
   name: csi-plugin-controller-vpa
@@ -7,9 +7,29 @@ metadata:
 spec:
   resourcePolicy:
     containerPolicies:
-    - containerName: '*'
+    - containerName: alicloud-csi-diskplugin
+      memory: {{ .Values.csiPluginController.podResources.diskPlugin.requests.memory }}
+      controlledValues: RequestsOnly
+    - containerName: alicloud-csi-provisioner
       minAllowed:
-        memory: 25Mi
+        memory: {{ .Values.csiPluginController.podResources.provisioner.requests.memory }}
+      controlledValues: RequestsOnly
+    - containerName: alicloud-csi-attacher
+      minAllowed:
+        memory: {{ .Values.csiPluginController.podResources.attacher.requests.memory }}
+      controlledValues: RequestsOnly
+    - containerName: alicloud-csi-snapshotter
+      minAllowed:
+        memory: {{ .Values.csiPluginController.podResources.snapshotter.requests.memory }}
+      controlledValues: RequestsOnly
+    - containerName: alicloud-csi-resizer
+      minAllowed:
+        memory: {{ .Values.csiPluginController.podResources.resizer.requests.memory }}
+      controlledValues: RequestsOnly
+    - containerName: alicloud-csi-liveness-probe
+      minAllowed:
+        memory: {{ .Values.csiPluginController.podResources.livenessProbe.requests.memory }}
+      controlledValues: RequestsOnly
   targetRef:
     apiVersion: apps/v1
     kind: Deployment

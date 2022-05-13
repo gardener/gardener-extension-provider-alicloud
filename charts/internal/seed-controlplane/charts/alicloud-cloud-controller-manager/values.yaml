@@ -11,9 +11,8 @@ images:
   alicloud-controller-manager: image-repository
 resources:
   requests:
-    cpu: 100m
-    memory: 64Mi
+    cpu: 21m
+    memory: 40Mi
   limits:
-    cpu: 250m
-    memory: 300Mi
+    memory: 2.6Gi
 cloudConfig: json-values
