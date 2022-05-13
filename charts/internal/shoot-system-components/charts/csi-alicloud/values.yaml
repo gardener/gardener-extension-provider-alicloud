@@ -17,7 +17,7 @@ resources:
       cpu: 12m
       memory: 40Mi
     limits:
-      memory: 2Gi
+      memory: 256Mi
   nodeDriverRegistrar:
     requests:
       cpu: 11m
