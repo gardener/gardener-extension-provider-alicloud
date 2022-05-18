@@ -27,6 +27,7 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -134,6 +135,7 @@ var _ = Describe("ValuesProvider", func() {
 
 		checksums = map[string]string{
 			v1beta1constants.SecretNameCloudProvider: "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
+			alicloud.CSISnapshotValidation:           "452097220f89011daa2543876c3f3184f5064a12be454ae32e2ad205ec55823c",
 		}
 
 		controlPlaneChartValues = map[string]interface{}{
@@ -167,6 +169,12 @@ var _ = Describe("ValuesProvider", func() {
 				},
 
 				"csiSnapshotController": map[string]interface{}{},
+				"csiSnapshotValidationWebhook": map[string]interface{}{
+					"replicas": 1,
+					"podAnnotations": map[string]interface{}{
+						"checksum/secret-" + alicloud.CSISnapshotValidation: checksums[alicloud.CSISnapshotValidation],
+					},
+				},
 			},
 		}
 
@@ -179,6 +187,10 @@ var _ = Describe("ValuesProvider", func() {
 				"kubernetesVersion":  "1.20.0",
 				"enableADController": true,
 				"vpaEnabled":         true,
+				"webhookConfig": map[string]interface{}{
+					"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
+					"caBundle": "",
+				},
 			},
 		}
 
@@ -218,6 +230,7 @@ var _ = Describe("ValuesProvider", func() {
 			// Create mock client
 			client := mockclient.NewMockClient(ctrl)
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
+			client.EXPECT().Get(context.TODO(), kutil.Key(cp.Namespace, string(v1beta1constants.SecretNameCACluster)), gomock.AssignableToTypeOf(&corev1.Secret{}))
 
 			// Create valuesProvider
 			vp := NewValuesProvider(logger, csi)

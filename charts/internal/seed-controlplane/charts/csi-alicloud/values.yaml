@@ -10,7 +10,7 @@ images:
   csi-snapshot-controller: repository:tag
   csi-resizer: repository:tag
   csi-liveness-probe: repository:tag
-  csi-snapshot-validation-webhook: image-repository:image-tag
+  csi-snapshot-validation-webhook: repository:tag
 
 enableADController: true
 

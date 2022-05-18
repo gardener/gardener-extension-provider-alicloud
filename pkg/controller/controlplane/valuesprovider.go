@@ -58,6 +58,7 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 		gutil.NewShootAccessSecret("csi-snapshotter", namespace),
 		gutil.NewShootAccessSecret("csi-resizer", namespace),
 		gutil.NewShootAccessSecret("csi-snapshot-controller", namespace),
+		gutil.NewShootAccessSecret(alicloud.CSISnapshotValidation, namespace),
 	}
 }
 
@@ -98,6 +99,7 @@ var controlPlaneChart = &chart.Chart{
 				{Type: &appsv1.Deployment{}, Name: alicloud.CSISnapshotValidation},
 				{Type: &corev1.Service{}, Name: alicloud.CSISnapshotValidation},
 				{Type: &networkingv1.NetworkPolicy{}, Name: "allow-kube-apiserver-to-csi-snapshot-validation"},
+				{Type: &autoscalingv1beta2.VerticalPodAutoscaler{}, Name: "csi-snapshot-webhook-vpa"},
 			},
 		},
 	},
