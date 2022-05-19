@@ -30,3 +30,4 @@ resources:
       memory: 32Mi
     limits:
       memory: 300Mi
+
