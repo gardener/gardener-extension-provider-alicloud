@@ -99,7 +99,7 @@ var controlPlaneChart = &chart.Chart{
 				{Type: &appsv1.Deployment{}, Name: alicloud.CSISnapshotValidation},
 				{Type: &corev1.Service{}, Name: alicloud.CSISnapshotValidation},
 				{Type: &networkingv1.NetworkPolicy{}, Name: "allow-kube-apiserver-to-csi-snapshot-validation"},
-				{Type: &autoscalingv1beta2.VerticalPodAutoscaler{}, Name: "csi-snapshot-webhook-vpa"},
+				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-webhook-vpa"},
 			},
 		},
 	},
