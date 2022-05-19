@@ -1,6 +1,6 @@
 {{- if semverCompare ">= 1.17" .Values.kubernetesVersion }}
 ---
-apiVersion: autoscaling.k8s.io/v1beta2
+apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
   name: csi-snapshot-controller-vpa
@@ -10,7 +10,8 @@ spec:
     containerPolicies:
     - containerName: csi-snapshot-controller
       minAllowed:
-        memory: 25Mi
+       memory: {{ .Values.csiSnapshotController.podResources.snapshotController.requests.memory }}
+      controlledValues: RequestsOnly
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
