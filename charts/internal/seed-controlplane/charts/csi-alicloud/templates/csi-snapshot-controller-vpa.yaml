@@ -10,7 +10,7 @@ spec:
     containerPolicies:
     - containerName: csi-snapshot-controller
       minAllowed:
-       memory: {{ .Values.csiSnapshotController.resources.requests.memory }}
+       memory: {{ .Values.csiSnapshotController.podResources.requests.memory }}
       controlledValues: RequestsOnly
   targetRef:
     apiVersion: apps/v1
