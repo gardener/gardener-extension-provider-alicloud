@@ -74,3 +74,5 @@ csiSnapshotValidationWebhook:
       memory: 32Mi
     limits:
       memory: 200Mi
+  secrets:
+    server: csi-snapshot-validation-server
