@@ -14,7 +14,11 @@
 
 package alicloud
 
-import "path/filepath"
+import (
+	"path/filepath"
+
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+)
 
 const (
 	// Name is the name of the Alicloud provider.
@@ -91,6 +95,8 @@ const (
 	// DefaultDNSRegion is the default region to be used if a region is not specified in the DNS secret
 	// or in the DNSRecord resource.
 	DefaultDNSRegion = "cn-shanghai"
+	// CloudProviderConfigName is the name of the configmap containing the cloud provider config.
+	CloudProviderConfigName = "cloud-provider-config"
 )
 
 var (
@@ -100,4 +106,7 @@ var (
 	InternalChartsPath = filepath.Join(ChartsPath, "internal")
 	// InfraChartPath is the path to the alicloud-infra chart.
 	InfraChartPath = filepath.Join(InternalChartsPath, "alicloud-infra")
+
+	// UsernamePrefix is a constant for the username prefix of components deployed by AWS.
+	UsernamePrefix = extensionsv1alpha1.SchemeGroupVersion.Group + ":" + Name + ":"
 )
