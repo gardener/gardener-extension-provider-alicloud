@@ -27,6 +27,7 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 	fakesecretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager/fake"
 	"github.com/golang/mock/gomock"
@@ -175,8 +176,8 @@ var _ = Describe("ValuesProvider", func() {
 				"csiSnapshotController": map[string]interface{}{},
 				"csiSnapshotValidationWebhook": map[string]interface{}{
 					"replicas": 1,
-					"secrets": map[string]interface{}{
-						"server": "csi-snapshot-validation-server",
+					"podAnnotations": map[string]interface{}{
+						"checksum/secret-" + alicloud.CSISnapshotValidation: checksums[alicloud.CSISnapshotValidation],
 					},
 				},
 			},
@@ -236,6 +237,7 @@ var _ = Describe("ValuesProvider", func() {
 			// Create mock client
 			client := mockclient.NewMockClient(ctrl)
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
+			client.EXPECT().Get(context.TODO(), kutil.Key(cp.Namespace, string(v1beta1constants.SecretNameCACluster)), gomock.AssignableToTypeOf(&corev1.Secret{}))
 
 			// Create valuesProvider
 			vp := NewValuesProvider(logger, csi)
@@ -245,7 +247,7 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Call GetControlPlaneShootChartValues method and check the result
-			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
+			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, nil, checksums)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneShootChartValues))
 		})
