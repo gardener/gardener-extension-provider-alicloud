@@ -7,7 +7,7 @@ scope: app-developer
 
 ### Overview
 
-Gardener 
+Gardener allows you to create a Kubernetes cluster on different infrastructure providers. This tutorial will guide you through the process of creating a cluster on Alibaba Cloud.
 
 ### Prerequisites
 
