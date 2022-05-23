@@ -39,4 +39,3 @@ spec:
         - name: csi-snapshot-validation
           secret:
             secretName: {{ .Values.csiSnapshotValidationWebhook.secrets.server }}
-

@@ -102,7 +102,6 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 		gutil.NewShootAccessSecret("csi-snapshotter", namespace),
 		gutil.NewShootAccessSecret("csi-resizer", namespace),
 		gutil.NewShootAccessSecret("csi-snapshot-controller", namespace),
-		gutil.NewShootAccessSecret(alicloud.CSISnapshotValidation, namespace),
 	}
 }
 
