@@ -15,17 +15,16 @@
 package cmd
 
 import (
-	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
-
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/mutator"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/validator"
+
+	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 )
 
 // GardenWebhookSwitchOptions are the webhookcmd.SwitchOptions for the admission webhooks.
 func GardenWebhookSwitchOptions() *webhookcmd.SwitchOptions {
 	return webhookcmd.NewSwitchOptions(
-		webhookcmd.Switch(extensionswebhook.ValidatorName, validator.New),
+		webhookcmd.Switch(validator.Name, validator.New),
 		webhookcmd.Switch(validator.SecretsValidatorName, validator.NewSecretsWebhook),
 		webhookcmd.Switch(mutator.ShootMutatorName, mutator.NewShootsWebhook),
 	)
