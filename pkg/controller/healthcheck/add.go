@@ -86,7 +86,7 @@ func RegisterHealthChecks(mgr manager.Manager, opts healthcheck.DefaultAddArgs) 
 				HealthCheck:   general.NewSeedDeploymentHealthChecker(alicloud.CSISnapshotControllerName),
 				PreCheckFunc:  snapshotControllerPreCheckFunc,
 			},
-			//TODO(acumino): remove preCheckFunc in 1.37 version
+			//TODO(taylor): remove preCheckFunc in 1.37 version
 			{
 				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
 				HealthCheck:   general.NewSeedDeploymentHealthChecker(alicloud.CSISnapshotValidation),
