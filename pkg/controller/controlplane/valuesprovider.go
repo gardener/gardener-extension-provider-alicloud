@@ -29,22 +29,69 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
+	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	secretutils "github.com/gardener/gardener/pkg/utils/secrets"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
+
 	"github.com/go-logr/logr"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 )
+
+// Object names
+const (
+	caNameControlPlane               = "ca-" + alicloud.Name + "-controlplane"
+	cloudControllerManagerServerName = "cloud-controller-manager-server"
+	csiSnapshotValidationServerName  = alicloud.CSISnapshotValidation + "-server"
+)
+
+func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
+	return []extensionssecretsmanager.SecretConfigWithOptions{
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:       caNameControlPlane,
+				CommonName: caNameControlPlane,
+				CertType:   secretutils.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        cloudControllerManagerServerName,
+				CommonName:                  alicloud.CloudControllerManagerName,
+				DNSNames:                    kutil.DNSNamesForService(alicloud.CloudControllerManagerName, namespace),
+				CertType:                    secretutils.ServerCert,
+				SkipPublishingCACertificate: true,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        csiSnapshotValidationServerName,
+				CommonName:                  alicloud.UsernamePrefix + alicloud.CSISnapshotValidation,
+				DNSNames:                    kutil.DNSNamesForService(alicloud.CSISnapshotValidation, namespace),
+				CertType:                    secretutils.ServerCert,
+				SkipPublishingCACertificate: true,
+			},
+			// use current CA for signing server cert to prevent mismatches when dropping the old CA from the webhook
+			// config in phase Completing
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane, secretsmanager.UseCurrentCA)},
+		},
+	}
+}
 
 func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 	return []*gutil.ShootAccessSecret{
@@ -83,6 +130,7 @@ var controlPlaneChart = &chart.Chart{
 				alicloud.CSIPluginImageName,
 				alicloud.CSILivenessProbeImageName,
 				alicloud.CSISnapshotControllerImageName,
+				alicloud.CSISnapshotValidationWebhookImageName,
 			},
 			Objects: []*chart.Object{
 				{Type: &appsv1.Deployment{}, Name: "csi-plugin-controller"},
@@ -90,6 +138,11 @@ var controlPlaneChart = &chart.Chart{
 				{Type: &appsv1.Deployment{}, Name: "csi-snapshot-controller"},
 				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-controller-vpa"},
 				{Type: &corev1.ConfigMap{}, Name: "csi-plugin-controller-observability-config"},
+				// csi-snapshot-validation-webhook
+				{Type: &appsv1.Deployment{}, Name: alicloud.CSISnapshotValidation},
+				{Type: &corev1.Service{}, Name: alicloud.CSISnapshotValidation},
+				{Type: &networkingv1.NetworkPolicy{}, Name: "allow-kube-apiserver-to-csi-snapshot-validation"},
+				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-webhook-vpa"},
 			},
 		},
 	},
@@ -157,6 +210,8 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":csi-resizer"},
 				{Type: &rbacv1.Role{}, Name: "csi-resizer"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-resizer"},
+				// csi-snapshot-validation-webhook
+				{Type: &admissionregistrationv1.ValidatingWebhookConfiguration{}, Name: alicloud.CSISnapshotValidation},
 			},
 		},
 	},
@@ -203,7 +258,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
-	_ secretsmanager.Reader,
+	secretsReader secretsmanager.Reader,
 	checksums map[string]string,
 	scaledDown bool,
 ) (map[string]interface{}, error) {
@@ -212,7 +267,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 	// Get control plane chart values
-	return vp.getControlPlaneChartValues(ctx, cpConfig, cp, cluster, checksums, scaledDown)
+	return vp.getControlPlaneChartValues(ctx, cpConfig, cp, cluster, secretsReader, checksums, scaledDown)
 }
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
@@ -220,7 +275,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
-	_ secretsmanager.Reader,
+	secretsReader secretsmanager.Reader,
 	_ map[string]string,
 ) (map[string]interface{}, error) {
 	// Get credentials from the referenced secret
@@ -235,7 +290,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cpConfig, cluster, credentials)
+	return vp.getControlPlaneShootChartValues(cpConfig, cluster, cp, credentials, secretsReader)
 }
 
 // GetControlPlaneShootCRDsChartValues returns the values for the control plane shoot CRDs chart applied by the generic actuator.
@@ -333,6 +388,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 	cpConfig *apisalicloud.ControlPlaneConfig,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
+	secretsReader secretsmanager.Reader,
 	checksums map[string]string,
 	scaledDown bool,
 ) (map[string]interface{}, error) {
@@ -340,6 +396,12 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 	if err != nil {
 		return nil, fmt.Errorf("could not build cloud controller config file content for controlplain '%s': %w", kutil.ObjectName(cp), err)
 	}
+
+	serverSecret, found := secretsReader.Get(csiSnapshotValidationServerName)
+	if !found {
+		return nil, fmt.Errorf("secret %q not found", csiSnapshotValidationServerName)
+	}
+
 	values := map[string]interface{}{
 		"global": map[string]interface{}{
 			"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
@@ -367,6 +429,12 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 				},
 			},
 			"csiSnapshotController": map[string]interface{}{},
+			"csiSnapshotValidationWebhook": map[string]interface{}{
+				"replicas": extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+				"secrets": map[string]interface{}{
+					"server": serverSecret.Name,
+				},
+			},
 		},
 	}
 
@@ -385,8 +453,17 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 func (vp *valuesProvider) getControlPlaneShootChartValues(
 	cpConfig *apisalicloud.ControlPlaneConfig,
 	cluster *extensionscontroller.Cluster,
+	cp *extensionsv1alpha1.ControlPlane,
 	credentials *alicloud.Credentials,
+	secretsReader secretsmanager.Reader,
+
 ) (map[string]interface{}, error) {
+	// get the ca.crt for caBundle of the snapshot-validation webhook
+	caSecret, found := secretsReader.Get(caNameControlPlane)
+	if !found {
+		return nil, fmt.Errorf("secret %q not found", caNameControlPlane)
+	}
+
 	values := map[string]interface{}{
 		"csi-alicloud": map[string]interface{}{
 			"credential": map[string]interface{}{
@@ -396,6 +473,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 			"kubernetesVersion":  cluster.Shoot.Spec.Kubernetes.Version,
 			"enableADController": vp.enableCSIADController(cpConfig),
 			"vpaEnabled":         gardencorev1beta1helper.ShootWantsVerticalPodAutoscaler(cluster.Shoot),
+			"webhookConfig": map[string]interface{}{
+				"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
+				"caBundle": string(caSecret.Data[secretutils.DataKeyCertificateBundle]),
+			},
 		},
 	}
 

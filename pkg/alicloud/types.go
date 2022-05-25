@@ -14,7 +14,11 @@
 
 package alicloud
 
-import "path/filepath"
+import (
+	"path/filepath"
+
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+)
 
 const (
 	// Name is the name of the Alicloud provider.
@@ -47,6 +51,9 @@ const (
 	// CSIPluginImageName is the name of the CSI plugin image.
 	CSIPluginImageName = "csi-plugin-alicloud"
 
+	// CSISnapshotValidationWebhookImageName is the name of the csi-snapshot-validation-webhook image.
+	CSISnapshotValidationWebhookImageName = "csi-snapshot-validation-webhook"
+
 	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
 	MachineControllerManagerName = "machine-controller-manager"
 	// MachineControllerManagerVpaName is the name of the VerticalPodAutoscaler of the machine-controller-manager deployment.
@@ -63,6 +70,8 @@ const (
 	CSIPluginController = "csi-plugin-controller"
 	// CSISnapshotControllerName is a constant for the name of the csi-snapshot-controller Deployment in the Seed.
 	CSISnapshotControllerName = "csi-snapshot-controller"
+	// CSISnapshotValidation is the constant for the name of the csi-snapshot-validation-webhook component.
+	CSISnapshotValidation = "csi-snapshot-validation"
 
 	// CRDVolumeSnapshotClasses is a constant for the name of VolumeSnapshotClasses CRD.
 	CRDVolumeSnapshotClasses = "volumesnapshotclasses.snapshot.storage.k8s.io"
@@ -86,6 +95,8 @@ const (
 	// DefaultDNSRegion is the default region to be used if a region is not specified in the DNS secret
 	// or in the DNSRecord resource.
 	DefaultDNSRegion = "cn-shanghai"
+	// CloudProviderConfigName is the name of the configmap containing the cloud provider config.
+	CloudProviderConfigName = "cloud-provider-config"
 )
 
 var (
@@ -95,4 +106,7 @@ var (
 	InternalChartsPath = filepath.Join(ChartsPath, "internal")
 	// InfraChartPath is the path to the alicloud-infra chart.
 	InfraChartPath = filepath.Join(InternalChartsPath, "alicloud-infra")
+
+	// UsernamePrefix is a constant for the username prefix of components deployed by AWS.
+	UsernamePrefix = extensionsv1alpha1.SchemeGroupVersion.Group + ":" + Name + ":"
 )

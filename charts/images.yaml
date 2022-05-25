@@ -36,6 +36,10 @@ images:
   repository: k8s.gcr.io/sig-storage/csi-snapshotter
   tag: v3.0.3
   targetVersion: ">= 1.17"
+- name: csi-snapshot-validation-webhook
+  sourceRepository: github.com/kubernetes-csi/external-snapshotter
+  repository: k8s.gcr.io/sig-storage/snapshot-validation-webhook
+  tag: "v3.0.3"
 - name: csi-snapshot-controller
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: k8s.gcr.io/sig-storage/snapshot-controller
