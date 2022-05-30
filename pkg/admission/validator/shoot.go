@@ -187,30 +187,9 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 		return errList.ToAggregate()
 	}
 
-	return s.validateShootSecret(ctx, shoot)
+	return nil
 }
 
-func (s *shoot) validateShootSecret(ctx context.Context, shoot *core.Shoot) error {
-	var (
-		secretBinding    = &gardencorev1beta1.SecretBinding{}
-		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
-	)
-	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
-		return err
-	}
-
-	var (
-		secret    = &corev1.Secret{}
-		secretKey = kutil.Key(secretBinding.SecretRef.Namespace, secretBinding.SecretRef.Name)
-	)
-	// Explicitly use the client.Reader to prevent controller-runtime to start Informer for Secrets
-	// under the hood. The latter increases the memory usage of the component.
-	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
-		return err
-	}
-
-	return alicloudvalidation.ValidateCloudProviderSecret(secret)
-}
 func (s *shoot) getEnhancedNatGatewayAvailableZones(ctx context.Context, shoot *core.Shoot) ([]string, error) {
 	regionID := shoot.Spec.Region
 	var (
