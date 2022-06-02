@@ -213,6 +213,12 @@ var _ = Describe("ValuesProvider", func() {
 	})
 
 	Describe("#GetControlPlaneChartValues", func() {
+		BeforeEach(func() {
+			By("creating secrets managed outside of this package for whose secretsmanager.Get() will be called")
+			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "ca-provider-alicloud-controlplane", Namespace: namespace}})).To(Succeed())
+			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "csi-snapshot-validation-server", Namespace: namespace}})).To(Succeed())
+		})
+
 		It("should return correct control plane chart values", func() {
 			// Create mock client
 			client := mockclient.NewMockClient(ctrl)
@@ -232,6 +238,12 @@ var _ = Describe("ValuesProvider", func() {
 	})
 
 	Describe("#GetControlPlaneShootChartValues", func() {
+		BeforeEach(func() {
+			By("creating secrets managed outside of this package for whose secretsmanager.Get() will be called")
+			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "ca-provider-alicloud-controlplane", Namespace: namespace}})).To(Succeed())
+			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "csi-snapshot-validation-server", Namespace: namespace}})).To(Succeed())
+		})
+
 		It("should return correct control plane shoot chart values", func() {
 			// Create mock client
 			client := mockclient.NewMockClient(ctrl)
