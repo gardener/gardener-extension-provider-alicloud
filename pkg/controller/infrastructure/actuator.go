@@ -541,13 +541,11 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 	}
 
 	if err := a.ensureServiceLinkedRole(ctx, infra, credentials); err != nil {
-		gardencorev1beta1helper.DeprecatedDetermineError(err)
-		return err
+		return gardencorev1beta1helper.DeprecatedDetermineError(err)
 	}
 
 	if err = a.ensureOldSSHKeyDetached(ctx, infra); err != nil {
-		gardencorev1beta1helper.DeprecatedDetermineError(err)
-		return err
+		return gardencorev1beta1helper.DeprecatedDetermineError(err)
 	}
 
 	tf, err := common.NewTerraformerWithAuth(a.logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
