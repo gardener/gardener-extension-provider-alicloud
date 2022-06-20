@@ -45,14 +45,12 @@ const (
 // bastion instance name with the IDs of pre-existing cloud provider
 // resources, like the vpc name, shoot security group name etc.
 type Options struct {
-	BastionInstanceName    string
-	Region                 string
-	SecretReference        corev1.SecretReference
-	SecurityGroupName      string
-	VpcName                string
-	ShootName              string
-	ShootSecurityGroupName string
-	UserData               string
+	BastionInstanceName string
+	Region              string
+	SecretReference     corev1.SecretReference
+	SecurityGroupName   string
+	ShootName           string
+	UserData            string
 }
 
 // DetermineOptions determines the information that are required to reconcile a Bastion on Alicloud. This
@@ -72,14 +70,12 @@ func DetermineOptions(bastion *extensionsv1alpha1.Bastion, cluster *controller.C
 	}
 
 	return &Options{
-		ShootName:              clusterName,
-		BastionInstanceName:    baseResourceName,
-		SecretReference:        secretReference,
-		Region:                 region,
-		VpcName:                VpcName(clusterName),
-		SecurityGroupName:      securityGroupName(baseResourceName),
-		ShootSecurityGroupName: fmt.Sprintf("%s-sg", clusterName),
-		UserData:               base64.StdEncoding.EncodeToString(bastion.Spec.UserData),
+		ShootName:           clusterName,
+		BastionInstanceName: baseResourceName,
+		SecretReference:     secretReference,
+		Region:              region,
+		SecurityGroupName:   securityGroupName(baseResourceName),
+		UserData:            base64.StdEncoding.EncodeToString(bastion.Spec.UserData),
 	}, nil
 }
 
@@ -107,11 +103,6 @@ func generateBastionBaseResourceName(clusterName string, bastionName string) (st
 // securityGroupName is security group name
 func securityGroupName(baseName string) string {
 	return fmt.Sprintf("%s-sg", baseName)
-}
-
-// VpcName is shoot vpc name
-func VpcName(baseName string) string {
-	return fmt.Sprintf("%s-vpc", baseName)
 }
 
 // IngressPermission holds the IPv4 and IPv6 ranges that should be allowed to access the bastion.

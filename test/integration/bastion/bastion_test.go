@@ -27,6 +27,7 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 
@@ -64,9 +65,7 @@ const (
 	vpcCIDR             = "10.250.0.0/16"
 	natGatewayCIDR      = "10.250.128.0/21" // Enhanced NatGateway need bind with VSwitch, natGatewayCIDR is used for this VSwitch
 	securityGroupSuffix = "-sg"
-	imageVersion        = "318.8.0"
 	imageID             = "m-gw8iwwd4iiln01dj646s"
-	osType              = "gardenlinux"
 )
 
 var myPublicIP = ""
@@ -94,6 +93,7 @@ type infrastructureIdentifiers struct {
 	vswitchID        *string
 	natGatewayID     *string
 	securityGroupIDs *string
+	zone             *string
 }
 
 var (
@@ -114,6 +114,7 @@ var (
 
 	internalChartsPath string
 	name               string
+	vpcName            string
 )
 
 var _ = BeforeSuite(func() {
@@ -135,6 +136,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	// bastion name prefix
 	name = fmt.Sprintf("alicloud-it-bastion-%s", randString)
+	vpcName = fmt.Sprintf("%s-vpc", name)
 	myPublicIP, err = getMyPublicIPWithMask()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -145,6 +147,7 @@ var _ = BeforeSuite(func() {
 			Paths: []string{
 				filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_clusters.yaml"),
 				filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_bastions.yaml"),
+				filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_workers.yaml"),
 			},
 		},
 	}
@@ -209,18 +212,20 @@ var _ = AfterSuite(func() {
 var _ = Describe("Bastion tests", func() {
 	It("should successfully create and delete", func() {
 		By("setup Infrastructure ")
-		identifiers := prepareVPCandShootSecurityGroup(ctx, clientFactory, name, *region, vpcCIDR, natGatewayCIDR)
+		identifiers := prepareVPCandShootSecurityGroup(ctx, clientFactory, name, vpcName, *region, vpcCIDR, natGatewayCIDR)
 		framework.AddCleanupAction(func() {
 			cleanupVPC(ctx, clientFactory, identifiers)
 		})
 
 		By("create namespace for test execution")
-		setupEnvironmentObjects(ctx, c, namespace(name), secret, extensionscluster)
+		worker := createWorker(name, *identifiers.vpcID, *identifiers.vswitchID, *identifiers.zone, imageID, *identifiers.securityGroupIDs)
+
+		setupEnvironmentObjects(ctx, c, namespace(name), secret, extensionscluster, worker)
 		framework.AddCleanupAction(func() {
-			teardownShootEnvironment(ctx, c, namespace(name), secret, extensionscluster)
+			teardownShootEnvironment(ctx, c, namespace(name), secret, extensionscluster, worker)
 		})
 
-		bastion, options = createBastion(ctx, controllercluster, c, name)
+		bastion, options = createBastion(controllercluster, name)
 
 		By("setup bastion")
 		err := c.Create(ctx, bastion)
@@ -229,7 +234,7 @@ var _ = Describe("Bastion tests", func() {
 		framework.AddCleanupAction(func() {
 			teardownBastion(ctx, logger, c, bastion)
 			By("verify bastion deletion")
-			verifyDeletion(ctx, clientFactory, options, identifiers)
+			verifyDeletion(clientFactory, options)
 		})
 
 		By("wait until bastion is reconciled")
@@ -250,7 +255,7 @@ var _ = Describe("Bastion tests", func() {
 		verifyPort42IsClosed(ctx, c, bastion)
 
 		By("verify cloud resources")
-		verifyCreation(ctx, clientFactory, options, identifiers)
+		verifyCreation(clientFactory, options)
 	})
 })
 
@@ -308,7 +313,7 @@ func verifyPort22IsOpen(ctx context.Context, c client.Client, bastion *extension
 
 	ipAddress := bastionUpdated.Status.Ingress.IP
 	address := net.JoinHostPort(ipAddress, "22")
-	conn, err := net.DialTimeout("tcp4", address, 60*time.Second)
+	conn, err := net.DialTimeout("tcp", address, 60*time.Second)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(conn).NotTo(BeNil())
 }
@@ -321,7 +326,7 @@ func verifyPort42IsClosed(ctx context.Context, c client.Client, bastion *extensi
 
 	ipAddress := bastionUpdated.Status.Ingress.IP
 	address := net.JoinHostPort(ipAddress, "42")
-	conn, err := net.DialTimeout("tcp4", address, 3*time.Second)
+	conn, err := net.DialTimeout("tcp", address, 3*time.Second)
 	Expect(err).Should(HaveOccurred())
 	Expect(conn).To(BeNil())
 }
@@ -372,11 +377,52 @@ func createInfrastructureConfig() *alicloudv1alpha1.InfrastructureConfig {
 	}
 }
 
+func createWorker(name, vpcID, vSwitchID, zone, machineImageID, shootSecurityGroupID string) *extensionsv1alpha1.Worker {
+	return &extensionsv1alpha1.Worker{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: name,
+		},
+		Spec: extensionsv1alpha1.WorkerSpec{
+			DefaultSpec: extensionsv1alpha1.DefaultSpec{
+				Type: alicloud.Type,
+			},
+			InfrastructureProviderStatus: &runtime.RawExtension{
+				Object: &aliapi.InfrastructureStatus{
+					VPC: aliapi.VPCStatus{
+						ID: vpcID,
+						VSwitches: []aliapi.VSwitch{
+							{
+								ID:   vSwitchID,
+								Zone: zone,
+							},
+						},
+						SecurityGroups: []aliapi.SecurityGroup{
+							{
+								ID: shootSecurityGroupID,
+							},
+						},
+					},
+					MachineImages: []aliapi.MachineImage{
+						{
+							ID: machineImageID,
+						},
+					},
+				},
+			},
+			Pools: []extensionsv1alpha1.WorkerPool{},
+		},
+	}
+}
+
 func createShoot(infrastructureConfig []byte) *gardencorev1beta1.Shoot {
 	return &gardencorev1beta1.Shoot{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "core.gardener.cloud/v1beta1",
 			Kind:       "Shoot",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
 		},
 		Spec: gardencorev1beta1.ShootSpec{
 			Region:            *region,
@@ -384,16 +430,6 @@ func createShoot(infrastructureConfig []byte) *gardencorev1beta1.Shoot {
 			Provider: gardencorev1beta1.Provider{
 				InfrastructureConfig: &runtime.RawExtension{
 					Raw: infrastructureConfig,
-				},
-				Workers: []gardencorev1beta1.Worker{
-					{
-						Machine: gardencorev1beta1.Machine{
-							Image: &gardencorev1beta1.ShootMachineImage{
-								Name:    osType,
-								Version: pointer.String(imageVersion),
-							},
-						},
-					},
 				},
 			},
 		},
@@ -405,22 +441,6 @@ func createCloudProfile() *gardencorev1beta1.CloudProfile {
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: alicloudv1alpha1.SchemeGroupVersion.String(),
 			Kind:       "CloudProfileConfig",
-		},
-		MachineImages: []alicloudv1alpha1.MachineImages{
-			{
-				Name: osType,
-				Versions: []alicloudv1alpha1.MachineImageVersion{
-					{
-						Version: imageVersion,
-						Regions: []alicloudv1alpha1.RegionIDMapping{
-							{
-								Name: *region,
-								ID:   imageID,
-							},
-						},
-					},
-				},
-			},
 		},
 	}
 
@@ -436,7 +456,7 @@ func createCloudProfile() *gardencorev1beta1.CloudProfile {
 	return cloudProfile
 }
 
-func createBastion(ctx context.Context, cluster *controller.Cluster, c client.Client, name string) (*extensionsv1alpha1.Bastion, *bastionctrl.Options) {
+func createBastion(cluster *controller.Cluster, name string) (*extensionsv1alpha1.Bastion, *bastionctrl.Options) {
 	bastion := &extensionsv1alpha1.Bastion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-bastion",
@@ -461,7 +481,7 @@ func createBastion(ctx context.Context, cluster *controller.Cluster, c client.Cl
 	return bastion, options
 }
 
-func prepareVPCandShootSecurityGroup(ctx context.Context, clientFactory alicloudclient.ClientFactory, name, region, vpcCIDR, natGatewayCIDR string) infrastructureIdentifiers {
+func prepareVPCandShootSecurityGroup(ctx context.Context, clientFactory alicloudclient.ClientFactory, name, vpcName, region, vpcCIDR, natGatewayCIDR string) infrastructureIdentifiers {
 	vpcClient, err := clientFactory.NewVPCClient(region, *accessKeyID, *accessKeySecret)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -469,7 +489,7 @@ func prepareVPCandShootSecurityGroup(ctx context.Context, clientFactory alicloud
 	createVpcReq := vpc.CreateCreateVpcRequest()
 	createVpcReq.CidrBlock = vpcCIDR
 	createVpcReq.RegionId = region
-	createVpcReq.VpcName = bastionctrl.VpcName(name)
+	createVpcReq.VpcName = vpcName
 	createVpcReq.Description = name
 	createVPCsResp, err := vpcClient.CreateVpc(createVpcReq)
 	Expect(err).NotTo(HaveOccurred())
@@ -554,6 +574,7 @@ func prepareVPCandShootSecurityGroup(ctx context.Context, clientFactory alicloud
 		vswitchID:        pointer.StringPtr(createVSwitchsResp.VSwitchId),
 		natGatewayID:     pointer.StringPtr(createNatGatewayResp.NatGatewayId),
 		securityGroupIDs: pointer.StringPtr(createSecurityGroupsResp.SecurityGroupId),
+		zone:             pointer.StringPtr(createVSwitchsReq.ZoneId),
 	}
 }
 
@@ -639,13 +660,15 @@ func namespace(name string) *corev1.Namespace {
 	}
 }
 
-func setupEnvironmentObjects(ctx context.Context, c client.Client, namespace *corev1.Namespace, secret *corev1.Secret, cluster *extensionsv1alpha1.Cluster) {
+func setupEnvironmentObjects(ctx context.Context, c client.Client, namespace *corev1.Namespace, secret *corev1.Secret, cluster *extensionsv1alpha1.Cluster, worker *extensionsv1alpha1.Worker) {
 	Expect(c.Create(ctx, namespace)).To(Succeed())
 	Expect(c.Create(ctx, cluster)).To(Succeed())
 	Expect(c.Create(ctx, secret)).To(Succeed())
+	Expect(c.Create(ctx, worker)).To(Succeed())
 }
 
-func teardownShootEnvironment(ctx context.Context, c client.Client, namespace *corev1.Namespace, secret *corev1.Secret, cluster *extensionsv1alpha1.Cluster) {
+func teardownShootEnvironment(ctx context.Context, c client.Client, namespace *corev1.Namespace, secret *corev1.Secret, cluster *extensionsv1alpha1.Cluster, worker *extensionsv1alpha1.Worker) {
+	Expect(client.IgnoreNotFound(c.Delete(ctx, worker))).To(Succeed())
 	Expect(client.IgnoreNotFound(c.Delete(ctx, secret))).To(Succeed())
 	Expect(client.IgnoreNotFound(c.Delete(ctx, cluster))).To(Succeed())
 	Expect(client.IgnoreNotFound(c.Delete(ctx, namespace))).To(Succeed())
@@ -660,7 +683,7 @@ func teardownBastion(ctx context.Context, logger *logrus.Entry, c client.Client,
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func verifyDeletion(ctx context.Context, clientFactory alicloudclient.ClientFactory, options *bastionctrl.Options, identifiers infrastructureIdentifiers) {
+func verifyDeletion(clientFactory alicloudclient.ClientFactory, options *bastionctrl.Options) {
 	ecsClient, err := clientFactory.NewECSClient(*region, *accessKeyID, *accessKeySecret)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -675,7 +698,7 @@ func verifyDeletion(ctx context.Context, clientFactory alicloudclient.ClientFact
 	Expect(sgResponse.SecurityGroups.SecurityGroup).To(HaveLen(0))
 }
 
-func verifyCreation(ctx context.Context, clientFactory alicloudclient.ClientFactory, options *bastionctrl.Options, identifiers infrastructureIdentifiers) {
+func verifyCreation(clientFactory alicloudclient.ClientFactory, options *bastionctrl.Options) {
 	ecsClient, err := clientFactory.NewECSClient(*region, *accessKeyID, *accessKeySecret)
 	Expect(err).NotTo(HaveOccurred())
 
