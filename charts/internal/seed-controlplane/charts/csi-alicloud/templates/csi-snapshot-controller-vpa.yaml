@@ -8,7 +8,7 @@ metadata:
 spec:
   resourcePolicy:
     containerPolicies:
-    - containerName: csi-snapshot-controller
+    - containerName: alicloud-csi-snapshot-controller
       minAllowed:
        memory: {{ .Values.csiSnapshotController.podResources.snapshotController.requests.memory }}
       controlledValues: RequestsOnly
