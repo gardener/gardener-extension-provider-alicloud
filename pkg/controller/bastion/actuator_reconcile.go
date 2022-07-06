@@ -22,11 +22,14 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	alicloudapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	ctrlerror "github.com/gardener/gardener/pkg/controllerutils/reconciler"
+	"github.com/gardener/gardener/pkg/extensions"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -37,7 +40,7 @@ import (
 type bastionEndpoints struct {
 	// private is the private endpoint of the bastion. It is required when opening a port on the worker node to allow SSH access from the bastion
 	private *corev1.LoadBalancerIngress
-	//  public is the public endpoint where the enduser connects to establish the SSH connection.
+	//  public is the public endpoint where the end user connects to establish the SSH connection.
 	public *corev1.LoadBalancerIngress
 }
 
@@ -55,6 +58,11 @@ func (a *actuator) Reconcile(ctx context.Context, bastion *extensionsv1alpha1.Ba
 		return err
 	}
 
+	infrastructureStatus, err := getInfrastructureStatus(ctx, a, cluster)
+	if err != nil {
+		return err
+	}
+
 	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.client, &opt.SecretReference)
 	if err != nil {
 		return err
@@ -65,29 +73,15 @@ func (a *actuator) Reconcile(ctx context.Context, bastion *extensionsv1alpha1.Ba
 		return err
 	}
 
-	aliCloudVPCClient, err := a.newClientFactory.NewVPCClient(opt.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
-	if err != nil {
-		return err
-	}
-
-	imageID, err := getImageID(cluster, opt)
-	if err != nil {
-		return err
-	}
-
-	vpcInfo, err := aliCloudVPCClient.GetVPCInfoByName(opt.VpcName)
-	if err != nil {
-		return err
-	}
-
-	vSwitchInfo, err := aliCloudVPCClient.GetVSwitchesInfoByID(vpcInfo.VSwitchID)
-	if err != nil {
-		return err
-	}
+	imageID := infrastructureStatus.MachineImages[0].ID
+	vSwitchesZoneID := infrastructureStatus.VPC.VSwitches[0].Zone
+	vSwitchesID := infrastructureStatus.VPC.VSwitches[0].ID
+	vpcId := infrastructureStatus.VPC.ID
+	shootSecurityGroupId := infrastructureStatus.VPC.SecurityGroups[0].ID
 
 	var instanceTypeId string
 	for cores := 1; cores <= 2; cores++ {
-		instanceType, err := aliCloudECSClient.GetInstanceType(cores, vSwitchInfo.ZoneID)
+		instanceType, err := aliCloudECSClient.GetInstanceType(cores, vSwitchesZoneID)
 		if err != nil {
 			return err
 		}
@@ -113,12 +107,12 @@ func (a *actuator) Reconcile(ctx context.Context, bastion *extensionsv1alpha1.Ba
 		logger.Info("falling back to first machine type of cloud profile as bastion instance type id", "instance type", cluster.CloudProfile.Spec.MachineTypes[0].Name)
 	}
 
-	securityGroupID, err := ensureSecurityGroup(aliCloudECSClient, opt.SecurityGroupName, vpcInfo.VPCID, logger)
+	securityGroupID, err := ensureSecurityGroup(aliCloudECSClient, opt.SecurityGroupName, vpcId, logger)
 	if err != nil {
 		return err
 	}
 
-	instanceID, err := ensureComputeInstance(aliCloudECSClient, logger, opt, securityGroupID, imageID, vpcInfo.VSwitchID, vSwitchInfo.ZoneID, instanceTypeId)
+	instanceID, err := ensureComputeInstance(aliCloudECSClient, logger, opt, securityGroupID, imageID, vSwitchesID, vSwitchesZoneID, instanceTypeId)
 	if err != nil {
 		return err
 	}
@@ -135,7 +129,7 @@ func (a *actuator) Reconcile(ctx context.Context, bastion *extensionsv1alpha1.Ba
 		}
 	}
 
-	err = ensureSecurityGroupRules(aliCloudECSClient, opt, bastion, securityGroupID)
+	err = ensureSecurityGroupRules(aliCloudECSClient, opt, shootSecurityGroupId, bastion, securityGroupID)
 	if err != nil {
 		return err
 	}
@@ -261,7 +255,7 @@ func ensureSecurityGroup(c aliclient.ECS, securityGroupName, vpcID string, logge
 	return createResponse.SecurityGroupId, nil
 }
 
-func ensureSecurityGroupRules(c aliclient.ECS, opt *Options, bastion *extensionsv1alpha1.Bastion, securityGroupId string) error {
+func ensureSecurityGroupRules(c aliclient.ECS, opt *Options, shootSecurityGroupId string, bastion *extensionsv1alpha1.Bastion, securityGroupId string) error {
 	// ingress permission
 	ingressPermissions, err := ingressPermissions(bastion)
 	if err != nil {
@@ -294,18 +288,6 @@ func ensureSecurityGroupRules(c aliclient.ECS, opt *Options, bastion *extensions
 	}
 
 	// egress rules create
-	shootSecurityGroupResponse, err := c.GetSecurityGroup(opt.ShootSecurityGroupName)
-	if err != nil {
-		return err
-	}
-
-	if len(shootSecurityGroupResponse.SecurityGroups.SecurityGroup) == 0 {
-		return errors.New("shoot security group not found")
-	}
-
-	// The assumption is that the shoot only has one security group
-	shootSecurityGroupId := shootSecurityGroupResponse.SecurityGroups.SecurityGroup[0].SecurityGroupId
-
 	instanceResponse, err := c.GetInstances(opt.BastionInstanceName)
 	if err != nil {
 		return err
@@ -469,4 +451,40 @@ func egressRuleEqual(a ecs.AuthorizeSecurityGroupEgressRequest, b ecs.Permission
 	}
 
 	return true
+}
+
+func getInfrastructureStatus(ctx context.Context, a *actuator, cluster *extensions.Cluster) (*alicloudapi.InfrastructureStatus, error) {
+	var infrastructureStatus *alicloudapi.InfrastructureStatus
+	worker := &extensionsv1alpha1.Worker{}
+	err := a.client.Get(ctx, client.ObjectKey{Namespace: cluster.ObjectMeta.Name, Name: cluster.Shoot.Name}, worker)
+	if err != nil {
+		return nil, err
+	}
+
+	if worker.Spec.InfrastructureProviderStatus == nil {
+		return nil, errors.New("infrastructure provider status must be not empty for worker")
+	}
+
+	if infrastructureStatus, err = helper.InfrastructureStatusFromRaw(worker.Spec.InfrastructureProviderStatus); err != nil {
+		return nil, err
+	}
+
+	if infrastructureStatus.VPC.ID == "" {
+		return nil, errors.New("vpc id must be not empty for infrastructure provider status")
+	}
+
+	if len(infrastructureStatus.VPC.VSwitches) == 0 || infrastructureStatus.VPC.VSwitches[0].ID == "" || infrastructureStatus.VPC.VSwitches[0].Zone == "" {
+		return nil, errors.New("vswitches id must be not empty for infrastructure provider status")
+	}
+
+	if len(infrastructureStatus.MachineImages) == 0 || infrastructureStatus.MachineImages[0].ID == "" {
+		return nil, errors.New("machineImages id must be not empty for infrastructure provider status")
+	}
+
+	// The assumption is that the shoot only has one security group
+	if len(infrastructureStatus.VPC.SecurityGroups) == 0 || infrastructureStatus.VPC.SecurityGroups[0].ID == "" {
+		return nil, errors.New("shoot securityGroups id must be not empty for infrastructure provider status")
+	}
+
+	return infrastructureStatus, nil
 }

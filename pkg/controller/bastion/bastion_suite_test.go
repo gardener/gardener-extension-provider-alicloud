@@ -16,11 +16,9 @@ package bastion
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"testing"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
-	alicloudApi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -109,7 +107,6 @@ var _ = Describe("Bastion", func() {
 			},
 
 			Entry("security group name", securityGroupName(baseName), "clusterName-LetsExceed63LenLimit0-bastion-139c4-sg"),
-			Entry("vpc name", VpcName(baseName), "clusterName-LetsExceed63LenLimit0-bastion-139c4-vpc"),
 		)
 	})
 
@@ -331,35 +328,6 @@ var _ = Describe("Bastion", func() {
 				true),
 		)
 
-	})
-
-	Describe("check getClusterImageID getClusterProviderConfig ,", func() {
-		It("should return machineID", func() {
-			bytes, _ := json.Marshal(alicloudApi.CloudProfileConfig{
-				MachineImages: []alicloudApi.MachineImages{
-					{
-						Name: "linux",
-						Versions: []alicloudApi.MachineImageVersion{
-							{
-								Version: "version-1",
-								Regions: []alicloudApi.RegionIDMapping{
-									{
-										Name: "abc",
-										ID:   "machine-id1",
-									},
-								},
-							},
-						},
-					},
-				},
-			})
-
-			profileConfig, err := unmarshalClusterProviderConfig(bytes)
-			Expect(err).To(Not(HaveOccurred()))
-			machineID, err := getClusterImageID(*profileConfig, "linux", "version-1", "abc")
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(machineID).To(Equal("machine-id1"))
-		})
 	})
 })
 
