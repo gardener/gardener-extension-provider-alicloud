@@ -17,10 +17,16 @@ spec:
       minAllowed:
         cpu: {{ .Values.resources.mcmProviderAlicloud.requests.cpu }}
         memory: {{ .Values.resources.mcmProviderAlicloud.requests.memory }}
+      maxAllowed:
+        cpu: {{ .Values.vpa.resourcePolicy.mcmProviderAlicloud.maxAllowed.cpu }}
+        memory: {{ .Values.vpa.resourcePolicy.mcmProviderAlicloud.maxAllowed.memory }}
       controlledValues: RequestsOnly
     - containerName: alicloud-machine-controller-manager
       minAllowed:
         cpu: {{ .Values.resources.mcm.requests.cpu }}
         memory: {{ .Values.resources.mcm.requests.memory }}
+      maxAllowed:
+        cpu: {{ .Values.vpa.resourcePolicy.mcm.maxAllowed.cpu }}
+        memory: {{ .Values.vpa.resourcePolicy.mcm.maxAllowed.memory }}
       controlledValues: RequestsOnly
 {{- end }}
