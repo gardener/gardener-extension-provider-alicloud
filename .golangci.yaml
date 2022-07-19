@@ -18,6 +18,6 @@ issues:
   - indent-error-flow # if block ends with a return statement, so drop this else and outdent its block
   - "exported: (type|func) name will be used as .* by other packages, and that stutters;"
   exclude-rules:
-  - path: (pkg/apis/alicloud/v1alpha1/zz_generated.conversion.go)
-    linters:
+  - linters:
     - staticcheck
+    text: "SA1019:" # Excludes messages where deprecated variables are used
