@@ -10,7 +10,7 @@ images:
 - name: machine-controller-manager-provider-alicloud
   sourceRepository: github.com/gardener/machine-controller-manager-provider-alicloud
   repository: eu.gcr.io/gardener-project/gardener/machine-controller-manager-provider-alicloud
-  tag: "v0.5.0"
+  tag: "v0.6.0"
 
 - name: alicloud-controller-manager
   sourceRepository: https://github.com/kubernetes/cloud-provider-alibaba-cloud
