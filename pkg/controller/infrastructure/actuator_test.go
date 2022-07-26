@@ -95,8 +95,9 @@ var _ = Describe("Actuator", func() {
 			initializer           *mockterraformer.MockInitializer
 			restConfig            rest.Config
 
-			cidr   string
-			config alicloudv1alpha1.InfrastructureConfig
+			cidr    string
+			config  alicloudv1alpha1.InfrastructureConfig
+			podCIDR string
 
 			configYAML      []byte
 			secretNamespace string
@@ -173,14 +174,17 @@ var _ = Describe("Actuator", func() {
 				owner = metav1.NewControllerRef(&infra, extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.InfrastructureResource))
 				accessKeyID = "accessKeyID"
 				accessKeySecret = "accessKeySecret"
+				podCIDR = "100.96.0.0/11"
 				cluster = controller.Cluster{
 					Shoot: &gardencorev1beta1.Shoot{
 						Spec: gardencorev1beta1.ShootSpec{
 							Region: region,
+							Networking: gardencorev1beta1.Networking{
+								Pods: &podCIDR,
+							},
 						},
 					},
 				}
-
 				initializerValues = InitializerValues{}
 				chartValues = map[string]interface{}{
 					"alicloud": map[string]interface{}{
@@ -208,6 +212,7 @@ var _ = Describe("Actuator", func() {
 							},
 						},
 					},
+					"podCIDR": podCIDR,
 					"outputKeys": map[string]interface{}{
 						"vpcID":              "vpc_id",
 						"vpcCIDR":            "vpc_cidr",
@@ -268,7 +273,7 @@ var _ = Describe("Actuator", func() {
 					vpcClient.EXPECT().FetchEIPInternetChargeType(context.TODO(), nil, vpcID).Return(alicloudclient.DefaultInternetChargeType, nil),
 
 					terraformChartOps.EXPECT().ComputeCreateVPCInitializerValues(&config, alicloudclient.DefaultInternetChargeType).Return(&initializerValues),
-					terraformChartOps.EXPECT().ComputeChartValues(&infra, &config, &initializerValues).Return(chartValues),
+					terraformChartOps.EXPECT().ComputeChartValues(&infra, &config, cluster.Shoot.Spec.Networking.Pods, &initializerValues).Return(chartValues),
 
 					terraformerFactory.EXPECT().DefaultInitializer(c, gomock.Any(), gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(realterraformer.CreateState)).Return(initializer),
 
@@ -363,7 +368,7 @@ var _ = Describe("Actuator", func() {
 					vpcClient.EXPECT().FetchEIPInternetChargeType(context.TODO(), nil, vpcID).Return(alicloudclient.DefaultInternetChargeType, nil),
 
 					terraformChartOps.EXPECT().ComputeCreateVPCInitializerValues(&config, alicloudclient.DefaultInternetChargeType).Return(&initializerValues),
-					terraformChartOps.EXPECT().ComputeChartValues(&infra, &config, &initializerValues).Return(chartValues),
+					terraformChartOps.EXPECT().ComputeChartValues(&infra, &config, cluster.Shoot.Spec.Networking.Pods, &initializerValues).Return(chartValues),
 
 					terraformerFactory.EXPECT().DefaultInitializer(c, gomock.Any(), gomock.Any(), gomock.Any(), realterraformer.CreateOrUpdateState{State: &state}).Return(initializer),
 

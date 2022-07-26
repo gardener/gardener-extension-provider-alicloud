@@ -38,17 +38,17 @@ func (m *MockTerraformChartOps) EXPECT() *MockTerraformChartOpsMockRecorder {
 }
 
 // ComputeChartValues mocks base method.
-func (m *MockTerraformChartOps) ComputeChartValues(arg0 *v1alpha10.Infrastructure, arg1 *v1alpha1.InfrastructureConfig, arg2 *infrastructure.InitializerValues) map[string]interface{} {
+func (m *MockTerraformChartOps) ComputeChartValues(arg0 *v1alpha10.Infrastructure, arg1 *v1alpha1.InfrastructureConfig, arg2 *string, arg3 *infrastructure.InitializerValues) map[string]interface{} {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ComputeChartValues", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "ComputeChartValues", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(map[string]interface{})
 	return ret0
 }
 
 // ComputeChartValues indicates an expected call of ComputeChartValues.
-func (mr *MockTerraformChartOpsMockRecorder) ComputeChartValues(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockTerraformChartOpsMockRecorder) ComputeChartValues(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ComputeChartValues", reflect.TypeOf((*MockTerraformChartOps)(nil).ComputeChartValues), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ComputeChartValues", reflect.TypeOf((*MockTerraformChartOps)(nil).ComputeChartValues), arg0, arg1, arg2, arg3)
 }
 
 // ComputeCreateVPCInitializerValues mocks base method.

@@ -196,8 +196,8 @@ func (a *actuator) getInitializerValues(
 	return a.terraformChartOps.ComputeUseVPCInitializerValues(config, vpcInfo), nil
 }
 
-func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, config *alicloudv1alpha1.InfrastructureConfig, values *InitializerValues, stateInitializer terraformer.StateConfigMapInitializer) (terraformer.Initializer, error) {
-	chartValues := a.terraformChartOps.ComputeChartValues(infra, config, values)
+func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, config *alicloudv1alpha1.InfrastructureConfig, podCIDR *string, values *InitializerValues, stateInitializer terraformer.StateConfigMapInitializer) (terraformer.Initializer, error) {
+	chartValues := a.terraformChartOps.ComputeChartValues(infra, config, podCIDR, values)
 
 	var mainTF bytes.Buffer
 	if err := tplMainTF.Execute(&mainTF, chartValues); err != nil {
@@ -558,7 +558,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return err
 	}
 
-	initializer, err := a.newInitializer(infra, config, initializerValues, stateInitializer)
+	initializer, err := a.newInitializer(infra, config, cluster.Shoot.Spec.Networking.Pods, initializerValues, stateInitializer)
 	if err != nil {
 		return err
 	}

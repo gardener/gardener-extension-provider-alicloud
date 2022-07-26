@@ -553,6 +553,14 @@ func verifyCreation(
 			Priority:     "1",
 			SourceCidrIp: vpcCIDR,
 		},
+		{
+			IpProtocol:   "ALL",
+			Direction:    "ingress",
+			Policy:       "Accept",
+			PortRange:    "-1/-1",
+			Priority:     "1",
+			SourceCidrIp: podCIDR,
+		},
 	}))
 
 	return

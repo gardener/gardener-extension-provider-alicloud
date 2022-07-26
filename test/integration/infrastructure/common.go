@@ -20,6 +20,7 @@ const (
 	allCIDR     = "0.0.0.0/0"
 	vpcCIDR     = "10.250.0.0/16"
 	workersCIDR = "10.250.0.0/21"
+	podCIDR     = "100.96.0.0/11"
 
 	natGatewayCIDR = "10.250.128.0/21" // Enhanced NatGateway need bind with VSwitch, natGatewayCIDR is used for this VSwitch
 	natGatewayType = "Enhanced"
