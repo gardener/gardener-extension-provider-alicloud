@@ -9,7 +9,6 @@ rules:
   resources:
   - nodes
   - nodes/status
-  - endpoints
   - replicationcontrollers
   - pods
   - persistentvolumes
