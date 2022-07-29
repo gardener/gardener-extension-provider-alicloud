@@ -51,7 +51,7 @@ spec:
         - --v=2
         - --cloud-config=/etc/kubernetes/cloudprovider/cloudprovider.conf
         - --cluster-name={{ .Values.clusterName }}
-        - --configure-cloud-routes=false
+        - --configure-cloud-routes=true
         {{- include "cloud-controller-manager.featureGates" . | trimSuffix "," | indent 8 }}
         livenessProbe:
           httpGet:
