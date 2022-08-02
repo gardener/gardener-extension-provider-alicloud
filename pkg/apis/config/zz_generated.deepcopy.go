@@ -22,7 +22,7 @@ limitations under the License.
 package config
 
 import (
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	componentbaseconfig "k8s.io/component-base/config"

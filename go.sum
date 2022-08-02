@@ -301,6 +301,10 @@ github.com/gardener/gardener v1.23.0/go.mod h1:xS/sYyzYsq2W0C79mT98G/qoOTvy/hHTf
 github.com/gardener/gardener v1.36.0/go.mod h1:aVEbZy2WybsuwfXfUFNfOYz1JOmMjEOeYbv+sN9PzE0=
 github.com/gardener/gardener v1.50.1 h1:crSoXqFsquARZnm2NeCt8vT8L2tDMfcmfw7N5AuD92c=
 github.com/gardener/gardener v1.50.1/go.mod h1:Rc2JNnGPMEH+0Wm04EOVLmu9VonyU4JCk1VjOjHUGx8=
+github.com/gardener/gardener v1.52.0 h1:jyqW4PcDfV2Hne/SHlutGXLazB+oq8W1mNtb+zI2HaQ=
+github.com/gardener/gardener v1.52.0/go.mod h1:njlc+5AWYhDZFaq+WgCGlajy/E2/RCESz0pfKRqNBLM=
+github.com/gardener/gardener v1.52.1 h1:Hw9iqwU7oHYFP9mVE5KJfHg2GBLoxtCQKcRf+6gPxYQ=
+github.com/gardener/gardener v1.52.1/go.mod h1:njlc+5AWYhDZFaq+WgCGlajy/E2/RCESz0pfKRqNBLM=
 github.com/gardener/gardener-resource-manager v0.10.0/go.mod h1:0pKTHOhvU91eQB0EYr/6Ymd7lXc/5Hi8P8tF/gpV0VQ=
 github.com/gardener/gardener-resource-manager v0.13.1/go.mod h1:0No/XttYRUwDn5lSppq9EqlKdo/XJQ44aCZz5BVu3Vw=
 github.com/gardener/gardener-resource-manager v0.18.0/go.mod h1:k53Yw2iDAIpTxnChQY9qFHrRtuPQWJDNnCP9eE6TnWQ=
@@ -1517,6 +1521,7 @@ google.golang.org/genproto v0.0.0-20220222213610-43724f9ea8cf/go.mod h1:kGP+zUP2
 google.golang.org/genproto v0.0.0-20220304144024-325a89244dc8/go.mod h1:kGP+zUP2Ddo0ayMi4YuN7C3WZyJvGLZRh8Z5wnAqvEI=
 google.golang.org/genproto v0.0.0-20220310185008-1973136f34c6/go.mod h1:kGP+zUP2Ddo0ayMi4YuN7C3WZyJvGLZRh8Z5wnAqvEI=
 google.golang.org/genproto v0.0.0-20220324131243-acbaeb5b85eb/go.mod h1:hAL49I2IFola2sVEjAn7MEwsja0xp51I0tlGAf9hz4E=
+google.golang.org/genproto v0.0.0-20220407144326-9054f6ed7bac h1:qSNTkEN+L2mvWcLgJOR+8bdHX9rN/IdU3A1Ghpfb1Rg=
 google.golang.org/genproto v0.0.0-20220407144326-9054f6ed7bac/go.mod h1:8w6bsBMX6yCPbAVTeqQHvzxW0EIFigd5lZyahWgyfDo=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.20.1/go.mod h1:10oTOabMzJvdu6/UiuZezV6QK5dSlG84ov/aaiqXj38=
@@ -1619,10 +1624,14 @@ istio.io/api v0.0.0-20201123152548-197f11e4ea09/go.mod h1:88HN3o1fSD1jo+Z1WTLlJf
 istio.io/api v0.0.0-20210520012029-891c0c12abfd/go.mod h1:nsSFw1LIMmGL7r/+6fJI6FxeG/UGlLxRK8bkojIvBVs=
 istio.io/api v0.0.0-20220304035241-8c47cbbea144 h1:JIRhhxQ3LZKOmx2PXHO9xfcnT3mlHLmcewZtpTaAtoo=
 istio.io/api v0.0.0-20220304035241-8c47cbbea144/go.mod h1:lavaUNsnT7RGyMFNOGgV5XvOgP3fkTSZkxP/0H/ISt4=
+istio.io/api v0.0.0-20220512181135-e8ec1e1d89de h1:xYxUL/LyuJ5yb0o/d2GXseYjx9HIBpLHLArp2Zd8d+M=
+istio.io/api v0.0.0-20220512181135-e8ec1e1d89de/go.mod h1:00myJeQGWma4Y5pboJ+MM4P2uqEWulKA1duC8kYN5Wo=
 istio.io/client-go v1.8.1/go.mod h1:Qymv71lwIqjDTkaE2NqBYLL+Bl5KsCfzEDhntXypHYY=
 istio.io/client-go v1.10.1/go.mod h1:xiCalTDM2HqP1KGxMOt+OOkqCLOI6QrwQMb95cSWw9U=
 istio.io/client-go v1.12.5 h1:jRRXcL8kX1ph4BVU/yuRhO4JYX/av5KPimj+7uHqyfQ=
 istio.io/client-go v1.12.5/go.mod h1:rKTRGbzRHY/lb3VCCIF4wwTwvkW000acWEcseSy3V9M=
+istio.io/client-go v1.14.0 h1:KKXMnxXx3U2866OP8FBYlJhjKdI3yIUQnt8L6hSzDHE=
+istio.io/client-go v1.14.0/go.mod h1:C7K0CKQlvY84yQKkZhxQbD1riqvnsgXJm3jF5GOmzNg=
 istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a/go.mod h1:OzpAts7jljZceG4Vqi5/zXy/pOg1b209T3jb7Nv5wIs=
 istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f h1:9710FpGLvIJ1GGEbpuTh1smVBv+r8cJfR3G82ouSxIQ=
 istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f/go.mod h1:6BwTZRNbWS570wHX/uR1Wqk5e0157TofTAUMzT7N4+s=
