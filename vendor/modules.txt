@@ -723,8 +723,6 @@ istio.io/api/type/v1beta1
 ## explicit; go 1.17
 istio.io/client-go/pkg/apis/networking/v1alpha3
 istio.io/client-go/pkg/apis/networking/v1beta1
-# istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f
-## explicit; go 1.15
 # k8s.io/api v0.24.2 => k8s.io/api v0.24.2
 ## explicit; go 1.16
 k8s.io/api/admission/v1

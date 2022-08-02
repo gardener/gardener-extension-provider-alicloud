@@ -133,7 +133,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	istio.io/api v0.0.0-20220512181135-e8ec1e1d89de // indirect
 	istio.io/client-go v1.14.0 // indirect
-	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f // indirect
 	k8s.io/apiserver v0.24.2 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
 	k8s.io/helm v2.16.1+incompatible // indirect
