@@ -50,7 +50,7 @@ func (be *bastionEndpoints) Ready() bool {
 	return be != nil && IngressReady(be.private) && IngressReady(be.public)
 }
 
-func (a *actuator) Reconcile(ctx context.Context, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
+func (a *actuator) Reconcile(ctx context.Context, _ logr.Logger, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
 	logger := a.logger.WithValues("bastion", client.ObjectKeyFromObject(bastion), "operation", "reconcile")
 
 	opt, err := DetermineOptions(bastion, cluster)

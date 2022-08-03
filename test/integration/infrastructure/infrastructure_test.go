@@ -24,6 +24,7 @@ import (
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
+	"github.com/go-logr/logr"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
@@ -32,7 +33,6 @@ import (
 	"github.com/gardener/gardener/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,8 +41,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -55,7 +54,7 @@ import (
 
 var (
 	ctx    = context.Background()
-	logger *logrus.Entry
+	logger logr.Logger
 
 	testEnv   *envtest.Environment
 	mgrCancel context.CancelFunc
@@ -70,10 +69,7 @@ var (
 var _ = BeforeSuite(func() {
 	repoRoot := filepath.Join("..", "..", "..")
 
-	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
-	log := logrus.New()
-	log.SetOutput(GinkgoWriter)
-	logger = logrus.NewEntry(log)
+	logger = log.Log.WithName("test")
 
 	By("starting test environment")
 	testEnv = &envtest.Environment{
@@ -258,7 +254,7 @@ var _ = Describe("Infrastructure tests", func() {
 	})
 })
 
-func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
+func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
 	var (
 		namespace                 *corev1.Namespace
 		cluster                   *extensionsv1alpha1.Cluster

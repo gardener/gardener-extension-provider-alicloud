@@ -42,9 +42,9 @@ import (
 	"github.com/gardener/gardener/pkg/extensions"
 	gardenerutils "github.com/gardener/gardener/pkg/utils"
 	"github.com/gardener/gardener/test/framework"
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,8 +53,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -98,7 +97,7 @@ type infrastructureIdentifiers struct {
 
 var (
 	ctx    = context.Background()
-	logger *logrus.Entry
+	logger logr.Logger
 
 	extensionscluster *extensionsv1alpha1.Cluster
 	controllercluster *controller.Cluster
@@ -126,11 +125,7 @@ var _ = BeforeSuite(func() {
 	alicloud.InternalChartsPath = filepath.Join(repoRoot, alicloud.InternalChartsPath)
 
 	// enable manager logs
-	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
-
-	log := logrus.New()
-	log.SetOutput(GinkgoWriter)
-	logger = logrus.NewEntry(log)
+	logger = log.Log.WithName("test")
 
 	randString, err := randomString()
 	Expect(err).NotTo(HaveOccurred())
@@ -674,7 +669,7 @@ func teardownShootEnvironment(ctx context.Context, c client.Client, namespace *c
 	Expect(client.IgnoreNotFound(c.Delete(ctx, namespace))).To(Succeed())
 }
 
-func teardownBastion(ctx context.Context, logger *logrus.Entry, c client.Client, bastion *extensionsv1alpha1.Bastion) {
+func teardownBastion(ctx context.Context, logger logr.Logger, c client.Client, bastion *extensionsv1alpha1.Bastion) {
 	By("delete bastion")
 	Expect(client.IgnoreNotFound(c.Delete(ctx, bastion))).To(Succeed())
 

@@ -23,10 +23,11 @@ import (
 	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (a *actuator) Delete(ctx context.Context, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, _ logr.Logger, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
 	logger := a.logger.WithValues("bastion", client.ObjectKeyFromObject(bastion), "operation", "reconcile")
 
 	opt, err := DetermineOptions(bastion, cluster)
