@@ -50,9 +50,7 @@ func (be *bastionEndpoints) Ready() bool {
 	return be != nil && IngressReady(be.private) && IngressReady(be.public)
 }
 
-func (a *actuator) Reconcile(ctx context.Context, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
-	logger := a.logger.WithValues("bastion", client.ObjectKeyFromObject(bastion), "operation", "reconcile")
-
+func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
 	opt, err := DetermineOptions(bastion, cluster)
 	if err != nil {
 		return err
@@ -107,12 +105,12 @@ func (a *actuator) Reconcile(ctx context.Context, bastion *extensionsv1alpha1.Ba
 		logger.Info("falling back to first machine type of cloud profile as bastion instance type id", "instance type", cluster.CloudProfile.Spec.MachineTypes[0].Name)
 	}
 
-	securityGroupID, err := ensureSecurityGroup(aliCloudECSClient, opt.SecurityGroupName, vpcId, logger)
+	securityGroupID, err := ensureSecurityGroup(aliCloudECSClient, opt.SecurityGroupName, vpcId, log)
 	if err != nil {
 		return err
 	}
 
-	instanceID, err := ensureComputeInstance(aliCloudECSClient, logger, opt, securityGroupID, imageID, vSwitchesID, vSwitchesZoneID, instanceTypeId)
+	instanceID, err := ensureComputeInstance(aliCloudECSClient, log, opt, securityGroupID, imageID, vSwitchesID, vSwitchesZoneID, instanceTypeId)
 	if err != nil {
 		return err
 	}

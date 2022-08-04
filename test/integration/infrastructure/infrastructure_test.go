@@ -24,6 +24,8 @@ import (
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
+	"github.com/gardener/gardener/pkg/logger"
+	"github.com/go-logr/logr"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
@@ -32,7 +34,6 @@ import (
 	"github.com/gardener/gardener/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,8 +55,8 @@ import (
 )
 
 var (
-	ctx    = context.Background()
-	logger *logrus.Entry
+	ctx = context.Background()
+	log logr.Logger
 
 	testEnv   *envtest.Environment
 	mgrCancel context.CancelFunc
@@ -70,10 +71,10 @@ var (
 var _ = BeforeSuite(func() {
 	repoRoot := filepath.Join("..", "..", "..")
 
-	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
-	log := logrus.New()
-	log.SetOutput(GinkgoWriter)
-	logger = logrus.NewEntry(log)
+	// enable manager logs
+	logf.SetLogger(logger.MustNewZapLogger(logger.DebugLevel, logger.FormatJSON, zap.WriteTo(GinkgoWriter)))
+
+	log = logf.Log.WithName("infrastructure-test")
 
 	By("starting test environment")
 	testEnv = &envtest.Environment{
@@ -149,7 +150,7 @@ var _ = Describe("Infrastructure tests", func() {
 				CIDR: pointer.StringPtr(vpcCIDR),
 			}, availabilityZone)
 
-			err := runTest(ctx, logger, c, providerConfig, decoder, clientFactory)
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -165,7 +166,7 @@ var _ = Describe("Infrastructure tests", func() {
 				ID: identifiers.vpcID,
 			}, availabilityZone)
 
-			err := runTest(ctx, logger, c, providerConfig, decoder, clientFactory)
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -198,7 +199,7 @@ var _ = Describe("Infrastructure tests", func() {
 				err := extensions.WaitUntilExtensionObjectDeleted(
 					ctx,
 					c,
-					logger,
+					log,
 					infra,
 					extensionsv1alpha1.InfrastructureResource,
 					10*time.Second,
@@ -242,7 +243,7 @@ var _ = Describe("Infrastructure tests", func() {
 			err = extensions.WaitUntilExtensionObjectReady(
 				ctx,
 				c,
-				logger,
+				log,
 				infra,
 				extensionsv1alpha1.InfrastructureResource,
 				10*time.Second,
@@ -258,7 +259,7 @@ var _ = Describe("Infrastructure tests", func() {
 	})
 })
 
-func runTest(ctx context.Context, logger *logrus.Entry, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
+func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
 	var (
 		namespace                 *corev1.Namespace
 		cluster                   *extensionsv1alpha1.Cluster

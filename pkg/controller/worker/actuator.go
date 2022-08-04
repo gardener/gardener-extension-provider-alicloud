@@ -46,7 +46,6 @@ func NewActuator() worker.Actuator {
 	}
 
 	return genericactuator.NewActuator(
-		log.Log.WithName("alicloud-worker-actuator"),
 		delegateFactory,
 		alicloud.MachineControllerManagerName,
 		mcmChart,

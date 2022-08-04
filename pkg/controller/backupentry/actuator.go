@@ -43,12 +43,12 @@ func (a *actuator) InjectClient(client client.Client) error {
 	return nil
 }
 
-func (a *actuator) GetETCDSecretData(ctx context.Context, be *extensionsv1alpha1.BackupEntry, backupSecretData map[string][]byte) (map[string][]byte, error) {
+func (a *actuator) GetETCDSecretData(ctx context.Context, _ logr.Logger, be *extensionsv1alpha1.BackupEntry, backupSecretData map[string][]byte) (map[string][]byte, error) {
 	backupSecretData[alicloud.StorageEndpoint] = []byte(alicloudclient.ComputeStorageEndpoint(be.Spec.Region))
 	return backupSecretData, nil
 }
 
-func (a *actuator) Delete(ctx context.Context, be *extensionsv1alpha1.BackupEntry) error {
+func (a *actuator) Delete(ctx context.Context, _ logr.Logger, be *extensionsv1alpha1.BackupEntry) error {
 	cli, err := alicloudclient.NewClientFactory().NewOSSClientFromSecretRef(ctx, a.client, &be.Spec.SecretRef, be.Spec.Region)
 	if err != nil {
 		return err

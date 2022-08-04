@@ -154,7 +154,7 @@ var _ = Describe("Actuator", func() {
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, compositeDomainName, "comment-"+dnsName, "TXT").Return(nil)
 			expectUpdateDNSRecordStatus(compositeDomainName)
 
-			err := a.Reconcile(ctx, dns, nil)
+			err := a.Reconcile(ctx, logger, dns, nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -167,7 +167,7 @@ var _ = Describe("Actuator", func() {
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, domainName, "comment-"+dnsName, "TXT").Return(nil)
 			expectUpdateDNSRecordStatus(domainName)
 
-			err := a.Reconcile(ctx, dns, nil)
+			err := a.Reconcile(ctx, logger, dns, nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -181,7 +181,7 @@ var _ = Describe("Actuator", func() {
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, compositeDomainName, "comment-"+dnsName, "TXT").Return(nil)
 			expectUpdateDNSRecordStatus(compositeDomainName)
 
-			err := a.Reconcile(ctx, dns, nil)
+			err := a.Reconcile(ctx, logger, dns, nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -196,7 +196,7 @@ var _ = Describe("Actuator", func() {
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, compositeDomainName, "comment-"+dnsName, "TXT").Return(nil)
 			expectUpdateDNSRecordStatus(compositeDomainName)
 
-			err := a.Reconcile(ctx, dns, nil)
+			err := a.Reconcile(ctx, logger, dns, nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -209,7 +209,7 @@ var _ = Describe("Actuator", func() {
 			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, compositeDomainName, dnsName, string(extensionsv1alpha1.DNSRecordTypeA)).Return(nil)
 
-			err := a.Delete(ctx, dns, nil)
+			err := a.Delete(ctx, logger, dns, nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -220,7 +220,7 @@ var _ = Describe("Actuator", func() {
 			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, domainName, dnsName, string(extensionsv1alpha1.DNSRecordTypeA)).Return(nil)
 
-			err := a.Delete(ctx, dns, nil)
+			err := a.Delete(ctx, logger, dns, nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
