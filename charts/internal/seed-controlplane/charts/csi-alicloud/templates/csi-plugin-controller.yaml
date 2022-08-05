@@ -29,6 +29,7 @@ spec:
         networking.gardener.cloud/to-alicloud-networks: allowed
     spec:
       automountServiceAccountToken: false
+      priorityClassName: gardener-system-300
       containers:
       - name: alicloud-csi-diskplugin
         image: {{ index .Values.images "csi-plugin-alicloud" }}
