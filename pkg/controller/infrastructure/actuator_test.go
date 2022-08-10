@@ -136,7 +136,6 @@ var _ = Describe("Actuator", func() {
 				terraformChartOps = mockinfrastructure.NewMockTerraformChartOps(ctrl)
 				logger = log.Log.WithName("test")
 				actuator = NewActuatorWithDeps(
-					logger,
 					alicloudClientFactory,
 					terraformerFactory,
 					terraformChartOps,
