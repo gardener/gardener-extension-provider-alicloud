@@ -38,7 +38,6 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 )
 
@@ -198,8 +197,7 @@ var _ = Describe("ValuesProvider", func() {
 			},
 		}
 
-		logger = log.Log.WithName("test")
-		csi    = config.CSI{}
+		csi = config.CSI{}
 	)
 
 	BeforeEach(func() {
@@ -224,7 +222,7 @@ var _ = Describe("ValuesProvider", func() {
 			client := mockclient.NewMockClient(ctrl)
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
 			// Create valuesProvider
-			vp := NewValuesProvider(logger, csi)
+			vp := NewValuesProvider(csi)
 			err := vp.(inject.Scheme).InjectScheme(scheme)
 			Expect(err).NotTo(HaveOccurred())
 			err = vp.(inject.Client).InjectClient(client)
@@ -250,7 +248,7 @@ var _ = Describe("ValuesProvider", func() {
 			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
 
 			// Create valuesProvider
-			vp := NewValuesProvider(logger, csi)
+			vp := NewValuesProvider(csi)
 			err := vp.(inject.Scheme).InjectScheme(scheme)
 			Expect(err).NotTo(HaveOccurred())
 			err = vp.(inject.Client).InjectClient(client)
@@ -265,7 +263,7 @@ var _ = Describe("ValuesProvider", func() {
 
 	Describe("#GetControlPlaneShootCRDsChartValues", func() {
 		It("should return correct control plane shoot CRDs chart values ", func() {
-			vp := NewValuesProvider(logger, csi)
+			vp := NewValuesProvider(csi)
 
 			values, err := vp.GetControlPlaneShootCRDsChartValues(context.TODO(), cp, cluster)
 			Expect(err).NotTo(HaveOccurred())

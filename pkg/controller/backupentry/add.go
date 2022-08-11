@@ -20,15 +20,12 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/backupentry/genericactuator"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var (
 	// DefaultAddOptions are the default DefaultAddOptions for AddToManager.
 	DefaultAddOptions = AddOptions{}
-
-	logger = log.Log.WithName("alicloud-backupentry-actuator")
 )
 
 // AddOptions are options to apply when adding the Alicloud backupentry controller to the manager.

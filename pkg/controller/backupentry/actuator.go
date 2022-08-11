@@ -29,13 +29,10 @@ import (
 
 type actuator struct {
 	client client.Client
-	logger logr.Logger
 }
 
 func newActuator() genericactuator.BackupEntryDelegate {
-	return &actuator{
-		logger: logger,
-	}
+	return &actuator{}
 }
 
 func (a *actuator) InjectClient(client client.Client) error {
