@@ -40,11 +40,12 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/extensions"
+	"github.com/gardener/gardener/pkg/logger"
 	gardenerutils "github.com/gardener/gardener/pkg/utils"
 	"github.com/gardener/gardener/test/framework"
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -97,8 +98,8 @@ type infrastructureIdentifiers struct {
 }
 
 var (
-	ctx    = context.Background()
-	logger *logrus.Entry
+	ctx = context.Background()
+	log logr.Logger
 
 	extensionscluster *extensionsv1alpha1.Cluster
 	controllercluster *controller.Cluster
@@ -126,11 +127,8 @@ var _ = BeforeSuite(func() {
 	alicloud.InternalChartsPath = filepath.Join(repoRoot, alicloud.InternalChartsPath)
 
 	// enable manager logs
-	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
-
-	log := logrus.New()
-	log.SetOutput(GinkgoWriter)
-	logger = logrus.NewEntry(log)
+	logf.SetLogger(logger.MustNewZapLogger(logger.DebugLevel, logger.FormatJSON, zap.WriteTo(GinkgoWriter)))
+	log = logf.Log.WithName("bastion-test")
 
 	randString, err := randomString()
 	Expect(err).NotTo(HaveOccurred())
@@ -232,7 +230,7 @@ var _ = Describe("Bastion tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		framework.AddCleanupAction(func() {
-			teardownBastion(ctx, logger, c, bastion)
+			teardownBastion(ctx, log, c, bastion)
 			By("verify bastion deletion")
 			verifyDeletion(clientFactory, options)
 		})
@@ -241,7 +239,7 @@ var _ = Describe("Bastion tests", func() {
 		Expect(extensions.WaitUntilExtensionObjectReady(
 			ctx,
 			c,
-			logger,
+			log,
 			bastion,
 			extensionsv1alpha1.BastionResource,
 			60*time.Second,
@@ -674,7 +672,7 @@ func teardownShootEnvironment(ctx context.Context, c client.Client, namespace *c
 	Expect(client.IgnoreNotFound(c.Delete(ctx, namespace))).To(Succeed())
 }
 
-func teardownBastion(ctx context.Context, logger *logrus.Entry, c client.Client, bastion *extensionsv1alpha1.Bastion) {
+func teardownBastion(ctx context.Context, logger logr.Logger, c client.Client, bastion *extensionsv1alpha1.Bastion) {
 	By("delete bastion")
 	Expect(client.IgnoreNotFound(c.Delete(ctx, bastion))).To(Succeed())
 

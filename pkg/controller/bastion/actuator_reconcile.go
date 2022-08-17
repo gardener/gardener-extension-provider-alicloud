@@ -50,9 +50,8 @@ func (be *bastionEndpoints) Ready() bool {
 	return be != nil && IngressReady(be.private) && IngressReady(be.public)
 }
 
-func (a *actuator) Reconcile(ctx context.Context, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
-	logger := a.logger.WithValues("bastion", client.ObjectKeyFromObject(bastion), "operation", "reconcile")
-
+func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
+	log.Info("Bastion reconciles operation")
 	opt, err := DetermineOptions(bastion, cluster)
 	if err != nil {
 		return err
@@ -104,15 +103,15 @@ func (a *actuator) Reconcile(ctx context.Context, bastion *extensionsv1alpha1.Ba
 		}
 
 		instanceTypeId = cluster.CloudProfile.Spec.MachineTypes[0].Name
-		logger.Info("falling back to first machine type of cloud profile as bastion instance type id", "instance type", cluster.CloudProfile.Spec.MachineTypes[0].Name)
+		log.Info("falling back to first machine type of cloud profile as bastion instance type id", "instance type", cluster.CloudProfile.Spec.MachineTypes[0].Name)
 	}
 
-	securityGroupID, err := ensureSecurityGroup(aliCloudECSClient, opt.SecurityGroupName, vpcId, logger)
+	securityGroupID, err := ensureSecurityGroup(aliCloudECSClient, opt.SecurityGroupName, vpcId, log)
 	if err != nil {
 		return err
 	}
 
-	instanceID, err := ensureComputeInstance(aliCloudECSClient, logger, opt, securityGroupID, imageID, vSwitchesID, vSwitchesZoneID, instanceTypeId)
+	instanceID, err := ensureComputeInstance(aliCloudECSClient, log, opt, securityGroupID, imageID, vSwitchesID, vSwitchesZoneID, instanceTypeId)
 	if err != nil {
 		return err
 	}
@@ -214,7 +213,7 @@ func getInstanceEndpoints(c aliclient.ECS, opt *Options, ip string) (*bastionEnd
 	return endpoints, nil
 }
 
-func ensureComputeInstance(c aliclient.ECS, logger logr.Logger, opt *Options, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID string) (string, error) {
+func ensureComputeInstance(c aliclient.ECS, log logr.Logger, opt *Options, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID string) (string, error) {
 	response, err := c.GetInstances(opt.BastionInstanceName)
 	if err != nil {
 		return "", err
@@ -224,7 +223,7 @@ func ensureComputeInstance(c aliclient.ECS, logger logr.Logger, opt *Options, se
 		return response.Instances.Instance[0].InstanceId, nil
 	}
 
-	logger.Info("creating new bastion compute instance")
+	log.Info("creating new bastion compute instance")
 
 	instance, err := c.CreateInstances(opt.BastionInstanceName, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID, opt.UserData)
 	if err != nil {
@@ -234,18 +233,18 @@ func ensureComputeInstance(c aliclient.ECS, logger logr.Logger, opt *Options, se
 	return instance.InstanceIdSets.InstanceIdSet[0], nil
 }
 
-func ensureSecurityGroup(c aliclient.ECS, securityGroupName, vpcID string, logger logr.Logger) (string, error) {
+func ensureSecurityGroup(c aliclient.ECS, securityGroupName, vpcID string, log logr.Logger) (string, error) {
 	response, err := c.GetSecurityGroup(securityGroupName)
 	if err != nil {
 		return "", err
 	}
 
 	if len(response.SecurityGroups.SecurityGroup) > 0 && response.SecurityGroups.SecurityGroup[0].SecurityGroupName == securityGroupName {
-		logger.Info("Security Group found", "security group", securityGroupName)
+		log.Info("Security Group found", "security group", securityGroupName)
 		return response.SecurityGroups.SecurityGroup[0].SecurityGroupId, nil
 	}
 
-	logger.Info("creating Security Group")
+	log.Info("creating Security Group")
 
 	createResponse, err := c.CreateSecurityGroups(vpcID, securityGroupName)
 	if err != nil {

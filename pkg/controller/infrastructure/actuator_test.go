@@ -26,6 +26,7 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -94,6 +95,7 @@ var _ = Describe("Actuator", func() {
 			c                     *mockclient.MockClient
 			initializer           *mockterraformer.MockInitializer
 			restConfig            rest.Config
+			logger                logr.Logger
 
 			cidr   string
 			config alicloudv1alpha1.InfrastructureConfig
@@ -132,8 +134,8 @@ var _ = Describe("Actuator", func() {
 				shootRAMClient = mockalicloudclient.NewMockRAM(ctrl)
 				shootROSClient = mockalicloudclient.NewMockROS(ctrl)
 				terraformChartOps = mockinfrastructure.NewMockTerraformChartOps(ctrl)
+				logger = log.Log.WithName("test")
 				actuator = NewActuatorWithDeps(
-					log.Log.WithName("test"),
 					alicloudClientFactory,
 					terraformerFactory,
 					terraformChartOps,
@@ -303,7 +305,7 @@ var _ = Describe("Actuator", func() {
 				expectInject(inject.SchemeInto(scheme, actuator))
 				expectInject(inject.ConfigInto(&restConfig, actuator))
 
-				Expect(actuator.Reconcile(ctx, &infra, &cluster)).To(Succeed())
+				Expect(actuator.Reconcile(ctx, logger, &infra, &cluster)).To(Succeed())
 				Expect(infra.Status.ProviderStatus.Object).To(Equal(&alicloudv1alpha1.InfrastructureStatus{
 					TypeMeta: StatusTypeMeta,
 					VPC: alicloudv1alpha1.VPCStatus{
@@ -398,7 +400,7 @@ var _ = Describe("Actuator", func() {
 				expectInject(inject.SchemeInto(scheme, actuator))
 				expectInject(inject.ConfigInto(&restConfig, actuator))
 
-				Expect(actuator.Restore(ctx, &infra, &cluster)).To(Succeed())
+				Expect(actuator.Restore(ctx, logger, &infra, &cluster)).To(Succeed())
 				Expect(infra.Status.ProviderStatus.Object).To(Equal(&alicloudv1alpha1.InfrastructureStatus{
 					TypeMeta: StatusTypeMeta,
 					VPC: alicloudv1alpha1.VPCStatus{

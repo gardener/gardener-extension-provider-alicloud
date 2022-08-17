@@ -23,12 +23,11 @@ import (
 	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/go-logr/logr"
 )
 
-func (a *actuator) Delete(ctx context.Context, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
-	logger := a.logger.WithValues("bastion", client.ObjectKeyFromObject(bastion), "operation", "reconcile")
-
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {
+	log.Info("Bastion deletion operation")
 	opt, err := DetermineOptions(bastion, cluster)
 	if err != nil {
 		return err
@@ -49,7 +48,7 @@ func (a *actuator) Delete(ctx context.Context, bastion *extensionsv1alpha1.Basti
 		return fmt.Errorf("failed to terminate bastion instance: %w", err)
 	}
 
-	logger.Info("Instance remove processing", "instance", opt.BastionInstanceName)
+	log.Info("Instance remove processing", "instance", opt.BastionInstanceName)
 
 	time.Sleep(10 * time.Second)
 
@@ -58,7 +57,7 @@ func (a *actuator) Delete(ctx context.Context, bastion *extensionsv1alpha1.Basti
 		return fmt.Errorf("failed to remove security group: %w", err)
 	}
 
-	logger.Info("security group removed:", "security group", opt.SecurityGroupName)
+	log.Info("security group removed:", "security group", opt.SecurityGroupName)
 	return nil
 }
 

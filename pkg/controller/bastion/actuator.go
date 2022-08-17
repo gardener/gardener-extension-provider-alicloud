@@ -18,7 +18,6 @@ import (
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/bastion"
-	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -29,13 +28,11 @@ const (
 
 type actuator struct {
 	client           client.Client
-	logger           logr.Logger
 	newClientFactory alicloudclient.ClientFactory
 }
 
 func newActuator() bastion.Actuator {
 	return &actuator{
-		logger:           logger,
 		newClientFactory: alicloudclient.NewClientFactory(),
 	}
 }

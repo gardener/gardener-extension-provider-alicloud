@@ -45,19 +45,17 @@ const (
 type actuator struct {
 	common.ClientContext
 	alicloudClientFactory alicloudclient.ClientFactory
-	logger                logr.Logger
 }
 
 // NewActuator creates a new dnsrecord.Actuator.
 func NewActuator(alicloudClientFactory alicloudclient.ClientFactory, logger logr.Logger) dnsrecord.Actuator {
 	return &actuator{
 		alicloudClientFactory: alicloudClientFactory,
-		logger:                logger.WithName("alicloud-dnsrecord-actuator"),
 	}
 }
 
 // Reconcile reconciles the DNSRecord.
-func (a *actuator) Reconcile(ctx context.Context, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
 	// Create Alicloud client
 	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.Client(), &dns.Spec.SecretRef)
 	if err != nil {
@@ -69,14 +67,14 @@ func (a *actuator) Reconcile(ctx context.Context, dns *extensionsv1alpha1.DNSRec
 	}
 
 	// Determine DNS domain name
-	domainName, err := a.getDomainName(ctx, dns, dnsClient)
+	domainName, err := a.getDomainName(ctx, log, dns, dnsClient)
 	if err != nil {
 		return err
 	}
 
 	// Create or update DNS records
 	ttl := extensionsv1alpha1helper.GetDNSRecordTTL(dns.Spec.TTL)
-	a.logger.Info("Creating or updating DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "values", dns.Spec.Values, "dnsrecord", kutil.ObjectName(dns))
+	log.Info("Creating or updating DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "values", dns.Spec.Values, "dnsrecord", kutil.ObjectName(dns))
 	if err := dnsClient.CreateOrUpdateDomainRecords(ctx, domainName, dns.Spec.Name, string(dns.Spec.RecordType), dns.Spec.Values, ttl); err != nil {
 		return wrapAliClientError(err, fmt.Sprintf("could not create or update DNS records in domain %s with name %s, type %s, and values %v", domainName, dns.Spec.Name, dns.Spec.RecordType, dns.Spec.Values))
 	}
@@ -84,7 +82,7 @@ func (a *actuator) Reconcile(ctx context.Context, dns *extensionsv1alpha1.DNSRec
 	// Delete meta DNS records if any exist
 	if dns.Status.LastOperation == nil || dns.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeCreate {
 		name, recordType := dnsrecord.GetMetaRecordName(dns.Spec.Name), "TXT"
-		a.logger.Info("Deleting meta DNS records", "domainName", domainName, "name", name, "type", recordType, "dnsrecord", kutil.ObjectName(dns))
+		log.Info("Deleting meta DNS records", "domainName", domainName, "name", name, "type", recordType, "dnsrecord", kutil.ObjectName(dns))
 		if err := dnsClient.DeleteDomainRecords(ctx, domainName, name, recordType); err != nil {
 			return wrapAliClientError(err, fmt.Sprintf("could not delete meta DNS records in domain %s with name %s and type %s", domainName, name, recordType))
 		}
@@ -97,7 +95,7 @@ func (a *actuator) Reconcile(ctx context.Context, dns *extensionsv1alpha1.DNSRec
 }
 
 // Delete deletes the DNSRecord.
-func (a *actuator) Delete(ctx context.Context, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
 	// Create Alicloud client
 	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.Client(), &dns.Spec.SecretRef)
 	if err != nil {
@@ -109,13 +107,13 @@ func (a *actuator) Delete(ctx context.Context, dns *extensionsv1alpha1.DNSRecord
 	}
 
 	// Determine DNS domain name
-	domainName, err := a.getDomainName(ctx, dns, dnsClient)
+	domainName, err := a.getDomainName(ctx, log, dns, dnsClient)
 	if err != nil {
 		return err
 	}
 
 	// Delete DNS records
-	a.logger.Info("Deleting DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "dnsrecord", kutil.ObjectName(dns))
+	log.Info("Deleting DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "dnsrecord", kutil.ObjectName(dns))
 	if err := dnsClient.DeleteDomainRecords(ctx, domainName, dns.Spec.Name, string(dns.Spec.RecordType)); err != nil {
 		return wrapAliClientError(err, fmt.Sprintf("could not delete DNS records in domain %s with name %s and type %s", domainName, dns.Spec.Name, dns.Spec.RecordType))
 	}
@@ -124,16 +122,16 @@ func (a *actuator) Delete(ctx context.Context, dns *extensionsv1alpha1.DNSRecord
 }
 
 // Restore restores the DNSRecord.
-func (a *actuator) Restore(ctx context.Context, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
-	return a.Reconcile(ctx, dns, cluster)
+func (a *actuator) Restore(ctx context.Context, log logr.Logger, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
+	return a.Reconcile(ctx, log, dns, cluster)
 }
 
 // Migrate migrates the DNSRecord.
-func (a *actuator) Migrate(ctx context.Context, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Migrate(ctx context.Context, _ logr.Logger, dns *extensionsv1alpha1.DNSRecord, cluster *extensionscontroller.Cluster) error {
 	return nil
 }
 
-func (a *actuator) getDomainName(ctx context.Context, dns *extensionsv1alpha1.DNSRecord, dnsClient alicloudclient.DNS) (string, error) {
+func (a *actuator) getDomainName(ctx context.Context, log logr.Logger, dns *extensionsv1alpha1.DNSRecord, dnsClient alicloudclient.DNS) (string, error) {
 	switch {
 	case dns.Spec.Zone != nil && *dns.Spec.Zone != "" && (dns.Status.Zone == nil || *dns.Status.Zone == "" || !zoneMatchesDomainName(*dns.Spec.Zone, *dns.Status.Zone)):
 		if isDomainName(*dns.Spec.Zone) {
@@ -145,7 +143,7 @@ func (a *actuator) getDomainName(ctx context.Context, dns *extensionsv1alpha1.DN
 		if err != nil {
 			return "", wrapAliClientError(err, fmt.Sprintf("could not get DNS domain name for domain id %s", *dns.Spec.Zone))
 		}
-		a.logger.Info("Got DNS domain name", "domainName", domainName, "dnsrecord", kutil.ObjectName(dns))
+		log.Info("Got DNS domain name", "domainName", domainName, "dnsrecord", kutil.ObjectName(dns))
 		return domainName, nil
 	case dns.Status.Zone != nil && *dns.Status.Zone != "":
 		return *dns.Status.Zone, nil
@@ -156,7 +154,7 @@ func (a *actuator) getDomainName(ctx context.Context, dns *extensionsv1alpha1.DN
 		if err != nil {
 			return "", wrapAliClientError(err, "could not get DNS domain names")
 		}
-		a.logger.Info("Got DNS domain names", "domainNames", domainNames, "dnsrecord", kutil.ObjectName(dns))
+		log.Info("Got DNS domain names", "domainNames", domainNames, "dnsrecord", kutil.ObjectName(dns))
 		domainName := dnsrecord.FindZoneForName(domainNames, dns.Spec.Name)
 		if domainName == "" {
 			return "", fmt.Errorf("could not find DNS domain name for name %s", dns.Spec.Name)

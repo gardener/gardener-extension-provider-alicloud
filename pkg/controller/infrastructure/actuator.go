@@ -45,7 +45,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // StatusTypeMeta is the TypeMeta of InfrastructureStatus.
@@ -60,7 +59,6 @@ var StatusTypeMeta = func() metav1.TypeMeta {
 // NewActuator instantiates an actuator with the default dependencies.
 func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, toBeSharedImageIDs []string, disableProjectedTokenMount bool) infrastructure.Actuator {
 	return NewActuatorWithDeps(
-		log.Log.WithName("infrastructure-actuator"),
 		alicloudclient.NewClientFactory(),
 		terraformer.DefaultFactory(),
 		DefaultTerraformOps(),
@@ -72,7 +70,7 @@ func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, toBeSharedI
 
 // NewActuatorWithDeps instantiates an actuator with the given dependencies.
 func NewActuatorWithDeps(
-	logger logr.Logger,
+
 	newClientFactory alicloudclient.ClientFactory,
 	terraformerFactory terraformer.Factory,
 	terraformChartOps TerraformChartOps,
@@ -81,7 +79,6 @@ func NewActuatorWithDeps(
 	disableProjectedTokenMount bool,
 ) infrastructure.Actuator {
 	a := &actuator{
-		logger:                     logger,
 		newClientFactory:           newClientFactory,
 		terraformerFactory:         terraformerFactory,
 		terraformChartOps:          terraformChartOps,
@@ -94,7 +91,6 @@ func NewActuatorWithDeps(
 }
 
 type actuator struct {
-	logger logr.Logger
 	commonext.RESTConfigContext
 
 	alicloudECSClient  alicloudclient.ECS
@@ -307,7 +303,7 @@ func (a *actuator) toBeShared(imageID string) bool {
 }
 
 // ensureOldSSHKeyDetached ensures the compatibility when ssh key is generated in the current cluster via terraform.
-func (a *actuator) ensureOldSSHKeyDetached(ctx context.Context, infra *extensionsv1alpha1.Infrastructure) error {
+func (a *actuator) ensureOldSSHKeyDetached(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure) error {
 	if infra.Status.ProviderStatus == nil {
 		return nil
 	}
@@ -333,11 +329,11 @@ func (a *actuator) ensureOldSSHKeyDetached(ctx context.Context, infra *extension
 	}
 
 	// nolint
-	a.logger.V(2).Info("Detaching ssh key pair from ECS instances", "keypair", infrastructureStatus.KeyPairName)
+	log.V(2).Info("Detaching ssh key pair from ECS instances", "keypair", infrastructureStatus.KeyPairName)
 	// nolint
 	err = shootAlicloudECSClient.DetachECSInstancesFromSSHKeyPair(infrastructureStatus.KeyPairName)
 	// nolint
-	a.logger.V(2).Info("Finished detaching ssh key pair from ECS instances", "keypair", infrastructureStatus.KeyPairName)
+	log.V(2).Info("Finished detaching ssh key pair from ECS instances", "keypair", infrastructureStatus.KeyPairName)
 
 	return err
 }
@@ -346,7 +342,7 @@ func (a *actuator) ensureOldSSHKeyDetached(ctx context.Context, infra *extension
 // 1. If worker needs an encrypted image, this method will ensure an corresponding encrypted image is copied.
 // 2. If worker needs a plain image, this method will make the corresponding image is visible to shoot's provider account.
 // The list of images that workers use will be returned.
-func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) ([]apisalicloud.MachineImage, error) {
+func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) ([]apisalicloud.MachineImage, error) {
 	var (
 		machineImages []apisalicloud.MachineImage
 	)
@@ -381,7 +377,7 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, infr
 		return nil, err
 	}
 
-	a.logger.Info("Preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name)
+	log.Info("Preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name)
 	for _, worker := range cluster.Shoot.Spec.Provider.Workers {
 		var machineImage *apisalicloud.MachineImage
 		useEncrytedDisk, err := common.UseEncryptedSystemDisk(worker.Volume)
@@ -389,23 +385,24 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, infr
 			return nil, err
 		}
 		if useEncrytedDisk {
-			if machineImage, err = a.ensureEncryptedImageForShootProviderAccount(ctx, cloudProfileConfig, worker, infra, shootAlicloudROSClient, shootAlicloudECSClient, shootCloudProviderAccountID); err != nil {
+			if machineImage, err = a.ensureEncryptedImageForShootProviderAccount(ctx, log, cloudProfileConfig, worker, infra, shootAlicloudROSClient, shootAlicloudECSClient, shootCloudProviderAccountID); err != nil {
 				return nil, err
 			}
 		} else {
-			if machineImage, err = a.ensurePlainImageForShootProviderAccount(ctx, cloudProfileConfig, worker, infra, shootAlicloudECSClient, shootCloudProviderAccountID); err != nil {
+			if machineImage, err = a.ensurePlainImageForShootProviderAccount(ctx, log, cloudProfileConfig, worker, infra, shootAlicloudECSClient, shootCloudProviderAccountID); err != nil {
 				return nil, err
 			}
 		}
 		machineImages = helper.AppendMachineImage(machineImages, *machineImage)
 	}
-	a.logger.Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name)
+	log.Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name)
 
 	return machineImages, nil
 }
 
 func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	ctx context.Context,
+	log logr.Logger,
 	cloudProfileConfig *apisalicloud.CloudProfileConfig,
 	worker gardencorev1beta1.Worker,
 	infra *extensionsv1alpha1.Infrastructure,
@@ -435,7 +432,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	}
 
 	// If it is a custom image, it need to be shared with shoot account
-	if err = a.makeImageVisibleForShoot(ctx, shootECSClient, infra.Spec.Region, imageID, shootCloudProviderAccountID); err != nil {
+	if err = a.makeImageVisibleForShoot(ctx, log, shootECSClient, infra.Spec.Region, imageID, shootCloudProviderAccountID); err != nil {
 		return nil, err
 	}
 
@@ -452,7 +449,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	// else {} it is private shared
 
 	// It may block 10 minutes
-	a.logger.Info("Preparing encrypted image for shoot account", "name", worker.Machine.Image.Name, "version", *worker.Machine.Image.Version)
+	log.Info("Preparing encrypted image for shoot account", "name", worker.Machine.Image.Name, "version", *worker.Machine.Image.Version)
 	encryptor := common.NewImageEncryptor(shootROSClient, infra.Spec.Region, worker.Machine.Image.Name, *worker.Machine.Image.Version, imageID)
 	encryptedImageID, err := encryptor.TryToGetEncryptedImageID(ctx, 15*time.Minute, 10*time.Second)
 	if err != nil {
@@ -467,7 +464,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	}, nil
 }
 
-func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootECSClient alicloudclient.ECS, shootCloudProviderAccountID string) (*apisalicloud.MachineImage, error) {
+func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, log logr.Logger, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootECSClient alicloudclient.ECS, shootCloudProviderAccountID string) (*apisalicloud.MachineImage, error) {
 	imageID, err := helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
 	if err != nil {
 		if providerStatus := infra.Status.ProviderStatus; providerStatus != nil {
@@ -485,7 +482,7 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 		}
 	}
 
-	if err = a.makeImageVisibleForShoot(ctx, shootECSClient, infra.Spec.Region, imageID, shootCloudProviderAccountID); err != nil {
+	if err = a.makeImageVisibleForShoot(ctx, log, shootECSClient, infra.Spec.Region, imageID, shootCloudProviderAccountID); err != nil {
 		return nil, err
 	}
 
@@ -496,12 +493,12 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 	}, nil
 }
 
-func (a *actuator) makeImageVisibleForShoot(ctx context.Context, shootECSClient alicloudclient.ECS, region, imageID, shootAccountID string) error {
+func (a *actuator) makeImageVisibleForShoot(ctx context.Context, log logr.Logger, shootECSClient alicloudclient.ECS, region, imageID, shootAccountID string) error {
 	// if this is a whitelisted machine image, we no longer need to check if it exists in cloud provider account, and
 	// we don't need to share the image to that account either.
-	a.logger.Info("Sharing customized image with Shoot's Alicloud account from Seed", "imageID", imageID)
+	log.Info("Sharing customized image with Shoot's Alicloud account from Seed", "imageID", imageID)
 	if !a.toBeShared(imageID) {
-		a.logger.Info("Skip image sharing as it is not in the ToBeSharedImageIDs", "imageID", imageID)
+		log.Info("Skip image sharing as it is not in the ToBeSharedImageIDs", "imageID", imageID)
 		return nil
 	}
 
@@ -521,20 +518,20 @@ func (a *actuator) makeImageVisibleForShoot(ctx context.Context, shootECSClient 
 }
 
 // Reconcile implements infrastructure.Actuator.
-func (a *actuator) Reconcile(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	return a.reconcile(ctx, infra, cluster, terraformer.StateConfigMapInitializerFunc(terraformer.CreateState))
+func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+	return a.reconcile(ctx, log, infra, cluster, terraformer.StateConfigMapInitializerFunc(terraformer.CreateState))
 }
 
 // Restore implements infrastructure.Actuator.
-func (a *actuator) Restore(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+func (a *actuator) Restore(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
 	terraformState, err := terraformer.UnmarshalRawState(infra.Status.State)
 	if err != nil {
 		return err
 	}
-	return a.reconcile(ctx, infra, cluster, terraformer.CreateOrUpdateState{State: &terraformState.Data})
+	return a.reconcile(ctx, log, infra, cluster, terraformer.CreateOrUpdateState{State: &terraformState.Data})
 }
 
-func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, stateInitializer terraformer.StateConfigMapInitializer) error {
+func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, stateInitializer terraformer.StateConfigMapInitializer) error {
 	config, credentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
 	if err != nil {
 		return err
@@ -544,11 +541,11 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 		return gardencorev1beta1helper.DeprecatedDetermineError(err)
 	}
 
-	if err = a.ensureOldSSHKeyDetached(ctx, infra); err != nil {
+	if err = a.ensureOldSSHKeyDetached(ctx, log, infra); err != nil {
 		return gardencorev1beta1helper.DeprecatedDetermineError(err)
 	}
 
-	tf, err := common.NewTerraformerWithAuth(a.logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
+	tf, err := common.NewTerraformerWithAuth(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return err
 	}
@@ -569,7 +566,7 @@ func (a *actuator) reconcile(ctx context.Context, infra *extensionsv1alpha1.Infr
 
 	var machineImages []apisalicloud.MachineImage
 	if cluster.Shoot != nil {
-		machineImages, err = a.ensureImagesForShootProviderAccount(ctx, infra, cluster)
+		machineImages, err = a.ensureImagesForShootProviderAccount(ctx, log, infra, cluster)
 		if err != nil {
 			return fmt.Errorf("failed to ensure machine images for shoot: %w", err)
 		}
@@ -639,10 +636,8 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 }
 
 // Delete implements infrastructure.Actuator.
-func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	logger := a.logger.WithValues("infrastructure", client.ObjectKeyFromObject(infra), "operation", "delete")
-
-	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return err
 	}
@@ -659,7 +654,7 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 		return err
 	}
 	if stateIsEmpty {
-		a.logger.Info("exiting early as infrastructure state is empty or contains no resources - nothing to do")
+		log.Info("exiting early as infrastructure state is empty or contains no resources - nothing to do")
 		return tf.CleanupConfiguration(ctx)
 	}
 
@@ -697,9 +692,8 @@ func (a *actuator) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrast
 }
 
 // Migrate implements infrastructure.Actuator.
-func (a *actuator) Migrate(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	logger := a.logger.WithValues("infrastructure", client.ObjectKeyFromObject(infra), "operation", "migrate")
-	tf, err := common.NewTerraformer(logger, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
+func (a *actuator) Migrate(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return err
 	}

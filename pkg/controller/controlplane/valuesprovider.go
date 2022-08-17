@@ -39,7 +39,6 @@ import (
 	secretutils "github.com/gardener/gardener/pkg/utils/secrets"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 
-	"github.com/go-logr/logr"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -238,10 +237,9 @@ var storageClassChart = &chart.Chart{
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(logger logr.Logger, csi config.CSI) genericactuator.ValuesProvider {
+func NewValuesProvider(csi config.CSI) genericactuator.ValuesProvider {
 	return &valuesProvider{
-		logger: logger.WithName("alicloud-values-provider"),
-		csi:    csi,
+		csi: csi,
 	}
 }
 
@@ -249,8 +247,7 @@ func NewValuesProvider(logger logr.Logger, csi config.CSI) genericactuator.Value
 type valuesProvider struct {
 	genericactuator.NoopValuesProvider
 	common.ClientContext
-	logger logr.Logger
-	csi    config.CSI
+	csi config.CSI
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
