@@ -474,6 +474,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 				"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
 				"caBundle": string(caSecret.Data[secretutils.DataKeyCertificateBundle]),
 			},
+			"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		},
 	}
 

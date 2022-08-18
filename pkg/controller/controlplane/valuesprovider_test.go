@@ -23,6 +23,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -55,6 +56,9 @@ var _ = Describe("ValuesProvider", func() {
 		_                  = apisalicloud.AddToScheme(scheme)
 		fakeClient         client.Client
 		fakeSecretsManager secretsmanager.Interface
+
+		vp genericactuator.ValuesProvider
+		c  *mockclient.MockClient
 
 		cp = &extensionsv1alpha1.ControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
@@ -194,6 +198,7 @@ var _ = Describe("ValuesProvider", func() {
 					"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
 					"caBundle": "",
 				},
+				"pspDisabled": false,
 			},
 		}
 
@@ -204,6 +209,15 @@ var _ = Describe("ValuesProvider", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		fakeClient = fakeclient.NewClientBuilder().Build()
 		fakeSecretsManager = fakesecretsmanager.New(fakeClient, namespace)
+
+		// Create mock client
+		c = mockclient.NewMockClient(ctrl)
+		// Create valuesProvider
+		vp = NewValuesProvider(csi)
+		err := vp.(inject.Scheme).InjectScheme(scheme)
+		Expect(err).NotTo(HaveOccurred())
+		err = vp.(inject.Client).InjectClient(c)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -212,22 +226,14 @@ var _ = Describe("ValuesProvider", func() {
 
 	Describe("#GetControlPlaneChartValues", func() {
 		BeforeEach(func() {
+			c.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
+
 			By("creating secrets managed outside of this package for whose secretsmanager.Get() will be called")
 			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "ca-provider-alicloud-controlplane", Namespace: namespace}})).To(Succeed())
 			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "csi-snapshot-validation-server", Namespace: namespace}})).To(Succeed())
 		})
 
 		It("should return correct control plane chart values", func() {
-			// Create mock client
-			client := mockclient.NewMockClient(ctrl)
-			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
-			// Create valuesProvider
-			vp := NewValuesProvider(csi)
-			err := vp.(inject.Scheme).InjectScheme(scheme)
-			Expect(err).NotTo(HaveOccurred())
-			err = vp.(inject.Client).InjectClient(client)
-			Expect(err).NotTo(HaveOccurred())
-
 			// Call GetControlPlaneChartValues method and check the result
 			values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums, false)
 			Expect(err).NotTo(HaveOccurred())
@@ -237,27 +243,86 @@ var _ = Describe("ValuesProvider", func() {
 
 	Describe("#GetControlPlaneShootChartValues", func() {
 		BeforeEach(func() {
+			c.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
+
 			By("creating secrets managed outside of this package for whose secretsmanager.Get() will be called")
 			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "ca-provider-alicloud-controlplane", Namespace: namespace}})).To(Succeed())
 			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "csi-snapshot-validation-server", Namespace: namespace}})).To(Succeed())
 		})
 
 		It("should return correct control plane shoot chart values", func() {
-			// Create mock client
-			client := mockclient.NewMockClient(ctrl)
-			client.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
-
-			// Create valuesProvider
-			vp := NewValuesProvider(csi)
-			err := vp.(inject.Scheme).InjectScheme(scheme)
-			Expect(err).NotTo(HaveOccurred())
-			err = vp.(inject.Client).InjectClient(client)
-			Expect(err).NotTo(HaveOccurred())
-
 			// Call GetControlPlaneShootChartValues method and check the result
 			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneShootChartValues))
+		})
+
+		Context("podSecurityPolicy", func() {
+			It("should return correct shoot control plane chart when PodSecurityPolicy admission plugin is not disabled in the shoot", func() {
+				cluster.Shoot.Spec.Kubernetes.KubeAPIServer = &gardencorev1beta1.KubeAPIServerConfig{
+					AdmissionPlugins: []gardencorev1beta1.AdmissionPlugin{
+						{
+							Name: "PodSecurityPolicy",
+						},
+					},
+				}
+
+				// Call GetControlPlaneShootChartValues method and check the result
+				values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
+				Expect(err).NotTo(HaveOccurred())
+
+				controlPlaneShootChartValues := map[string]interface{}{
+					"csi-alicloud": map[string]interface{}{
+						"credential": map[string]interface{}{
+							"accessKeyID":     "Zm9v",
+							"accessKeySecret": "YmFy",
+						},
+						"kubernetesVersion":  "1.20.0",
+						"enableADController": true,
+						"vpaEnabled":         true,
+						"webhookConfig": map[string]interface{}{
+							"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
+							"caBundle": "",
+						},
+						"pspDisabled": false,
+					},
+				}
+
+				Expect(values).To(Equal(controlPlaneShootChartValues))
+			})
+
+			It("should return correct shoot control plane chart when PodSecurityPolicy admission plugin is disabled in the shoot", func() {
+				cluster.Shoot.Spec.Kubernetes.KubeAPIServer = &gardencorev1beta1.KubeAPIServerConfig{
+					AdmissionPlugins: []gardencorev1beta1.AdmissionPlugin{
+						{
+							Name:     "PodSecurityPolicy",
+							Disabled: pointer.Bool(true),
+						},
+					},
+				}
+
+				// Call GetControlPlaneShootChartValues method and check the result
+				values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
+				Expect(err).NotTo(HaveOccurred())
+
+				controlPlaneShootChartValues := map[string]interface{}{
+					"csi-alicloud": map[string]interface{}{
+						"credential": map[string]interface{}{
+							"accessKeyID":     "Zm9v",
+							"accessKeySecret": "YmFy",
+						},
+						"kubernetesVersion":  "1.20.0",
+						"enableADController": true,
+						"vpaEnabled":         true,
+						"webhookConfig": map[string]interface{}{
+							"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
+							"caBundle": "",
+						},
+						"pspDisabled": true,
+					},
+				}
+				Expect(values).To(Equal(controlPlaneShootChartValues))
+			})
 		})
 	})
 
