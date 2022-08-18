@@ -121,6 +121,7 @@ func (terraformOps) ComputeUseVPCInitializerValues(config *v1alpha1.Infrastructu
 func (terraformOps) ComputeChartValues(
 	infra *extensionsv1alpha1.Infrastructure,
 	config *v1alpha1.InfrastructureConfig,
+	podCIDR *string,
 	values *InitializerValues,
 ) map[string]interface{} {
 	zones := make([]map[string]interface{}, 0, len(config.Networks.Zones))
@@ -164,6 +165,7 @@ func (terraformOps) ComputeChartValues(
 		},
 		"clusterName": infra.Namespace,
 		"zones":       zones,
+		"podCIDR":     *podCIDR,
 		"outputKeys": map[string]interface{}{
 			"vpcID":              TerraformerOutputKeyVPCID,
 			"vpcCIDR":            TerraformerOutputKeyVPCCIDR,

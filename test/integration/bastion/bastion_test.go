@@ -65,6 +65,7 @@ const (
 	natGatewayType      = "Enhanced"
 	vpcCIDR             = "10.250.0.0/16"
 	natGatewayCIDR      = "10.250.128.0/21" // Enhanced NatGateway need bind with VSwitch, natGatewayCIDR is used for this VSwitch
+	podCIDR             = "100.96.0.0/11"
 	securityGroupSuffix = "-sg"
 	imageID             = "m-gw8iwwd4iiln01dj646s"
 )
@@ -429,6 +430,9 @@ func createShoot(infrastructureConfig []byte) *gardencorev1beta1.Shoot {
 				InfrastructureConfig: &runtime.RawExtension{
 					Raw: infrastructureConfig,
 				},
+			},
+			Networking: gardencorev1beta1.Networking{
+				Pods: pointer.String(podCIDR),
 			},
 		},
 	}

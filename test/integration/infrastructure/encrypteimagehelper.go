@@ -109,6 +109,9 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 					},
 				},
 			},
+			Networking: gardencorev1beta1.Networking{
+				Pods: pointer.String(podCIDR),
+			},
 		},
 	}
 	shootJSON, err := json.Marshal(shoot)

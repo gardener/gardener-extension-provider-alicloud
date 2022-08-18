@@ -153,6 +153,7 @@ var _ = Describe("TerraformChartOps", func() {
 				natGatewayID       = "natGatewayID"
 				sNATTableIDs       = "sNATTableIDs"
 				internetChargeType = "internetChargeType"
+				podCIDR            = "100.96.0.0/11"
 
 				values = InitializerValues{
 					VPC: VPC{
@@ -171,7 +172,7 @@ var _ = Describe("TerraformChartOps", func() {
 				}
 			)
 
-			Expect(ops.ComputeChartValues(&infra, &config, &values)).To(Equal(map[string]interface{}{
+			Expect(ops.ComputeChartValues(&infra, &config, &podCIDR, &values)).To(Equal(map[string]interface{}{
 				"alicloud": map[string]interface{}{
 					"region": region,
 				},
@@ -204,6 +205,7 @@ var _ = Describe("TerraformChartOps", func() {
 						},
 					},
 				},
+				"podCIDR": podCIDR,
 				"outputKeys": map[string]interface{}{
 					"vpcID":              TerraformerOutputKeyVPCID,
 					"vpcCIDR":            TerraformerOutputKeyVPCCIDR,

@@ -122,6 +122,16 @@ resource "alicloud_security_group_rule" "allow_all_internal_udp_in" {
   cidr_ip           = "{{ .vpc.cidr }}"
 }
 
+resource "alicloud_security_group_rule" "allow_all_internal_pod_traffic_in" {
+  type              = "ingress"
+  ip_protocol       = "all"
+  policy            = "accept"
+  port_range        = "-1/-1"
+  priority          = 1
+  security_group_id = alicloud_security_group.sg.id
+  cidr_ip           = "{{ .podCIDR }}"
+}
+
 // We have introduced new output variables. However, they are not applied for
 // existing clusters as Terraform won't detect a diff when we run `terraform plan`.
 // Workaround: Providing a null-resource for letting Terraform think that there are
