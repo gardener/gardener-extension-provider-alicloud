@@ -190,7 +190,7 @@ func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1
 	if err != nil {
 		return false, err
 	}
-	if exist, err := shootECSClient.CheckIfImageExists(ctx, imageId); err != nil {
+	if exist, err := shootECSClient.CheckIfImageExists(imageId); err != nil {
 		return false, err
 	} else if exist {
 		return shootECSClient.CheckIfImageOwnedByAliCloud(imageId)
