@@ -22,14 +22,11 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	alicloudapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	ctrlerror "github.com/gardener/gardener/pkg/controllerutils/reconciler"
-	"github.com/gardener/gardener/pkg/extensions"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -57,7 +54,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 		return err
 	}
 
-	infrastructureStatus, err := getInfrastructureStatus(ctx, a, cluster)
+	infrastructureStatus, err := getInfrastructureStatus(ctx, a.client, cluster)
 	if err != nil {
 		return err
 	}
@@ -450,40 +447,4 @@ func egressRuleEqual(a ecs.AuthorizeSecurityGroupEgressRequest, b ecs.Permission
 	}
 
 	return true
-}
-
-func getInfrastructureStatus(ctx context.Context, a *actuator, cluster *extensions.Cluster) (*alicloudapi.InfrastructureStatus, error) {
-	var infrastructureStatus *alicloudapi.InfrastructureStatus
-	worker := &extensionsv1alpha1.Worker{}
-	err := a.client.Get(ctx, client.ObjectKey{Namespace: cluster.ObjectMeta.Name, Name: cluster.Shoot.Name}, worker)
-	if err != nil {
-		return nil, err
-	}
-
-	if worker.Spec.InfrastructureProviderStatus == nil {
-		return nil, errors.New("infrastructure provider status must be not empty for worker")
-	}
-
-	if infrastructureStatus, err = helper.InfrastructureStatusFromRaw(worker.Spec.InfrastructureProviderStatus); err != nil {
-		return nil, err
-	}
-
-	if infrastructureStatus.VPC.ID == "" {
-		return nil, errors.New("vpc id must be not empty for infrastructure provider status")
-	}
-
-	if len(infrastructureStatus.VPC.VSwitches) == 0 || infrastructureStatus.VPC.VSwitches[0].ID == "" || infrastructureStatus.VPC.VSwitches[0].Zone == "" {
-		return nil, errors.New("vswitches id must be not empty for infrastructure provider status")
-	}
-
-	if len(infrastructureStatus.MachineImages) == 0 || infrastructureStatus.MachineImages[0].ID == "" {
-		return nil, errors.New("machineImages id must be not empty for infrastructure provider status")
-	}
-
-	// The assumption is that the shoot only has one security group
-	if len(infrastructureStatus.VPC.SecurityGroups) == 0 || infrastructureStatus.VPC.SecurityGroups[0].ID == "" {
-		return nil, errors.New("shoot securityGroups id must be not empty for infrastructure provider status")
-	}
-
-	return infrastructureStatus, nil
 }
