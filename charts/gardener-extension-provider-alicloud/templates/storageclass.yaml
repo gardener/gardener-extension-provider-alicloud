@@ -5,6 +5,8 @@ metadata:
   name: {{ .Values.config.etcd.storage.className }}
   labels:
 {{ include "labels" . | indent 4 }}
+  annotations:
+    resources.gardener.cloud/delete-on-invalid-update: "true"
 {{- if eq .Values.gardener.seed.volumeProvider "FlexVolume" }}
 provisioner: alicloud/disk
 volumeBindingMode: {{ .Values.config.etcd.storage.volumeBindingMode }}
