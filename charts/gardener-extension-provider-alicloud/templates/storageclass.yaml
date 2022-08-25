@@ -7,11 +7,13 @@ metadata:
 {{ include "labels" . | indent 4 }}
 {{- if eq .Values.gardener.seed.volumeProvider "FlexVolume" }}
 provisioner: alicloud/disk
+volumeBindingMode: {{ .Values.config.etcd.storage.volumeBindingMode }}
 parameters:
   type: cloud_ssd
   encrypted: "true"
 {{- else }}
 provisioner: diskplugin.csi.alibabacloud.com
+volumeBindingMode: {{ .Values.config.etcd.storage.volumeBindingMode }}
 parameters:
   csi.storage.k8s.io/fstype: ext4
   type: cloud_ssd
