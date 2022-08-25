@@ -114,25 +114,25 @@ func (c *configValidator) validateInfrastructureStatus(ctx context.Context, aliC
 
 	vpc, err := aliCloudVPCClient.GetVPCWithID(ctx, infrastructureStatus.VPC.ID)
 	if err != nil || len(vpc) == 0 {
-		allErrs = append(allErrs, field.NotFound(field.NewPath("vpc"), fmt.Errorf("could not get vpc %s from alicloud provider: %w", infrastructureStatus.VPC.ID, err)))
+		allErrs = append(allErrs, field.InternalError(field.NewPath("vpc"), fmt.Errorf("could not get vpc %s from alicloud provider: %w", infrastructureStatus.VPC.ID, err)))
 		return allErrs
 	}
 
 	vSwitch, err := aliCloudVPCClient.GetVSwitchesInfoByID(infrastructureStatus.VPC.VSwitches[0].ID)
 	if err != nil || vSwitch.ZoneID == "" {
-		allErrs = append(allErrs, field.NotFound(field.NewPath("vswitches"), fmt.Errorf("could not get vswitches %s from alicloud provider: %w", infrastructureStatus.VPC.VSwitches[0].ID, err)))
+		allErrs = append(allErrs, field.InternalError(field.NewPath("vswitches"), fmt.Errorf("could not get vswitches %s from alicloud provider: %w", infrastructureStatus.VPC.VSwitches[0].ID, err)))
 		return allErrs
 	}
 
 	machineImages, err := aliCloudECSClient.CheckIfImageExists(infrastructureStatus.MachineImages[0].ID)
 	if err != nil || !machineImages {
-		allErrs = append(allErrs, field.NotFound(field.NewPath("machineImages"), fmt.Errorf("could not get machineImages %s from alicloud provider: %w", infrastructureStatus.MachineImages[0].ID, err)))
+		allErrs = append(allErrs, field.InternalError(field.NewPath("machineImages"), fmt.Errorf("could not get machineImages %s from alicloud provider: %w", infrastructureStatus.MachineImages[0].ID, err)))
 		return allErrs
 	}
 
 	shootSecurityGroupId, err := aliCloudECSClient.GetSecurityGroupWithID(infrastructureStatus.VPC.SecurityGroups[0].ID)
 	if err != nil || len(shootSecurityGroupId.SecurityGroups.SecurityGroup) == 0 || shootSecurityGroupId.SecurityGroups.SecurityGroup[0].SecurityGroupId == "" {
-		allErrs = append(allErrs, field.NotFound(field.NewPath("securityGroup"), fmt.Errorf("could not get shoot security group %s from alicloud provider: %w", infrastructureStatus.VPC.SecurityGroups[0].ID, err)))
+		allErrs = append(allErrs, field.InternalError(field.NewPath("securityGroup"), fmt.Errorf("could not get shoot security group %s from alicloud provider: %w", infrastructureStatus.VPC.SecurityGroups[0].ID, err)))
 		return allErrs
 	}
 
