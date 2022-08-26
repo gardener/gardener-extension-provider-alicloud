@@ -391,7 +391,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 ) (map[string]interface{}, error) {
 	ccmConfig, err := vp.getCloudControllerManagerConfigFileContent(ctx, cp)
 	if err != nil {
-		return nil, fmt.Errorf("could not build cloud controller config file content for controlplain '%s': %w", kutil.ObjectName(cp), err)
+		return nil, fmt.Errorf("could not build cloud controller config file content for controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}
 
 	serverSecret, found := secretsReader.Get(csiSnapshotValidationServerName)
