@@ -16,6 +16,8 @@ package bastion
 
 import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+
 	"github.com/gardener/gardener/extensions/pkg/controller/bastion"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -39,6 +41,7 @@ type AddOptions struct {
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return bastion.Add(mgr, bastion.AddArgs{
 		Actuator:          newActuator(),
+		ConfigValidator:   NewConfigValidator(aliclient.NewClientFactory()),
 		ControllerOptions: opts.Controller,
 		Predicates:        bastion.DefaultPredicates(opts.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,

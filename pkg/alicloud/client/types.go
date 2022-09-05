@@ -58,10 +58,11 @@ type ecsClient struct {
 
 // ECS is an interface which declares ECS related methods.
 type ECS interface {
-	CheckIfImageExists(ctx context.Context, imageID string) (bool, error)
+	CheckIfImageExists(imageID string) (bool, error)
 	CheckIfImageOwnedByAliCloud(imageID string) (bool, error)
 	ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error
 	GetSecurityGroup(name string) (*ecs.DescribeSecurityGroupsResponse, error)
+	GetSecurityGroupWithID(id string) (*ecs.DescribeSecurityGroupsResponse, error)
 	DescribeSecurityGroups(request *ecs.DescribeSecurityGroupsRequest) (*ecs.DescribeSecurityGroupsResponse, error)
 	DescribeSecurityGroupAttribute(request *ecs.DescribeSecurityGroupAttributeRequest) (*ecs.DescribeSecurityGroupAttributeResponse, error)
 	DescribeKeyPairs(request *ecs.DescribeKeyPairsRequest) (*ecs.DescribeKeyPairsResponse, error)

@@ -210,7 +210,7 @@ func (f *clientFactory) NewECSClient(region, accessKeyID, accessKeySecret string
 }
 
 // CheckIfImageExists checks whether given imageID can be accessed by the client.
-func (c *ecsClient) CheckIfImageExists(ctx context.Context, imageID string) (bool, error) {
+func (c *ecsClient) CheckIfImageExists(imageID string) (bool, error) {
 	request := ecs.CreateDescribeImagesRequest()
 	request.ImageId = imageID
 	request.SetScheme("HTTPS")
@@ -226,6 +226,14 @@ func (c *ecsClient) GetSecurityGroup(name string) (*ecs.DescribeSecurityGroupsRe
 	request := ecs.CreateDescribeSecurityGroupsRequest()
 	request.SetScheme("HTTPS")
 	request.SecurityGroupName = name
+	return c.DescribeSecurityGroups(request)
+}
+
+// GetSecurityGroup return security group metadata by security group name
+func (c *ecsClient) GetSecurityGroupWithID(id string) (*ecs.DescribeSecurityGroupsResponse, error) {
+	request := ecs.CreateDescribeSecurityGroupsRequest()
+	request.SetScheme("HTTPS")
+	request.SecurityGroupId = id
 	return c.DescribeSecurityGroups(request)
 }
 

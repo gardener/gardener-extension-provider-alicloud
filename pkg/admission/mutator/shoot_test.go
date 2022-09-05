@@ -245,7 +245,7 @@ var _ = Describe("Mutating Shoot", func() {
 				),
 
 				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
-				ecsClient.EXPECT().CheckIfImageExists(ctx, imageId).Return(false, nil),
+				ecsClient.EXPECT().CheckIfImageExists(imageId).Return(false, nil),
 			)
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -290,7 +290,7 @@ var _ = Describe("Mutating Shoot", func() {
 				),
 
 				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
-				ecsClient.EXPECT().CheckIfImageExists(ctx, imageId).Return(false, nil),
+				ecsClient.EXPECT().CheckIfImageExists(imageId).Return(false, nil),
 				//ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(false, nil)
 			)
 			err := mutator.Mutate(ctx, newShoot, nil)
@@ -321,7 +321,7 @@ var _ = Describe("Mutating Shoot", func() {
 				),
 
 				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
-				ecsClient.EXPECT().CheckIfImageExists(ctx, imageId).Return(true, nil),
+				ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil),
 				ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil),
 			)
 			err := mutator.Mutate(ctx, newShoot, nil)
@@ -368,7 +368,7 @@ var _ = Describe("Mutating Shoot", func() {
 				),
 
 				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
-				ecsClient.EXPECT().CheckIfImageExists(ctx, imageId).Return(false, nil),
+				ecsClient.EXPECT().CheckIfImageExists(imageId).Return(false, nil),
 			)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())

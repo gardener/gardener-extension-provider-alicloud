@@ -215,18 +215,18 @@ func (mr *MockECSMockRecorder) AllocatePublicIp(arg0 interface{}) *gomock.Call {
 }
 
 // CheckIfImageExists mocks base method.
-func (m *MockECS) CheckIfImageExists(arg0 context.Context, arg1 string) (bool, error) {
+func (m *MockECS) CheckIfImageExists(arg0 string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckIfImageExists", arg0, arg1)
+	ret := m.ctrl.Call(m, "CheckIfImageExists", arg0)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CheckIfImageExists indicates an expected call of CheckIfImageExists.
-func (mr *MockECSMockRecorder) CheckIfImageExists(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockECSMockRecorder) CheckIfImageExists(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfImageExists", reflect.TypeOf((*MockECS)(nil).CheckIfImageExists), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfImageExists", reflect.TypeOf((*MockECS)(nil).CheckIfImageExists), arg0)
 }
 
 // CheckIfImageOwnedByAliCloud mocks base method.
@@ -432,6 +432,21 @@ func (m *MockECS) GetSecurityGroup(arg0 string) (*ecs.DescribeSecurityGroupsResp
 func (mr *MockECSMockRecorder) GetSecurityGroup(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecurityGroup", reflect.TypeOf((*MockECS)(nil).GetSecurityGroup), arg0)
+}
+
+// GetSecurityGroupWithID mocks base method.
+func (m *MockECS) GetSecurityGroupWithID(arg0 string) (*ecs.DescribeSecurityGroupsResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSecurityGroupWithID", arg0)
+	ret0, _ := ret[0].(*ecs.DescribeSecurityGroupsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSecurityGroupWithID indicates an expected call of GetSecurityGroupWithID.
+func (mr *MockECSMockRecorder) GetSecurityGroupWithID(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecurityGroupWithID", reflect.TypeOf((*MockECS)(nil).GetSecurityGroupWithID), arg0)
 }
 
 // RevokeEgressRule mocks base method.

@@ -436,7 +436,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 		return nil, err
 	}
 
-	if exist, err := shootECSClient.CheckIfImageExists(ctx, imageID); err != nil {
+	if exist, err := shootECSClient.CheckIfImageExists(imageID); err != nil {
 		return nil, err
 	} else if exist {
 		// Check if image is provided by AliCloud (OwnerAlias is System).
@@ -502,7 +502,7 @@ func (a *actuator) makeImageVisibleForShoot(ctx context.Context, log logr.Logger
 		return nil
 	}
 
-	exists, err := shootECSClient.CheckIfImageExists(ctx, imageID)
+	exists, err := shootECSClient.CheckIfImageExists(imageID)
 	if err != nil {
 		return err
 	}
