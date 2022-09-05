@@ -66,7 +66,7 @@ const (
 	vpcCIDR             = "10.250.0.0/16"
 	natGatewayCIDR      = "10.250.128.0/21" // Enhanced NatGateway need bind with VSwitch, natGatewayCIDR is used for this VSwitch
 	securityGroupSuffix = "-sg"
-	imageID             = "m-gw8iwwd4iiln01dj646s"
+	imageID             = "m-gw8c603eae9ygxgt2ig6"
 )
 
 var myPublicIP = ""
