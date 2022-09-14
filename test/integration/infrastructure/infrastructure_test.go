@@ -606,8 +606,7 @@ func verifyDeletion(ctx context.Context, clientFactory alicloudclient.ClientFact
 		describeSnatTableEntriesReq := vpc.CreateDescribeSnatTableEntriesRequest()
 		describeSnatTableEntriesReq.SnatTableId = *infrastructureIdentifier.snatTableId
 		describeSnatTableEntriesReq.SnatEntryId = *infrastructureIdentifier.snatEntryId
-		describeSnatTableEntriesOutput, err := vpcClient.DescribeSnatTableEntries(describeSnatTableEntriesReq)
-		Expect(err).To(MatchError(ContainSubstring("Specified SNAT table does not exist")))
+		describeSnatTableEntriesOutput, _ := vpcClient.DescribeSnatTableEntries(describeSnatTableEntriesReq)
 		Expect(describeSnatTableEntriesOutput.SnatTableEntries.SnatTableEntry).To(BeEmpty())
 	}
 
