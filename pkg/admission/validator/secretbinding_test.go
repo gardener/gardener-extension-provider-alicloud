@@ -93,7 +93,7 @@ var _ = Describe("SecretBinding validator", func() {
 
 		It("should return err when the corresponding Secret is not valid", func() {
 			apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).
-				DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret) error {
+				DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 					secret := &corev1.Secret{Data: map[string][]byte{
 						"foo": []byte("bar"),
 					}}
@@ -107,7 +107,7 @@ var _ = Describe("SecretBinding validator", func() {
 
 		It("should return nil when the corresponding Secret is valid", func() {
 			apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).
-				DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret) error {
+				DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 					secret := &corev1.Secret{Data: map[string][]byte{
 						alicloud.AccessKeyID:     []byte(strings.Repeat("a", 16)),
 						alicloud.AccessKeySecret: []byte(strings.Repeat("b", 30)),
@@ -129,7 +129,7 @@ var _ = Describe("SecretBinding validator", func() {
 
 		It("should return err when the provider type changed (to alicloud) and the corresponding Secret is not valid", func() {
 			apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).
-				DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret) error {
+				DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 					secret := &corev1.Secret{Data: map[string][]byte{
 						"foo": []byte("bar"),
 					}}

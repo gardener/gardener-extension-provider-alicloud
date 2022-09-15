@@ -127,7 +127,7 @@ var _ = Describe("Actuator", func() {
 	var (
 		expectGetDNSRecordSecret = func() {
 			c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
-				func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret) error {
+				func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 					*obj = *secret
 					return nil
 				},

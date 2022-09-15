@@ -353,7 +353,7 @@ func checkETCDEvents(etcd *druidv1alpha1.Etcd) {
 }
 
 func clientGet(result client.Object) interface{} {
-	return func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+	return func(ctx context.Context, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 		switch obj.(type) {
 		case *corev1.Service:
 			*obj.(*corev1.Service) = *result.(*corev1.Service)
