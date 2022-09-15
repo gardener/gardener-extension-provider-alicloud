@@ -31,6 +31,7 @@ import (
 )
 
 // CopyImageROSTemplate contains the content of CopyImage ROS template. https://www.alibabacloud.com/help/doc-detail/116189.htm?spm=a2c63.l28256.b99.201.713413a3FkLSIx
+//
 //go:embed copyimage_ros.yaml
 var CopyImageROSTemplate string
 
