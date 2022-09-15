@@ -18,34 +18,34 @@ images:
 
 - name: csi-attacher
   sourceRepository: https://github.com/kubernetes-csi/external-attacher
-  repository: k8s.gcr.io/sig-storage/csi-attacher
+  repository: registry.k8s.io/sig-storage/csi-attacher
   tag: v3.3.0
   targetVersion: ">= 1.17"
 - name: csi-node-driver-registrar
   sourceRepository: https://github.com/kubernetes-csi/node-driver-registrar
-  repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
+  repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
   tag: v1.3.0
 - name: csi-provisioner
   sourceRepository: https://github.com/kubernetes-csi/external-provisioner
-  repository: k8s.gcr.io/sig-storage/csi-provisioner
+  repository: registry.k8s.io/sig-storage/csi-provisioner
   tag: v2.1.2
   targetVersion: ">= 1.17"
 - name: csi-snapshotter
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
-  repository: k8s.gcr.io/sig-storage/csi-snapshotter
+  repository: registry.k8s.io/sig-storage/csi-snapshotter
   tag: v3.0.3
   targetVersion: ">= 1.17"
 - name: csi-snapshot-validation-webhook
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
-  repository: k8s.gcr.io/sig-storage/snapshot-validation-webhook
+  repository: registry.k8s.io/sig-storage/snapshot-validation-webhook
   tag: "v3.0.3"
 - name: csi-snapshot-controller
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
-  repository: k8s.gcr.io/sig-storage/snapshot-controller
+  repository: registry.k8s.io/sig-storage/snapshot-controller
   tag: v3.0.3
 - name: csi-resizer
   sourceRepository: https://github.com/kubernetes-csi/external-resizer
-  repository: k8s.gcr.io/sig-storage/csi-resizer
+  repository: registry.k8s.io/sig-storage/csi-resizer
   tag: v0.5.0
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
@@ -53,5 +53,5 @@ images:
   tag: v1.16.9-11c14d43  # temp build for hotfix on v1.22.8-e84838c-aliyun, see PR https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver/pull/609
 - name: csi-liveness-probe
   sourceRepository: github.com/kubernetes-csi/livenessprobe
-  repository: k8s.gcr.io/sig-storage/livenessprobe
+  repository: registry.k8s.io/sig-storage/livenessprobe
   tag: v2.3.0
