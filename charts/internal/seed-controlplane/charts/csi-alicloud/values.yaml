@@ -56,6 +56,33 @@ csiPluginController:
       limits:
         memory: 1.5Gi
 
+vpa:
+  resourcePolicy:
+    diskPlugin:
+      maxAllowed:
+        cpu: 800m
+        memory: 4G
+    provisioner:
+      maxAllowed:
+        cpu: 800m
+        memory: 4G
+    attacher:
+      maxAllowed:
+        cpu: 500m
+        memory: 4G
+    snapshotter:
+      maxAllowed:
+        cpu: 700m
+        memory: 3G
+    resizer:
+      maxAllowed:
+        cpu: 700m
+        memory: 3G
+    livenessProbe:
+      maxAllowed:
+        cpu: 500m
+        memory: 2G
+
 csiSnapshotController:
   podAnnotations: {}
   podResources:
