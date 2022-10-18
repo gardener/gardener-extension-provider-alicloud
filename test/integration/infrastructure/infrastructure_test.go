@@ -22,19 +22,20 @@ import (
 	"path/filepath"
 	"time"
 
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
-	"github.com/gardener/gardener/pkg/logger"
-	"github.com/go-logr/logr"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/extensions"
+	"github.com/gardener/gardener/pkg/logger"
 	"github.com/gardener/gardener/test/framework"
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	schedulingv1 "k8s.io/api/scheduling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -128,6 +129,16 @@ var _ = BeforeSuite(func() {
 
 	By("ensure encrypted image is cleaned in the current account")
 	Expect(deleteEncryptedImageStackIfExists(mgrContext, clientFactory)).To(Succeed())
+
+	priorityClass := &schedulingv1.PriorityClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: v1beta1constants.PriorityClassNameShootControlPlane300,
+		},
+		Description:   "PriorityClass for Shoot control plane components",
+		GlobalDefault: false,
+		Value:         999998300,
+	}
+	Expect(client.IgnoreAlreadyExists(c.Create(ctx, priorityClass))).To(BeNil())
 })
 
 var _ = AfterSuite(func() {
