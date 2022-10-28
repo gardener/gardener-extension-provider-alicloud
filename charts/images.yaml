@@ -19,34 +19,56 @@ images:
 - name: csi-attacher
   sourceRepository: https://github.com/kubernetes-csi/external-attacher
   repository: registry.k8s.io/sig-storage/csi-attacher
-  tag: v3.3.0
+  tag: v3.5.0
   targetVersion: ">= 1.17"
 - name: csi-node-driver-registrar
   sourceRepository: https://github.com/kubernetes-csi/node-driver-registrar
   repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
-  tag: v1.3.0
+  tag: v2.5.1
 - name: csi-provisioner
   sourceRepository: https://github.com/kubernetes-csi/external-provisioner
   repository: registry.k8s.io/sig-storage/csi-provisioner
-  tag: v2.1.2
-  targetVersion: ">= 1.17"
+  tag: "v2.2.2"
+  targetVersion: "< 1.20"
+- name: csi-provisioner
+  sourceRepository: github.com/kubernetes-csi/external-provisioner
+  repository: k8s.gcr.io/sig-storage/csi-provisioner
+  tag: "v3.2.1"
+  targetVersion: ">= 1.20"
 - name: csi-snapshotter
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: registry.k8s.io/sig-storage/csi-snapshotter
   tag: v3.0.3
-  targetVersion: ">= 1.17"
+  targetVersion: "< 1.20"
+- name: csi-snapshotter
+  sourceRepository: github.com/kubernetes-csi/external-snapshotter
+  repository: k8s.gcr.io/sig-storage/csi-snapshotter
+  tag: "v4.2.1"
+  targetVersion: ">= 1.20"
 - name: csi-snapshot-validation-webhook
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
   repository: registry.k8s.io/sig-storage/snapshot-validation-webhook
   tag: "v3.0.3"
+  targetVersion: "< 1.20"
+- name: csi-snapshot-validation-webhook
+  sourceRepository: github.com/kubernetes-csi/external-snapshotter
+  repository: k8s.gcr.io/sig-storage/snapshot-validation-webhook
+  tag: "v4.2.1"
+  targetVersion: ">= 1.20"
 - name: csi-snapshot-controller
   sourceRepository: https://github.com/kubernetes-csi/external-snapshotter
   repository: registry.k8s.io/sig-storage/snapshot-controller
   tag: v3.0.3
+  targetVersion: "< 1.20"
+- name: csi-snapshot-controller
+  sourceRepository: github.com/kubernetes-csi/external-snapshotter
+  repository: k8s.gcr.io/sig-storage/snapshot-controller
+  tag: "v4.2.1"
+  targetVersion: ">= 1.20"
 - name: csi-resizer
   sourceRepository: https://github.com/kubernetes-csi/external-resizer
   repository: registry.k8s.io/sig-storage/csi-resizer
-  tag: v0.5.0
+  tag: v1.5.0
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.eu-central-1.aliyuncs.com/gardener-de/alicloud-csi-plugin
@@ -54,4 +76,4 @@ images:
 - name: csi-liveness-probe
   sourceRepository: github.com/kubernetes-csi/livenessprobe
   repository: registry.k8s.io/sig-storage/livenessprobe
-  tag: v2.3.0
+  tag: v2.7.0

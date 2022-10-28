@@ -170,6 +170,7 @@ spec:
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
         - "--leader-election=true"
         - "--leader-election-namespace=kube-system"
+        - "--handle-volume-inuse-error=false"
         env:
         - name: ADDRESS
           value: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock
