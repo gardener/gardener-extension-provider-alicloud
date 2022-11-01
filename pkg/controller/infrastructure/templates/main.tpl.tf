@@ -102,61 +102,21 @@ resource "alicloud_security_group_rule" "allow_k8s_tcp_in" {
   cidr_ip           = "0.0.0.0/0"
 }
 
-resource "alicloud_security_group_rule" "allow_all_internal_tcp_in_1" {
+resource "alicloud_security_group_rule" "allow_all_internal_tcp_in" {
   type              = "ingress"
   ip_protocol       = "tcp"
   policy            = "accept"
-  port_range        = "1/22"
+  port_range        = "1/65535"
   priority          = 1
   security_group_id = alicloud_security_group.sg.id
   cidr_ip           = "{{ .vpc.cidr }}"
 }
 
-resource "alicloud_security_group_rule" "allow_all_internal_tcp_in_2" {
-  type              = "ingress"
-  ip_protocol       = "tcp"
-  policy            = "accept"
-  port_range        = "24/513"
-  priority          = 1
-  security_group_id = alicloud_security_group.sg.id
-  cidr_ip           = "{{ .vpc.cidr }}"
-}
-
-resource "alicloud_security_group_rule" "allow_all_internal_tcp_in_3" {
-  type              = "ingress"
-  ip_protocol       = "tcp"
-  policy            = "accept"
-  port_range        = "515/65535"
-  priority          = 1
-  security_group_id = alicloud_security_group.sg.id
-  cidr_ip           = "{{ .vpc.cidr }}"
-}
-
-resource "alicloud_security_group_rule" "allow_all_internal_udp_in_1" {
+resource "alicloud_security_group_rule" "allow_all_internal_udp_in" {
   type              = "ingress"
   ip_protocol       = "udp"
   policy            = "accept"
-  port_range        = "1/22"
-  priority          = 1
-  security_group_id = alicloud_security_group.sg.id
-  cidr_ip           = "{{ .vpc.cidr }}"
-}
-
-resource "alicloud_security_group_rule" "allow_all_internal_udp_in_2" {
-  type              = "ingress"
-  ip_protocol       = "udp"
-  policy            = "accept"
-  port_range        = "24/513"
-  priority          = 1
-  security_group_id = alicloud_security_group.sg.id
-  cidr_ip           = "{{ .vpc.cidr }}"
-}
-
-resource "alicloud_security_group_rule" "allow_all_internal_udp_in_3" {
-  type              = "ingress"
-  ip_protocol       = "udp"
-  policy            = "accept"
-  port_range        = "515/65535"
+  port_range        = "1/65535"
   priority          = 1
   security_group_id = alicloud_security_group.sg.id
   cidr_ip           = "{{ .vpc.cidr }}"
