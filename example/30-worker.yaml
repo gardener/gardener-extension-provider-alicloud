@@ -15,7 +15,7 @@ metadata:
   name: shoot--foobar--alicloud
 spec:
   cloudProfile:
-    apiVersion: core.gardener.cloud/v1alpha1
+    apiVersion: core.gardener.cloud/v1beta1
     kind: CloudProfile
     spec:
       providerConfig:
@@ -33,10 +33,10 @@ spec:
               - name: cn-beijing
                 id: alicloudimageid2023
   seed:
-    apiVersion: core.gardener.cloud/v1alpha1
+    apiVersion: core.gardener.cloud/v1beta1
     kind: Seed
   shoot:
-    apiVersion: core.gardener.cloud/v1alpha1
+    apiVersion: core.gardener.cloud/v1beta1
     kind: Shoot
     spec:
       kubernetes:
