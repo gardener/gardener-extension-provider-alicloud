@@ -16,6 +16,7 @@ package mutator
 
 import (
 	"context"
+	"time"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
@@ -35,6 +36,7 @@ import (
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
 
 	"github.com/gardener/gardener/pkg/controllerutils"
+	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -83,6 +85,7 @@ var _ = Describe("Mutating Shoot", func() {
 		ecsClient             *mockalicloudclient.MockECS
 		secretBinding         *corev1beta1.SecretBinding
 		secret                *corev1.Secret
+		now                   = metav1.Now()
 
 		config       *api.CloudProfileConfig
 		configJson   []byte
@@ -159,7 +162,13 @@ var _ = Describe("Mutating Shoot", func() {
 			}}
 		oldShoot = &corev1beta1.Shoot{
 			Spec: corev1beta1.ShootSpec{
+				SeedName: pointer.String("alicloud"),
+				Networking: corev1beta1.Networking{
+					Nodes: pointer.String("10.250.0.0/16"),
+					Type:  "calico",
+				},
 				Provider: corev1beta1.Provider{
+					Type: alicloud.Type,
 					ControlPlaneConfig: &runtime.RawExtension{
 						Raw: expectEncode(
 							runtime.Encode(serializer, controlPlaneConfig))},
@@ -189,8 +198,14 @@ var _ = Describe("Mutating Shoot", func() {
 				Namespace: namespace,
 			},
 			Spec: corev1beta1.ShootSpec{
+				SeedName: pointer.String("alicloud"),
+				Networking: corev1beta1.Networking{
+					Nodes: pointer.String("10.250.0.0/16"),
+					Type:  "calico",
+				},
 				SecretBindingName: name,
 				Provider: corev1beta1.Provider{
+					Type: alicloud.Type,
 					Workers: []corev1beta1.Worker{
 						{
 							Machine: corev1beta1.Machine{
@@ -467,5 +482,45 @@ var _ = Describe("Mutating Shoot", func() {
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeTrue())
 		})
 
+	})
+	// TODO (DockToFuture): mutator tests need to be complemented.
+	Context("Mutate shoot spec networking providerconfig", func() {
+		It("should return nil when shoot is in scheduled to new seed phase", func() {
+			newShoot.Status.LastOperation = &corev1beta1.LastOperation{
+				Description:    "test",
+				LastUpdateTime: metav1.Time{Time: metav1.Now().Add(time.Second * -1000)},
+				Progress:       0,
+				Type:           corev1beta1.LastOperationTypeReconcile,
+				State:          corev1beta1.LastOperationStateProcessing,
+			}
+			newShoot.Status.SeedName = pointer.String("aws")
+			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
+		})
+
+		It("should return nil when shoot is in migration or restore phase", func() {
+			newShoot.Status.LastOperation = &corev1beta1.LastOperation{
+				Description:    "test",
+				LastUpdateTime: metav1.Time{Time: metav1.Now().Add(time.Second * -1000)},
+				Progress:       0,
+				Type:           corev1beta1.LastOperationTypeMigrate,
+				State:          corev1beta1.LastOperationStateProcessing,
+			}
+			newShoot.Status.SeedName = pointer.String("alicloud")
+			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
+		})
+
+		It("should return nil when shoot is in deletion phase", func() {
+			newShoot.DeletionTimestamp = &now
+			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
+		})
 	})
 })
