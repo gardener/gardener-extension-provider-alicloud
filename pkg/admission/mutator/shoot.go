@@ -132,21 +132,38 @@ func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1bet
 
 func (s *shootMutator) mutateNetworkOverlay(ctx context.Context, shoot *corev1beta1.Shoot, old client.Object) error {
 	overlay := &calicov1alpha1.Overlay{Enabled: false}
+
+	// Skip if shoot is in restore or migration phase
+	if wasShootRescheduledToNewSeed(shoot) {
+		return nil
+	}
+
+	var oldShoot *corev1beta1.Shoot
+	var ok bool
+	if old != nil {
+		oldShoot, ok = old.(*corev1beta1.Shoot)
+		if !ok {
+			return fmt.Errorf("wrong object type %T", old)
+		}
+	}
+
+	if oldShoot != nil && isShootInMigrationOrRestorePhase(shoot) {
+		return nil
+	}
+
+	// Skip if shoot is in deletion phase
+	if shoot.DeletionTimestamp != nil || oldShoot != nil && oldShoot.DeletionTimestamp != nil {
+		return nil
+	}
+
 	networkConfig, err := s.decodeNetworkingConfig(shoot.Spec.Networking.ProviderConfig)
 	if err != nil {
 		return err
 	}
-	if old == nil && networkConfig.Overlay == nil {
+	if oldShoot == nil && networkConfig.Overlay == nil {
 		networkConfig.Overlay = overlay
 	}
-	if old != nil && networkConfig.Overlay == nil {
-		oldShoot, ok := old.(*corev1beta1.Shoot)
-		if !ok {
-			return fmt.Errorf("wrong object type %T", old)
-		}
-		if oldShoot.DeletionTimestamp != nil {
-			return nil
-		}
+	if oldShoot != nil && networkConfig.Overlay == nil {
 		oldNetworkConfig, err := s.decodeNetworkingConfig(oldShoot.Spec.Networking.ProviderConfig)
 		if err != nil {
 			return err
@@ -478,4 +495,21 @@ func (s *shootMutator) decodeNetworkingConfig(network *runtime.RawExtension) (*c
 		}
 	}
 	return networkConfig, nil
+}
+
+// wasShootRescheduledToNewSeed returns true if the shoot.Spec.SeedName has been changed, but the migration operation has not started yet.
+func wasShootRescheduledToNewSeed(shoot *corev1beta1.Shoot) bool {
+	return shoot.Status.LastOperation != nil &&
+		shoot.Status.LastOperation.Type != corev1beta1.LastOperationTypeMigrate &&
+		shoot.Spec.SeedName != nil &&
+		shoot.Status.SeedName != nil &&
+		*shoot.Spec.SeedName != *shoot.Status.SeedName
+}
+
+// isShootInMigrationOrRestorePhase returns true if the shoot is currently being migrated or restored.
+func isShootInMigrationOrRestorePhase(shoot *corev1beta1.Shoot) bool {
+	return shoot.Status.LastOperation != nil &&
+		(shoot.Status.LastOperation.Type == corev1beta1.LastOperationTypeRestore &&
+			shoot.Status.LastOperation.State != corev1beta1.LastOperationStateSucceeded ||
+			shoot.Status.LastOperation.Type == corev1beta1.LastOperationTypeMigrate)
 }
