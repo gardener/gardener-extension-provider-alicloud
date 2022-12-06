@@ -22,9 +22,11 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	ctrlerror "github.com/gardener/gardener/pkg/controllerutils/reconciler"
 	"github.com/go-logr/logr"
@@ -66,7 +68,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 
 	aliCloudECSClient, err := a.newClientFactory.NewECSClient(opt.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	imageID := infrastructureStatus.MachineImages[0].ID
@@ -79,7 +81,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 	for cores := 1; cores <= 2; cores++ {
 		instanceType, err := aliCloudECSClient.GetInstanceType(cores, vSwitchesZoneID)
 		if err != nil {
-			return err
+			return util.DetermineError(err, helper.KnownCodes)
 		}
 
 		if instanceType == nil ||
@@ -105,17 +107,17 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 
 	securityGroupID, err := ensureSecurityGroup(aliCloudECSClient, opt.SecurityGroupName, vpcId, log)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	instanceID, err := ensureComputeInstance(aliCloudECSClient, log, opt, securityGroupID, imageID, vSwitchesID, vSwitchesZoneID, instanceTypeId)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	ready, err := isInstanceReady(aliCloudECSClient, opt)
 	if err != nil {
-		return fmt.Errorf("failed to check for bastion instance: %w", err)
+		return util.DetermineError(fmt.Errorf("failed to check for bastion instance: %w", err), helper.KnownCodes)
 	}
 
 	if !ready {
@@ -127,12 +129,12 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 
 	err = ensureSecurityGroupRules(aliCloudECSClient, opt, shootSecurityGroupId, bastion, securityGroupID)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	publicIP, err := aliCloudECSClient.AllocatePublicIp(instanceID)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	endpoints, err := getInstanceEndpoints(aliCloudECSClient, opt, publicIP.IpAddress)
