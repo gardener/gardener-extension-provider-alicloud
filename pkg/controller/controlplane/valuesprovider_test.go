@@ -150,10 +150,9 @@ var _ = Describe("ValuesProvider", func() {
 				"genericTokenKubeconfigSecretName": genericTokenKubeconfigSecretName,
 			},
 			"alicloud-cloud-controller-manager": map[string]interface{}{
-				"replicas":          1,
-				"clusterName":       namespace,
-				"kubernetesVersion": "1.20.0",
-				"podNetwork":        cidr,
+				"replicas":    1,
+				"clusterName": namespace,
+				"podNetwork":  cidr,
 				"podLabels": map[string]interface{}{
 					"maintenance.gardener.cloud/restart": "true",
 				},
@@ -165,7 +164,6 @@ var _ = Describe("ValuesProvider", func() {
 			"csi-alicloud": map[string]interface{}{
 				"replicas":           1,
 				"regionID":           "eu-central-1",
-				"kubernetesVersion":  "1.20.0",
 				"enableADController": true,
 				"csiPluginController": map[string]interface{}{
 					"snapshotPrefix":         "myshoot",
@@ -191,7 +189,6 @@ var _ = Describe("ValuesProvider", func() {
 					"accessKeyID":     "Zm9v",
 					"accessKeySecret": "YmFy",
 				},
-				"kubernetesVersion":  "1.20.0",
 				"enableADController": true,
 				"vpaEnabled":         true,
 				"webhookConfig": map[string]interface{}{
@@ -277,7 +274,6 @@ var _ = Describe("ValuesProvider", func() {
 							"accessKeyID":     "Zm9v",
 							"accessKeySecret": "YmFy",
 						},
-						"kubernetesVersion":  "1.20.0",
 						"enableADController": true,
 						"vpaEnabled":         true,
 						"webhookConfig": map[string]interface{}{
@@ -311,7 +307,6 @@ var _ = Describe("ValuesProvider", func() {
 							"accessKeyID":     "Zm9v",
 							"accessKeySecret": "YmFy",
 						},
-						"kubernetesVersion":  "1.20.0",
 						"enableADController": true,
 						"vpaEnabled":         true,
 						"webhookConfig": map[string]interface{}{
@@ -323,16 +318,6 @@ var _ = Describe("ValuesProvider", func() {
 				}
 				Expect(values).To(Equal(controlPlaneShootChartValues))
 			})
-		})
-	})
-
-	Describe("#GetControlPlaneShootCRDsChartValues", func() {
-		It("should return correct control plane shoot CRDs chart values ", func() {
-			vp := NewValuesProvider(csi)
-
-			values, err := vp.GetControlPlaneShootCRDsChartValues(context.TODO(), cp, cluster)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(values).To(Equal(map[string]interface{}{"volumesnapshots": map[string]interface{}{"kubernetesVersion": "1.20.0"}}))
 		})
 	})
 })
