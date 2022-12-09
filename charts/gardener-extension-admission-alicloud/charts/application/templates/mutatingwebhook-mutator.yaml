@@ -30,6 +30,10 @@ webhooks:
   failurePolicy: Fail
   matchPolicy: Equivalent
   namespaceSelector: {}
-  objectSelector: {}
+  objectSelector:
+    {{- if .Values.global.webhookConfig.useObjectSelector }}
+    matchLabels:
+      provider.extensions.gardener.cloud/alicloud: "true"
+    {{- end }}
   sideEffects: None
   timeoutSeconds: 10
