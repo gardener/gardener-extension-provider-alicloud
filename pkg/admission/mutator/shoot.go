@@ -151,6 +151,11 @@ func (s *shootMutator) mutateNetworkOverlay(ctx context.Context, shoot *corev1be
 		return nil
 	}
 
+	// Skip if specs are matching
+	if oldShoot != nil && reflect.DeepEqual(shoot.Spec, oldShoot.Spec) {
+		return nil
+	}
+
 	// Skip if shoot is in deletion phase
 	if shoot.DeletionTimestamp != nil || oldShoot != nil && oldShoot.DeletionTimestamp != nil {
 		return nil
