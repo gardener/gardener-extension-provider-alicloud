@@ -522,5 +522,15 @@ var _ = Describe("Mutating Shoot", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
 		})
+
+		It("should return nil when shoot specs have not changed", func() {
+			shootWithAnnotations := newShoot.DeepCopy()
+			shootWithAnnotations.Annotations = map[string]string{"foo": "bar"}
+			shootExpected := shootWithAnnotations.DeepCopy()
+
+			err := mutator.Mutate(ctx, shootWithAnnotations, newShoot)
+			Expect(err).To(BeNil())
+			Expect(shootWithAnnotations).To(DeepEqual(shootExpected))
+		})
 	})
 })
