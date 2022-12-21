@@ -61,7 +61,7 @@ settings for the proxy server to use when communicating with the apiserver.</p>
 <td>
 <code>machineImageOwnerSecretRef</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.15/#secretreference-v1-core">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#secretreference-v1-core">
 Kubernetes core/v1.SecretReference
 </a>
 </em>

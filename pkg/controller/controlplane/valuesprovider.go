@@ -290,20 +290,6 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	return vp.getControlPlaneShootChartValues(cpConfig, cluster, cp, credentials, secretsReader)
 }
 
-// GetControlPlaneShootCRDsChartValues returns the values for the control plane shoot CRDs chart applied by the generic actuator.
-// Currently the provider extension does not specify a control plane shoot CRDs chart. That's why we simply return empty values.
-func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
-	_ context.Context,
-	_ *extensionsv1alpha1.ControlPlane,
-	cluster *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"volumesnapshots": map[string]interface{}{
-			"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		},
-	}, nil
-}
-
 // cloudConfig wraps the settings for the Alicloud provider.
 // See https://github.com/kubernetes/cloud-provider-alibaba-cloud/blob/master/cloud-controller-manager/alicloud.go
 type cloudConfig struct {
@@ -404,17 +390,15 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
 		},
 		"alicloud-cloud-controller-manager": map[string]interface{}{
-			"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
-			"clusterName":       cp.Namespace,
-			"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-			"podNetwork":        extensionscontroller.GetPodNetwork(cluster),
+			"replicas":    extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+			"clusterName": cp.Namespace,
+			"podNetwork":  extensionscontroller.GetPodNetwork(cluster),
 			"podLabels": map[string]interface{}{
 				v1beta1constants.LabelPodMaintenanceRestart: "true",
 			},
 			"cloudConfig": ccmConfig,
 		},
 		"csi-alicloud": map[string]interface{}{
-			"kubernetesVersion":  cluster.Shoot.Spec.Kubernetes.Version,
 			"regionID":           cp.Spec.Region,
 			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"enableADController": vp.enableCSIADController(cpConfig),
@@ -467,7 +451,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 				"accessKeyID":     base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeyID)),
 				"accessKeySecret": base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret)),
 			},
-			"kubernetesVersion":  cluster.Shoot.Spec.Kubernetes.Version,
 			"enableADController": vp.enableCSIADController(cpConfig),
 			"vpaEnabled":         gardencorev1beta1helper.ShootWantsVerticalPodAutoscaler(cluster.Shoot),
 			"webhookConfig": map[string]interface{}{

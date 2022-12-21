@@ -26,11 +26,9 @@ rules:
 - apiGroups: ["storage.k8s.io"]
   resources: ["volumeattachments"]
   verbs: ["get", "list", "watch", "update", "patch"]
-{{- if semverCompare ">= 1.17" .Values.kubernetesVersion }}
 - apiGroups: [ "storage.k8s.io" ]
   resources: [ "volumeattachments/status" ]
   verbs: [ "patch" ]
-{{- end }}
 - apiGroups: [""]
   resources: ["events"]
   verbs: ["create", "patch", "update"]

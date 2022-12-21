@@ -6,7 +6,6 @@ images:
 credential:
   accessKeyID: keyID
   accessKeySecret: secret
-kubernetesVersion: v1.15.0
 vpaEnabled: false
 
 enableADController: true
