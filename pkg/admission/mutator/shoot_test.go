@@ -18,6 +18,8 @@ import (
 	"context"
 	"time"
 
+	calicov1alpha1 "github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico/v1alpha1"
+	ciliumv1alpha1 "github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
@@ -483,9 +485,10 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 
 	})
-	// TODO (DockToFuture): mutator tests need to be complemented.
-	Context("Mutate shoot spec networking providerconfig", func() {
-		It("should return nil when shoot is in scheduled to new seed phase", func() {
+
+	Context("Mutate shoot networking providerconfig for type calico", func() {
+
+		It("should return without mutation when shoot is in scheduled to new seed phase", func() {
 			newShoot.Status.LastOperation = &corev1beta1.LastOperation{
 				Description:    "test",
 				LastUpdateTime: metav1.Time{Time: metav1.Now().Add(time.Second * -1000)},
@@ -500,7 +503,7 @@ var _ = Describe("Mutating Shoot", func() {
 			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
 		})
 
-		It("should return nil when shoot is in migration or restore phase", func() {
+		It("should return without mutation when shoot is in migration or restore phase", func() {
 			newShoot.Status.LastOperation = &corev1beta1.LastOperation{
 				Description:    "test",
 				LastUpdateTime: metav1.Time{Time: metav1.Now().Add(time.Second * -1000)},
@@ -515,7 +518,7 @@ var _ = Describe("Mutating Shoot", func() {
 			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
 		})
 
-		It("should return nil when shoot is in deletion phase", func() {
+		It("should return without mutation when shoot is in deletion phase", func() {
 			newShoot.DeletionTimestamp = &now
 			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
@@ -523,7 +526,7 @@ var _ = Describe("Mutating Shoot", func() {
 			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
 		})
 
-		It("should return nil when shoot specs have not changed", func() {
+		It("should return without mutation when shoot specs have not changed", func() {
 			shootWithAnnotations := newShoot.DeepCopy()
 			shootWithAnnotations.Annotations = map[string]string{"foo": "bar"}
 			shootExpected := shootWithAnnotations.DeepCopy()
@@ -531,6 +534,174 @@ var _ = Describe("Mutating Shoot", func() {
 			err := mutator.Mutate(ctx, shootWithAnnotations, newShoot)
 			Expect(err).To(BeNil())
 			Expect(shootWithAnnotations).To(DeepEqual(shootExpected))
+		})
+
+		It("should disable overlay for a new shoot", func() {
+			gomock.InOrder(
+				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
+						*obj = *cloudProfile
+						return nil
+					},
+				),
+				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
+						*obj = *secretBinding
+						return nil
+					},
+				),
+				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
+						*obj = *secret
+						return nil
+					},
+				),
+
+				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
+				ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil),
+				ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil),
+			)
+			err := mutator.Mutate(ctx, newShoot, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
+				Object: &calicov1alpha1.NetworkConfig{
+					Overlay: &calicov1alpha1.Overlay{
+						Enabled: false,
+					},
+				},
+			}))
+		})
+
+		It("should take overlay field value from old shoot when unspecified in new shoot", func() {
+			oldShoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
+				Raw: []byte(`{"overlay":{"enabled":true}}`),
+				Object: &calicov1alpha1.NetworkConfig{
+					Overlay: &calicov1alpha1.Overlay{
+						Enabled: true,
+					},
+				},
+			}
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
+				Object: &calicov1alpha1.NetworkConfig{
+					Overlay: &calicov1alpha1.Overlay{
+						Enabled: true,
+					},
+				},
+			}))
+		})
+	})
+
+	Context("Mutate shoot networking providerconfig for type cilium", func() {
+
+		BeforeEach(func() {
+			newShoot.Spec.Networking.Type = "cilium"
+			oldShoot.Spec.Networking.Type = "cilium"
+		})
+
+		It("should return without mutation when shoot is in scheduled to new seed phase", func() {
+			newShoot.Status.LastOperation = &corev1beta1.LastOperation{
+				Description:    "test",
+				LastUpdateTime: metav1.Time{Time: metav1.Now().Add(time.Second * -1000)},
+				Progress:       0,
+				Type:           corev1beta1.LastOperationTypeReconcile,
+				State:          corev1beta1.LastOperationStateProcessing,
+			}
+			newShoot.Status.SeedName = pointer.String("aws")
+			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
+		})
+
+		It("should return without mutation when shoot is in migration or restore phase", func() {
+			newShoot.Status.LastOperation = &corev1beta1.LastOperation{
+				Description:    "test",
+				LastUpdateTime: metav1.Time{Time: metav1.Now().Add(time.Second * -1000)},
+				Progress:       0,
+				Type:           corev1beta1.LastOperationTypeMigrate,
+				State:          corev1beta1.LastOperationStateProcessing,
+			}
+			newShoot.Status.SeedName = pointer.String("alicloud")
+			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
+		})
+
+		It("should return without mutation when shoot is in deletion phase", func() {
+			newShoot.DeletionTimestamp = &now
+			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(DeepEqual(expectedShootNetworkingProviderConfig))
+		})
+
+		It("should return without mutation when shoot specs have not changed", func() {
+			shootWithAnnotations := newShoot.DeepCopy()
+			shootWithAnnotations.Annotations = map[string]string{"foo": "bar"}
+			shootExpected := shootWithAnnotations.DeepCopy()
+
+			err := mutator.Mutate(ctx, shootWithAnnotations, newShoot)
+			Expect(err).To(BeNil())
+			Expect(shootWithAnnotations).To(DeepEqual(shootExpected))
+		})
+
+		It("should disable overlay for a new shoot", func() {
+			gomock.InOrder(
+				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
+						*obj = *cloudProfile
+						return nil
+					},
+				),
+				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
+						*obj = *secretBinding
+						return nil
+					},
+				),
+				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
+						*obj = *secret
+						return nil
+					},
+				),
+
+				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
+				ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil),
+				ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil),
+			)
+			err := mutator.Mutate(ctx, newShoot, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
+				Object: &ciliumv1alpha1.NetworkConfig{
+					Overlay: &ciliumv1alpha1.Overlay{
+						Enabled: false,
+					},
+				},
+			}))
+		})
+
+		It("should take overlay field value from old shoot when unspecified in new shoot", func() {
+			oldShoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
+				Raw: []byte(`{"overlay":{"enabled":true}}`),
+				Object: &ciliumv1alpha1.NetworkConfig{
+					Overlay: &ciliumv1alpha1.Overlay{
+						Enabled: true,
+					},
+				},
+			}
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
+				Object: &ciliumv1alpha1.NetworkConfig{
+					Overlay: &ciliumv1alpha1.Overlay{
+						Enabled: true,
+					},
+				},
+			}))
 		})
 	})
 })
