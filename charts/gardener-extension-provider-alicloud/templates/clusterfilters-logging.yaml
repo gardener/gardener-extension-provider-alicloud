@@ -1,0 +1,93 @@
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.gardener/type: "seed"
+  name: cloud-controller-manager-alicloud-cloud-controller-manager
+spec:
+  filters:
+  - parser:
+      keyName: log
+      parser: kube-apiserver-parser
+      reserveData: true
+  match: kubernetes.*cloud-controller-manager*alicloud-cloud-controller-manager*
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.gardener/type: "seed"
+  name: machine-controller-manager-alicloud-machine-controller-manager
+spec:
+  filters:
+  - parser:
+      keyName: log
+      parser: kube-apiserver-parser
+      reserveData: true
+  match: kubernetes.*machine-controller-manager*alicloud-machine-controller-manager*
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.gardener/type: "seed"
+  name: machine-controller-manager-machine-controller-manager-provider-alicloud
+spec:
+  filters:
+  - parser:
+      keyName: log
+      parser: kube-apiserver-parser
+      reserveData: true
+  match: kubernetes.*machine-controller-manager*machine-controller-manager-provider-alicloud*
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.gardener/type: "seed"
+  name: csi-plugin-controller-alicloud-csi
+spec:
+  filters:
+  - parser:
+      keyName: log
+      parser: kube-apiserver-parser
+      reserveData: true
+  match: kubernetes.*csi-plugin-controller*alicloud-csi*
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.gardener/type: "seed"
+  name: csi-snapshot-alicloud-csi
+spec:
+  filters:
+  - parser:
+      keyName: log
+      parser: kube-apiserver-parser
+      reserveData: true
+  match: kubernetes.*csi-snapshot*alicloud-csi*
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.gardener/type: "seed"
+  name: modify-provider-alicloud
+spec:
+  filters:
+  - modify:
+      conditions:
+        - keyValueMatches:
+            tag: ^kubernetes\.var\.log\.containers\.(cloud-controller-manager-.+?_.+?_alicloud-cloud-controller-manager|csi-plugin-controller-.+?_.+?_alicloud-csi)
+      rules:
+        - add:
+            __gardener_multitenant_id__: operator;user
+  - modify:
+      conditions:
+        - keyValueMatches:
+            tag: ^kubernetes\.var\.log\.containers\.machine-controller-manager-.+?_.+?_(alicloud-machine-controller-manager|machine-controller-manager-provider-alicloud)
+      rules:
+        - add:
+            __gardener_multitenant_id__: operator;user
+  match:  kubernetes.*
