@@ -20,21 +20,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
-	alicloudcmd "github.com/gardener/gardener-extension-provider-alicloud/pkg/cmd"
-	alicloudbackupbucket "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupbucket"
-	alicloudbackupentry "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupentry"
-	alicloudcontrolplane "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/controlplane"
-	aliclouddnsrecord "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/dnsrecord"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/healthcheck"
-	alicloudinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
-	alicloudworker "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
-	alicloudcontrolplaneexposure "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplaneexposure"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/shoot"
-
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	alicloudbastion "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/bastion"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -52,6 +38,20 @@ import (
 	"k8s.io/component-base/version/verflag"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
+	alicloudcmd "github.com/gardener/gardener-extension-provider-alicloud/pkg/cmd"
+	alicloudbackupbucket "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupbucket"
+	alicloudbackupentry "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/backupentry"
+	alicloudbastion "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/bastion"
+	alicloudcontrolplane "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/controlplane"
+	aliclouddnsrecord "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/dnsrecord"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/healthcheck"
+	alicloudinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
+	alicloudworker "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
+	alicloudcontrolplaneexposure "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplaneexposure"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/shoot"
 )
 
 // NewControllerManagerCommand creates a new command for running a Alicloud provider controller.

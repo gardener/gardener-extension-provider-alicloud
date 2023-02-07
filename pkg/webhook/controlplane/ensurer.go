@@ -24,7 +24,6 @@ import (
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/gardener/gardener/pkg/utils/version"
-
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

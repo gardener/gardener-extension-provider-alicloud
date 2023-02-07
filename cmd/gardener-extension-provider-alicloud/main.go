@@ -17,11 +17,11 @@ package main
 import (
 	"os"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/cmd/gardener-extension-provider-alicloud/app"
-
 	"github.com/gardener/gardener/pkg/logger"
 	runtimelog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/cmd/gardener-extension-provider-alicloud/app"
 )
 
 func main() {

@@ -23,11 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	apiv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
-
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
@@ -50,6 +45,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	apiv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
 )
 
 var _ = Describe("Machines", func() {

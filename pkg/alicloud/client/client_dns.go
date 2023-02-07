@@ -20,14 +20,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	"golang.org/x/time/rate"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/gardener/gardener/pkg/utils"
+	"golang.org/x/time/rate"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 )
 
 const (

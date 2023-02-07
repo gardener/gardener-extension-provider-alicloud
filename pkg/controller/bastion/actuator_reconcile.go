@@ -20,10 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -33,6 +29,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 )
 
 // bastionEndpoints holds the endpoints the bastion host provides

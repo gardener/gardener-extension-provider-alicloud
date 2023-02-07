@@ -17,19 +17,19 @@ package worker
 import (
 	"context"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/util"
-
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardener "github.com/gardener/gardener/pkg/client/kubernetes"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 )
 
 type delegateFactory struct {

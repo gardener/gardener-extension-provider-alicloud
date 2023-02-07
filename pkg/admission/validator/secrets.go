@@ -18,12 +18,12 @@ import (
 	"context"
 	"fmt"
 
-	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
-
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 )
 
 type secret struct{}

@@ -15,13 +15,13 @@
 package validation_test
 
 import (
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 )
 
 var _ = Describe("CloudProfileConfig validation", func() {

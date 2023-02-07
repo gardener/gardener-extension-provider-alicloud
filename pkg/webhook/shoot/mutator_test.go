@@ -17,14 +17,14 @@ package shoot
 import (
 	"context"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 )
 
 var _ = Describe("Mutator", func() {

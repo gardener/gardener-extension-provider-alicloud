@@ -19,7 +19,6 @@ import (
 	"net"
 	"regexp"
 
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener/pkg/apis/core"
 	validationutils "github.com/gardener/gardener/pkg/utils/validation"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
@@ -27,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
 const (

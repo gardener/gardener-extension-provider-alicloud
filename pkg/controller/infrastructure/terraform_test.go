@@ -17,15 +17,15 @@ package infrastructure_test
 import (
 	"strconv"
 
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
-
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 )
 
 var _ = Describe("TerraformChartOps", func() {

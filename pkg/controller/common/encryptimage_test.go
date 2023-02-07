@@ -18,14 +18,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
-	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 	gcorev1alph1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	gcorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
+	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 )
 
 var _ = Describe("Encrypt Image tools", func() {

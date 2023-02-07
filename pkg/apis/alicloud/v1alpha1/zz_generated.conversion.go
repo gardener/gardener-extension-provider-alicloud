@@ -24,9 +24,10 @@ package v1alpha1
 import (
 	unsafe "unsafe"
 
-	alicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+
+	alicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
 func init() {

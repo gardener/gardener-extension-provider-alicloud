@@ -20,32 +20,30 @@ import (
 
 	calicov1alpha1 "github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico/v1alpha1"
 	ciliumv1alpha1 "github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium/v1alpha1"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
-	apisalicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-
-	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
-
 	"github.com/gardener/gardener/pkg/controllerutils"
+	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
+	apisalicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 )
 
 const (

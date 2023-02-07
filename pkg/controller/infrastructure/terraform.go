@@ -16,15 +16,13 @@ package infrastructure
 
 import (
 	"embed"
+	"strconv"
 	"text/template"
 
-	"strconv"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-
-	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 )
 
 var (

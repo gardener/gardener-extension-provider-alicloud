@@ -15,10 +15,10 @@
 package bastion
 
 import (
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-
 	"github.com/gardener/gardener/extensions/pkg/controller/bastion"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 )
 
 const (

@@ -18,9 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
-
-	webhookutils "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/utils"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -28,6 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+	webhookutils "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/utils"
 )
 
 type mutator struct {

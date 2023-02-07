@@ -15,12 +15,12 @@
 package infrastructure
 
 import (
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
-
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 )
 
 var (

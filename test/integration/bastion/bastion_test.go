@@ -25,14 +25,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
-	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-
-	bastionctrl "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/bastion"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/gardener/gardener/extensions/pkg/controller"
@@ -57,6 +49,13 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
+	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	bastionctrl "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/bastion"
 )
 
 const (

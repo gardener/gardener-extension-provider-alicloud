@@ -20,12 +20,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -33,6 +27,11 @@ import (
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 )
 
 // MachineClassKind yields the name of the machine class kind used by Alicloud provider.
