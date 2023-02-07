@@ -68,7 +68,7 @@ func ValidateNetworking(networking core.Networking, fldPath *field.Path) field.E
 // ValidateWorkers validates the workers of a Shoot.
 func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	alicloudZones := sets.NewString()
+	alicloudZones := sets.New[string]()
 	dataDiskNameRegexp := regexp.MustCompile(dataDiskNameFmt)
 
 	for _, alicloudZone := range zones {
@@ -122,7 +122,7 @@ func ValidateWorkersUpdate(oldWorkers, newWorkers []core.Worker, fldPath *field.
 	return allErrs
 }
 
-func validateZones(zones []string, allowedZones sets.String, fldPath *field.Path) field.ErrorList {
+func validateZones(zones []string, allowedZones sets.Set[string], fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	for i, workerZone := range zones {
 		if !allowedZones.Has(workerZone) {
