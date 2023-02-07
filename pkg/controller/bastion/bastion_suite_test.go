@@ -380,7 +380,7 @@ func createShootTestStruct() *gardencorev1beta1.Shoot {
 						Machine: gardencorev1beta1.Machine{
 							Image: &gardencorev1beta1.ShootMachineImage{
 								Name:    "machine-name",
-								Version: pointer.StringPtr("macchine-version"),
+								Version: pointer.String("macchine-version"),
 							},
 						},
 					},

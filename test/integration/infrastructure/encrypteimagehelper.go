@@ -97,12 +97,12 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 							Type: "ecs.g6.2xlarge",
 							Image: &gardencorev1beta1.ShootMachineImage{
 								Name:    imageName,
-								Version: pointer.StringPtr(imageVersion),
+								Version: pointer.String(imageVersion),
 							},
 						},
 						Volume: &gardencorev1beta1.Volume{
-							Name:       pointer.StringPtr("workgroup"),
-							Type:       pointer.StringPtr("cloud_efficiency"),
+							Name:       pointer.String("workgroup"),
+							Type:       pointer.String("cloud_efficiency"),
 							VolumeSize: "200Gi",
 							Encrypted:  enableEncryptedImage,
 						},

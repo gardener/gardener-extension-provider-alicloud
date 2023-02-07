@@ -140,7 +140,7 @@ var _ = BeforeSuite(func() {
 
 	By("starting test environment")
 	testEnv = &envtest.Environment{
-		UseExistingCluster: pointer.BoolPtr(true),
+		UseExistingCluster: pointer.Bool(true),
 		CRDInstallOptions: envtest.CRDInstallOptions{
 			Paths: []string{
 				filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_clusters.yaml"),
@@ -571,11 +571,11 @@ func prepareVPCandShootSecurityGroup(ctx context.Context, clientFactory alicloud
 	Expect(err).NotTo(HaveOccurred())
 
 	return infrastructureIdentifiers{
-		vpcID:            pointer.StringPtr(createVPCsResp.VpcId),
-		vswitchID:        pointer.StringPtr(createVSwitchsResp.VSwitchId),
-		natGatewayID:     pointer.StringPtr(createNatGatewayResp.NatGatewayId),
-		securityGroupIDs: pointer.StringPtr(createSecurityGroupsResp.SecurityGroupId),
-		zone:             pointer.StringPtr(createVSwitchsReq.ZoneId),
+		vpcID:            pointer.String(createVPCsResp.VpcId),
+		vswitchID:        pointer.String(createVSwitchsResp.VSwitchId),
+		natGatewayID:     pointer.String(createNatGatewayResp.NatGatewayId),
+		securityGroupIDs: pointer.String(createSecurityGroupsResp.SecurityGroupId),
+		zone:             pointer.String(createVSwitchsReq.ZoneId),
 	}
 }
 

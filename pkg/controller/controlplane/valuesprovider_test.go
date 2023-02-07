@@ -80,7 +80,7 @@ var _ = Describe("ValuesProvider", func() {
 								},
 							},
 							CSI: &apisalicloud.CSI{
-								EnableADController: pointer.BoolPtr(true),
+								EnableADController: pointer.Bool(true),
 							},
 						}),
 					},

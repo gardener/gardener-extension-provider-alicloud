@@ -317,7 +317,7 @@ var _ = Describe("Machines", func() {
 									{
 										Name:      machineImageName,
 										Version:   machineImageVersion,
-										Encrypted: pointer.BoolPtr(true),
+										Encrypted: pointer.Bool(true),
 										ID:        encryptedImageID,
 									},
 								},
@@ -577,13 +577,13 @@ var _ = Describe("Machines", func() {
 								Name:      machineImageName,
 								Version:   machineImageVersion,
 								ID:        machineImageID,
-								Encrypted: pointer.BoolPtr(false),
+								Encrypted: pointer.Bool(false),
 							},
 							{
 								Name:      machineImageName,
 								Version:   machineImageVersion,
 								ID:        encryptedImageID,
-								Encrypted: pointer.BoolPtr(true),
+								Encrypted: pointer.Bool(true),
 							},
 						},
 					}

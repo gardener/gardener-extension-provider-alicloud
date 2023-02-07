@@ -158,7 +158,7 @@ var _ = Describe("Mutating Shoot", func() {
 		}
 		controlPlaneConfig := &apisalicloudv1alpha1.ControlPlaneConfig{
 			CSI: &apisalicloudv1alpha1.CSI{
-				EnableADController: pointer.BoolPtr(false),
+				EnableADController: pointer.Bool(false),
 			}}
 		oldShoot = &corev1beta1.Shoot{
 			Spec: corev1beta1.ShootSpec{
@@ -177,11 +177,11 @@ var _ = Describe("Mutating Shoot", func() {
 							Machine: corev1beta1.Machine{
 								Image: &corev1beta1.ShootMachineImage{
 									Name:    imageName,
-									Version: pointer.StringPtr(imageVersionStr),
+									Version: pointer.String(imageVersionStr),
 								},
 							},
 							Volume: &corev1beta1.Volume{
-								Encrypted: pointer.BoolPtr(true),
+								Encrypted: pointer.Bool(true),
 							},
 							DataVolumes: []corev1beta1.DataVolume{
 								{},
@@ -211,7 +211,7 @@ var _ = Describe("Mutating Shoot", func() {
 							Machine: corev1beta1.Machine{
 								Image: &corev1beta1.ShootMachineImage{
 									Name:    imageName,
-									Version: pointer.StringPtr(imageVersionStr),
+									Version: pointer.String(imageVersionStr),
 								},
 							},
 							Volume: &corev1beta1.Volume{},
@@ -223,7 +223,7 @@ var _ = Describe("Mutating Shoot", func() {
 							Machine: corev1beta1.Machine{
 								Image: &corev1beta1.ShootMachineImage{
 									Name:    imageName,
-									Version: pointer.StringPtr(imageVersionStr),
+									Version: pointer.String(imageVersionStr),
 								},
 							},
 						},
@@ -410,13 +410,13 @@ var _ = Describe("Mutating Shoot", func() {
 
 		})
 		It("Should keep default encrypted flag unchanged if shoot is created in new version and this flag is not set explicitly", func() {
-			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
+			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
 			sameName := "worker1"
 			oldShoot.Spec.Provider.Workers[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].Name = sameName
 
-			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = pointer.BoolPtr(true)
+			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = pointer.Bool(true)
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
@@ -428,14 +428,14 @@ var _ = Describe("Mutating Shoot", func() {
 
 		})
 		It("Should use set encrypted flag if it's specified in new shoot", func() {
-			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(false)
+			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(false)
 			sameName := "worker1"
 			oldShoot.Spec.Provider.Workers[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].Name = sameName
 
-			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = pointer.BoolPtr(false)
-			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = pointer.BoolPtr(true)
+			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = pointer.Bool(false)
+			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = pointer.Bool(true)
 			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 
@@ -452,23 +452,23 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 
 		It("should not reconcile infra if system disk is already encrypted", func() {
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
 
 		It("should not reconcile infra if new version of machine is not encrypted", func() {
-			newShoot.Spec.Provider.Workers[1].Machine.Image.Version = pointer.StringPtr("2.0")
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
+			newShoot.Spec.Provider.Workers[1].Machine.Image.Version = pointer.String("2.0")
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
 
 		It("should reconcile infra if new version of machine is added and it is encrypted", func() {
-			newShoot.Spec.Provider.Workers[0].Machine.Image.Version = pointer.StringPtr("2.0")
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
+			newShoot.Spec.Provider.Workers[0].Machine.Image.Version = pointer.String("2.0")
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeTrue())
@@ -476,7 +476,7 @@ var _ = Describe("Mutating Shoot", func() {
 
 		It("should reconcile infra if machine is changed to be encrypted", func() {
 			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.BoolPtr(true)
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeTrue())

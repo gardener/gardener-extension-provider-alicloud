@@ -229,7 +229,7 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 			volume := &worker.DataVolumes[i]
 			if volume.Encrypted == nil {
 				logger.Info("Set encrypted disk by default for data disk")
-				volume.Encrypted = pointer.BoolPtr(true)
+				volume.Encrypted = pointer.Bool(true)
 			}
 		}
 	}
@@ -243,7 +243,7 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 			return nil
 		}
 		logger.Info("Customized Image is used and we set encrypted disk by default for system disk")
-		worker.Volume.Encrypted = pointer.BoolPtr(true)
+		worker.Volume.Encrypted = pointer.Bool(true)
 	}
 	return nil
 }
@@ -359,7 +359,7 @@ func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(ctx context.C
 			if oldDataVolume == nil {
 				if dataVolume.Encrypted == nil {
 					logger.Info("Set encrypted disk by default for newly added data disk")
-					dataVolume.Encrypted = pointer.BoolPtr(true)
+					dataVolume.Encrypted = pointer.Bool(true)
 				}
 				continue
 			}
@@ -476,11 +476,11 @@ func (s *shootMutator) mutateControlPlaneConfigForCreate(shoot *corev1beta1.Shoo
 
 	if cpConfig.CSI == nil {
 		cpConfig.CSI = &apisalicloudv1alpha1.CSI{
-			EnableADController: pointer.BoolPtr(true),
+			EnableADController: pointer.Bool(true),
 		}
 	} else {
 		if cpConfig.CSI.EnableADController == nil {
-			cpConfig.CSI.EnableADController = pointer.BoolPtr(true)
+			cpConfig.CSI.EnableADController = pointer.Bool(true)
 		}
 	}
 

@@ -460,7 +460,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 		Name:      worker.Machine.Image.Name,
 		Version:   *worker.Machine.Image.Version,
 		ID:        encryptedImageID,
-		Encrypted: pointer.BoolPtr(true),
+		Encrypted: pointer.Bool(true),
 	}, nil
 }
 

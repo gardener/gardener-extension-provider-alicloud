@@ -64,7 +64,7 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 				Name:      name,
 				Version:   version,
 				ID:        machineImageID,
-				Encrypted: pointer.BoolPtr(encrypted),
+				Encrypted: pointer.Bool(encrypted),
 			}, nil
 		}
 	}
