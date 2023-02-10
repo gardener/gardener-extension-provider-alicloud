@@ -6,6 +6,7 @@ metadata:
   labels:
     origin: gardener
     app: csi-disk-plugin-alicloud
+    node.gardener.cloud/critical-component: "true"
 spec:
   selector:
     matchLabels:
@@ -17,6 +18,7 @@ spec:
       labels:
         app: csi-disk-plugin-alicloud
         origin: gardener
+        node.gardener.cloud/critical-component: "true"
     spec:
       priorityClassName: system-node-critical
       serviceAccount: csi-disk-plugin-alicloud
