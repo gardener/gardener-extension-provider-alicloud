@@ -21,7 +21,9 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 )
@@ -40,12 +42,12 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, bastion *extensi
 
 	aliCloudECSClient, err := a.newClientFactory.NewECSClient(opt.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	err = removeBastionInstance(aliCloudECSClient, opt)
 	if err != nil {
-		return fmt.Errorf("failed to terminate bastion instance: %w", err)
+		return util.DetermineError(fmt.Errorf("failed to terminate bastion instance: %w", err), helper.KnownCodes)
 	}
 
 	log.Info("Instance remove processing", "instance", opt.BastionInstanceName)
@@ -54,7 +56,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, bastion *extensi
 
 	err = removeSecurityGroup(aliCloudECSClient, opt)
 	if err != nil {
-		return fmt.Errorf("failed to remove security group: %w", err)
+		return util.DetermineError(fmt.Errorf("failed to remove security group: %w", err), helper.KnownCodes)
 	}
 
 	log.Info("security group removed:", "security group", opt.SecurityGroupName)

@@ -33,8 +33,8 @@ import (
 	commonext "github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/flow"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -538,30 +538,30 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 	}
 
 	if err := a.ensureServiceLinkedRole(ctx, infra, credentials); err != nil {
-		return gardencorev1beta1helper.DeprecatedDetermineError(err)
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	if err = a.ensureOldSSHKeyDetached(ctx, log, infra); err != nil {
-		return gardencorev1beta1helper.DeprecatedDetermineError(err)
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	tf, err := common.NewTerraformerWithAuth(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	initializerValues, err := a.getInitializerValues(ctx, tf, infra, config, credentials)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	initializer, err := a.newInitializer(infra, config, cluster.Shoot.Spec.Networking.Pods, initializerValues, stateInitializer)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	if err := tf.InitializeWith(ctx, initializer).Apply(ctx); err != nil {
-		return fmt.Errorf("failed to apply the terraform config: %w", err)
+		return util.DetermineError(fmt.Errorf("failed to apply the terraform config: %w", err), helper.KnownCodes)
 	}
 
 	var machineImages []apisalicloud.MachineImage
@@ -639,7 +639,7 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
 	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	// terraform pod from previous reconciliation might still be running, ensure they are gone before doing any operations
@@ -686,7 +686,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extension
 	)
 
 	if err := f.Run(ctx, flow.Opts{}); err != nil {
-		return flow.Causes(err)
+		return util.DetermineError(flow.Errors(err), helper.KnownCodes)
 	}
 	return nil
 }
@@ -695,7 +695,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extension
 func (a *actuator) Migrate(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
 	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	if err := tf.CleanupConfiguration(ctx); err != nil {

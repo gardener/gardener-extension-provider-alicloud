@@ -22,10 +22,12 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/dnsrecord"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	extensionsv1alpha1helper "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1/helper"
@@ -63,13 +65,13 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, dns *extensio
 	}
 	dnsClient, err := a.alicloudClientFactory.NewDNSClient(getRegion(dns), string(credentials.AccessKeyID), string(credentials.AccessKeySecret))
 	if err != nil {
-		return fmt.Errorf("could not create Alicloud DNS client: %+v", err)
+		return util.DetermineError(fmt.Errorf("could not create Alicloud DNS client: %+v", err), helper.KnownCodes)
 	}
 
 	// Determine DNS domain name
 	domainName, err := a.getDomainName(ctx, log, dns, dnsClient)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	// Create or update DNS records
@@ -103,13 +105,13 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, dns *extensionsv
 	}
 	dnsClient, err := a.alicloudClientFactory.NewDNSClient(getRegion(dns), string(credentials.AccessKeyID), string(credentials.AccessKeySecret))
 	if err != nil {
-		return fmt.Errorf("could not create Alicloud DNS client: %+v", err)
+		return util.DetermineError(fmt.Errorf("could not create Alicloud DNS client: %+v", err), helper.KnownCodes)
 	}
 
 	// Determine DNS domain name
 	domainName, err := a.getDomainName(ctx, log, dns, dnsClient)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	// Delete DNS records

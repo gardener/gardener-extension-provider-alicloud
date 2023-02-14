@@ -18,8 +18,10 @@ import (
 	"context"
 
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener/extensions/pkg/controller/backupbucket"
 
+	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,17 +44,17 @@ func (a *actuator) InjectClient(client client.Client) error {
 func (a *actuator) Reconcile(ctx context.Context, _ logr.Logger, bb *extensionsv1alpha1.BackupBucket) error {
 	alicloudClient, err := alicloudclient.NewClientFactory().NewOSSClientFromSecretRef(ctx, a.client, &bb.Spec.SecretRef, bb.Spec.Region)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
-	return alicloudClient.CreateBucketIfNotExists(ctx, bb.Name)
+	return util.DetermineError(alicloudClient.CreateBucketIfNotExists(ctx, bb.Name), helper.KnownCodes)
 }
 
 func (a *actuator) Delete(ctx context.Context, _ logr.Logger, bb *extensionsv1alpha1.BackupBucket) error {
 	alicloudClient, err := alicloudclient.NewClientFactory().NewOSSClientFromSecretRef(ctx, a.client, &bb.Spec.SecretRef, bb.Spec.Region)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
-	return alicloudClient.DeleteBucketIfExists(ctx, bb.Name)
+	return util.DetermineError(alicloudClient.DeleteBucketIfExists(ctx, bb.Name), helper.KnownCodes)
 }
