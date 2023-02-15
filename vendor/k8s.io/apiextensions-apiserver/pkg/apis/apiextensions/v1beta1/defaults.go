@@ -70,7 +70,7 @@ func SetDefaults_CustomResourceDefinitionSpec(obj *CustomResourceDefinitionSpec)
 		obj.Conversion.ConversionReviewVersions = []string{SchemeGroupVersion.Version}
 	}
 	if obj.PreserveUnknownFields == nil {
-		obj.PreserveUnknownFields = utilpointer.Bool(true)
+		obj.PreserveUnknownFields = utilpointer.BoolPtr(true)
 	}
 }
 
