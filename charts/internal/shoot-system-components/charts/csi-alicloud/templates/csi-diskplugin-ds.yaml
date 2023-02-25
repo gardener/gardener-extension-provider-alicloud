@@ -79,6 +79,11 @@ spec:
             secretKeyRef:
               name: csi-diskplugin-alicloud
               key: accessKeySecret
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
 {{- if .Values.resources.driver }}
         resources:
 {{ toYaml .Values.resources.driver | indent 10 }}
