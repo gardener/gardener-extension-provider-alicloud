@@ -40,6 +40,7 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 
@@ -139,7 +140,6 @@ var controlPlaneChart = &chart.Chart{
 				// csi-snapshot-validation-webhook
 				{Type: &appsv1.Deployment{}, Name: alicloud.CSISnapshotValidation},
 				{Type: &corev1.Service{}, Name: alicloud.CSISnapshotValidation},
-				{Type: &networkingv1.NetworkPolicy{}, Name: "allow-kube-apiserver-to-csi-snapshot-validation"},
 				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-webhook-vpa"},
 			},
 		},
@@ -262,6 +262,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO(scheererj): Delete this in a future release.
+	if err := kutil.DeleteObject(ctx, vp.Client(), &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "allow-kube-apiserver-to-csi-snapshot-validation", Namespace: cp.Namespace}}); err != nil {
+		return nil, fmt.Errorf("failed deleting legacy csi-snapshot-validation network policy: %w", err)
+	}
+
 	// Get control plane chart values
 	return vp.getControlPlaneChartValues(ctx, cpConfig, cp, cluster, secretsReader, checksums, scaledDown)
 }
