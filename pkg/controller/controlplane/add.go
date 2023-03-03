@@ -42,6 +42,8 @@ type AddOptions struct {
 	IgnoreOperationAnnotation bool
 	// ShootWebhookConfig specifies the desired Shoot MutatingWebhooksConfiguration.
 	ShootWebhookConfig *atomic.Value
+	// WebhookServerNamespace is the namespace in which the webhook server runs.
+	WebhookServerNamespace string
 	// CSI specifies the configuration for CSI components
 	CSI config.CSI
 }
@@ -53,7 +55,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 		Actuator: genericactuator.NewActuator(alicloud.Name, secretConfigsFunc, shootAccessSecretsFunc, nil, nil,
 			nil, controlPlaneChart, controlPlaneShootChart, controlPlaneShootCRDsChart, storageClassChart, nil,
 			NewValuesProvider(opts.CSI), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-			imagevector.ImageVector(), "", opts.ShootWebhookConfig, mgr.GetWebhookServer().Port),
+			imagevector.ImageVector(), "", opts.ShootWebhookConfig, opts.WebhookServerNamespace, mgr.GetWebhookServer().Port),
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(opts.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,
