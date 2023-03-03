@@ -22,13 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
-
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	commonext "github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
@@ -45,6 +38,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
+	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
 )
 
 // StatusTypeMeta is the TypeMeta of InfrastructureStatus.
@@ -460,7 +460,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 		Name:      worker.Machine.Image.Name,
 		Version:   *worker.Machine.Image.Version,
 		ID:        encryptedImageID,
-		Encrypted: pointer.BoolPtr(true),
+		Encrypted: pointer.Bool(true),
 	}, nil
 }
 

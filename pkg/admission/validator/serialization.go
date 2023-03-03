@@ -15,11 +15,11 @@
 package validator
 
 import (
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener/extensions/pkg/util"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
 func decodeControlPlaneConfig(decoder runtime.Decoder, cp *runtime.RawExtension, fldPath *field.Path) (*alicloud.ControlPlaneConfig, error) {

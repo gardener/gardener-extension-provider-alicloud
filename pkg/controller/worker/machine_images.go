@@ -18,15 +18,13 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/utils/pointer"
-
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
+	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"k8s.io/utils/pointer"
 
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-
-	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
 )
 
 // UpdateMachineImagesStatus implements genericactuator.WorkerDelegate.
@@ -66,7 +64,7 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 				Name:      name,
 				Version:   version,
 				ID:        machineImageID,
-				Encrypted: pointer.BoolPtr(encrypted),
+				Encrypted: pointer.Bool(encrypted),
 			}, nil
 		}
 	}

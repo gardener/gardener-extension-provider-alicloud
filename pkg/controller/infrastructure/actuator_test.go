@@ -93,6 +93,7 @@ var _ = Describe("Actuator", func() {
 			terraformChartOps     *mockinfrastructure.MockTerraformChartOps
 			actuator              infrastructure.Actuator
 			c                     *mockclient.MockClient
+			sw                    *mockclient.MockStatusWriter
 			initializer           *mockterraformer.MockInitializer
 			restConfig            rest.Config
 			logger                logr.Logger
@@ -145,6 +146,7 @@ var _ = Describe("Actuator", func() {
 					false,
 				)
 				c = mockclient.NewMockClient(ctrl)
+				sw = mockclient.NewMockStatusWriter(ctrl)
 				initializer = mockterraformer.NewMockInitializer(ctrl)
 
 				cidr = "192.168.0.0/16"
@@ -302,8 +304,8 @@ var _ = Describe("Actuator", func() {
 							TerraformerOutputKeySecurityGroupID: securityGroupID,
 						}, nil),
 					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
-					c.EXPECT().Status().Return(c),
-					c.EXPECT().Patch(ctx, &infra, gomock.Any()),
+					c.EXPECT().Status().Return(sw),
+					sw.EXPECT().Patch(ctx, &infra, gomock.Any()),
 				)
 
 				expectInject(inject.ClientInto(c, actuator))
@@ -397,8 +399,8 @@ var _ = Describe("Actuator", func() {
 							TerraformerOutputKeySecurityGroupID: securityGroupID,
 						}, nil),
 					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
-					c.EXPECT().Status().Return(c),
-					c.EXPECT().Patch(ctx, &infra, gomock.Any()),
+					c.EXPECT().Status().Return(sw),
+					sw.EXPECT().Patch(ctx, &infra, gomock.Any()),
 				)
 
 				expectInject(inject.ClientInto(c, actuator))

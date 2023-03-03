@@ -19,8 +19,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 )
 
 const (

@@ -17,14 +17,14 @@ package backupbucket
 import (
 	"context"
 
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener/extensions/pkg/controller/backupbucket"
-
 	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 )
 
 type actuator struct {

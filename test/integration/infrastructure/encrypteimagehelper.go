@@ -20,20 +20,20 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/utils/retry"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 	alicloudapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/utils/retry"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var imageName = "ubuntu"
@@ -97,12 +97,12 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 							Type: "ecs.g6.2xlarge",
 							Image: &gardencorev1beta1.ShootMachineImage{
 								Name:    imageName,
-								Version: pointer.StringPtr(imageVersion),
+								Version: pointer.String(imageVersion),
 							},
 						},
 						Volume: &gardencorev1beta1.Volume{
-							Name:       pointer.StringPtr("workgroup"),
-							Type:       pointer.StringPtr("cloud_efficiency"),
+							Name:       pointer.String("workgroup"),
+							Type:       pointer.String("cloud_efficiency"),
 							VolumeSize: "200Gi",
 							Encrypted:  enableEncryptedImage,
 						},

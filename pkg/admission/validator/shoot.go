@@ -19,11 +19,6 @@ import (
 	"fmt"
 	"reflect"
 
-	alicloudAPI "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
-
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -33,6 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	alicloudAPI "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 )
 
 var (

@@ -4,11 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	apialicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
-
 	ecs "github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/gardener/gardener/extensions/pkg/controller/bastion"
@@ -28,6 +23,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	apialicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 )
 
 const (

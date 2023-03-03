@@ -19,13 +19,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 )
 
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, bastion *extensionsv1alpha1.Bastion, cluster *controller.Cluster) error {

@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Masterminds/semver"
+	"github.com/coreos/go-systemd/v22/unit"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
@@ -25,9 +27,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/test"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-
-	"github.com/Masterminds/semver"
-	"github.com/coreos/go-systemd/v22/unit"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

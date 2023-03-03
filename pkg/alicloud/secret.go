@@ -19,9 +19,8 @@ import (
 	"fmt"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"k8s.io/utils/pointer"
-
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

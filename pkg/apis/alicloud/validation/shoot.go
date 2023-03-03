@@ -19,7 +19,6 @@ import (
 	"net"
 	"regexp"
 
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener/pkg/apis/core"
 	validationutils "github.com/gardener/gardener/pkg/utils/validation"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
@@ -27,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
 const (
@@ -67,7 +68,7 @@ func ValidateNetworking(networking core.Networking, fldPath *field.Path) field.E
 // ValidateWorkers validates the workers of a Shoot.
 func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	alicloudZones := sets.NewString()
+	alicloudZones := sets.New[string]()
 	dataDiskNameRegexp := regexp.MustCompile(dataDiskNameFmt)
 
 	for _, alicloudZone := range zones {
@@ -121,7 +122,7 @@ func ValidateWorkersUpdate(oldWorkers, newWorkers []core.Worker, fldPath *field.
 	return allErrs
 }
 
-func validateZones(zones []string, allowedZones sets.String, fldPath *field.Path) field.ErrorList {
+func validateZones(zones []string, allowedZones sets.Set[string], fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	for i, workerZone := range zones {
 		if !allowedZones.Has(workerZone) {

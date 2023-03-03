@@ -15,14 +15,15 @@
 package validation_test
 
 import (
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 	"github.com/gardener/gardener/pkg/apis/core"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
+
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 )
 
 var _ = Describe("Shoot validation", func() {
@@ -31,9 +32,9 @@ var _ = Describe("Shoot validation", func() {
 
 		It("should return no error because network settings are correct", func() {
 			networking := core.Networking{
-				Nodes:    pointer.StringPtr("10.252.0.0/16"),
-				Pods:     pointer.StringPtr("192.168.0.0/16"),
-				Services: pointer.StringPtr("172.16.0.0/16"),
+				Nodes:    pointer.String("10.252.0.0/16"),
+				Pods:     pointer.String("192.168.0.0/16"),
+				Services: pointer.String("172.16.0.0/16"),
 			}
 
 			errorList := ValidateNetworking(networking, networkingPath)
@@ -42,9 +43,9 @@ var _ = Describe("Shoot validation", func() {
 
 		It("should return errors because CIDR overlaps with 100.64.0.0/10", func() {
 			networking := core.Networking{
-				Nodes:    pointer.StringPtr("100.100.0.0/16"),
-				Pods:     pointer.StringPtr("100.101.0.0/16"),
-				Services: pointer.StringPtr("100.102.0.0/16"),
+				Nodes:    pointer.String("100.100.0.0/16"),
+				Pods:     pointer.String("100.101.0.0/16"),
+				Services: pointer.String("100.102.0.0/16"),
 			}
 			errorList := ValidateNetworking(networking, networkingPath)
 
@@ -82,15 +83,15 @@ var _ = Describe("Shoot validation", func() {
 
 		It("should forbid updating validated networking CIDR", func() {
 			oldNetworking := core.Networking{
-				Nodes:    pointer.StringPtr("10.252.0.0/16"),
-				Pods:     pointer.StringPtr("192.168.0.0/16"),
-				Services: pointer.StringPtr("172.16.0.0/16"),
+				Nodes:    pointer.String("10.252.0.0/16"),
+				Pods:     pointer.String("192.168.0.0/16"),
+				Services: pointer.String("172.16.0.0/16"),
 			}
 
 			newNetworking := core.Networking{
-				Nodes:    pointer.StringPtr("10.250.0.0/16"),
-				Pods:     pointer.StringPtr("192.168.0.0/16"),
-				Services: pointer.StringPtr("172.17.0.0/16"),
+				Nodes:    pointer.String("10.250.0.0/16"),
+				Pods:     pointer.String("192.168.0.0/16"),
+				Services: pointer.String("172.17.0.0/16"),
 			}
 
 			errorList := ValidateNetworkingUpdate(oldNetworking, newNetworking, networkingPath)
@@ -108,15 +109,15 @@ var _ = Describe("Shoot validation", func() {
 
 		It("should allow updating invalidated networking CIDR", func() {
 			oldNetworking := core.Networking{
-				Nodes:    pointer.StringPtr("null"),
-				Pods:     pointer.StringPtr("null"),
-				Services: pointer.StringPtr("null"),
+				Nodes:    pointer.String("null"),
+				Pods:     pointer.String("null"),
+				Services: pointer.String("null"),
 			}
 
 			newNetworking := core.Networking{
-				Nodes:    pointer.StringPtr("10.250.0.0/16"),
-				Pods:     pointer.StringPtr("192.168.0.0/16"),
-				Services: pointer.StringPtr("172.17.0.0/16"),
+				Nodes:    pointer.String("10.250.0.0/16"),
+				Pods:     pointer.String("192.168.0.0/16"),
+				Services: pointer.String("172.17.0.0/16"),
 			}
 
 			errorList := ValidateNetworkingUpdate(oldNetworking, newNetworking, networkingPath)
@@ -135,7 +136,7 @@ var _ = Describe("Shoot validation", func() {
 				{
 					Name: "worker1",
 					Volume: &core.Volume{
-						Type:       pointer.StringPtr("Volume"),
+						Type:       pointer.String("Volume"),
 						VolumeSize: "30G",
 					},
 					Zones: []string{
@@ -146,7 +147,7 @@ var _ = Describe("Shoot validation", func() {
 				{
 					Name: "worker2",
 					Volume: &core.Volume{
-						Type:       pointer.StringPtr("Volume"),
+						Type:       pointer.String("Volume"),
 						VolumeSize: "20G",
 					},
 					Zones: []string{
@@ -195,11 +196,11 @@ var _ = Describe("Shoot validation", func() {
 			It("should forbid because volume type and size are not configured", func() {
 				workers[0].Volume.Type = nil
 				workers[0].Volume.VolumeSize = ""
-				workers[0].Volume.Encrypted = pointer.BoolPtr(false)
+				workers[0].Volume.Encrypted = pointer.Bool(false)
 				workers[0].DataVolumes = []core.DataVolume{
 					{},
-					{Name: "too-long-data-volume-name-exceeding-the-maximum-limit-of-64-charts", VolumeSize: "24Gi", Type: pointer.StringPtr("some-type")},
-					{Name: "regex/fails", VolumeSize: "24Gi", Type: pointer.StringPtr("some-type")},
+					{Name: "too-long-data-volume-name-exceeding-the-maximum-limit-of-64-charts", VolumeSize: "24Gi", Type: pointer.String("some-type")},
+					{Name: "regex/fails", VolumeSize: "24Gi", Type: pointer.String("some-type")},
 				}
 
 				errorList := ValidateWorkers(workers, alicloudZones, field.NewPath("workers"))

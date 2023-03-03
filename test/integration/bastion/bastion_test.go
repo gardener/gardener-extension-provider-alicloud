@@ -25,14 +25,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
-	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-
-	bastionctrl "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/bastion"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/gardener/gardener/extensions/pkg/controller"
@@ -57,6 +49,13 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
+	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	bastionctrl "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/bastion"
 )
 
 const (
@@ -141,7 +140,7 @@ var _ = BeforeSuite(func() {
 
 	By("starting test environment")
 	testEnv = &envtest.Environment{
-		UseExistingCluster: pointer.BoolPtr(true),
+		UseExistingCluster: pointer.Bool(true),
 		CRDInstallOptions: envtest.CRDInstallOptions{
 			Paths: []string{
 				filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_clusters.yaml"),
@@ -572,11 +571,11 @@ func prepareVPCandShootSecurityGroup(ctx context.Context, clientFactory alicloud
 	Expect(err).NotTo(HaveOccurred())
 
 	return infrastructureIdentifiers{
-		vpcID:            pointer.StringPtr(createVPCsResp.VpcId),
-		vswitchID:        pointer.StringPtr(createVSwitchsResp.VSwitchId),
-		natGatewayID:     pointer.StringPtr(createNatGatewayResp.NatGatewayId),
-		securityGroupIDs: pointer.StringPtr(createSecurityGroupsResp.SecurityGroupId),
-		zone:             pointer.StringPtr(createVSwitchsReq.ZoneId),
+		vpcID:            pointer.String(createVPCsResp.VpcId),
+		vswitchID:        pointer.String(createVSwitchsResp.VSwitchId),
+		natGatewayID:     pointer.String(createNatGatewayResp.NatGatewayId),
+		securityGroupIDs: pointer.String(createSecurityGroupsResp.SecurityGroupId),
+		zone:             pointer.String(createVSwitchsReq.ZoneId),
 	}
 }
 

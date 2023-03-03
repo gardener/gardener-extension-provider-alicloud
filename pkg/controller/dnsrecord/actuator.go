@@ -20,10 +20,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/dnsrecord"
@@ -35,6 +31,10 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 )
 
 const (

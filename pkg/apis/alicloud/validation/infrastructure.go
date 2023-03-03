@@ -15,10 +15,11 @@
 package validation
 
 import (
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
 // ValidateInfrastructureConfig validates a InfrastructureConfig object.

@@ -21,11 +21,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
-
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -38,7 +33,6 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	secretutils "github.com/gardener/gardener/pkg/utils/secrets"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
-
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -48,6 +42,11 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
 )
 
 // Object names

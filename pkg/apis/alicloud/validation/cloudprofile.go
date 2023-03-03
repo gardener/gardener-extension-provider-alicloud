@@ -17,9 +17,9 @@ package validation
 import (
 	"fmt"
 
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
 // ValidateCloudProfileConfig validates a CloudProfileConfig object.

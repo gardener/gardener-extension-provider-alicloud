@@ -26,13 +26,13 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 	"github.com/go-logr/logr"
 	"golang.org/x/time/rate"
-	"k8s.io/apimachinery/pkg/util/cache"
-
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 )
 
 // DefaultInternetChargeType is used for EIP

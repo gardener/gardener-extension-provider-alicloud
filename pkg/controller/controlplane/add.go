@@ -17,16 +17,16 @@ package controlplane
 import (
 	"sync/atomic"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
-
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 )
 
 var (

@@ -17,12 +17,12 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
-	configloader "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config/loader"
 	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
-
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+	configloader "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config/loader"
 )
 
 // ConfigOptions are command line options that can be set for config.ControllerConfiguration.

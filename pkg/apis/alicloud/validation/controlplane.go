@@ -15,10 +15,10 @@
 package validation
 
 import (
-	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-
 	featurevalidation "github.com/gardener/gardener/pkg/utils/validation/features"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
 // ValidateControlPlaneConfig validates a ControlPlaneConfig object.
