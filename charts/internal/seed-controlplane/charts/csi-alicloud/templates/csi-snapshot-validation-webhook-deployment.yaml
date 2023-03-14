@@ -19,7 +19,6 @@ spec:
 {{- end }}
       labels:
         app: snapshot-validation
-        networking.gardener.cloud/from-shoot-apiserver: allowed
     spec:
       priorityClassName: gardener-system-200
       containers:
