@@ -566,6 +566,7 @@ var _ = Describe("Mutating Shoot", func() {
 					Overlay: &calicov1alpha1.Overlay{
 						Enabled: false,
 					},
+					SnatToUpstreamDNS: &calicov1alpha1.SnatToUpstreamDNS{Enabled: false},
 				},
 			}))
 		})

@@ -185,6 +185,10 @@ func (s *shootMutator) mutateNetworkOverlay(ctx context.Context, shoot *corev1be
 
 		}
 
+		if networkConfig.Overlay != nil && !networkConfig.Overlay.Enabled {
+			networkConfig.SnatToUpstreamDNS = &calicov1alpha1.SnatToUpstreamDNS{Enabled: false}
+		}
+
 		shoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
 			Object: networkConfig,
 		}
