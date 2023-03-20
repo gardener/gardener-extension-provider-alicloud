@@ -102,3 +102,4 @@ csiSnapshotValidationWebhook:
       memory: 200Mi
   secrets:
     server: csi-snapshot-validation-server
+  topologyAwareRoutingEnabled: false
