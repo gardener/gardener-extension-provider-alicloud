@@ -15,6 +15,7 @@ spec:
     metadata:
       annotations:
         checksum/secret-csi-diskplugin-alicloud: {{ include (print $.Template.BasePath "/csi-diskplugin-secret.yaml") . | sha256sum }}
+        node.gardener.cloud/wait-for-csi-node-alicloud: diskplugin.csi.alibabacloud.com
       labels:
         app: csi-disk-plugin-alicloud
         origin: gardener
