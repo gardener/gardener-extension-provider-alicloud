@@ -58,8 +58,9 @@ var _ = Describe("ValuesProvider", func() {
 		fakeClient         client.Client
 		fakeSecretsManager secretsmanager.Interface
 
-		vp genericactuator.ValuesProvider
-		c  *mockclient.MockClient
+		cluster *extensionscontroller.Cluster
+		vp      genericactuator.ValuesProvider
+		c       *mockclient.MockClient
 
 		cp = &extensionsv1alpha1.ControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
@@ -103,30 +104,7 @@ var _ = Describe("ValuesProvider", func() {
 			},
 		}
 
-		cidr    = "10.250.0.0/19"
-		cluster = &extensionscontroller.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{
-					"generic-token-kubeconfig.secret.gardener.cloud/name": genericTokenKubeconfigSecretName,
-				},
-			},
-			Shoot: &gardencorev1beta1.Shoot{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "myshoot",
-				},
-				Spec: gardencorev1beta1.ShootSpec{
-					Networking: gardencorev1beta1.Networking{
-						Pods: &cidr,
-					},
-					Kubernetes: gardencorev1beta1.Kubernetes{
-						Version: "1.20.0",
-						VerticalPodAutoscaler: &gardencorev1beta1.VerticalPodAutoscaler{
-							Enabled: true,
-						},
-					},
-				},
-			},
-		}
+		cidr = "10.250.0.0/19"
 
 		cpSecretKey = client.ObjectKey{Namespace: namespace, Name: v1beta1constants.SecretNameCloudProvider}
 		cpSecret    = &corev1.Secret{
@@ -180,6 +158,7 @@ var _ = Describe("ValuesProvider", func() {
 					"secrets": map[string]interface{}{
 						"server": "csi-snapshot-validation-server",
 					},
+					"topologyAwareRoutingEnabled": false,
 				},
 			},
 		}
@@ -207,6 +186,31 @@ var _ = Describe("ValuesProvider", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		fakeClient = fakeclient.NewClientBuilder().Build()
 		fakeSecretsManager = fakesecretsmanager.New(fakeClient, namespace)
+
+		cluster = &extensionscontroller.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					"generic-token-kubeconfig.secret.gardener.cloud/name": genericTokenKubeconfigSecretName,
+				},
+			},
+			Seed: &gardencorev1beta1.Seed{},
+			Shoot: &gardencorev1beta1.Shoot{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "myshoot",
+				},
+				Spec: gardencorev1beta1.ShootSpec{
+					Networking: gardencorev1beta1.Networking{
+						Pods: &cidr,
+					},
+					Kubernetes: gardencorev1beta1.Kubernetes{
+						Version: "1.20.0",
+						VerticalPodAutoscaler: &gardencorev1beta1.VerticalPodAutoscaler{
+							Enabled: true,
+						},
+					},
+				},
+			},
+		}
 
 		// Create mock client
 		c = mockclient.NewMockClient(ctrl)
@@ -239,6 +243,53 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneChartValues))
 		})
+
+		DescribeTable("topologyAwareRoutingEnabled value",
+			func(seedSettings *gardencorev1beta1.SeedSettings, shootControlPlane *gardencorev1beta1.ControlPlane, expected bool) {
+				cluster.Seed = &gardencorev1beta1.Seed{
+					Spec: gardencorev1beta1.SeedSpec{
+						Settings: seedSettings,
+					},
+				}
+				cluster.Shoot.Spec.ControlPlane = shootControlPlane
+
+				values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums, false)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(values).To(HaveKey("csi-alicloud"))
+				Expect(values["csi-alicloud"]).To(HaveKeyWithValue("csiSnapshotValidationWebhook", HaveKeyWithValue("topologyAwareRoutingEnabled", expected)))
+			},
+
+			Entry("seed setting is nil, shoot control plane is not HA",
+				nil,
+				&gardencorev1beta1.ControlPlane{HighAvailability: nil},
+				false,
+			),
+			Entry("seed setting is disabled, shoot control plane is not HA",
+				&gardencorev1beta1.SeedSettings{TopologyAwareRouting: &gardencorev1beta1.SeedSettingTopologyAwareRouting{Enabled: false}},
+				&gardencorev1beta1.ControlPlane{HighAvailability: nil},
+				false,
+			),
+			Entry("seed setting is enabled, shoot control plane is not HA",
+				&gardencorev1beta1.SeedSettings{TopologyAwareRouting: &gardencorev1beta1.SeedSettingTopologyAwareRouting{Enabled: true}},
+				&gardencorev1beta1.ControlPlane{HighAvailability: nil},
+				false,
+			),
+			Entry("seed setting is nil, shoot control plane is HA with failure tolerance type 'zone'",
+				nil,
+				&gardencorev1beta1.ControlPlane{HighAvailability: &gardencorev1beta1.HighAvailability{FailureTolerance: gardencorev1beta1.FailureTolerance{Type: gardencorev1beta1.FailureToleranceTypeZone}}},
+				false,
+			),
+			Entry("seed setting is disabled, shoot control plane is HA with failure tolerance type 'zone'",
+				&gardencorev1beta1.SeedSettings{TopologyAwareRouting: &gardencorev1beta1.SeedSettingTopologyAwareRouting{Enabled: false}},
+				&gardencorev1beta1.ControlPlane{HighAvailability: &gardencorev1beta1.HighAvailability{FailureTolerance: gardencorev1beta1.FailureTolerance{Type: gardencorev1beta1.FailureToleranceTypeZone}}},
+				false,
+			),
+			Entry("seed setting is enabled, shoot control plane is HA with failure tolerance type 'zone'",
+				&gardencorev1beta1.SeedSettings{TopologyAwareRouting: &gardencorev1beta1.SeedSettingTopologyAwareRouting{Enabled: true}},
+				&gardencorev1beta1.ControlPlane{HighAvailability: &gardencorev1beta1.HighAvailability{FailureTolerance: gardencorev1beta1.FailureTolerance{Type: gardencorev1beta1.FailureToleranceTypeZone}}},
+				true,
+			),
+		)
 	})
 
 	Describe("#GetControlPlaneShootChartValues", func() {
