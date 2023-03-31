@@ -265,7 +265,7 @@ var _ = Describe("Infrastructure tests", func() {
 			Expect(err).To(MatchError(ContainSubstring("Specified access key is not found")))
 			var errorWithCode *gardencorev1beta1helper.ErrorWithCodes
 			Expect(errors.As(err, &errorWithCode)).To(BeTrue())
-			Expect(errorWithCode.Codes()).To(ConsistOf(gardencorev1beta1.ErrorInfraUnauthenticated, gardencorev1beta1.ErrorConfigurationProblem))
+			Expect(errorWithCode.Codes()).To(ConsistOf(gardencorev1beta1.ErrorConfigurationProblem))
 		})
 	})
 })
