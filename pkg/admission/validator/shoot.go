@@ -100,19 +100,21 @@ func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfi
 	if err != nil {
 		return err
 	}
-	// Provider validation
-	if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking.Nodes, shoot.Spec.Networking.Pods, shoot.Spec.Networking.Services, natGatewayZones); len(errList) != 0 {
-		return errList.ToAggregate()
+
+	if infraConfig != nil {
+		// Provider validation
+		if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking, natGatewayZones); len(errList) != 0 {
+			return errList.ToAggregate()
+		}
+		// Shoot workers
+		if errList := alicloudvalidation.ValidateWorkers(shoot.Spec.Provider.Workers, infraConfig.Networks.Zones, workersFldPath); len(errList) != 0 {
+			return errList.ToAggregate()
+		}
 	}
 	if cpConfig != nil {
 		if errList := alicloudvalidation.ValidateControlPlaneConfig(cpConfig, shoot.Spec.Kubernetes.Version, cpConfigFldPath); len(errList) != 0 {
 			return errList.ToAggregate()
 		}
-	}
-
-	// Shoot workers
-	if errList := alicloudvalidation.ValidateWorkers(shoot.Spec.Provider.Workers, infraConfig.Networks.Zones, workersFldPath); len(errList) != 0 {
-		return errList.ToAggregate()
 	}
 
 	return nil
@@ -193,9 +195,14 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 func (s *shoot) getEnhancedNatGatewayAvailableZones(ctx context.Context, shoot *core.Shoot) ([]string, error) {
 	regionID := shoot.Spec.Region
 	var (
-		secretBinding    = &gardencorev1beta1.SecretBinding{}
-		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
+		secretBinding = &gardencorev1beta1.SecretBinding{}
 	)
+
+	if shoot.Spec.SecretBindingName == nil {
+		return nil, fmt.Errorf("secretBindingName can't be nil")
+	}
+
+	secretBindingKey := kutil.Key(shoot.Namespace, *shoot.Spec.SecretBindingName)
 	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
 		return nil, err
 	}

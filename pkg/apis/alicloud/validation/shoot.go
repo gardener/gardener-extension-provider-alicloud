@@ -42,8 +42,13 @@ const (
 
 // ValidateNetworkingUpdate validates the network setting of a Shoot during update.
 // The network CIDR settings should be immutable.
-func ValidateNetworkingUpdate(oldNetworking, newNetworking core.Networking, fldPath *field.Path) field.ErrorList {
+func ValidateNetworkingUpdate(oldNetworking, newNetworking *core.Networking, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+
+	if newNetworking == nil {
+		allErrs = append(allErrs, field.Required(fldPath, "networking field can't be empty"))
+		return allErrs
+	}
 
 	allErrs = append(allErrs, validateNetworkImmutable(oldNetworking.Nodes, newNetworking.Nodes, fldPath.Child("nodes"))...)
 	allErrs = append(allErrs, validateNetworkImmutable(oldNetworking.Pods, newNetworking.Pods, fldPath.Child("pods"))...)
@@ -53,8 +58,13 @@ func ValidateNetworkingUpdate(oldNetworking, newNetworking core.Networking, fldP
 }
 
 // ValidateNetworking validates the network settings of a Shoot during creation.
-func ValidateNetworking(networking core.Networking, fldPath *field.Path) field.ErrorList {
+func ValidateNetworking(networking *core.Networking, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+
+	if networking == nil {
+		allErrs = append(allErrs, field.Required(fldPath, "networking field can't be empty"))
+		return allErrs
+	}
 
 	allErrs = append(allErrs, validateNetworkCIDRNotNil(networking.Nodes, fldPath.Child("nodes"))...)
 
