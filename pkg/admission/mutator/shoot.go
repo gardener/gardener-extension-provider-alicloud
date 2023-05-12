@@ -26,6 +26,7 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	corev1 "k8s.io/api/core/v1"
@@ -93,6 +94,11 @@ func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error
 	shoot, ok := new.(*corev1beta1.Shoot)
 	if !ok {
 		return fmt.Errorf("wrong object type %T", new)
+	}
+
+	// skip validation if it's a workerless Shoot
+	if gardencorev1beta1helper.IsWorkerless(shoot) {
+		return nil
 	}
 
 	if shoot.Spec.Networking != nil && shoot.Spec.Networking.Type != nil && (*shoot.Spec.Networking.Type == calico.ReleaseName || *shoot.Spec.Networking.Type == cilium.ReleaseName) {

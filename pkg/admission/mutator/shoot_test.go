@@ -484,6 +484,19 @@ var _ = Describe("Mutating Shoot", func() {
 
 	})
 
+	Context("Workerless Shoot", func() {
+		BeforeEach(func() {
+			newShoot.Spec.Provider.Workers = nil
+		})
+
+		It("should return without mutation when shoot is in scheduled to new seed phase", func() {
+			shootExpected := newShoot.DeepCopy()
+			err := mutator.Mutate(ctx, newShoot, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot).To(DeepEqual(shootExpected))
+		})
+	})
+
 	Context("Mutate shoot networking providerconfig for type calico", func() {
 
 		It("should return without mutation when shoot is in scheduled to new seed phase", func() {
