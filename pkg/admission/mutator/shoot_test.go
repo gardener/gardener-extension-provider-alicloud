@@ -163,9 +163,9 @@ var _ = Describe("Mutating Shoot", func() {
 		oldShoot = &corev1beta1.Shoot{
 			Spec: corev1beta1.ShootSpec{
 				SeedName: pointer.String("alicloud"),
-				Networking: corev1beta1.Networking{
+				Networking: &corev1beta1.Networking{
 					Nodes: pointer.String("10.250.0.0/16"),
-					Type:  "calico",
+					Type:  pointer.String("calico"),
 				},
 				Provider: corev1beta1.Provider{
 					Type: alicloud.Type,
@@ -199,11 +199,11 @@ var _ = Describe("Mutating Shoot", func() {
 			},
 			Spec: corev1beta1.ShootSpec{
 				SeedName: pointer.String("alicloud"),
-				Networking: corev1beta1.Networking{
+				Networking: &corev1beta1.Networking{
 					Nodes: pointer.String("10.250.0.0/16"),
-					Type:  "calico",
+					Type:  pointer.String("calico"),
 				},
-				SecretBindingName: name,
+				SecretBindingName: pointer.String(name),
 				Provider: corev1beta1.Provider{
 					Type: alicloud.Type,
 					Workers: []corev1beta1.Worker{
@@ -595,8 +595,8 @@ var _ = Describe("Mutating Shoot", func() {
 	Context("Mutate shoot networking providerconfig for type cilium", func() {
 
 		BeforeEach(func() {
-			newShoot.Spec.Networking.Type = "cilium"
-			oldShoot.Spec.Networking.Type = "cilium"
+			newShoot.Spec.Networking.Type = pointer.String("cilium")
+			oldShoot.Spec.Networking.Type = pointer.String("cilium")
 		})
 
 		It("should return without mutation when shoot is in scheduled to new seed phase", func() {

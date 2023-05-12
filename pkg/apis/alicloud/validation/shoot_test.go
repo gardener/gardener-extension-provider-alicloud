@@ -31,7 +31,7 @@ var _ = Describe("Shoot validation", func() {
 		var networkingPath = field.NewPath("spec", "networking")
 
 		It("should return no error because network settings are correct", func() {
-			networking := core.Networking{
+			networking := &core.Networking{
 				Nodes:    pointer.String("10.252.0.0/16"),
 				Pods:     pointer.String("192.168.0.0/16"),
 				Services: pointer.String("172.16.0.0/16"),
@@ -42,7 +42,7 @@ var _ = Describe("Shoot validation", func() {
 		})
 
 		It("should return errors because CIDR overlaps with 100.64.0.0/10", func() {
-			networking := core.Networking{
+			networking := &core.Networking{
 				Nodes:    pointer.String("100.100.0.0/16"),
 				Pods:     pointer.String("100.101.0.0/16"),
 				Services: pointer.String("100.102.0.0/16"),
@@ -66,7 +66,7 @@ var _ = Describe("Shoot validation", func() {
 		})
 
 		It("should return errors because nodes' CIDR is nil", func() {
-			networking := core.Networking{
+			networking := &core.Networking{
 				Nodes:    nil,
 				Pods:     nil,
 				Services: nil,
@@ -82,13 +82,13 @@ var _ = Describe("Shoot validation", func() {
 		})
 
 		It("should forbid updating validated networking CIDR", func() {
-			oldNetworking := core.Networking{
+			oldNetworking := &core.Networking{
 				Nodes:    pointer.String("10.252.0.0/16"),
 				Pods:     pointer.String("192.168.0.0/16"),
 				Services: pointer.String("172.16.0.0/16"),
 			}
 
-			newNetworking := core.Networking{
+			newNetworking := &core.Networking{
 				Nodes:    pointer.String("10.250.0.0/16"),
 				Pods:     pointer.String("192.168.0.0/16"),
 				Services: pointer.String("172.17.0.0/16"),
@@ -108,13 +108,13 @@ var _ = Describe("Shoot validation", func() {
 		})
 
 		It("should allow updating invalidated networking CIDR", func() {
-			oldNetworking := core.Networking{
+			oldNetworking := &core.Networking{
 				Nodes:    pointer.String("null"),
 				Pods:     pointer.String("null"),
 				Services: pointer.String("null"),
 			}
 
-			newNetworking := core.Networking{
+			newNetworking := &core.Networking{
 				Nodes:    pointer.String("10.250.0.0/16"),
 				Pods:     pointer.String("192.168.0.0/16"),
 				Services: pointer.String("172.17.0.0/16"),

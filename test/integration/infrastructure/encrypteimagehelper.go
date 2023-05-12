@@ -109,7 +109,7 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 					},
 				},
 			},
-			Networking: gardencorev1beta1.Networking{
+			Networking: &gardencorev1beta1.Networking{
 				Pods: pointer.String(podCIDR),
 			},
 		},
