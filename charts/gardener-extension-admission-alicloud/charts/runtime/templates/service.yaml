@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: {{ include "name" . }}
   namespace: {{ .Release.Namespace }}
+  annotations:
+    networking.resources.gardener.cloud/from-all-webhook-targets-allowed-ports: '[{"protocol":"TCP","port":{{ .Values.global.webhookConfig.serverPort }}}]'
   labels:
 {{ include "labels" . | indent 4 }}
 spec:
