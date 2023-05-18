@@ -15,6 +15,7 @@
 package validation
 
 import (
+	"github.com/gardener/gardener/pkg/apis/core"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -23,23 +24,24 @@ import (
 )
 
 // ValidateInfrastructureConfig validates a InfrastructureConfig object.
-func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, nodesCIDR, podsCIDR, servicesCIDR *string, natGatewayZones []string) field.ErrorList {
+func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, networking *core.Networking, natGatewayZones []string) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	var (
-		nodes    cidrvalidation.CIDR
-		pods     cidrvalidation.CIDR
-		services cidrvalidation.CIDR
+		nodes, pods, services             cidrvalidation.CIDR
+		nodesCIDR, podsCIDR, servicesCIDR *string
 	)
 
-	if nodesCIDR != nil {
-		nodes = cidrvalidation.NewCIDR(*nodesCIDR, nil)
-	}
-	if podsCIDR != nil {
-		pods = cidrvalidation.NewCIDR(*podsCIDR, nil)
-	}
-	if servicesCIDR != nil {
-		services = cidrvalidation.NewCIDR(*servicesCIDR, nil)
+	if networking != nil {
+		if nodesCIDR = networking.Nodes; nodesCIDR != nil {
+			nodes = cidrvalidation.NewCIDR(*nodesCIDR, nil)
+		}
+		if podsCIDR = networking.Pods; podsCIDR != nil {
+			pods = cidrvalidation.NewCIDR(*podsCIDR, nil)
+		}
+		if servicesCIDR = networking.Services; servicesCIDR != nil {
+			services = cidrvalidation.NewCIDR(*servicesCIDR, nil)
+		}
 	}
 
 	networksPath := field.NewPath("networks")

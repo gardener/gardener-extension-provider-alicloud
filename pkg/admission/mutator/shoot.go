@@ -26,6 +26,7 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	corev1 "k8s.io/api/core/v1"
@@ -95,7 +96,12 @@ func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error
 		return fmt.Errorf("wrong object type %T", new)
 	}
 
-	if shoot.Spec.Networking.Type == calico.ReleaseName || shoot.Spec.Networking.Type == cilium.ReleaseName {
+	// skip validation if it's a workerless Shoot
+	if gardencorev1beta1helper.IsWorkerless(shoot) {
+		return nil
+	}
+
+	if shoot.Spec.Networking != nil && shoot.Spec.Networking.Type != nil && (*shoot.Spec.Networking.Type == calico.ReleaseName || *shoot.Spec.Networking.Type == cilium.ReleaseName) {
 		err := s.mutateNetworkOverlay(ctx, shoot, old)
 		if err != nil {
 			return err
@@ -161,7 +167,7 @@ func (s *shootMutator) mutateNetworkOverlay(ctx context.Context, shoot *corev1be
 		return nil
 	}
 
-	switch shoot.Spec.Networking.Type {
+	switch *shoot.Spec.Networking.Type {
 	case calico.ReleaseName:
 		overlay := &calicov1alpha1.Overlay{Enabled: false}
 		networkConfig, err := s.decodeCalicoNetworkConfig(shoot.Spec.Networking.ProviderConfig)
@@ -267,9 +273,14 @@ func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1
 
 func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1.Shoot, imageId string, region string) (bool, error) {
 	var (
-		secretBinding    = &corev1beta1.SecretBinding{}
-		secretBindingKey = kutil.Key(shoot.Namespace, shoot.Spec.SecretBindingName)
+		secretBinding = &corev1beta1.SecretBinding{}
 	)
+
+	if shoot.Spec.SecretBindingName == nil {
+		return false, fmt.Errorf("secretBindingName can't be nil")
+	}
+
+	secretBindingKey := kutil.Key(shoot.Namespace, *shoot.Spec.SecretBindingName)
 	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
 		return false, err
 	}

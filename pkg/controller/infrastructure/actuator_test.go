@@ -183,7 +183,7 @@ var _ = Describe("Actuator", func() {
 					Shoot: &gardencorev1beta1.Shoot{
 						Spec: gardencorev1beta1.ShootSpec{
 							Region: region,
-							Networking: gardencorev1beta1.Networking{
+							Networking: &gardencorev1beta1.Networking{
 								Pods: &podCIDR,
 							},
 						},
