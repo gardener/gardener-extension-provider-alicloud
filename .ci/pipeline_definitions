@@ -18,6 +18,8 @@ gardener-extension-provider-alicloud:
               value:
               - type: 'githubUser'
                 username: 'shaoyongfeng'
+              - type: 'emailAddress'
+                email: 'taylor.shao@sap.com'
           gardener-extension-admission-alicloud:
             registry: 'gcr-readwrite'
             image: 'eu.gcr.io/gardener-project/gardener/extensions/admission-alicloud'
@@ -28,6 +30,8 @@ gardener-extension-provider-alicloud:
               value:
               - type: 'githubUser'
                 username: 'shaoyongfeng'
+              - type: 'emailAddress'
+                email: 'taylor.shao@sap.com'
   jobs:
     head-update:
       traits:
