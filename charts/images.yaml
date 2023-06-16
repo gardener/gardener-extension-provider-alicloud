@@ -62,7 +62,7 @@ images:
       availability_requirement: 'low'
 - name: csi-provisioner
   sourceRepository: github.com/kubernetes-csi/external-provisioner
-  repository: k8s.gcr.io/sig-storage/csi-provisioner
+  repository: registry.k8s.io/sig-storage/csi-provisioner
   tag: "v3.3.0"
   labels:
   - name: 'gardener.cloud/cve-categorisation'
@@ -75,7 +75,7 @@ images:
       availability_requirement: 'low'
 - name: csi-snapshotter
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
-  repository: k8s.gcr.io/sig-storage/csi-snapshotter
+  repository: registry.k8s.io/sig-storage/csi-snapshotter
   tag: "v6.1.0"
   labels:
   - name: 'gardener.cloud/cve-categorisation'
@@ -88,7 +88,7 @@ images:
       availability_requirement: 'low'
 - name: csi-snapshot-validation-webhook
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
-  repository: k8s.gcr.io/sig-storage/snapshot-validation-webhook
+  repository: registry.k8s.io/sig-storage/snapshot-validation-webhook
   tag: "v6.1.0"
   labels:
   - name: 'gardener.cloud/cve-categorisation'
@@ -101,7 +101,7 @@ images:
       availability_requirement: 'low'
 - name: csi-snapshot-controller
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
-  repository: k8s.gcr.io/sig-storage/snapshot-controller
+  repository: registry.k8s.io/sig-storage/snapshot-controller
   tag: "v6.1.0"
   labels:
   - name: 'gardener.cloud/cve-categorisation'
