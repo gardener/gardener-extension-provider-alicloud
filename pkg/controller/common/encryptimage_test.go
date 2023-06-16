@@ -18,7 +18,6 @@ import (
 	"context"
 	"time"
 
-	gcorev1alph1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	gcorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -42,7 +41,6 @@ var _ = Describe("Encrypt Image tools", func() {
 		Entry("extensionsv1alpha1 image with nil Encryption value doesn't use encryption", &gcorev1beta1.Volume{}, false, false),
 		Entry("extensionsv1alpha1 image with false Encryption value doesn't use encryption", &gcorev1beta1.Volume{Encrypted: pointer.Bool(false)}, false, false),
 		Entry("extensionsv1alpha1 image with true Encryption value uses encryption", &gcorev1beta1.Volume{Encrypted: pointer.Bool(true)}, true, false),
-		Entry("unsupported type of image returns error", &gcorev1alph1.Volume{}, true, true),
 	)
 
 	Context("#ImageEncrypter", func() {
