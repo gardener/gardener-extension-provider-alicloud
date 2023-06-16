@@ -636,7 +636,7 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 }
 
 // Delete implements infrastructure.Actuator.
-func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
 	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
@@ -692,7 +692,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extension
 }
 
 // Migrate implements infrastructure.Actuator.
-func (a *actuator) Migrate(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+func (a *actuator) Migrate(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
 	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
@@ -705,7 +705,7 @@ func (a *actuator) Migrate(ctx context.Context, log logr.Logger, infra *extensio
 }
 
 // ensureServiceLinkedRole is to check if service linked role exists, if not create one.
-func (a *actuator) ensureServiceLinkedRole(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, credentials *alicloud.Credentials) error {
+func (a *actuator) ensureServiceLinkedRole(_ context.Context, infra *extensionsv1alpha1.Infrastructure, credentials *alicloud.Credentials) error {
 	client, err := a.newClientFactory.NewRAMClient(infra.Spec.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
 	if err != nil {
 		return err

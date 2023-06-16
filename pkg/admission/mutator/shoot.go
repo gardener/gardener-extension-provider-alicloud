@@ -90,10 +90,10 @@ func (s *shootMutator) InjectAPIReader(apiReader client.Reader) error {
 	return nil
 }
 
-func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error {
-	shoot, ok := new.(*corev1beta1.Shoot)
+func (s *shootMutator) Mutate(ctx context.Context, newObj, oldObj client.Object) error {
+	shoot, ok := newObj.(*corev1beta1.Shoot)
 	if !ok {
-		return fmt.Errorf("wrong object type %T", new)
+		return fmt.Errorf("wrong object type %T", newObj)
 	}
 
 	// skip validation if it's a workerless Shoot
@@ -102,16 +102,16 @@ func (s *shootMutator) Mutate(ctx context.Context, new, old client.Object) error
 	}
 
 	if shoot.Spec.Networking != nil && shoot.Spec.Networking.Type != nil && (*shoot.Spec.Networking.Type == calico.ReleaseName || *shoot.Spec.Networking.Type == cilium.ReleaseName) {
-		err := s.mutateNetworkOverlay(ctx, shoot, old)
+		err := s.mutateNetworkOverlay(shoot, oldObj)
 		if err != nil {
 			return err
 		}
 	}
 
-	if old != nil {
-		oldShoot, ok := old.(*corev1beta1.Shoot)
+	if oldObj != nil {
+		oldShoot, ok := oldObj.(*corev1beta1.Shoot)
 		if !ok {
-			return fmt.Errorf("wrong object type %T for old object", old)
+			return fmt.Errorf("wrong object type %T for old object", oldObj)
 		}
 		return s.mutateShootUpdate(ctx, shoot, oldShoot)
 	} else {
@@ -137,8 +137,7 @@ func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1bet
 	return nil
 }
 
-func (s *shootMutator) mutateNetworkOverlay(ctx context.Context, shoot *corev1beta1.Shoot, old client.Object) error {
-
+func (s *shootMutator) mutateNetworkOverlay(shoot *corev1beta1.Shoot, old client.Object) error {
 	// Skip if shoot is in restore or migration phase
 	if wasShootRescheduledToNewSeed(shoot) {
 		return nil

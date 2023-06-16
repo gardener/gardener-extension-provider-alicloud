@@ -302,7 +302,7 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 		Expect(err).NotTo(HaveOccurred())
 
 		By("verify infrastructure deletion")
-		verifyDeletion(ctx, clientFactory, infrastructureIdentifiers)
+		verifyDeletion(clientFactory, infrastructureIdentifiers)
 	}()
 
 	By("create namespace for test execution")
@@ -383,7 +383,7 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 	}
 
 	By("verify infrastructure creation")
-	infrastructureIdentifiers = verifyCreation(ctx, clientFactory, infra, providerStatus, providerConfig)
+	infrastructureIdentifiers = verifyCreation(clientFactory, infra, providerStatus, providerConfig)
 
 	if *enableEncryptedImage {
 		By("verify image prepared in infrastructure status")
@@ -451,7 +451,6 @@ type infrastructureIdentifiers struct {
 }
 
 func verifyCreation(
-	ctx context.Context,
 	clientFactory alicloudclient.ClientFactory,
 	infra *extensionsv1alpha1.Infrastructure,
 	infraStatus *alicloudv1alpha1.InfrastructureStatus,
@@ -610,7 +609,7 @@ func verifyCreation(
 	return
 }
 
-func verifyDeletion(ctx context.Context, clientFactory alicloudclient.ClientFactory, infrastructureIdentifier infrastructureIdentifiers) {
+func verifyDeletion(clientFactory alicloudclient.ClientFactory, infrastructureIdentifier infrastructureIdentifiers) {
 	vpcClient, err := clientFactory.NewVPCClient(*region, *accessKeyID, *accessKeySecret)
 	Expect(err).NotTo(HaveOccurred())
 

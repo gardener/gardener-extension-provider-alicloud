@@ -78,7 +78,7 @@ var _ = Describe("Actuator", func() {
 		ctx = context.TODO()
 		logger = log.Log.WithName("test")
 
-		a = NewActuator(alicloudClientFactory, logger)
+		a = NewActuator(alicloudClientFactory)
 
 		err := a.(inject.Client).InjectClient(c)
 		Expect(err).NotTo(HaveOccurred())
