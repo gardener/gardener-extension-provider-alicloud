@@ -33,14 +33,15 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 	)
 
 	if networking != nil {
+		networkingPath := field.NewPath("networking")
 		if nodesCIDR = networking.Nodes; nodesCIDR != nil {
-			nodes = cidrvalidation.NewCIDR(*nodesCIDR, nil)
+			nodes = cidrvalidation.NewCIDR(*nodesCIDR, networkingPath.Child("nodes"))
 		}
 		if podsCIDR = networking.Pods; podsCIDR != nil {
-			pods = cidrvalidation.NewCIDR(*podsCIDR, nil)
+			pods = cidrvalidation.NewCIDR(*podsCIDR, networkingPath.Child("pods"))
 		}
 		if servicesCIDR = networking.Services; servicesCIDR != nil {
-			services = cidrvalidation.NewCIDR(*servicesCIDR, nil)
+			services = cidrvalidation.NewCIDR(*servicesCIDR, networkingPath.Child("services"))
 		}
 	}
 
