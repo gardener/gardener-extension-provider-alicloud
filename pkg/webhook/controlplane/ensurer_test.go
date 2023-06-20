@@ -88,7 +88,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(logger)
+			ensurer := NewEnsurer(logger, false)
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
 			dep := apidep()
@@ -124,7 +124,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(logger)
+			ensurer := NewEnsurer(logger, false)
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
 			dep := apidep()
@@ -154,7 +154,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(logger)
+			ensurer := NewEnsurer(logger, false)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
 			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext20, dep, nil)
@@ -184,7 +184,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(logger)
+			ensurer := NewEnsurer(logger, false)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
 			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext20, dep, nil)
@@ -200,7 +200,7 @@ var _ = Describe("Ensurer", func() {
 		)
 
 		BeforeEach(func() {
-			ensurer = NewEnsurer(logger)
+			ensurer = NewEnsurer(logger, false)
 			oldUnitOptions = []*unit.UnitOption{
 				{
 					Section: "Service",
@@ -260,7 +260,7 @@ var _ = Describe("Ensurer", func() {
 		)
 
 		BeforeEach(func() {
-			ensurer = NewEnsurer(logger)
+			ensurer = NewEnsurer(logger, false)
 			oldKubeletConfig = &kubeletconfigv1beta1.KubeletConfiguration{
 				FeatureGates: map[string]bool{
 					"Foo": true,

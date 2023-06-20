@@ -29,6 +29,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	vpaautoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/utils/pointer"
 
@@ -36,15 +37,33 @@ import (
 )
 
 // NewEnsurer creates a new controlplane ensurer.
-func NewEnsurer(logger logr.Logger) genericmutator.Ensurer {
+func NewEnsurer(logger logr.Logger, gardenletManagesMCM bool) genericmutator.Ensurer {
 	return &ensurer{
-		logger: logger.WithName("alicloud-controlplane-ensurer"),
+		logger:              logger.WithName("alicloud-controlplane-ensurer"),
+		gardenletManagesMCM: gardenletManagesMCM,
 	}
 }
 
 type ensurer struct {
 	genericmutator.NoopEnsurer
-	logger logr.Logger
+	logger              logr.Logger
+	gardenletManagesMCM bool
+}
+
+// EnsureMachineControllerManagerDeployment ensures that the machine-controller-manager deployment conforms to the provider requirements.
+func (e *ensurer) EnsureMachineControllerManagerDeployment(_ context.Context, _ gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
+	if !e.gardenletManagesMCM {
+		return nil
+	}
+	return nil
+}
+
+// EnsureMachineControllerManagerVPA ensures that the machine-controller-manager VPA conforms to the provider requirements.
+func (e *ensurer) EnsureMachineControllerManagerVPA(_ context.Context, _ gcontext.GardenContext, newObj, _ *vpaautoscalingv1.VerticalPodAutoscaler) error {
+	if !e.gardenletManagesMCM {
+		return nil
+	}
+	return nil
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
@@ -131,7 +150,7 @@ func getValueOfKubeletPreStart(kubeletVersion *semver.Version) string {
 		 *   echo PROVIDER_ID=$PROVIDER_ID has been written to /var/lib/kubelet/extra_args
 		 * fi
 		 */
-		//This doesn't work: /bin/sh -c "$(echo  Z3JlcCAtc3EgUFJPVklERVJfSUQgL2V0Yy9lbnZpcm9ubWVudAppZiBbICQ.... | base64 -d)"
+		// This doesn't work: /bin/sh -c "$(echo  Z3JlcCAtc3EgUFJPVklERVJfSUQgL2V0Yy9lbnZpcm9ubWVudAppZiBbICQ.... | base64 -d)"
 		return `/bin/sh -c "echo Z3JlcCAtc3EgUFJPVklERVJfSUQgL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmlmIFsgJD8gLW5lIDAgXTsgdGhlbgpNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQpQUk9WSURFUl9JRD1gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZGAuYHdnZXQgLXFPLSAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKZWNobyBQUk9WSURFUl9JRD0kUFJPVklERVJfSUQgPj4gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmVjaG8gUFJPVklERVJfSUQ9JFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmZpCg==| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
 	}
 }
