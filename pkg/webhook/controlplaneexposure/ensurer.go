@@ -16,96 +16,29 @@ package controlplaneexposure
 
 import (
 	"context"
-	"fmt"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/gardener/extensions/pkg/controller"
-	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-	v1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
-	webhookutils "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/utils"
 )
 
 // NewEnsurer creates a new controlplaneexposure ensurer.
-func NewEnsurer(etcdStorage *config.ETCDStorage, kubeAPIServer *config.KubeAPIServer, service *config.Service, logger logr.Logger) genericmutator.Ensurer {
+func NewEnsurer(etcdStorage *config.ETCDStorage, logger logr.Logger) genericmutator.Ensurer {
 	return &ensurer{
-		etcdStorage:   etcdStorage,
-		kubeAPIServer: kubeAPIServer,
-		service:       service,
-		logger:        logger.WithName("alicloud-controlplaneexposure-ensurer"),
+		etcdStorage: etcdStorage,
+		logger:      logger.WithName("alicloud-controlplaneexposure-ensurer"),
 	}
 }
 
 type ensurer struct {
 	genericmutator.NoopEnsurer
-	etcdStorage   *config.ETCDStorage
-	kubeAPIServer *config.KubeAPIServer
-	service       *config.Service
-	client        client.Client
-	logger        logr.Logger
-}
-
-// InjectClient injects the given client into the ensurer.
-func (e *ensurer) InjectClient(client client.Client) error {
-	e.client = client
-	return nil
-}
-
-// EnsureKubeAPIServerService ensures that the kube-apiserver service conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerService(_ context.Context, _ gcontext.GardenContext, newObj, oldObj *corev1.Service) error {
-	if e.kubeAPIServer.MutateExternalTrafficPolicy {
-		webhookutils.MutateExternalTrafficPolicy(newObj, oldObj)
-	}
-
-	webhookutils.MutateAnnotation(newObj, oldObj, e.service.BackendLoadBalancerSpec)
-
-	return nil
-}
-
-// EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, _ gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
-	if v1beta1helper.IsAPIServerExposureManaged(newObj) {
-		return nil
-	}
-
-	cluster, err := controller.GetCluster(ctx, e.client, newObj.Namespace)
-	if err != nil {
-		return err
-	}
-
-	if controller.IsHibernated(cluster) {
-		return nil
-	}
-
-	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: newObj.Namespace,
-			Name:      v1beta1constants.DeploymentNameKubeAPIServer,
-		},
-	}
-
-	// Get load balancer address of the kube-apiserver service
-	address, err := kutil.GetLoadBalancerIngress(ctx, e.client, service)
-	if err != nil {
-		return fmt.Errorf("could not get kube-apiserver service load balancer address: %w", err)
-	}
-
-	if c := extensionswebhook.ContainerWithName(newObj.Spec.Template.Spec.Containers, "kube-apiserver"); c != nil {
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--advertise-address=", address)
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--external-hostname=", address)
-	}
-	return nil
+	etcdStorage *config.ETCDStorage
+	logger      logr.Logger
 }
 
 // EnsureETCD ensures that the etcd conform to the provider requirements.

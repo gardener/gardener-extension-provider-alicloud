@@ -36,8 +36,6 @@ type ControllerConfiguration struct {
 	MachineImageOwnerSecretRef *corev1.SecretReference
 	// ToBeSharedImageIDs specifies custom image IDs which need to be shared by shoots
 	ToBeSharedImageIDs []string
-	// KubeAPIServer is the KubeAPIServer configuration.
-	KubeAPIServer *KubeAPIServer
 	// Service is the service configuration
 	Service Service
 	// ETCD is the etcd configuration.
@@ -46,12 +44,6 @@ type ControllerConfiguration struct {
 	HealthCheckConfig *healthcheckconfig.HealthCheckConfig
 	// CSI is the config for CSI plugin components
 	CSI *CSI
-}
-
-// KubeAPIServer is a KubeAPIServer configuration.
-type KubeAPIServer struct {
-	// MutateExternalTrafficPolicy specifies whether to mutate KubeAPIServer Service's ExternalTrafficPolicy to Local
-	MutateExternalTrafficPolicy bool
 }
 
 // Service is a load balancer service configuration.

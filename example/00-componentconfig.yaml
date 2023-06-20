@@ -14,8 +14,6 @@ etcd:
 #    schedule: "0 */24 * * *"
 #healthCheckConfig:
 #  syncPeriod: 30s
-#kubeAPIServer:
-#  mutateExternalTrafficPolicy: false
 #machineImageOwnerSecret:
 #  name: machine-image-owner
 #  accessKeyID: ZHVtbXk=

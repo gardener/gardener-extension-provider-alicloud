@@ -84,8 +84,6 @@ config:
       className: gardener.cloud-fast
       capacity: 25Gi
       volumeBindingMode: WaitForFirstConsumer
-#  kubeAPIServer:
-#    mutateExternalTrafficPolicy: false
 #  machineImageOwnerSecret:
 #    name: machine-image-owner
 #    accessKeyID: ZHVtbXk=

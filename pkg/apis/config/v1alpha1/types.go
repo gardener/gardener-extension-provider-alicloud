@@ -38,8 +38,6 @@ type ControllerConfiguration struct {
 	MachineImageOwnerSecretRef *corev1.SecretReference `json:"machineImageOwnerSecretRef,omitempty"`
 	// ToBeSharedImageIDs specifies custom image IDs which need to be shared by shoots
 	ToBeSharedImageIDs []string `json:"toBeSharedImageIDs,omitempty"`
-	// KubeAPIServer is the KubeAPIServer configuration.
-	KubeAPIServer *KubeAPIServer `json:"kubeAPIServer,omitempty"`
 	// Service is the service configuration
 	Service Service `json:"service"`
 	// ETCD is the etcd configuration.
@@ -50,12 +48,6 @@ type ControllerConfiguration struct {
 	// CSI is the config for CSI plugin components
 	// +optional
 	CSI *CSI `json:"csi,omitempty"`
-}
-
-// KubeAPIServer is a KubeAPIServer configuration.
-type KubeAPIServer struct {
-	// MutateExternalTrafficPolicy specifies whether to mutate KubeAPIServer Service's ExternalTrafficPolicy to Local
-	MutateExternalTrafficPolicy bool `json:"mutateExternalTrafficPolicy"`
 }
 
 // Service is a load balancer service configuration.
