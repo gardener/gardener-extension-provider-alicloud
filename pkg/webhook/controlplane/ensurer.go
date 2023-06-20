@@ -16,7 +16,6 @@ package controlplane
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -49,36 +48,28 @@ type ensurer struct {
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, old *appsv1.Deployment) error {
-	ps := &new.Spec.Template.Spec
+func (e *ensurer) EnsureKubeAPIServerDeployment(_ context.Context, _ gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
+	ps := &newObj.Spec.Template.Spec
 
 	// TODO: This label approach is deprecated and no longer needed in the future. Remove it as soon as gardener/gardener@v1.75 has been released.
-	metav1.SetMetaDataLabel(&new.Spec.Template.ObjectMeta, gutil.NetworkPolicyLabel(alicloud.CSISnapshotValidation, 443), v1beta1constants.LabelNetworkPolicyAllowed)
+	metav1.SetMetaDataLabel(&newObj.Spec.Template.ObjectMeta, gutil.NetworkPolicyLabel(alicloud.CSISnapshotValidation, 443), v1beta1constants.LabelNetworkPolicyAllowed)
 
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		cluster, err := gctx.GetCluster(ctx)
-		if err != nil {
-			return err
-		}
-		ver, err := semver.NewVersion(cluster.Shoot.Spec.Kubernetes.Version)
-		if err != nil {
-			return fmt.Errorf("cannot parse shoot k8s cluster version: %v", err)
-		}
-		ensureKubeAPIServerCommandLineArgs(c, ver)
+		ensureKubeAPIServerCommandLineArgs(c)
 	}
 	return nil
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, old *appsv1.Deployment) error {
-	ps := &new.Spec.Template.Spec
+func (e *ensurer) EnsureKubeControllerManagerDeployment(_ context.Context, _ gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
+	ps := &newObj.Spec.Template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-controller-manager"); c != nil {
 		ensureKubeControllerManagerCommandLineArgs(c)
 	}
 	return nil
 }
 
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, ver *semver.Version) {
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
 	// Ensure CSI-related admission plugins
 	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--enable-admission-plugins=",
 		"PersistentVolumeLabel", ",")
@@ -101,19 +92,20 @@ func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
-func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, old []*unit.UnitOption) ([]*unit.UnitOption, error) {
-	if opt := extensionswebhook.UnitOptionWithSectionAndName(new, "Service", "ExecStart"); opt != nil {
+func (e *ensurer) EnsureKubeletServiceUnitOptions(_ context.Context, _ gcontext.GardenContext, kubeletVersion *semver.Version, newObj, _ []*unit.UnitOption) ([]*unit.UnitOption, error) {
+	if opt := extensionswebhook.UnitOptionWithSectionAndName(newObj, "Service", "ExecStart"); opt != nil {
 		command := extensionswebhook.DeserializeCommandLine(opt.Value)
 		command = ensureKubeletCommandLineArgs(command, kubeletVersion)
 		opt.Value = extensionswebhook.SerializeCommandLine(command, 1, " \\\n    ")
 	}
-	new = extensionswebhook.EnsureUnitOption(new, &unit.UnitOption{
+	newObj = extensionswebhook.EnsureUnitOption(newObj, &unit.UnitOption{
 		Section: "Service",
 		Name:    "ExecStartPre",
 		Value:   getValueOfKubeletPreStart(kubeletVersion),
 	})
-	return new, nil
+	return newObj, nil
 }
+
 func getValueOfKubeletPreStart(kubeletVersion *semver.Version) string {
 	if version.ConstraintK8sGreaterEqual123.Check(kubeletVersion) {
 		/*
@@ -143,6 +135,7 @@ func getValueOfKubeletPreStart(kubeletVersion *semver.Version) string {
 		return `/bin/sh -c "echo Z3JlcCAtc3EgUFJPVklERVJfSUQgL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmlmIFsgJD8gLW5lIDAgXTsgdGhlbgpNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQpQUk9WSURFUl9JRD1gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZGAuYHdnZXQgLXFPLSAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKZWNobyBQUk9WSURFUl9JRD0kUFJPVklERVJfSUQgPj4gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmVjaG8gUFJPVklERVJfSUQ9JFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmZpCg==| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
 	}
 }
+
 func ensureKubeletCommandLineArgs(command []string, kubeletVersion *semver.Version) []string {
 	// TODO: Figure out how to provide the provider-id via the kubelet config file (as of Kubernetes 1.19 the kubelet config
 	// offers a new `providerID` field which can be used, and it's expected that `--provider-id` will be deprecated eventually).
@@ -160,10 +153,10 @@ func ensureKubeletCommandLineArgs(command []string, kubeletVersion *semver.Versi
 }
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
-func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, old *kubeletconfigv1beta1.KubeletConfiguration) error {
+func (e *ensurer) EnsureKubeletConfiguration(_ context.Context, _ gcontext.GardenContext, kubeletVersion *semver.Version, newObj, _ *kubeletconfigv1beta1.KubeletConfiguration) error {
 	if version.ConstraintK8sGreaterEqual123.Check(kubeletVersion) {
-		new.EnableControllerAttachDetach = pointer.Bool(true)
-		new.ProviderID = "place_holder_of_providerid"
+		newObj.EnableControllerAttachDetach = pointer.Bool(true)
+		newObj.ProviderID = "place_holder_of_providerid"
 	}
 
 	return nil

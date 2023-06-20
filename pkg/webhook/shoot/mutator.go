@@ -79,7 +79,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	return nil
 }
 
-func (m *mutator) mutateMetricsServerDeployment(ctx context.Context, dep *appsv1.Deployment) {
+func (m *mutator) mutateMetricsServerDeployment(_ context.Context, dep *appsv1.Deployment) {
 	ps := &dep.Spec.Template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "metrics-server"); c != nil {
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--kubelet-preferred-address-types=", "InternalIP")

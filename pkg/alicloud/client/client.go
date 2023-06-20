@@ -351,7 +351,7 @@ func (c *ecsClient) CheckIfImageOwnedByAliCloud(imageID string) (bool, error) {
 }
 
 // ShareImageToAccount shares the given image to target account from current client.
-func (c *ecsClient) ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error {
+func (c *ecsClient) ShareImageToAccount(_ context.Context, regionID, imageID, accountID string) error {
 	request := ecs.CreateModifyImageSharePermissionRequest()
 	request.RegionId = regionID
 	request.ImageId = imageID
@@ -428,7 +428,7 @@ func (f *clientFactory) NewSTSClient(region, accessKeyID, accessKeySecret string
 }
 
 // GetAccountIDFromCallerIdentity gets caller's accountID.
-func (c *stsClient) GetAccountIDFromCallerIdentity(ctx context.Context) (string, error) {
+func (c *stsClient) GetAccountIDFromCallerIdentity(_ context.Context) (string, error) {
 	request := sts.CreateGetCallerIdentityRequest()
 	request.SetScheme("HTTPS")
 	response, err := c.GetCallerIdentity(request)
@@ -451,7 +451,7 @@ func (f *clientFactory) NewSLBClient(region, accessKeyID, accessKeySecret string
 }
 
 // GetLoadBalancerIDs gets LoadBalancerIDs from all LoadBalancers in the given region.
-func (c *slbClient) GetLoadBalancerIDs(ctx context.Context, region string) ([]string, error) {
+func (c *slbClient) GetLoadBalancerIDs(_ context.Context, region string) ([]string, error) {
 	var (
 		loadBalancerIDs []string
 		pageNumber      = 1
@@ -481,7 +481,7 @@ func (c *slbClient) GetLoadBalancerIDs(ctx context.Context, region string) ([]st
 }
 
 // GetFirstVServerGroupName gets the VServerGroupName of the first VServerGroup in the LoadBalancer with given region and loadBalancerID.
-func (c *slbClient) GetFirstVServerGroupName(ctx context.Context, region, loadBalancerID string) (string, error) {
+func (c *slbClient) GetFirstVServerGroupName(_ context.Context, region, loadBalancerID string) (string, error) {
 	request := slb.CreateDescribeVServerGroupsRequest()
 	request.SetScheme("HTTPS")
 	request.RegionId = region
@@ -497,7 +497,7 @@ func (c *slbClient) GetFirstVServerGroupName(ctx context.Context, region, loadBa
 }
 
 // DeleteLoadBalancer deletes the LoadBalancer with given region and loadBalancerID.
-func (c *slbClient) DeleteLoadBalancer(ctx context.Context, region, loadBalancerID string) error {
+func (c *slbClient) DeleteLoadBalancer(_ context.Context, region, loadBalancerID string) error {
 	request := slb.CreateDeleteLoadBalancerRequest()
 	request.SetScheme("HTTPS")
 	request.RegionId = region
@@ -507,7 +507,7 @@ func (c *slbClient) DeleteLoadBalancer(ctx context.Context, region, loadBalancer
 }
 
 // SetLoadBalancerDeleteProtection sets the protection flag of load balancer with given loadBalancerID.
-func (c *slbClient) SetLoadBalancerDeleteProtection(ctx context.Context, region, loadBalancerID string, protection bool) error {
+func (c *slbClient) SetLoadBalancerDeleteProtection(_ context.Context, region, loadBalancerID string, protection bool) error {
 	request := slb.CreateSetLoadBalancerDeleteProtectionRequest()
 
 	if protection {
@@ -536,7 +536,7 @@ func (f *clientFactory) NewVPCClient(region, accessKeyID, accessKeySecret string
 }
 
 // GetEnhanhcedNatGatewayAvailableZones returns zones in which Enhanced NatGateway is available with given region
-func (c *vpcClient) GetEnhanhcedNatGatewayAvailableZones(ctx context.Context, region string) ([]string, error) {
+func (c *vpcClient) GetEnhanhcedNatGatewayAvailableZones(_ context.Context, region string) ([]string, error) {
 	request := vpc.CreateListEnhanhcedNatGatewayAvailableZonesRequest()
 	request.RegionId = region
 	response, err := c.ListEnhanhcedNatGatewayAvailableZones(request)
@@ -551,7 +551,7 @@ func (c *vpcClient) GetEnhanhcedNatGatewayAvailableZones(ctx context.Context, re
 }
 
 // GetVPCWithID returns VPC with given vpcID.
-func (c *vpcClient) GetVPCWithID(ctx context.Context, vpcID string) ([]vpc.Vpc, error) {
+func (c *vpcClient) GetVPCWithID(_ context.Context, vpcID string) ([]vpc.Vpc, error) {
 	request := vpc.CreateDescribeVpcsRequest()
 	request.VpcId = vpcID
 	response, err := c.DescribeVpcs(request)
@@ -563,7 +563,7 @@ func (c *vpcClient) GetVPCWithID(ctx context.Context, vpcID string) ([]vpc.Vpc, 
 }
 
 // GetNatGatewaysWithVPCID returns Gateways with given vpcID.
-func (c *vpcClient) GetNatGatewaysWithVPCID(ctx context.Context, vpcID string) ([]vpc.NatGateway, error) {
+func (c *vpcClient) GetNatGatewaysWithVPCID(_ context.Context, vpcID string) ([]vpc.NatGateway, error) {
 	request := vpc.CreateDescribeNatGatewaysRequest()
 	request.VpcId = vpcID
 	response, err := c.DescribeNatGateways(request)
@@ -575,7 +575,7 @@ func (c *vpcClient) GetNatGatewaysWithVPCID(ctx context.Context, vpcID string) (
 }
 
 // GetEIPWithID returns EIP with given eipID
-func (c *vpcClient) GetEIPWithID(ctx context.Context, eipID string) ([]vpc.EipAddress, error) {
+func (c *vpcClient) GetEIPWithID(_ context.Context, eipID string) ([]vpc.EipAddress, error) {
 	request := vpc.CreateDescribeEipAddressesRequest()
 	request.AllocationId = eipID
 

@@ -34,7 +34,7 @@ func NewConfigValidator(aliClientFactory aliclient.ClientFactory) bastion.Config
 }
 
 // Validate validates the provider config of the given bastion resource with the cloud provider.
-func (c *configValidator) Validate(ctx context.Context, bastion *extensionsv1alpha1.Bastion, cluster *extensions.Cluster) field.ErrorList {
+func (c *configValidator) Validate(ctx context.Context, _ *extensionsv1alpha1.Bastion, cluster *extensions.Cluster) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// Get value from infrastructure status

@@ -24,23 +24,23 @@ const (
 )
 
 // MutateExternalTrafficPolicy mutates ServiceExternalTrafficPolicyType to Local of LoadBalancer type service
-func MutateExternalTrafficPolicy(new, old *corev1.Service) {
-	if new.Spec.Type != corev1.ServiceTypeLoadBalancer {
+func MutateExternalTrafficPolicy(newObj, oldObj *corev1.Service) {
+	if newObj.Spec.Type != corev1.ServiceTypeLoadBalancer {
 		return
 	}
-	new.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
+	newObj.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
 
 	// Do not overwrite '.spec.healthCheckNodePort'
-	if old != nil &&
-		old.Spec.ExternalTrafficPolicy == corev1.ServiceExternalTrafficPolicyTypeLocal &&
-		new.Spec.HealthCheckNodePort == 0 {
-		new.Spec.HealthCheckNodePort = old.Spec.HealthCheckNodePort
+	if oldObj != nil &&
+		oldObj.Spec.ExternalTrafficPolicy == corev1.ServiceExternalTrafficPolicyTypeLocal &&
+		newObj.Spec.HealthCheckNodePort == 0 {
+		newObj.Spec.HealthCheckNodePort = oldObj.Spec.HealthCheckNodePort
 	}
 }
 
 // MutateAnnotation mutates annotation of LoadBalancer type service
-func MutateAnnotation(new, old *corev1.Service, loadBalancerSpec string) {
-	if new.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		metav1.SetMetaDataAnnotation(&new.ObjectMeta, alicloudLoadBalancerSpecAnnotationKey, loadBalancerSpec)
+func MutateAnnotation(newObj, _ *corev1.Service, loadBalancerSpec string) {
+	if newObj.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		metav1.SetMetaDataAnnotation(&newObj.ObjectMeta, alicloudLoadBalancerSpecAnnotationKey, loadBalancerSpec)
 	}
 }
