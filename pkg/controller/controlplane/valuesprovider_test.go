@@ -78,7 +78,7 @@ var _ = Describe("ValuesProvider", func() {
 						Raw: encode(&apisalicloud.ControlPlaneConfig{
 							CloudControllerManager: &apisalicloud.CloudControllerManagerConfig{
 								FeatureGates: map[string]bool{
-									"CustomResourceValidation": true,
+									"RotateKubeletServerCertificate": true,
 								},
 							},
 							CSI: &apisalicloud.CSI{
@@ -137,7 +137,7 @@ var _ = Describe("ValuesProvider", func() {
 				},
 				"cloudConfig": "{\"Global\":{\"KubernetesClusterTag\":\"test\",\"clusterID\":\"test\",\"uid\":\"\",\"vpcid\":\"vpc-1234\",\"region\":\"eu-central-1\",\"zoneid\":\"eu-central-1a\",\"vswitchid\":\"vswitch-acbd1234\",\"accessKeyID\":\"Zm9v\",\"accessKeySecret\":\"YmFy\"}}",
 				"featureGates": map[string]bool{
-					"CustomResourceValidation": true,
+					"RotateKubeletServerCertificate": true,
 				},
 			},
 			"csi-alicloud": map[string]interface{}{
