@@ -172,7 +172,7 @@ var _ = Describe("ValuesProvider", func() {
 				"enableADController": true,
 				"vpaEnabled":         true,
 				"webhookConfig": map[string]interface{}{
-					"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
+					"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 					"caBundle": "",
 				},
 				"pspDisabled": false,
@@ -338,7 +338,7 @@ var _ = Describe("ValuesProvider", func() {
 						"enableADController": true,
 						"vpaEnabled":         true,
 						"webhookConfig": map[string]interface{}{
-							"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
+							"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 							"caBundle": "",
 						},
 						"pspDisabled": false,
@@ -371,7 +371,7 @@ var _ = Describe("ValuesProvider", func() {
 						"enableADController": true,
 						"vpaEnabled":         true,
 						"webhookConfig": map[string]interface{}{
-							"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
+							"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 							"caBundle": "",
 						},
 						"pspDisabled": true,

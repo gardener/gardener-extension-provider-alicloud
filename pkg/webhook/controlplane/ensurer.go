@@ -52,7 +52,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(_ context.Context, _ gcontext.Ga
 	ps := &newObj.Spec.Template.Spec
 
 	// TODO: This label approach is deprecated and no longer needed in the future. Remove it as soon as gardener/gardener@v1.75 has been released.
-	metav1.SetMetaDataLabel(&newObj.Spec.Template.ObjectMeta, gutil.NetworkPolicyLabel(alicloud.CSISnapshotValidation, 443), v1beta1constants.LabelNetworkPolicyAllowed)
+	metav1.SetMetaDataLabel(&newObj.Spec.Template.ObjectMeta, gutil.NetworkPolicyLabel(alicloud.CSISnapshotValidationName, 443), v1beta1constants.LabelNetworkPolicyAllowed)
 
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c)

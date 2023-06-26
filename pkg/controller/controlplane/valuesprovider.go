@@ -54,7 +54,7 @@ import (
 const (
 	caNameControlPlane               = "ca-" + alicloud.Name + "-controlplane"
 	cloudControllerManagerServerName = "cloud-controller-manager-server"
-	csiSnapshotValidationServerName  = alicloud.CSISnapshotValidation + "-server"
+	csiSnapshotValidationServerName  = alicloud.CSISnapshotValidationName + "-server"
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
@@ -80,8 +80,8 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 		{
 			Config: &secretutils.CertificateSecretConfig{
 				Name:                        csiSnapshotValidationServerName,
-				CommonName:                  alicloud.UsernamePrefix + alicloud.CSISnapshotValidation,
-				DNSNames:                    kutil.DNSNamesForService(alicloud.CSISnapshotValidation, namespace),
+				CommonName:                  alicloud.UsernamePrefix + alicloud.CSISnapshotValidationName,
+				DNSNames:                    kutil.DNSNamesForService(alicloud.CSISnapshotValidationName, namespace),
 				CertType:                    secretutils.ServerCert,
 				SkipPublishingCACertificate: true,
 			},
@@ -101,6 +101,7 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 		gutil.NewShootAccessSecret("csi-snapshotter", namespace),
 		gutil.NewShootAccessSecret("csi-resizer", namespace),
 		gutil.NewShootAccessSecret("csi-snapshot-controller", namespace),
+		gutil.NewShootAccessSecret(alicloud.CSISnapshotValidationName, namespace),
 	}
 }
 
@@ -138,8 +139,8 @@ var controlPlaneChart = &chart.Chart{
 				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-controller-vpa"},
 				{Type: &corev1.ConfigMap{}, Name: "csi-plugin-controller-observability-config"},
 				// csi-snapshot-validation-webhook
-				{Type: &appsv1.Deployment{}, Name: alicloud.CSISnapshotValidation},
-				{Type: &corev1.Service{}, Name: alicloud.CSISnapshotValidation},
+				{Type: &appsv1.Deployment{}, Name: alicloud.CSISnapshotValidationName},
+				{Type: &corev1.Service{}, Name: alicloud.CSISnapshotValidationName},
 				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-webhook-vpa"},
 			},
 		},
@@ -209,7 +210,9 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &rbacv1.Role{}, Name: "csi-resizer"},
 				{Type: &rbacv1.RoleBinding{}, Name: "csi-resizer"},
 				// csi-snapshot-validation-webhook
-				{Type: &admissionregistrationv1.ValidatingWebhookConfiguration{}, Name: alicloud.CSISnapshotValidation},
+				{Type: &admissionregistrationv1.ValidatingWebhookConfiguration{}, Name: alicloud.CSISnapshotValidationName},
+				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:" + alicloud.CSISnapshotValidationName},
+				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":" + alicloud.CSISnapshotValidationName},
 			},
 		},
 	},
@@ -460,7 +463,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 			"enableADController": vp.enableCSIADController(cpConfig),
 			"vpaEnabled":         gardencorev1beta1helper.ShootWantsVerticalPodAutoscaler(cluster.Shoot),
 			"webhookConfig": map[string]interface{}{
-				"url":      "https://" + alicloud.CSISnapshotValidation + "." + cp.Namespace + "/volumesnapshot",
+				"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 				"caBundle": string(caSecret.Data[secretutils.DataKeyCertificateBundle]),
 			},
 			"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
