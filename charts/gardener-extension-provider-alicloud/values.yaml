@@ -101,6 +101,8 @@ config:
 
 gardener:
   version: ""
+  gardenlet:
+    featureGates: {}
   seed:
     provider: alicloud
     volumeProvider: csi
