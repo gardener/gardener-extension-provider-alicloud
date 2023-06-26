@@ -70,8 +70,8 @@ const (
 	CSIPluginController = "csi-plugin-controller"
 	// CSISnapshotControllerName is a constant for the name of the csi-snapshot-controller Deployment in the Seed.
 	CSISnapshotControllerName = "csi-snapshot-controller"
-	// CSISnapshotValidation is the constant for the name of the csi-snapshot-validation-webhook component.
-	CSISnapshotValidation = "csi-snapshot-validation"
+	// CSISnapshotValidationName is the constant for the name of the csi-snapshot-validation-webhook component.
+	CSISnapshotValidationName = "csi-snapshot-validation"
 
 	// CRDVolumeSnapshotClasses is a constant for the name of VolumeSnapshotClasses CRD.
 	CRDVolumeSnapshotClasses = "volumesnapshotclasses.snapshot.storage.k8s.io"
