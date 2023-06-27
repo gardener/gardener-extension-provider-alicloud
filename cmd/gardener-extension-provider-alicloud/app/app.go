@@ -214,8 +214,6 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			configFileOpts.Completed().ApplyMachineImageOwnerSecretRef(&alicloudinfrastructure.DefaultAddOptions.MachineImageOwnerSecretRef)
 			configFileOpts.Completed().ApplyToBeSharedImageIDs(&alicloudinfrastructure.DefaultAddOptions.ToBeSharedImageIDs)
 			configFileOpts.Completed().ApplyETCDStorage(&alicloudcontrolplaneexposure.DefaultAddOptions.ETCDStorage)
-			configFileOpts.Completed().ApplyKubeAPIServer(&alicloudcontrolplaneexposure.DefaultAddOptions.KubeAPIServer)
-			configFileOpts.Completed().ApplyService(&alicloudcontrolplaneexposure.DefaultAddOptions.Service)
 			configFileOpts.Completed().ApplyService(&shoot.DefaultAddOptions.Service)
 			configFileOpts.Completed().ApplyHealthCheckConfig(&healthcheck.DefaultAddOptions.HealthCheckConfig)
 			configFileOpts.Completed().ApplyCSI(&alicloudcontrolplane.DefaultAddOptions.CSI)

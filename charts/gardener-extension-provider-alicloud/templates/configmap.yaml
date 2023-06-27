@@ -22,10 +22,6 @@ data:
       name: {{ .Values.config.machineImageOwnerSecret.name }}
       namespace: {{ .Release.Namespace }}
 {{- end }}
-{{- if .Values.config.kubeAPIServer }}
-    kubeAPIServer:
-      mutateExternalTrafficPolicy: {{ .Values.config.kubeAPIServer.mutateExternalTrafficPolicy }}
-{{- end }}
     service:
       backendLoadBalancerSpec: {{ .Values.config.service.backendLoadBalancerSpec }}
 {{- if .Values.config.toBeSharedImageIDs }}
