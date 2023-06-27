@@ -11,8 +11,6 @@ spec:
   selector:
     matchLabels:
       app: snapshot-validation
-      networking.gardener.cloud/to-dns: allowed
-      networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: allowed
   template:
     metadata:
       annotations:
@@ -21,6 +19,8 @@ spec:
 {{- end }}
       labels:
         app: snapshot-validation
+        networking.gardener.cloud/to-dns: allowed
+        networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: allowed
     spec:
       priorityClassName: gardener-system-200
       containers:
