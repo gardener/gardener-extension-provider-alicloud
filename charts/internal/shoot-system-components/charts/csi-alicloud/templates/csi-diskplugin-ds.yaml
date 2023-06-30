@@ -72,6 +72,8 @@ spec:
 {{- end }}
         - name: CSI_ENDPOINT
           value: unix://var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock
+        - name: SERVICE_PORT
+          value: "9808"
         - name: ACCESS_KEY_ID
           valueFrom:
             secretKeyRef:

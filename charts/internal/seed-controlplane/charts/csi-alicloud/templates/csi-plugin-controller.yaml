@@ -53,6 +53,8 @@ spec:
           value: "false"
         - name: REGION_ID
           value: {{ .Values.regionID }}
+        - name: SERVICE_PORT
+          value: "9808"
         - name: ACCESS_KEY_ID
           valueFrom:
             secretKeyRef:
