@@ -3,7 +3,10 @@ FROM golang:1.19.3 AS builder
 
 WORKDIR /go/src/github.com/gardener/gardener-extension-provider-alicloud
 COPY . .
-RUN make install
+
+ARG EFFECTIVE_VERSION
+
+RUN make install EFFECTIVE_VERSION=$EFFECTIVE_VERSION
 
 ############# base
 FROM gcr.io/distroless/static-debian11:nonroot AS base
