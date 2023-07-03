@@ -77,7 +77,7 @@ spec:
           httpGet:
             path: /healthz
             port: healthz
-          initialDelaySeconds: 50
+          initialDelaySeconds: 150
           timeoutSeconds: 3
           periodSeconds: 10
           failureThreshold: 5
