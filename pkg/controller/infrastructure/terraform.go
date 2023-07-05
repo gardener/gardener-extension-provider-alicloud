@@ -143,6 +143,10 @@ func (terraformOps) ComputeChartValues(
 
 		zones = append(zones, zoneConfig)
 	}
+	bandwidth := "100"
+	if config.Networks.VPC.Bandwidth != nil && *config.Networks.VPC.Bandwidth != "" {
+		bandwidth = *config.Networks.VPC.Bandwidth
+	}
 
 	return map[string]interface{}{
 		"alicloud": map[string]interface{}{
@@ -160,6 +164,7 @@ func (terraformOps) ComputeChartValues(
 		},
 		"eip": map[string]interface{}{
 			"internetChargeType": values.EIP.InternetChargeType,
+			"bandwidth":          bandwidth,
 		},
 		"clusterName": infra.Namespace,
 		"zones":       zones,
