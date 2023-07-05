@@ -61,7 +61,7 @@ resource "alicloud_snat_entry" "snat_z{{ $index }}" {
 // Create a new EIP.
 resource "alicloud_eip" "eip_natgw_z{{ $index }}" {
   address_name         = "{{ $.clusterName }}-eip-natgw-z{{ $index }}"
-  bandwidth            = "100"
+  bandwidth            = "{{ $.eip.bandwidth }}"
   payment_type         = "PayAsYouGo"
   internet_charge_type = "{{ $.eip.internetChargeType }}"
 }
