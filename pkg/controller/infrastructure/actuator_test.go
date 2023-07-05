@@ -212,6 +212,7 @@ var _ = Describe("Actuator", func() {
 					},
 					"eip": map[string]interface{}{
 						"internetChargeType": "PayByTraffic",
+						"bandwidth":          "100",
 					},
 					"clusterName":  "test-namespace",
 					"sshPublicKey": "PRIVATE_KEY",

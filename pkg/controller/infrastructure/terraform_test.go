@@ -131,9 +131,13 @@ var _ = Describe("TerraformChartOps", func() {
 
 				zone2Name   = "zone2"
 				zone2Worker = "192.169.0.0/16"
+				bandwidth   = "200"
 
 				config = v1alpha1.InfrastructureConfig{
 					Networks: v1alpha1.Networks{
+						VPC: v1alpha1.VPC{
+							Bandwidth: &bandwidth,
+						},
 						Zones: []v1alpha1.Zone{
 							{
 								Name:       zone1Name,
@@ -188,6 +192,7 @@ var _ = Describe("TerraformChartOps", func() {
 				},
 				"eip": map[string]interface{}{
 					"internetChargeType": internetChargeType,
+					"bandwidth":          bandwidth,
 				},
 				"clusterName": namespace,
 				"zones": []map[string]interface{}{
