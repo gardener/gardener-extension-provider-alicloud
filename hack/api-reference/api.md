@@ -703,6 +703,18 @@ string
 </tr>
 <tr>
 <td>
+<code>bandwith</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Bandwidth is the bandwidth of the EIP associated with NATGateway if need, if set only 100 or 200 valid.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>gardenerManagedNATGateway</code></br>
 <em>
 bool
