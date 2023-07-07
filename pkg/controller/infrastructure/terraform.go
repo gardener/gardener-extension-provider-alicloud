@@ -143,9 +143,12 @@ func (terraformOps) ComputeChartValues(
 
 		zones = append(zones, zoneConfig)
 	}
-	bandwidth := "100"
+	eipConfig := map[string]interface{}{
+		"internetChargeType": values.EIP.InternetChargeType,
+	}
+
 	if config.Networks.VPC.Bandwidth != nil && *config.Networks.VPC.Bandwidth != "" {
-		bandwidth = *config.Networks.VPC.Bandwidth
+		eipConfig["bandwidth"] = *config.Networks.VPC.Bandwidth
 	}
 
 	return map[string]interface{}{
@@ -162,10 +165,7 @@ func (terraformOps) ComputeChartValues(
 			"id":           values.NATGateway.NATGatewayID,
 			"sNatTableIDs": values.NATGateway.SNATTableIDs,
 		},
-		"eip": map[string]interface{}{
-			"internetChargeType": values.EIP.InternetChargeType,
-			"bandwidth":          bandwidth,
-		},
+		"eip":         eipConfig,
 		"clusterName": infra.Namespace,
 		"zones":       zones,
 		"podCIDR":     *podCIDR,
