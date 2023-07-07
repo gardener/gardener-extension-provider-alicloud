@@ -29,6 +29,8 @@ const (
 
 	secretName      = "cloudprovider"
 	availableStatus = "Available"
+
+	eipBandwith = "200"
 )
 
 var (

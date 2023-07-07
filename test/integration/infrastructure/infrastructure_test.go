@@ -171,7 +171,7 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("Infrastructure tests", func() {
-	Context("with infrastructure that requests new vpc (networks.vpc.cidr)", func() {
+	Context("with infrastructure that requests new vpc (networks.vpc.cidr)  without bandwith", func() {
 		It("should successfully create and delete (terraformer)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR: pointer.String(vpcCIDR),
@@ -199,6 +199,18 @@ var _ = Describe("Infrastructure tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+	})
+
+	Context("with infrastructure that requests new vpc (networks.vpc.cidr) with bandwith(networks.vpc.bandwith) ", func() {
+		It("should successfully create and delete", func() {
+			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
+				CIDR:      pointer.String(vpcCIDR),
+				Bandwidth: pointer.String(eipBandwith),
+			}, availabilityZone)
+
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseTerraformer)
+			Expect(err).NotTo(HaveOccurred())
+		})
 	})
 
 	Context("with infrastructure that requests existing vpc", func() {
