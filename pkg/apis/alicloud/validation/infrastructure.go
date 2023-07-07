@@ -15,6 +15,8 @@
 package validation
 
 import (
+	"strconv"
+
 	"github.com/gardener/gardener/pkg/apis/core"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -82,8 +84,13 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 	if nodes != nil {
 		allErrs = append(allErrs, nodes.ValidateSubset(workerCIDRs...)...)
 	}
-	if infra.Networks.VPC.Bandwidth != nil && *infra.Networks.VPC.Bandwidth != "100" && *infra.Networks.VPC.Bandwidth != "200" {
-		allErrs = append(allErrs, field.Invalid(networksPath.Child("vpc"), infra.Networks.VPC, "if Bandwidth be set, the value only can be 100 or 200"))
+	if infra.Networks.VPC.Bandwidth != nil {
+		bandwidth, err := strconv.ParseInt(*infra.Networks.VPC.Bandwidth, 10, 64)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(networksPath.Child("vpc"), infra.Networks.VPC, "if Bandwidth be set, the value should be an integer and between 1 and 200"))
+		} else if bandwidth < 1 || bandwidth > 200 {
+			allErrs = append(allErrs, field.Invalid(networksPath.Child("vpc"), infra.Networks.VPC, "if Bandwidth be set, the value should be an integer and between 1 and 200"))
+		}
 	}
 	if (infra.Networks.VPC.ID == nil && infra.Networks.VPC.CIDR == nil) || (infra.Networks.VPC.ID != nil && infra.Networks.VPC.CIDR != nil) {
 		allErrs = append(allErrs, field.Invalid(networksPath.Child("vpc"), infra.Networks.VPC, "must specify either a vpc id or a cidr"))
