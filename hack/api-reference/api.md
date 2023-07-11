@@ -710,7 +710,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Bandwidth is the bandwidth of the EIP associated with NATGateway if need, if set only 100 or 200 valid.</p>
+<p>Bandwidth is the bandwidth of the EIP associated with NATGateway if need, which is an integer between 1 and 200.</p>
 </td>
 </tr>
 <tr>
