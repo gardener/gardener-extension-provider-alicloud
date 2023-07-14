@@ -26,7 +26,7 @@ data:
 The `SecretBinding` is configurable in the [Shoot cluster](https://github.com/gardener/gardener/blob/master/example/90-shoot.yaml) with the field `secretBindingName`.
 
 The required credentials for the Alicloud project are an [AccessKey Pair](https://www.alibabacloud.com/help/doc-detail/29009.htm) associated with a [Resource Access Management (RAM) User](https://www.alibabacloud.com/help/doc-detail/28627.htm).
-A RAM user is a special account that can be used by services and applications to interact with Alicloud Cloud Platform APIs. 
+A RAM user is a special account that can be used by services and applications to interact with Alicloud Cloud Platform APIs.
 Applications can use AccessKey pair to authorize themselves to a set of APIs and perform actions within the permissions granted to the RAM user.
 
 Make sure to [create a Resource Access Management User](https://www.alibabacloud.com/help/doc-detail/93720.htm), and [create an AccessKey Pair](https://partners-intl.aliyun.com/help/doc-detail/116401.htm) that shall be used for the Shoot cluster.
@@ -140,12 +140,12 @@ If you want to use multiple availability zones then add a second, third, ... ent
 
 Apart from the VPC and the subnets the Alicloud extension will also create a NAT gateway (only if a new VPC is created), a key pair, elastic IPs, VSwitches, a SNAT table entry, and security groups.
 
-By default, the Alicloud extension will create a corresponding Elastic IP that it attaches to this NAT gateway and which is used for egress traffic. 
+By default, the Alicloud extension will create a corresponding Elastic IP that it attaches to this NAT gateway and which is used for egress traffic.
 The `networks.zones[].natGateway.eipAllocationID` field allows you to specify the Elastic IP Allocation ID of an existing Elastic IP allocation in case you want to bring your own.
 If provided, no new Elastic IP will be created and, instead, the Elastic IP specified by you will be used.
 
 ⚠️ If you change this field for an already existing infrastructure then it will disrupt egress traffic while Alicloud applies this change, because the NAT gateway must be recreated with the new Elastic IP association.
-Also, please note that the existing Elastic IP will be permanently deleted if it was earlier created by the Alicloud extension. 
+Also, please note that the existing Elastic IP will be permanently deleted if it was earlier created by the Alicloud extension.
 
 ## `ControlPlaneConfig`
 
@@ -174,7 +174,7 @@ If you don't want to configure anything for the `cloudControllerManager` simply 
 The Alicloud extension does not support a specific `WorkerConfig`. However, it supports additional data volumes (plus encryption) per machine.
 By default (if not stated otherwise), all the disks are unencrypted.
 For each data volume, you have to specify a name.
-It also supports encrypted system disk. 
+It also supports encrypted system disk.
 However, only [Customized image](https://www.alibabacloud.com/help/doc-detail/172789.htm?spm=a2c63.l28256.b99.244.5da67453bNBrCt) is currently supported to be used as a basic image for encrypted system disk.
 Please be noted that the change of system disk encryption flag will cause reconciliation of a shoot, and it will result in nodes rolling update within the worker group.
 
@@ -291,8 +291,8 @@ spec:
       volume:
         size: 50Gi
         type: cloud_efficiency
-        # NOTE: Below comment is for the case when encrypted field of an existing shoot is updated from false to true. 
-        # It will cause affected nodes to be rolling updated. Users must trigger a MAINTAIN operation of the shoot. 
+        # NOTE: Below comment is for the case when encrypted field of an existing shoot is updated from false to true.
+        # It will cause affected nodes to be rolling updated. Users must trigger a MAINTAIN operation of the shoot.
         # Otherwise, the shoot will fail to reconcile.
         # You could do it either via Dashboard or annotating the shoot with gardener.cloud/operation=maintain
         encrypted: true
