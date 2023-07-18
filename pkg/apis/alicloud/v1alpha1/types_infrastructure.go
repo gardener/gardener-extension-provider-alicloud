@@ -48,7 +48,7 @@ type VPC struct {
 	CIDR *string `json:"cidr,omitempty"`
 	// Bandwidth is the bandwidth of the EIP associated with NATGateway if need, which is an integer between 1 and 200.
 	// +optional
-	Bandwidth *string `json:"bandwith,omitempty"`
+	Bandwidth *string `json:"eipBandwidth,omitempty"`
 	// GardenerManagedNATGateway indicates whether Gardener should create NATGateway in the VPC.
 	// This will only take effect if VPC ID is set.
 	// +optional
