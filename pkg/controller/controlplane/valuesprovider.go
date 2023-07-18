@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -41,8 +40,10 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
@@ -248,8 +249,10 @@ func NewValuesProvider(csi config.CSI) genericactuator.ValuesProvider {
 // valuesProvider is a ValuesProvider that provides Alicloud-specific values for the 2 charts applied by the generic actuator.
 type valuesProvider struct {
 	genericactuator.NoopValuesProvider
-	common.ClientContext
-	csi config.CSI
+	client  client.Client
+	scheme  *runtime.Scheme
+	decoder runtime.Decoder
+	csi     config.CSI
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -267,7 +270,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	}
 
 	// TODO(scheererj): Delete this in a future release.
-	if err := kutil.DeleteObject(ctx, vp.Client(), &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "allow-kube-apiserver-to-csi-snapshot-validation", Namespace: cp.Namespace}}); err != nil {
+	if err := kutil.DeleteObject(ctx, vp.client, &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "allow-kube-apiserver-to-csi-snapshot-validation", Namespace: cp.Namespace}}); err != nil {
 		return nil, fmt.Errorf("failed deleting legacy csi-snapshot-validation network policy: %w", err)
 	}
 
@@ -284,7 +287,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	_ map[string]string,
 ) (map[string]interface{}, error) {
 	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
 		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}
@@ -323,7 +326,7 @@ func (vp *valuesProvider) decodeControlPlaneConfig(cp *extensionsv1alpha1.Contro
 	// still exists in shoots' yaml. So it should also be removed in the shoots' yaml.
 	// Here we leverage one custom decoder (disabled the strict mode) to make migration more smooth.
 	// TODO: should be removed in next release.
-	decoder := serializer.NewCodecFactory(vp.Scheme()).UniversalDecoder()
+	decoder := serializer.NewCodecFactory(vp.scheme).UniversalDecoder()
 	if cp.Spec.ProviderConfig != nil {
 		if _, _, err := decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
 			return nil, fmt.Errorf("could not decode providerConfig of controlplane '%s': %w", kutil.ObjectName(cp), err)
@@ -338,12 +341,12 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 ) (string, error) {
 	// Decode infrastructureProviderStatus
 	infraStatus := &apisalicloud.InfrastructureStatus{}
-	if _, _, err := vp.Decoder().Decode(cp.Spec.InfrastructureProviderStatus.Raw, nil, infraStatus); err != nil {
+	if _, _, err := vp.decoder.Decode(cp.Spec.InfrastructureProviderStatus.Raw, nil, infraStatus); err != nil {
 		return "", fmt.Errorf("could not decode infrastructureProviderStatus of controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}
 
 	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
 		return "", fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", kutil.ObjectName(cp), err)
 	}

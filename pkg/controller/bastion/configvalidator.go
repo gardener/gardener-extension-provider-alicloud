@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/bastion"
-	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/extensions"
@@ -22,7 +21,7 @@ import (
 
 // configValidator implements ConfigValidator for AliCloud bastion resources.
 type configValidator struct {
-	common.ClientContext
+	client           client.Client
 	aliClientFactory aliclient.ClientFactory
 }
 
@@ -38,7 +37,7 @@ func (c *configValidator) Validate(ctx context.Context, _ *extensionsv1alpha1.Ba
 	allErrs := field.ErrorList{}
 
 	// Get value from infrastructure status
-	infrastructureStatus, err := getInfrastructureStatus(ctx, c.Client(), cluster)
+	infrastructureStatus, err := getInfrastructureStatus(ctx, c.client, cluster)
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, err))
 		return allErrs
@@ -49,7 +48,7 @@ func (c *configValidator) Validate(ctx context.Context, _ *extensionsv1alpha1.Ba
 		Name:      v1beta1constants.SecretNameCloudProvider,
 	}
 
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, c.Client(), secretReference)
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, c.client, secretReference)
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, err))
 		return allErrs

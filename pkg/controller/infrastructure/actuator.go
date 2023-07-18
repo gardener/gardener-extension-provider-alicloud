@@ -23,7 +23,6 @@ import (
 	"time"
 
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	commonext "github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -36,6 +35,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -91,7 +91,10 @@ func NewActuatorWithDeps(
 }
 
 type actuator struct {
-	commonext.RESTConfigContext
+	client     client.Client
+	scheme     *runtime.Scheme
+	decoder    runtime.Decoder
+	restConfig *rest.Config
 
 	alicloudECSClient  alicloudclient.ECS
 	newClientFactory   alicloudclient.ClientFactory
@@ -126,11 +129,11 @@ func (a *actuator) InjectAPIReader(reader client.Reader) error {
 
 func (a *actuator) getConfigAndCredentialsForInfra(ctx context.Context, infra *extensionsv1alpha1.Infrastructure) (*alicloudv1alpha1.InfrastructureConfig, *alicloud.Credentials, error) {
 	config := &alicloudv1alpha1.InfrastructureConfig{}
-	if _, _, err := a.Decoder().Decode(infra.Spec.ProviderConfig.Raw, nil, config); err != nil {
+	if _, _, err := a.decoder.Decode(infra.Spec.ProviderConfig.Raw, nil, config); err != nil {
 		return nil, nil, err
 	}
 
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.Client(), &infra.Spec.SecretRef)
+	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.client, &infra.Spec.SecretRef)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -200,14 +203,14 @@ func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, conf
 		return nil, fmt.Errorf("could not render Terraform template: %+v", err)
 	}
 
-	return a.terraformerFactory.DefaultInitializer(a.Client(), mainTF.String(), string(variablesTF), terraformTFVars, stateInitializer), nil
+	return a.terraformerFactory.DefaultInitializer(a.client, mainTF.String(), string(variablesTF), terraformTFVars, stateInitializer), nil
 }
 
 func (a *actuator) convertImageListToV1alpha1(machineImages []apisalicloud.MachineImage) ([]alicloudv1alpha1.MachineImage, error) {
 	var result []alicloudv1alpha1.MachineImage
 	for _, image := range machineImages {
 		converted := &alicloudv1alpha1.MachineImage{}
-		if err := a.Scheme().Convert(&image, converted, nil); err != nil {
+		if err := a.scheme.Convert(&image, converted, nil); err != nil {
 			return nil, err
 		}
 
@@ -309,7 +312,7 @@ func (a *actuator) ensureOldSSHKeyDetached(ctx context.Context, log logr.Logger,
 	}
 
 	infrastructureStatus := &alicloudv1alpha1.InfrastructureStatus{}
-	if _, _, err := a.Decoder().Decode(infra.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
+	if _, _, err := a.decoder.Decode(infra.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
 		return err
 	}
 
@@ -411,7 +414,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	shootCloudProviderAccountID string) (*apisalicloud.MachineImage, error) {
 	infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 	if infra.Status.ProviderStatus != nil {
-		if _, _, err := a.Decoder().Decode(infra.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
+		if _, _, err := a.decoder.Decode(infra.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
 			return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", kutil.ObjectName(infra), err)
 		}
 	}
@@ -469,7 +472,7 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 	if err != nil {
 		if providerStatus := infra.Status.ProviderStatus; providerStatus != nil {
 			infrastructureStatus := &apisalicloud.InfrastructureStatus{}
-			if _, _, err := a.Decoder().Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
+			if _, _, err := a.decoder.Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
 				return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", kutil.ObjectName(infra), err)
 			}
 			if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
@@ -545,7 +548,7 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 		return util.DetermineError(err, helper.KnownCodes)
 	}
 
-	tf, err := common.NewTerraformerWithAuth(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
+	tf, err := common.NewTerraformerWithAuth(log, a.terraformerFactory, a.restConfig, TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
@@ -589,7 +592,7 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 	patch := client.MergeFrom(infra.DeepCopy())
 	infra.Status.ProviderStatus = &runtime.RawExtension{Object: status}
 	infra.Status.State = &runtime.RawExtension{Raw: stateByte}
-	return a.Client().Status().Patch(ctx, infra, patch)
+	return a.client.Status().Patch(ctx, infra, patch)
 }
 
 func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *extensionsv1alpha1.Infrastructure) error {
@@ -637,7 +640,7 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 
 // Delete implements infrastructure.Actuator.
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
-	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
+	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.restConfig, TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
@@ -693,7 +696,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extension
 
 // Migrate implements infrastructure.Actuator.
 func (a *actuator) Migrate(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
-	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.RESTConfig(), TerraformerPurpose, infra, a.disableProjectedTokenMount)
+	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.restConfig, TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
