@@ -93,8 +93,8 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 	}
 }
 
-func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
-	return []*gutil.ShootAccessSecret{
+func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
+	return []*gutil.AccessSecret{
 		gutil.NewShootAccessSecret("cloud-controller-manager", namespace),
 		gutil.NewShootAccessSecret("csi-controller-ali-plugin", namespace),
 		gutil.NewShootAccessSecret("csi-attacher", namespace),
