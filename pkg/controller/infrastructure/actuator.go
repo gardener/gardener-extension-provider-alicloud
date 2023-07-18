@@ -35,9 +35,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
@@ -57,8 +59,9 @@ var StatusTypeMeta = func() metav1.TypeMeta {
 }()
 
 // NewActuator instantiates an actuator with the default dependencies.
-func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, toBeSharedImageIDs []string, disableProjectedTokenMount bool) infrastructure.Actuator {
+func NewActuator(mgr manager.Manager, machineImageOwnerSecretRef *corev1.SecretReference, toBeSharedImageIDs []string, disableProjectedTokenMount bool) (infrastructure.Actuator, error) {
 	return NewActuatorWithDeps(
+		mgr,
 		alicloudclient.NewClientFactory(),
 		terraformer.DefaultFactory(),
 		DefaultTerraformOps(),
@@ -70,15 +73,20 @@ func NewActuator(machineImageOwnerSecretRef *corev1.SecretReference, toBeSharedI
 
 // NewActuatorWithDeps instantiates an actuator with the given dependencies.
 func NewActuatorWithDeps(
-
+	mgr manager.Manager,
 	newClientFactory alicloudclient.ClientFactory,
 	terraformerFactory terraformer.Factory,
 	terraformChartOps TerraformChartOps,
 	machineImageOwnerSecretRef *corev1.SecretReference,
 	toBeSharedImageIDs []string,
 	disableProjectedTokenMount bool,
-) infrastructure.Actuator {
+) (infrastructure.Actuator, error) {
 	a := &actuator{
+		client:     mgr.GetClient(),
+		scheme:     mgr.GetScheme(),
+		restConfig: mgr.GetConfig(),
+		decoder:    serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
+
 		newClientFactory:           newClientFactory,
 		terraformerFactory:         terraformerFactory,
 		terraformChartOps:          terraformChartOps,
@@ -87,7 +95,24 @@ func NewActuatorWithDeps(
 		disableProjectedTokenMount: disableProjectedTokenMount,
 	}
 
-	return a
+	if a.machineImageOwnerSecretRef != nil {
+		machineImageOwnerSecret := &corev1.Secret{}
+		err := mgr.GetAPIReader().Get(context.Background(), client.ObjectKey{
+			Name:      a.machineImageOwnerSecretRef.Name,
+			Namespace: a.machineImageOwnerSecretRef.Namespace,
+		}, machineImageOwnerSecret)
+		if err != nil {
+			return nil, err
+		}
+		seedCloudProviderCredentials, err := alicloud.ReadSecretCredentials(machineImageOwnerSecret, false)
+		if err != nil {
+			return nil, err
+		}
+		a.alicloudECSClient, err = a.newClientFactory.NewECSClient("", seedCloudProviderCredentials.AccessKeyID, seedCloudProviderCredentials.AccessKeySecret)
+		return nil, err
+	}
+
+	return a, nil
 }
 
 type actuator struct {
@@ -104,27 +129,6 @@ type actuator struct {
 	machineImageOwnerSecretRef *corev1.SecretReference
 	toBeSharedImageIDs         []string
 	disableProjectedTokenMount bool
-}
-
-// InjectAPIReader implements inject.APIReader and instantiates actuator.alicloudECSClient.
-func (a *actuator) InjectAPIReader(reader client.Reader) error {
-	if a.machineImageOwnerSecretRef != nil {
-		machineImageOwnerSecret := &corev1.Secret{}
-		err := reader.Get(context.Background(), client.ObjectKey{
-			Name:      a.machineImageOwnerSecretRef.Name,
-			Namespace: a.machineImageOwnerSecretRef.Namespace,
-		}, machineImageOwnerSecret)
-		if err != nil {
-			return err
-		}
-		seedCloudProviderCredentials, err := alicloud.ReadSecretCredentials(machineImageOwnerSecret, false)
-		if err != nil {
-			return err
-		}
-		a.alicloudECSClient, err = a.newClientFactory.NewECSClient("", seedCloudProviderCredentials.AccessKeyID, seedCloudProviderCredentials.AccessKeySecret)
-		return err
-	}
-	return nil
 }
 
 func (a *actuator) getConfigAndCredentialsForInfra(ctx context.Context, infra *extensionsv1alpha1.Infrastructure) (*alicloudv1alpha1.InfrastructureConfig, *alicloud.Credentials, error) {

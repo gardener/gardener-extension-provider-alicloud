@@ -12,6 +12,7 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/extensions"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	mockmanager "github.com/gardener/gardener/pkg/mock/controller-runtime/manager"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -22,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
@@ -43,6 +43,7 @@ var _ = Describe("ConfigValidator", func() {
 	var (
 		ctrl                  *gomock.Controller
 		c                     *mockclient.MockClient
+		mgr                   *mockmanager.MockManager
 		alicloudClientFactory *mockalicloudclient.MockClientFactory
 		ecsClient             *mockalicloudclient.MockECS
 		vpcClient             *mockalicloudclient.MockVPC
@@ -65,9 +66,10 @@ var _ = Describe("ConfigValidator", func() {
 		vpcClient = mockalicloudclient.NewMockVPC(ctrl)
 		ctx = context.TODO()
 
-		cv = NewConfigValidator(alicloudClientFactory)
-		err := cv.(inject.Client).InjectClient(c)
-		Expect(err).NotTo(HaveOccurred())
+		mgr = mockmanager.NewMockManager(ctrl)
+		mgr.EXPECT().GetClient().Return(c)
+
+		cv = NewConfigValidator(mgr, alicloudClientFactory)
 
 		bastion = &extensionsv1alpha1.Bastion{}
 		cluster = &extensions.Cluster{}

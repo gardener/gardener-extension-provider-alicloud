@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
@@ -26,8 +27,9 @@ type configValidator struct {
 }
 
 // NewConfigValidator creates a new ConfigValidator.
-func NewConfigValidator(aliClientFactory aliclient.ClientFactory) bastion.ConfigValidator {
+func NewConfigValidator(mgr manager.Manager, aliClientFactory aliclient.ClientFactory) bastion.ConfigValidator {
 	return &configValidator{
+		client:           mgr.GetClient(),
 		aliClientFactory: aliClientFactory,
 	}
 }

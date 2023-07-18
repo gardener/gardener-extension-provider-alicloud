@@ -30,6 +30,7 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
@@ -49,8 +50,9 @@ type actuator struct {
 }
 
 // NewActuator creates a new dnsrecord.Actuator.
-func NewActuator(alicloudClientFactory alicloudclient.ClientFactory) dnsrecord.Actuator {
+func NewActuator(mgr manager.Manager, alicloudClientFactory alicloudclient.ClientFactory) dnsrecord.Actuator {
 	return &actuator{
+		client:                mgr.GetClient(),
 		alicloudClientFactory: alicloudClientFactory,
 	}
 }

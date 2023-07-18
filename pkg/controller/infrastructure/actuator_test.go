@@ -26,6 +26,7 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	mockmanager "github.com/gardener/gardener/pkg/mock/controller-runtime/manager"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -37,7 +38,6 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
@@ -48,11 +48,6 @@ import (
 	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 	mockinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/controller/infrastructure"
 )
-
-func expectInject(ok bool, err error) {
-	Expect(err).NotTo(HaveOccurred())
-	Expect(ok).To(BeTrue(), "no injection happened")
-}
 
 func expectEncode(data []byte, err error) []byte {
 	Expect(err).NotTo(HaveOccurred())
@@ -93,6 +88,7 @@ var _ = Describe("Actuator", func() {
 			terraformChartOps     *mockinfrastructure.MockTerraformChartOps
 			actuator              infrastructure.Actuator
 			c                     *mockclient.MockClient
+			mgr                   *mockmanager.MockManager
 			sw                    *mockclient.MockStatusWriter
 			initializer           *mockterraformer.MockInitializer
 			restConfig            rest.Config
@@ -122,6 +118,8 @@ var _ = Describe("Actuator", func() {
 
 			serviceForNatGw           string
 			serviceLinkedRoleForNatGw string
+
+			err error
 		)
 
 		Describe("#Reconcile", func() {
@@ -137,7 +135,18 @@ var _ = Describe("Actuator", func() {
 				shootROSClient = mockalicloudclient.NewMockROS(ctrl)
 				terraformChartOps = mockinfrastructure.NewMockTerraformChartOps(ctrl)
 				logger = log.Log.WithName("test")
-				actuator = NewActuatorWithDeps(
+
+				c = mockclient.NewMockClient(ctrl)
+				sw = mockclient.NewMockStatusWriter(ctrl)
+				initializer = mockterraformer.NewMockInitializer(ctrl)
+
+				mgr = mockmanager.NewMockManager(ctrl)
+				mgr.EXPECT().GetClient().Return(c)
+				mgr.EXPECT().GetConfig().Return(&restConfig)
+				mgr.EXPECT().GetScheme().Return(scheme).Times(2)
+
+				actuator, err = NewActuatorWithDeps(
+					mgr,
 					alicloudClientFactory,
 					terraformerFactory,
 					terraformChartOps,
@@ -145,9 +154,7 @@ var _ = Describe("Actuator", func() {
 					nil,
 					false,
 				)
-				c = mockclient.NewMockClient(ctrl)
-				sw = mockclient.NewMockStatusWriter(ctrl)
-				initializer = mockterraformer.NewMockInitializer(ctrl)
+				Expect(err).NotTo(HaveOccurred())
 
 				cidr = "192.168.0.0/16"
 				config = alicloudv1alpha1.InfrastructureConfig{
@@ -307,11 +314,6 @@ var _ = Describe("Actuator", func() {
 					c.EXPECT().Status().Return(sw),
 					sw.EXPECT().Patch(ctx, &infra, gomock.Any()),
 				)
-
-				expectInject(inject.ClientInto(c, actuator))
-				expectInject(inject.SchemeInto(scheme, actuator))
-				expectInject(inject.ConfigInto(&restConfig, actuator))
-
 				Expect(actuator.Reconcile(ctx, logger, &infra, &cluster)).To(Succeed())
 				Expect(infra.Status.ProviderStatus.Object).To(Equal(&alicloudv1alpha1.InfrastructureStatus{
 					TypeMeta: StatusTypeMeta,
@@ -402,10 +404,6 @@ var _ = Describe("Actuator", func() {
 					c.EXPECT().Status().Return(sw),
 					sw.EXPECT().Patch(ctx, &infra, gomock.Any()),
 				)
-
-				expectInject(inject.ClientInto(c, actuator))
-				expectInject(inject.SchemeInto(scheme, actuator))
-				expectInject(inject.ConfigInto(&restConfig, actuator))
 
 				Expect(actuator.Restore(ctx, logger, &infra, &cluster)).To(Succeed())
 				Expect(infra.Status.ProviderStatus.Object).To(Equal(&alicloudv1alpha1.InfrastructureStatus{
