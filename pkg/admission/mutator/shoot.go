@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
@@ -52,14 +53,19 @@ const (
 )
 
 // NewShootMutator returns a new instance of a shoot mutator.
-func NewShootMutator() extensionswebhook.Mutator {
+func NewShootMutator(mgr manager.Manager) extensionswebhook.Mutator {
 	alicloudclientFactory := alicloudclient.NewClientFactory()
-	return NewShootMutatorWithDeps(alicloudclientFactory)
+	return NewShootMutatorWithDeps(mgr, alicloudclientFactory)
 }
 
 // NewShootMutatorWithDeps with parameter returns a new instance of a shoot mutator.
-func NewShootMutatorWithDeps(alicloudclientFactory alicloudclient.ClientFactory) extensionswebhook.Mutator {
-	return &shootMutator{alicloudClientFactory: alicloudclientFactory}
+func NewShootMutatorWithDeps(mgr manager.Manager, alicloudclientFactory alicloudclient.ClientFactory) extensionswebhook.Mutator {
+	return &shootMutator{
+		client:                mgr.GetClient(),
+		apiReader:             mgr.GetAPIReader(),
+		codec:                 runtime.NewCodec(json.NewSerializerWithOptions(json.DefaultMetaFactory, mgr.GetScheme(), mgr.GetScheme(), json.SerializerOptions{}), serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()),
+		alicloudClientFactory: alicloudclientFactory,
+	}
 }
 
 type shootMutator struct {
@@ -67,27 +73,6 @@ type shootMutator struct {
 	apiReader             client.Reader
 	codec                 runtime.Codec
 	alicloudClientFactory alicloudclient.ClientFactory
-}
-
-// InjectScheme injects the given scheme into the mutator.
-func (s *shootMutator) InjectScheme(scheme *runtime.Scheme) error {
-	codecFactory := serializer.NewCodecFactory(scheme, serializer.EnableStrict)
-	decoder := codecFactory.UniversalDecoder()
-	serializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{})
-	s.codec = runtime.NewCodec(serializer, decoder)
-	return nil
-}
-
-// InjectClient injects the given client into the mutator.
-func (s *shootMutator) InjectClient(client client.Client) error {
-	s.client = client
-	return nil
-}
-
-// InjectAPIReader injects the given apiReader into the mutator.
-func (s *shootMutator) InjectAPIReader(apiReader client.Reader) error {
-	s.apiReader = apiReader
-	return nil
 }
 
 func (s *shootMutator) Mutate(ctx context.Context, newObj, oldObj client.Object) error {

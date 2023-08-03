@@ -15,6 +15,8 @@
 package infrastructure
 
 import (
+	"context"
+
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -45,16 +47,21 @@ type AddOptions struct {
 
 // AddToManagerWithOptions adds a controller with the given AddOptions to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
-func AddToManagerWithOptions(mgr manager.Manager, options AddOptions) error {
-	return infrastructure.Add(mgr, infrastructure.AddArgs{
-		Actuator:          NewActuator(options.MachineImageOwnerSecretRef, options.ToBeSharedImageIDs, options.DisableProjectedTokenMount),
+func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, options AddOptions) error {
+	actuator, err := NewActuator(mgr, options.MachineImageOwnerSecretRef, options.ToBeSharedImageIDs, options.DisableProjectedTokenMount)
+	if err != nil {
+		return err
+	}
+
+	return infrastructure.Add(ctx, mgr, infrastructure.AddArgs{
+		Actuator:          actuator,
 		ControllerOptions: options.Controller,
-		Predicates:        infrastructure.DefaultPredicates(options.IgnoreOperationAnnotation),
+		Predicates:        infrastructure.DefaultPredicates(ctx, mgr, options.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,
 	})
 }
 
 // AddToManager adds a controller with the default AddOptions.
-func AddToManager(mgr manager.Manager) error {
-	return AddToManagerWithOptions(mgr, DefaultAddOptions)
+func AddToManager(ctx context.Context, mgr manager.Manager) error {
+	return AddToManagerWithOptions(ctx, mgr, DefaultAddOptions)
 }

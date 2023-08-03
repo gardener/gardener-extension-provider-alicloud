@@ -35,7 +35,7 @@ func NewShootsWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Path:       MutatorPath + "/shoots",
 		Predicates: []predicate.Predicate{extensionspredicate.GardenCoreProviderType(alicloud.Type)},
 		Mutators: map[extensionswebhook.Mutator][]extensionswebhook.Type{
-			NewShootMutator(): {{Obj: &corev1beta1.Shoot{}}},
+			NewShootMutator(mgr): {{Obj: &corev1beta1.Shoot{}}},
 		},
 	})
 }

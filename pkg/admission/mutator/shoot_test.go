@@ -26,6 +26,7 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	mockmanager "github.com/gardener/gardener/pkg/mock/controller-runtime/manager"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	"github.com/golang/mock/gomock"
@@ -37,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
@@ -59,11 +59,6 @@ const (
 	imageId         = "m-uf6htf9lstsi99xr2out"
 )
 
-func expectInject(ok bool, err error) {
-	Expect(err).NotTo(HaveOccurred())
-	Expect(ok).To(BeTrue(), "no injection happened")
-}
-
 func expectEncode(data []byte, err error) []byte {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(data).NotTo(BeNil())
@@ -78,6 +73,7 @@ var _ = Describe("Mutating Shoot", func() {
 		ctx                   context.Context
 		ctrl                  *gomock.Controller
 		c                     *mockclient.MockClient
+		mgr                   *mockmanager.MockManager
 		scheme                *runtime.Scheme
 		apiReader             *mockclient.MockReader
 		serializer            runtime.Serializer
@@ -100,15 +96,18 @@ var _ = Describe("Mutating Shoot", func() {
 		scheme = runtime.NewScheme()
 		install.Install(scheme)
 		Expect(controller.AddToScheme(scheme)).To(Succeed())
+
+		mgr = mockmanager.NewMockManager(ctrl)
+		mgr.EXPECT().GetClient().Return(c)
+		mgr.EXPECT().GetScheme().Return(scheme).Times(3)
+		mgr.EXPECT().GetAPIReader().Return(apiReader)
+
 		serializer = json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{})
 		alicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)
 		ecsClient = mockalicloudclient.NewMockECS(ctrl)
 		ctx = context.TODO()
 
-		mutator = NewShootMutatorWithDeps(alicloudClientFactory)
-		expectInject(inject.ClientInto(c, mutator))
-		expectInject(inject.APIReaderInto(apiReader, mutator))
-		expectInject(inject.SchemeInto(scheme, mutator))
+		mutator = NewShootMutatorWithDeps(mgr, alicloudClientFactory)
 
 		secretBinding = &corev1beta1.SecretBinding{
 			SecretRef: corev1.SecretReference{

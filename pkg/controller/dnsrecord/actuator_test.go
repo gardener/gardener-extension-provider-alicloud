@@ -20,6 +20,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/dnsrecord"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	mockmanager "github.com/gardener/gardener/pkg/mock/controller-runtime/manager"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
@@ -30,7 +31,6 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/mock"
@@ -54,6 +54,7 @@ var _ = Describe("Actuator", func() {
 	var (
 		ctrl                  *gomock.Controller
 		c                     *mockclient.MockClient
+		mgr                   *mockmanager.MockManager
 		sw                    *mockclient.MockStatusWriter
 		alicloudClientFactory *mockalicloudclient.MockClientFactory
 		dnsClient             *mockalicloudclient.MockDNS
@@ -69,6 +70,10 @@ var _ = Describe("Actuator", func() {
 		ctrl = gomock.NewController(GinkgoT())
 
 		c = mockclient.NewMockClient(ctrl)
+		mgr = mockmanager.NewMockManager(ctrl)
+
+		mgr.EXPECT().GetClient().Return(c)
+
 		sw = mockclient.NewMockStatusWriter(ctrl)
 		alicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)
 		dnsClient = mockalicloudclient.NewMockDNS(ctrl)
@@ -78,10 +83,7 @@ var _ = Describe("Actuator", func() {
 		ctx = context.TODO()
 		logger = log.Log.WithName("test")
 
-		a = NewActuator(alicloudClientFactory)
-
-		err := a.(inject.Client).InjectClient(c)
-		Expect(err).NotTo(HaveOccurred())
+		a = NewActuator(mgr, alicloudClientFactory)
 
 		dns = &extensionsv1alpha1.DNSRecord{
 			ObjectMeta: metav1.ObjectMeta{

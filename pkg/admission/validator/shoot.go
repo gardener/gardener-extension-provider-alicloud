@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	alicloudAPI "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
@@ -46,9 +47,15 @@ var (
 )
 
 // NewShootValidator returns a new instance of a shoot validator.
-func NewShootValidator() extensionswebhook.Validator {
+func NewShootValidator(mgr manager.Manager) extensionswebhook.Validator {
 	alicloudclientFactory := alicloudclient.NewClientFactory()
-	return &shoot{alicloudClientFactory: alicloudclientFactory}
+	return &shoot{
+		client:                mgr.GetClient(),
+		apiReader:             mgr.GetAPIReader(),
+		decoder:               serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
+		lenientDecoder:        serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
+		alicloudClientFactory: alicloudclientFactory,
+	}
 }
 
 type shoot struct {
@@ -57,25 +64,6 @@ type shoot struct {
 	decoder               runtime.Decoder
 	lenientDecoder        runtime.Decoder
 	alicloudClientFactory alicloudclient.ClientFactory
-}
-
-// InjectScheme injects the given scheme into the validator.
-func (s *shoot) InjectScheme(scheme *runtime.Scheme) error {
-	s.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
-	s.lenientDecoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
-	return nil
-}
-
-// InjectClient injects the given client into the validator.
-func (s *shoot) InjectClient(client client.Client) error {
-	s.client = client
-	return nil
-}
-
-// InjectAPIReader injects the given apiReader into the validator.
-func (s *shoot) InjectAPIReader(apiReader client.Reader) error {
-	s.apiReader = apiReader
-	return nil
 }
 
 // Validate validates the given shoot object.

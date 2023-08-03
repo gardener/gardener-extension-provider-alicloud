@@ -52,7 +52,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 			{Obj: &druidv1alpha1.Etcd{}},
 			{Obj: &corev1.Service{}},
 		},
-		Mutator: genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, logger), nil, nil, nil, logger),
+		Mutator: genericmutator.NewMutator(mgr, NewEnsurer(&opts.ETCDStorage, logger), nil, nil, nil, logger),
 	})
 }
 

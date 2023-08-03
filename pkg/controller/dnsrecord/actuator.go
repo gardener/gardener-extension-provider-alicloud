@@ -21,7 +21,6 @@ import (
 	"time"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/dnsrecord"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -31,6 +30,7 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
@@ -45,13 +45,14 @@ const (
 )
 
 type actuator struct {
-	common.ClientContext
+	client                client.Client
 	alicloudClientFactory alicloudclient.ClientFactory
 }
 
 // NewActuator creates a new dnsrecord.Actuator.
-func NewActuator(alicloudClientFactory alicloudclient.ClientFactory) dnsrecord.Actuator {
+func NewActuator(mgr manager.Manager, alicloudClientFactory alicloudclient.ClientFactory) dnsrecord.Actuator {
 	return &actuator{
+		client:                mgr.GetClient(),
 		alicloudClientFactory: alicloudClientFactory,
 	}
 }
@@ -59,7 +60,7 @@ func NewActuator(alicloudClientFactory alicloudclient.ClientFactory) dnsrecord.A
 // Reconcile reconciles the DNSRecord.
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, dns *extensionsv1alpha1.DNSRecord, _ *extensionscontroller.Cluster) error {
 	// Create Alicloud client
-	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.Client(), &dns.Spec.SecretRef)
+	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.client, &dns.Spec.SecretRef)
 	if err != nil {
 		return fmt.Errorf("could not get Alicloud credentials: %+v", err)
 	}
@@ -93,13 +94,13 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, dns *extensio
 	// Update resource status
 	patch := client.MergeFrom(dns.DeepCopy())
 	dns.Status.Zone = &domainName
-	return a.Client().Status().Patch(ctx, dns, patch)
+	return a.client.Status().Patch(ctx, dns, patch)
 }
 
 // Delete deletes the DNSRecord.
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, dns *extensionsv1alpha1.DNSRecord, _ *extensionscontroller.Cluster) error {
 	// Create Alicloud client
-	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.Client(), &dns.Spec.SecretRef)
+	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.client, &dns.Spec.SecretRef)
 	if err != nil {
 		return fmt.Errorf("could not get Alicloud credentials: %+v", err)
 	}

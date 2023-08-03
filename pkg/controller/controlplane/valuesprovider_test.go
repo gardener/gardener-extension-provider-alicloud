@@ -24,6 +24,7 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	mockmanager "github.com/gardener/gardener/pkg/mock/controller-runtime/manager"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 	fakesecretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager/fake"
 	"github.com/golang/mock/gomock"
@@ -36,7 +37,6 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
@@ -61,6 +61,7 @@ var _ = Describe("ValuesProvider", func() {
 		cluster *extensionscontroller.Cluster
 		vp      genericactuator.ValuesProvider
 		c       *mockclient.MockClient
+		mgr     *mockmanager.MockManager
 
 		cp = &extensionsv1alpha1.ControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
@@ -219,14 +220,11 @@ var _ = Describe("ValuesProvider", func() {
 			},
 		}
 
-		// Create mock client
 		c = mockclient.NewMockClient(ctrl)
-		// Create valuesProvider
-		vp = NewValuesProvider(csi)
-		err := vp.(inject.Scheme).InjectScheme(scheme)
-		Expect(err).NotTo(HaveOccurred())
-		err = vp.(inject.Client).InjectClient(c)
-		Expect(err).NotTo(HaveOccurred())
+		mgr = mockmanager.NewMockManager(ctrl)
+		mgr.EXPECT().GetClient().Return(c)
+		mgr.EXPECT().GetScheme().Return(scheme).Times(2)
+		vp = NewValuesProvider(mgr, csi)
 	})
 
 	AfterEach(func() {
