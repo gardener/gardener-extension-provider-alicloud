@@ -264,5 +264,5 @@ func computeAdditionalHashData(pool extensionsv1alpha1.WorkerPool) []string {
 }
 
 func addTopologyLabel(labels map[string]string, zone string) map[string]string {
-	return utils.MergeStringMaps(labels, map[string]string{alicloud.CSITopologyZoneKey: zone})
+	return utils.MergeStringMaps(labels, map[string]string{alicloud.CSIDiskTopologyZoneKey: zone})
 }
