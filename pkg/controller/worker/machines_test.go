@@ -505,6 +505,8 @@ var _ = Describe("Machines", func() {
 						machineClassPool2Zone2,
 					}}
 
+					labelsZone1 := map[string]string{alicloud.CSIDiskTopologyZoneKey: zone1}
+					labelsZone2 := map[string]string{alicloud.CSIDiskTopologyZoneKey: zone2}
 					machineDeployments = worker.MachineDeployments{
 						{
 							Name:                 machineClassNamePool1Zone1,
@@ -514,6 +516,7 @@ var _ = Describe("Machines", func() {
 							Maximum:              worker.DistributeOverZones(0, maxPool1, 2),
 							MaxSurge:             worker.DistributePositiveIntOrPercent(0, maxSurgePool1, 2, maxPool1),
 							MaxUnavailable:       worker.DistributePositiveIntOrPercent(0, maxUnavailablePool1, 2, minPool1),
+							Labels:               labelsZone1,
 							MachineConfiguration: machineConfiguration,
 						},
 						{
@@ -524,6 +527,7 @@ var _ = Describe("Machines", func() {
 							Maximum:              worker.DistributeOverZones(1, maxPool1, 2),
 							MaxSurge:             worker.DistributePositiveIntOrPercent(1, maxSurgePool1, 2, maxPool1),
 							MaxUnavailable:       worker.DistributePositiveIntOrPercent(1, maxUnavailablePool1, 2, minPool1),
+							Labels:               labelsZone2,
 							MachineConfiguration: machineConfiguration,
 						},
 						{
@@ -534,6 +538,7 @@ var _ = Describe("Machines", func() {
 							Maximum:              worker.DistributeOverZones(0, maxPool2, 2),
 							MaxSurge:             worker.DistributePositiveIntOrPercent(0, maxSurgePool2, 2, maxPool2),
 							MaxUnavailable:       worker.DistributePositiveIntOrPercent(0, maxUnavailablePool2, 2, minPool2),
+							Labels:               labelsZone1,
 							MachineConfiguration: machineConfiguration,
 						},
 						{
@@ -544,6 +549,7 @@ var _ = Describe("Machines", func() {
 							Maximum:              worker.DistributeOverZones(1, maxPool2, 2),
 							MaxSurge:             worker.DistributePositiveIntOrPercent(1, maxSurgePool2, 2, maxPool2),
 							MaxUnavailable:       worker.DistributePositiveIntOrPercent(1, maxUnavailablePool2, 2, minPool2),
+							Labels:               labelsZone2,
 							MachineConfiguration: machineConfiguration,
 						},
 					}
