@@ -35,7 +35,7 @@ const (
 	CloudControllerManagerImageName = "alicloud-controller-manager"
 	// CSIAttacherImageName is the name of the CSI attacher image.
 	CSIAttacherImageName = "csi-attacher"
-	// CSITopologyZoneKey is the CSI topology label name that represents availability by zone.
+	// CSIDiskTopologyZoneKey is the CSI topology label name that represents availability by zone.
 	// See https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver/blob/v1.2.1/pkg/disk/disk.go#L45C1-L45C1
 	// See https://www.alibabacloud.com/help/en/elastic-container-instance/latest/mount-a-disk-as-a-statically-provisioned-volume
 	CSIDiskTopologyZoneKey = "topology.diskplugin.csi.alibabacloud.com/zone"
