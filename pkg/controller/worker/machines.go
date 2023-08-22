@@ -156,7 +156,7 @@ func (w *workerDelegate) generateMachineConfig() error {
 				Maximum:              worker.DistributeOverZones(zoneIdx, pool.Maximum, zoneLen),
 				MaxSurge:             worker.DistributePositiveIntOrPercent(zoneIdx, pool.MaxSurge, zoneLen, pool.Maximum),
 				MaxUnavailable:       worker.DistributePositiveIntOrPercent(zoneIdx, pool.MaxUnavailable, zoneLen, pool.Minimum),
-				Labels:               pool.Labels,
+				Labels:               addTopologyLabel(pool.Labels, zone),
 				Annotations:          pool.Annotations,
 				Taints:               pool.Taints,
 				MachineConfiguration: genericworkeractuator.ReadMachineConfiguration(pool),
@@ -261,4 +261,8 @@ func computeAdditionalHashData(pool extensionsv1alpha1.WorkerPool) []string {
 	}
 
 	return additionalData
+}
+
+func addTopologyLabel(labels map[string]string, zone string) map[string]string {
+	return utils.MergeStringMaps(labels, map[string]string{alicloud.CSIDiskTopologyZoneKey: zone})
 }
