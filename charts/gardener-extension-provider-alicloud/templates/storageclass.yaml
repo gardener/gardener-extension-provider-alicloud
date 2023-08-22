@@ -11,14 +11,14 @@ metadata:
 provisioner: alicloud/disk
 volumeBindingMode: {{ .Values.config.etcd.storage.volumeBindingMode }}
 parameters:
-  type: cloud_ssd
+  type: cloud_essd
   encrypted: "true"
 {{- else }}
 provisioner: diskplugin.csi.alibabacloud.com
 volumeBindingMode: {{ .Values.config.etcd.storage.volumeBindingMode }}
 parameters:
   csi.storage.k8s.io/fstype: ext4
-  type: cloud_ssd
+  type: cloud_essd
   readOnly: "false"
   encrypted: "true"
 {{- end }}

@@ -57,7 +57,7 @@ spec:
   volumeTypes:
   - name: cloud_efficiency
     class: standard
-  - name: cloud_ssd
+  - name: cloud_essd
     class: premium
   regions:
   - name: eu-central-1

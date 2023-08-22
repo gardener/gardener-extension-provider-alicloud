@@ -10,6 +10,6 @@ provisioner: diskplugin.csi.alibabacloud.com
 allowVolumeExpansion: true
 parameters:
   csi.storage.k8s.io/fstype: ext4
-  type: cloud_ssd
+  type: cloud_essd
   readOnly: "false"
   encrypted: "true"
