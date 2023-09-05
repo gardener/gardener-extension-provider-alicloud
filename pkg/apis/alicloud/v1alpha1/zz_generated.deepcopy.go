@@ -352,7 +352,7 @@ func (in *VPC) DeepCopyInto(out *VPC) {
 	}
 	if in.Bandwidth != nil {
 		in, out := &in.Bandwidth, &out.Bandwidth
-		*out = new(string)
+		*out = new(int)
 		**out = **in
 	}
 	if in.GardenerManagedNATGateway != nil {

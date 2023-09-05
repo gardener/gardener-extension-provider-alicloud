@@ -703,9 +703,9 @@ string
 </tr>
 <tr>
 <td>
-<code>bandwith</code></br>
+<code>eipBandwidth</code></br>
 <em>
-string
+int
 </em>
 </td>
 <td>
