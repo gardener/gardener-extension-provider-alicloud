@@ -170,7 +170,7 @@ var _ = Describe("Infrastructure tests", func() {
 		It("should successfully create and delete", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR:      pointer.String(vpcCIDR),
-				Bandwidth: pointer.String(eipBandwith),
+				Bandwidth: pointer.Int(eipBandwith),
 			}, availabilityZone)
 
 			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory)

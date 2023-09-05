@@ -47,7 +47,7 @@ type VPC struct {
 	CIDR *string
 	// Bandwidth is the bandwidth of the EIP associated with NATGateway if need, which is an integer between 1 and 200.
 	// +optional
-	Bandwidth *string
+	Bandwidth *int
 	// GardenerManagedNATGateway indicates whether Gardener should create NATGateway in the VPC.
 	// This will only take effect if VPC ID is set.
 	// +optional

@@ -181,6 +181,26 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				}))
 			})
 
+			It("should forbid specifying eip Bandwidth not in validate range ", func() {
+				eipBandwidth := 500
+				infrastructureConfig.Networks.VPC.Bandwidth = &eipBandwidth
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, validNatGatewayZones)
+
+				Expect(errorList).To(ConsistOfFields(Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Detail": Equal(`if Bandwidth be set, the value should be an integer and between 1 and 200`),
+				}))
+			})
+
+			It("should allow specifying eip Bandwidth", func() {
+				eipBandwidth := 200
+				infrastructureConfig.Networks.VPC.Bandwidth = &eipBandwidth
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, validNatGatewayZones)
+				Expect(errorList).To(BeEmpty())
+			})
+
 			It("should allow specifying eip id", func() {
 				ipAllocID := "eip-ufxsdckfgitzcz"
 				infrastructureConfig.Networks.Zones[0].NatGateway = &apisalicloud.NatGatewayConfig{

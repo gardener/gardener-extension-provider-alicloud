@@ -131,7 +131,7 @@ var _ = Describe("TerraformChartOps", func() {
 
 				zone2Name   = "zone2"
 				zone2Worker = "192.169.0.0/16"
-				bandwidth   = "200"
+				bandwidth   = 200
 
 				config = v1alpha1.InfrastructureConfig{
 					Networks: v1alpha1.Networks{
