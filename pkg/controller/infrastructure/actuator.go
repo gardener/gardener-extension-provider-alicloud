@@ -526,6 +526,9 @@ func (a *actuator) makeImageVisibleForShoot(ctx context.Context, log logr.Logger
 
 // Reconcile implements infrastructure.Actuator.
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+	if a.shouldUseFlow(infra, cluster) {
+		return a.reconcileWithFlow(ctx, log, infra)
+	}
 	return a.reconcile(ctx, log, infra, cluster, terraformer.StateConfigMapInitializerFunc(terraformer.CreateState))
 }
 
@@ -643,7 +646,15 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 }
 
 // Delete implements infrastructure.Actuator.
-func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+	if a.shouldUseFlow(infra, cluster) {
+		return a.deleteWithFlow(ctx, log, infra)
+	}
+
+	return a.delete(ctx, log, infra)
+}
+
+func (a *actuator) delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure) error {
 	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.restConfig, TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
