@@ -158,3 +158,7 @@ func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 func (c *FlowContext) tagKeyCluster() string {
 	return fmt.Sprintf(TagKeyClusterTemplate, c.namespace)
 }
+
+func (c *FlowContext) hasVPC() bool {
+	return !c.state.IsAlreadyDeleted(IdentifierVPC)
+}

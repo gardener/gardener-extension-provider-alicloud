@@ -14,7 +14,12 @@
 
 package aliclient
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"reflect"
+)
 
 type Updater interface {
 	UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error)
@@ -34,5 +39,69 @@ func NewUpdater(actor Actor) Updater {
 }
 
 func (u *updater) UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error) {
-	return false, nil
+	if desired.CidrBlock != current.CidrBlock {
+		return false, fmt.Errorf("cannot change CIDR block")
+	}
+	modified, err = u.UpdateVpcTags(ctx, current.VpcId, desired.Tags, current.Tags, "VPC")
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (u *updater) equalJSON(a, b string) (bool, error) {
+	ma := map[string]any{}
+	mb := map[string]any{}
+	if err := json.Unmarshal([]byte(a), &ma); err != nil {
+		return false, err
+	}
+	if err := json.Unmarshal([]byte(b), &mb); err != nil {
+		return false, err
+	}
+	return reflect.DeepEqual(ma, mb), nil
+}
+
+func (u *updater) UpdateVpcTags(ctx context.Context, id string, desired, current Tags, resourceType string) (bool, error) {
+	modified := false
+	toBeDeleted := Tags{}
+	toBeCreated := Tags{}
+	toBeIgnored := Tags{}
+	for k, v := range current {
+		if dv, ok := desired[k]; ok {
+			if dv != v {
+				toBeDeleted[k] = v
+				toBeCreated[k] = dv
+			}
+		} else if u.ignoreTag(k) {
+			toBeIgnored[k] = v
+		} else {
+			toBeDeleted[k] = v
+		}
+	}
+	for k, v := range desired {
+		if _, ok := current[k]; !ok && !u.ignoreTag(k) {
+			toBeCreated[k] = v
+		}
+	}
+
+	if len(toBeDeleted) > 0 {
+		if err := u.actor.DeleteVpcTags(ctx, []string{id}, toBeDeleted, resourceType); err != nil {
+			return false, err
+		}
+		modified = true
+	}
+	if len(toBeCreated) > 0 {
+		if err := u.actor.CreateVpcTags(ctx, []string{id}, toBeCreated, resourceType); err != nil {
+			return false, err
+		}
+		modified = true
+	}
+
+	return modified, nil
+}
+
+func (u *updater) ignoreTag(key string) bool {
+
+	return false
 }

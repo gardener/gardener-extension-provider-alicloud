@@ -120,6 +120,9 @@ type VPC interface {
 
 	CreateVpc(request *vpc.CreateVpcRequest) (response *vpc.CreateVpcResponse, err error)
 	DescribeVpcs(request *vpc.DescribeVpcsRequest) (response *vpc.DescribeVpcsResponse, err error)
+	TagResources(request *vpc.TagResourcesRequest) (response *vpc.TagResourcesResponse, err error)
+	UnTagResources(request *vpc.UnTagResourcesRequest) (response *vpc.UnTagResourcesResponse, err error)
+	ListTagResources(request *vpc.ListTagResourcesRequest) (response *vpc.ListTagResourcesResponse, err error)
 	DeleteVpc(request *vpc.DeleteVpcRequest) (response *vpc.DeleteVpcResponse, err error)
 	CreateVSwitch(request *vpc.CreateVSwitchRequest) (response *vpc.CreateVSwitchResponse, err error)
 	DescribeVSwitches(request *vpc.DescribeVSwitchesRequest) (response *vpc.DescribeVSwitchesResponse, err error)
