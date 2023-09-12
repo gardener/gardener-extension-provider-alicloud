@@ -29,7 +29,7 @@ const (
 	defaultLongTimeout = 3 * time.Minute
 )
 
-// Reconcile creates and runs the flow to reconcile the AWS infrastructure.
+// Reconcile creates and runs the flow to reconcile the Alicloud infrastructure.
 func (c *FlowContext) Reconcile(ctx context.Context) error {
 	g := c.buildReconcileGraph()
 	f := g.Compile()
@@ -75,13 +75,36 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 		CidrBlock: *c.config.Networks.VPC.CIDR,
 		Name:      c.namespace,
 	}
-	log.Info("creating...")
-	created, err := c.actor.CreateVpc(ctx, desired)
-	if err != nil {
-		return fmt.Errorf("create VPC failed %w", err)
-	}
 
-	c.state.Set(IdentifierVPC, created.VpcId)
+	current, err := findExisting(ctx, c.state.Get(IdentifierVPC), c.commonTags,
+		c.actor.GetVpc, c.actor.FindVpcsByTags)
+
+	// current, err := c.actor.GetVpc(ctx, *c.state.Get(IdentifierVPC))
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		c.state.Set(IdentifierVPC, current.VpcId)
+		c.state.Set(IdentifierVpcIPv6CidrBlock, current.IPv6CidrBlock)
+
+		_, err := c.updater.UpdateVpc(ctx, desired, current)
+		if err != nil {
+			return err
+		}
+	} else {
+		log.Info("creating...")
+		created, err := c.actor.CreateVpc(ctx, desired)
+		if err != nil {
+			return fmt.Errorf("create VPC failed %w", err)
+		}
+
+		c.state.Set(IdentifierVPC, created.VpcId)
+		_, err = c.updater.UpdateVpc(ctx, desired, created)
+		if err != nil {
+			return err
+		}
+
+	}
 
 	return nil
 }
