@@ -17,9 +17,11 @@ package aliclient
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strconv"
 	"time"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
+	alierrors "github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/go-logr/logr"
@@ -34,6 +36,11 @@ type Actor interface {
 	GetVpc(ctx context.Context, id string) (*VPC, error)
 	FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error)
 	DeleteVpc(ctx context.Context, id string) error
+
+	CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, error)
+	GetVSwitch(ctx context.Context, id string) (*VSwitch, error)
+	GetVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error)
+	FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch, error)
 
 	CreateVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
 	DeleteVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
@@ -62,6 +69,82 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 	}, nil
 }
 
+func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, error) {
+	req := vpc.CreateCreateVSwitchRequest()
+	req.VSwitchName = vsw.Name
+	req.VpcId = *vsw.VpcId
+	req.CidrBlock = vsw.CidrBlock
+	req.ZoneId = vsw.ZoneId
+
+	resp, err := callApi(c.vpcClient.CreateVSwitch, req)
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to create vswitch, %w", err)
+	}
+
+	var created *VSwitch
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+
+		created, err = c.GetVSwitch(ctx, resp.VSwitchId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+
+		return true, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return nil, fmt.Errorf("vswitch not Available , %w", err)
+	}
+
+	return created, nil
+}
+func (c *actor) GetVSwitch(ctx context.Context, id string) (*VSwitch, error) {
+
+	req := vpc.CreateDescribeVSwitchesRequest()
+	req.VSwitchId = id
+	resp, err := c.describeVSwitches(ctx, req)
+	return single(resp, err)
+}
+
+func (c *actor) GetVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error) {
+	var vswitchList []*VSwitch
+	for _, id := range ids {
+		vsw, err := c.GetVSwitch(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		vswitchList = append(vswitchList, vsw)
+	}
+
+	return vswitchList, nil
+}
+
+func (c *actor) FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch, error) {
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "VSWITCH"
+
+	var reqTag []vpc.ListTagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, vpc.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	var vswitchList []*VSwitch
+	idList, err := c.listTagResources(ctx, req)
+	if err != nil {
+		return vswitchList, err
+	}
+	return c.GetVSwitches(ctx, idList)
+
+}
+
 func (c *actor) DeleteVpc(ctx context.Context, id string) error {
 	req := vpc.CreateDeleteVpcRequest()
 	req.VpcId = id
@@ -85,8 +168,6 @@ func (c *actor) CreateVpc(ctx context.Context, desired *VPC) (*VPC, error) {
 		return nil, fmt.Errorf("fail to create vpc, %w", err)
 	}
 
-	describeVpcsReq := vpc.CreateDescribeVpcsRequest()
-	describeVpcsReq.VpcId = resp.VpcId
 	var created *VPC
 	err = wait.PollUntil(5*time.Second, func() (bool, error) {
 
@@ -136,7 +217,7 @@ func (c *actor) FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error) {
 		return vpcList, err
 	}
 	for _, id := range idList {
-		theVpc, _ := c.GetVpc(ctx, *id)
+		theVpc, _ := c.GetVpc(ctx, id)
 		if theVpc != nil {
 			vpcList = append(vpcList, theVpc)
 		}
@@ -174,10 +255,10 @@ func (c *actor) DeleteVpcTags(ctx context.Context, resources []string, tags Tags
 	return err
 }
 
-func (c *actor) listTagResources(ctx context.Context, req *vpc.ListTagResourcesRequest) ([]*string, error) {
+func (c *actor) listTagResources(ctx context.Context, req *vpc.ListTagResourcesRequest) ([]string, error) {
 
 	var theList []vpc.TagResource
-	var idList []*string
+	var idList []string
 	resp, err := callApi(c.vpcClient.ListTagResources, req)
 
 	if err != nil {
@@ -198,7 +279,7 @@ func (c *actor) listTagResources(ctx context.Context, req *vpc.ListTagResourcesR
 
 	for _, item := range theList {
 		if !contains(idList, item.ResourceId) {
-			idList = append(idList, &item.ResourceId)
+			idList = append(idList, item.ResourceId)
 		}
 	}
 
@@ -207,46 +288,74 @@ func (c *actor) listTagResources(ctx context.Context, req *vpc.ListTagResourcesR
 
 func (c *actor) describeVpcs(ctx context.Context, req *vpc.DescribeVpcsRequest) ([]*VPC, error) {
 	var vpcList []*VPC
-	resp, err := callApi(c.vpcClient.DescribeVpcs, req)
+
+	respList, err := call_describe(c.vpcClient.DescribeVpcs, req)
 	if err != nil {
 		return vpcList, err
 	}
-
 	var theList []vpc.Vpc
-	cur_page := 1
-	total := resp.TotalCount
-	if total > 0 {
+	for _, resp := range respList {
 		theList = append(theList, resp.Vpcs.Vpc...)
-	}
-	for {
-		if len(theList) >= total {
-			break
-		}
-		cur_page = cur_page + 1
-		req.PageNumber = requests.NewInteger(cur_page)
-		resp, err := callApi(c.vpcClient.DescribeVpcs, req)
-		if err == nil {
-			theList = append(theList, resp.Vpcs.Vpc...)
-		}
 	}
 
 	for _, item := range theList {
-		vpc, err := c.fromVpc(ctx, item)
+		vpc, err := c.fromVpc(item)
 		if err == nil && vpc != nil {
 			vpcList = append(vpcList, vpc)
 		}
 	}
+
 	return vpcList, nil
+
 }
 
-func (c *actor) fromVpc(ctx context.Context, item vpc.Vpc) (*VPC, error) {
+func (c *actor) describeVSwitches(ctx context.Context, req *vpc.DescribeVSwitchesRequest) ([]*VSwitch, error) {
+
+	var vswitchList []*VSwitch
+
+	respList, err := call_describe(c.vpcClient.DescribeVSwitches, req)
+	if err != nil {
+		return vswitchList, err
+	}
+	var theList []vpc.VSwitch
+	for _, resp := range respList {
+		theList = append(theList, resp.VSwitches.VSwitch...)
+	}
+
+	for _, item := range theList {
+		vswitch, err := c.fromVSwitch(item)
+		if err == nil && vswitch != nil {
+			vswitchList = append(vswitchList, vswitch)
+		}
+	}
+
+	return vswitchList, nil
+
+}
+func (c *actor) fromVSwitch(item vpc.VSwitch) (*VSwitch, error) {
+	vswitch := &VSwitch{
+		Name:      item.VSwitchName,
+		VpcId:     &item.VpcId,
+		ZoneId:    item.ZoneId,
+		CidrBlock: item.CidrBlock,
+		Status:    &item.Status,
+		VSwitchId: item.VSwitchId,
+	}
+	tags := Tags{}
+	for _, t := range item.Tags.Tag {
+		tags[t.Key] = t.Value
+	}
+	vswitch.Tags = tags
+	return vswitch, nil
+}
+
+func (c *actor) fromVpc(item vpc.Vpc) (*VPC, error) {
 	vpc := &VPC{
 		Name:  item.VpcName,
 		VpcId: item.VpcId,
 
-		CidrBlock:     item.CidrBlock,
-		IPv6CidrBlock: item.Ipv6CidrBlock,
-		Status:        &item.Status,
+		CidrBlock: item.CidrBlock,
+		Status:    &item.Status,
 	}
 
 	tags := Tags{}
@@ -268,7 +377,7 @@ func callApi[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) (*
 		cleanQueryParam(req)
 		resp, err = call(req)
 		if err != nil {
-			if serverErr, ok := err.(*errors.ServerError); ok {
+			if serverErr, ok := err.(*alierrors.ServerError); ok {
 				if serverErr.ErrorCode() == "Throttling.User" && try_count < 5 {
 					need_try = true
 				}
@@ -281,6 +390,43 @@ func callApi[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) (*
 		}
 	}
 	return resp, err
+}
+func call_describe[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) ([]RESP, error) {
+	type1_req_type_name_list := []string{"DescribeVpcsRequest", "DescribeVSwitchesRequest"}
+
+	reqTypeName := reflect.ValueOf(req).Elem().Type().Name()
+	if contains(type1_req_type_name_list, reqTypeName) {
+		return call_describe_type1(call, req)
+	}
+	return nil, fmt.Errorf(fmt.Sprintf("can not found suitable describe function for %s", reqTypeName))
+}
+
+func call_describe_type1[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) ([]RESP, error) {
+
+	var theList []RESP
+	const PAGE_SIZE = 10
+	var cur_page = 1
+	reflect.ValueOf(req).Elem().FieldByName("PageSize").SetString(strconv.Itoa(PAGE_SIZE))
+	for {
+		reflect.ValueOf(req).Elem().FieldByName("PageNumber").SetString(strconv.Itoa(cur_page))
+		resp, err := callApi(call, req)
+		if err != nil {
+			return nil, err
+		}
+		theList = append(theList, *resp)
+
+		total := int(reflect.ValueOf(*resp).FieldByName("TotalCount").Int())
+		total_page := total / PAGE_SIZE
+		remainder := total % PAGE_SIZE
+		if remainder > 0 {
+			total_page += 1
+		}
+		if cur_page >= total_page {
+			break
+		}
+		cur_page++
+	}
+	return theList, nil
 }
 
 func cleanQueryParam(theReq interface{}) {
@@ -309,9 +455,9 @@ func single[T any](list []*T, err error) (*T, error) {
 	return list[0], nil
 }
 
-func contains(elems []*string, elem string) bool {
+func contains(elems []string, elem string) bool {
 	for _, e := range elems {
-		if e != nil && *e == elem {
+		if e == elem {
 			return true
 		}
 	}

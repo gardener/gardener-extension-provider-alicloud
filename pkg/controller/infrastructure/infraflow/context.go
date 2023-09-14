@@ -20,6 +20,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
@@ -42,6 +43,9 @@ const (
 
 	// IdentifierVPC is the key for the VPC id
 	IdentifierVPC = "VPC"
+	// IdentifierZoneVSwitch is the key for the id of vswitch
+	IdentifierZoneVSwitch = "VSwitch"
+
 	// IdentifierDHCPOptions is the key for the id of the DHCPOptions resource
 	IdentifierDHCPOptions = "DHCPOptions"
 	// IdentifierDefaultSecurityGroup is the key for the id of the default security group
@@ -161,4 +165,37 @@ func (c *FlowContext) tagKeyCluster() string {
 
 func (c *FlowContext) hasVPC() bool {
 	return !c.state.IsAlreadyDeleted(IdentifierVPC)
+}
+
+func (c *FlowContext) commonTagsWithSuffix(suffix string) aliclient.Tags {
+	tags := c.commonTags.Clone()
+	tags[TagKeyName] = fmt.Sprintf("%s-%s", c.namespace, suffix)
+	return tags
+}
+
+func (c *FlowContext) getZoneSuffix(zoneName string) string {
+	zoneChild := c.state.GetChild(ChildIdZones).GetChild(zoneName)
+	if suffix := zoneChild.Get(IdentifierZoneSuffix); suffix != nil {
+		return *suffix
+	}
+	zones := c.state.GetChild(ChildIdZones)
+	existing := sets.New[string]()
+	for _, key := range zones.GetChildrenKeys() {
+		otherChild := zones.GetChild(key)
+		if suffix := otherChild.Get(IdentifierZoneSuffix); suffix != nil {
+			existing.Insert(*suffix)
+		}
+	}
+	for i := 0; ; i++ {
+		suffix := fmt.Sprintf("z%d", i)
+		if !existing.Has(suffix) {
+			zoneChild.Set(IdentifierZoneSuffix, suffix)
+			return suffix
+		}
+	}
+}
+func (c *FlowContext) clusterTags() aliclient.Tags {
+	tags := aliclient.Tags{}
+	tags[c.tagKeyCluster()] = TagValueCluster
+	return tags
 }

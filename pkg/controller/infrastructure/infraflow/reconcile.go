@@ -41,13 +41,18 @@ func (c *FlowContext) Reconcile(ctx context.Context) error {
 
 func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 	createVPC := c.config.Networks.VPC.ID == nil
-	fmt.Println(createVPC)
+	createNatGateway := createVPC || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
+	fmt.Println(createNatGateway)
+
 	g := flow.NewGraph("Alicloud infrastructure reconcilation")
 
-	_ = c.AddTask(g, "ensure VPC",
+	ensureVpc := c.AddTask(g, "ensure VPC",
 		c.ensureVpc,
 		Timeout(defaultTimeout))
 
+	_ = c.AddTask(g, "ensure vswitch",
+		c.ensureVSwitches,
+		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 	return g
 }
 
@@ -73,19 +78,17 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 	desired := &aliclient.VPC{
 		Tags:      c.commonTags,
 		CidrBlock: *c.config.Networks.VPC.CIDR,
-		Name:      c.namespace,
+		Name:      c.namespace + "-vpc",
 	}
 
 	current, err := findExisting(ctx, c.state.Get(IdentifierVPC), c.commonTags,
 		c.actor.GetVpc, c.actor.FindVpcsByTags)
 
-	// current, err := c.actor.GetVpc(ctx, *c.state.Get(IdentifierVPC))
 	if err != nil {
 		return err
 	}
 	if current != nil {
 		c.state.Set(IdentifierVPC, current.VpcId)
-		c.state.Set(IdentifierVpcIPv6CidrBlock, current.IPv6CidrBlock)
 
 		_, err := c.updater.UpdateVpc(ctx, desired, current)
 		if err != nil {
@@ -107,4 +110,78 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
+	var desired []*aliclient.VSwitch
+	for _, zone := range c.config.Networks.Zones {
+		zoneSuffix := c.getZoneSuffix(zone.Name)
+		workerSuffix := fmt.Sprintf("nodes-%s", zoneSuffix)
+		desired = append(desired,
+			&aliclient.VSwitch{
+				Name:      c.namespace + zone.Name + "-vsw",
+				CidrBlock: zone.Workers,
+				VpcId:     c.state.Get(IdentifierVPC),
+				Tags:      c.commonTagsWithSuffix(workerSuffix),
+				ZoneId:    zone.Name,
+			})
+
+	}
+
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
+	current, err := c.collectExistingVSwitches(ctx)
+	if err != nil {
+		return err
+	}
+
+	toBeDeleted, toBeCreated, toBeChecked := diffByID(desired, current, func(item *aliclient.VSwitch) string {
+		return item.ZoneId + "-" + item.CidrBlock
+	})
+	fmt.Println(toBeDeleted)
+	fmt.Println(toBeCreated)
+	fmt.Println(toBeChecked)
+	for _, vsw := range toBeCreated {
+		created, err := c.actor.CreateVSwitch(ctx, vsw)
+		if err != nil {
+			return err
+		}
+		c.state.GetChild(ChildIdZones).GetChild(vsw.ZoneId).Set(IdentifierZoneVSwitch, created.VSwitchId)
+	}
+
+	return nil
+}
+
+func (c *FlowContext) collectExistingVSwitches(ctx context.Context) ([]*aliclient.VSwitch, error) {
+	child := c.state.GetChild(ChildIdZones)
+	var ids []string
+	for _, zoneKey := range child.GetChildrenKeys() {
+		zoneChild := child.GetChild(zoneKey)
+		if id := zoneChild.Get(IdentifierZoneVSwitch); id != nil {
+			ids = append(ids, *id)
+		}
+	}
+	var current []*aliclient.VSwitch
+	if len(ids) > 0 {
+		found, err := c.actor.GetVSwitches(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+		current = found
+	}
+	foundByTags, err := c.actor.FindVSwitchesByTags(ctx, c.clusterTags())
+	if err != nil {
+		return nil, err
+	}
+outer:
+	for _, item := range foundByTags {
+		for _, currentItem := range current {
+			if item.VSwitchId == currentItem.VSwitchId {
+				continue outer
+			}
+		}
+		current = append(current, item)
+	}
+	return current, nil
 }
