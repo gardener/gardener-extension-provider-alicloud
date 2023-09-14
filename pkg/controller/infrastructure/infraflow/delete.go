@@ -38,7 +38,9 @@ func (c *FlowContext) Delete(ctx context.Context) error {
 
 func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 	deleteVPC := c.config.Networks.VPC.ID == nil
-	fmt.Println(deleteVPC)
+	deleteNatGateway := deleteVPC || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
+	fmt.Println(deleteNatGateway)
+
 	g := flow.NewGraph("Alicloud infrastructure destruction")
 
 	_ = c.AddTask(g, "delete VPC",

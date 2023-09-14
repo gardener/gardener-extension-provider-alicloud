@@ -14,12 +14,20 @@
 
 package aliclient
 
-// VPC contains the relevant fields of a EC2 VPC resource.
 type VPC struct {
 	Tags
-	Name          string
-	VpcId         string
-	CidrBlock     string
-	IPv6CidrBlock string
-	Status        *string
+	Name      string
+	VpcId     string
+	CidrBlock string
+	Status    *string
+}
+
+type VSwitch struct {
+	Tags
+	Name      string
+	VSwitchId string
+	VpcId     *string
+	CidrBlock string
+	ZoneId    string
+	Status    *string
 }
