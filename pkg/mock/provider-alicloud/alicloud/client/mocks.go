@@ -918,6 +918,51 @@ func (mr *MockVPCMockRecorder) GetVSwitchesInfoByID(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVSwitchesInfoByID", reflect.TypeOf((*MockVPC)(nil).GetVSwitchesInfoByID), arg0)
 }
 
+// ListTagResources mocks base method.
+func (m *MockVPC) ListTagResources(arg0 *vpc.ListTagResourcesRequest) (*vpc.ListTagResourcesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTagResources", arg0)
+	ret0, _ := ret[0].(*vpc.ListTagResourcesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListTagResources indicates an expected call of ListTagResources.
+func (mr *MockVPCMockRecorder) ListTagResources(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagResources", reflect.TypeOf((*MockVPC)(nil).ListTagResources), arg0)
+}
+
+// TagResources mocks base method.
+func (m *MockVPC) TagResources(arg0 *vpc.TagResourcesRequest) (*vpc.TagResourcesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TagResources", arg0)
+	ret0, _ := ret[0].(*vpc.TagResourcesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TagResources indicates an expected call of TagResources.
+func (mr *MockVPCMockRecorder) TagResources(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResources", reflect.TypeOf((*MockVPC)(nil).TagResources), arg0)
+}
+
+// UnTagResources mocks base method.
+func (m *MockVPC) UnTagResources(arg0 *vpc.UnTagResourcesRequest) (*vpc.UnTagResourcesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnTagResources", arg0)
+	ret0, _ := ret[0].(*vpc.UnTagResourcesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnTagResources indicates an expected call of UnTagResources.
+func (mr *MockVPCMockRecorder) UnTagResources(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnTagResources", reflect.TypeOf((*MockVPC)(nil).UnTagResources), arg0)
+}
+
 // MockOSS is a mock of OSS interface.
 type MockOSS struct {
 	ctrl     *gomock.Controller
