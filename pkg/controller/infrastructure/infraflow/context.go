@@ -17,11 +17,11 @@ package infraflow
 import (
 	"fmt"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
