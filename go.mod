@@ -2,8 +2,6 @@ module github.com/gardener/gardener-extension-provider-alicloud
 
 go 1.21
 
-toolchain go1.21.0
-
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
