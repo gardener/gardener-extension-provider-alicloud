@@ -41,6 +41,13 @@ type Actor interface {
 	GetVSwitch(ctx context.Context, id string) (*VSwitch, error)
 	GetVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error)
 	FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch, error)
+	DeleteVSwitch(ctx context.Context, id string) error
+
+	CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGateway, error)
+	GetNatGateway(ctx context.Context, id string) (*NatGateway, error)
+	FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGateway, error)
+	FindNatGatewayByVPC(ctx context.Context, vpcId string) (*NatGateway, error)
+	DeleteNatGateway(ctx context.Context, id string) error
 
 	CreateVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
 	DeleteVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
@@ -69,6 +76,122 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 	}, nil
 }
 
+func (c *actor) CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGateway, error) {
+	req := vpc.CreateCreateNatGatewayRequest()
+	req.Name = ngw.Name
+	req.VpcId = *ngw.VpcId
+	req.VSwitchId = *ngw.VswitchId
+	req.NatType = "Enhanced"
+	resp, err := callApi(c.vpcClient.CreateNatGateway, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *NatGateway
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+
+		created, err = c.GetNatGateway(ctx, resp.NatGatewayId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+
+		return true, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
+
+}
+
+func (c *actor) GetNatGateway(ctx context.Context, id string) (*NatGateway, error) {
+	req := vpc.CreateDescribeNatGatewaysRequest()
+	req.NatGatewayId = id
+	resp, err := c.describeNatGateway(ctx, req)
+
+	return single(resp, err)
+}
+
+func (c *actor) FindNatGatewayByVPC(ctx context.Context, vpcId string) (*NatGateway, error) {
+	req := vpc.CreateDescribeNatGatewaysRequest()
+	req.VpcId = vpcId
+
+	resp, err := c.describeNatGateway(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if len(resp) != 1 {
+		return nil, fmt.Errorf("count of natgateway is not 1")
+	}
+	return resp[0], nil
+
+}
+
+func (c *actor) DeleteNatGateway(ctx context.Context, id string) error {
+	req := vpc.CreateDeleteNatGatewayRequest()
+	req.NatGatewayId = id
+	req.Force = requests.NewBoolean(true)
+	_, err := callApi(c.vpcClient.DeleteNatGateway, req)
+	if err != nil {
+		return err
+	}
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		current, err := c.GetNatGateway(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		if current == nil {
+			return true, nil
+		}
+		return false, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *actor) FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGateway, error) {
+	return nil, nil
+}
+
+func (c *actor) DeleteVSwitch(ctx context.Context, id string) error {
+	req := vpc.CreateDeleteVSwitchRequest()
+	req.VSwitchId = id
+
+	_, err := callApi(c.vpcClient.DeleteVSwitch, req)
+	if err != nil {
+		return err
+	}
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		current, err := c.GetVSwitch(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		if current == nil {
+			return true, nil
+		}
+		return false, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, error) {
 	req := vpc.CreateCreateVSwitchRequest()
 	req.VSwitchName = vsw.Name
@@ -79,7 +202,7 @@ func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, erro
 	resp, err := callApi(c.vpcClient.CreateVSwitch, req)
 
 	if err != nil {
-		return nil, fmt.Errorf("fail to create vswitch, %w", err)
+		return nil, err
 	}
 
 	var created *VSwitch
@@ -100,7 +223,7 @@ func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, erro
 	}, ctx.Done())
 
 	if err != nil {
-		return nil, fmt.Errorf("vswitch not Available , %w", err)
+		return nil, err
 	}
 
 	return created, nil
@@ -151,7 +274,22 @@ func (c *actor) DeleteVpc(ctx context.Context, id string) error {
 
 	_, err := callApi(c.vpcClient.DeleteVpc, req)
 	if err != nil {
-		return fmt.Errorf("fail to delete vpc, %w", err)
+		return err
+	}
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		current, err := c.GetVpc(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		if current == nil {
+			return true, nil
+		}
+		return false, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -165,7 +303,7 @@ func (c *actor) CreateVpc(ctx context.Context, desired *VPC) (*VPC, error) {
 
 	resp, err := callApi(c.vpcClient.CreateVpc, req)
 	if err != nil {
-		return nil, fmt.Errorf("fail to create vpc, %w", err)
+		return nil, err
 	}
 
 	var created *VPC
@@ -186,7 +324,7 @@ func (c *actor) CreateVpc(ctx context.Context, desired *VPC) (*VPC, error) {
 	}, ctx.Done())
 
 	if err != nil {
-		return nil, fmt.Errorf("vpc not Available , %w", err)
+		return nil, err
 	}
 
 	return created, nil
@@ -286,6 +424,29 @@ func (c *actor) listTagResources(ctx context.Context, req *vpc.ListTagResourcesR
 	return idList, nil
 }
 
+func (c *actor) describeNatGateway(ctx context.Context, req *vpc.DescribeNatGatewaysRequest) ([]*NatGateway, error) {
+	var ngwList []*NatGateway
+
+	respList, err := call_describe(c.vpcClient.DescribeNatGateways, req)
+	if err != nil {
+		return ngwList, err
+	}
+	var theList []vpc.NatGateway
+	for _, resp := range respList {
+		theList = append(theList, resp.NatGateways.NatGateway...)
+	}
+
+	for _, item := range theList {
+		ngw, err := c.fromNatGateway(item)
+		if err == nil && ngw != nil {
+			ngwList = append(ngwList, ngw)
+		}
+	}
+
+	return ngwList, nil
+
+}
+
 func (c *actor) describeVpcs(ctx context.Context, req *vpc.DescribeVpcsRequest) ([]*VPC, error) {
 	var vpcList []*VPC
 
@@ -349,6 +510,22 @@ func (c *actor) fromVSwitch(item vpc.VSwitch) (*VSwitch, error) {
 	return vswitch, nil
 }
 
+func (c *actor) fromNatGateway(item vpc.NatGateway) (*NatGateway, error) {
+	ngw := &NatGateway{
+		Name:         item.Name,
+		NatGatewayId: item.NatGatewayId,
+		VpcId:        &item.VpcId,
+		Status:       &item.Status,
+		VswitchId:    &item.NatGatewayPrivateInfo.VswitchId,
+	}
+	// tags := Tags{}
+	// for _, t := range item.Tags.Tag {
+	// 	tags[t.Key] = t.Value
+	// }
+	// ngw.Tags = tags
+	return ngw, nil
+}
+
 func (c *actor) fromVpc(item vpc.Vpc) (*VPC, error) {
 	vpc := &VPC{
 		Name:  item.VpcName,
@@ -392,7 +569,11 @@ func callApi[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) (*
 	return resp, err
 }
 func call_describe[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) ([]RESP, error) {
-	type1_req_type_name_list := []string{"DescribeVpcsRequest", "DescribeVSwitchesRequest"}
+	type1_req_type_name_list := []string{
+		"DescribeVpcsRequest",
+		"DescribeVSwitchesRequest",
+		"DescribeNatGatewaysRequest",
+	}
 
 	reqTypeName := reflect.ValueOf(req).Elem().Type().Name()
 	if contains(type1_req_type_name_list, reqTypeName) {

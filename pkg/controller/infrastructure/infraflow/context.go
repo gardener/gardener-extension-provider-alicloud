@@ -41,10 +41,14 @@ const (
 	// TagValueELB is the tag value for the ELB tag keys
 	TagValueELB = "1"
 
+	// ChildIdZones is the child key for the zones
+	ChildIdZones = "Zones"
+
 	// IdentifierVPC is the key for the VPC id
 	IdentifierVPC = "VPC"
 	// IdentifierZoneVSwitch is the key for the id of vswitch
 	IdentifierZoneVSwitch = "VSwitch"
+	IdentifierNatGateway  = "NatGateway"
 
 	// IdentifierDHCPOptions is the key for the id of the DHCPOptions resource
 	IdentifierDHCPOptions = "DHCPOptions"
@@ -95,8 +99,6 @@ const (
 
 	// ChildIdVPCEndpoints is the child key for the VPC endpoints
 	ChildIdVPCEndpoints = "VPCEndpoints"
-	// ChildIdZones is the child key for the zones
-	ChildIdZones = "Zones"
 
 	// ObjectMainRouteTable is the object key used for caching the main route table object
 	ObjectMainRouteTable = "MainRouteTable"
@@ -167,6 +169,10 @@ func (c *FlowContext) hasVPC() bool {
 	return !c.state.IsAlreadyDeleted(IdentifierVPC)
 }
 
+func (c *FlowContext) hasNatGateway() bool {
+	return !c.state.IsAlreadyDeleted(IdentifierNatGateway)
+}
+
 func (c *FlowContext) commonTagsWithSuffix(suffix string) aliclient.Tags {
 	tags := c.commonTags.Clone()
 	tags[TagKeyName] = fmt.Sprintf("%s-%s", c.namespace, suffix)
@@ -194,6 +200,26 @@ func (c *FlowContext) getZoneSuffix(zoneName string) string {
 		}
 	}
 }
+
+func (c *FlowContext) getNatGatewaySWitchid() *string {
+	zones := c.state.GetChild(ChildIdZones)
+	for _, key := range zones.GetChildrenKeys() {
+		theChild := zones.GetChild(key)
+
+		if suffix := theChild.Get(IdentifierZoneSuffix); suffix != nil {
+			if *suffix == "z0" {
+				if switchId := theChild.Get(IdentifierZoneVSwitch); switchId != nil {
+					if !theChild.IsAlreadyDeleted(IdentifierZoneVSwitch) {
+						return switchId
+					}
+				}
+			}
+		}
+	}
+	return nil
+
+}
+
 func (c *FlowContext) clusterTags() aliclient.Tags {
 	tags := aliclient.Tags{}
 	tags[c.tagKeyCluster()] = TagValueCluster
