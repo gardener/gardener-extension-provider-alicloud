@@ -16,7 +16,6 @@ package infraflow
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
 	"github.com/gardener/gardener/pkg/utils/flow"
@@ -39,13 +38,20 @@ func (c *FlowContext) Delete(ctx context.Context) error {
 func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 	deleteVPC := c.config.Networks.VPC.ID == nil
 	deleteNatGateway := deleteVPC || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
-	fmt.Println(deleteNatGateway)
 
 	g := flow.NewGraph("Alicloud infrastructure destruction")
 
+	deleteNatgateway := c.AddTask(g, "delete natgateway",
+		c.deleteNatGateway,
+		DoIf(deleteNatGateway && c.hasNatGateway()), Timeout(defaultLongTimeout))
+
+	deleteVSwitches := c.AddTask(g, "delete vswitch",
+		c.deleteVSwitches,
+		Timeout(defaultTimeout), Dependencies(deleteNatgateway))
+
 	_ = c.AddTask(g, "delete VPC",
 		c.deleteVpc,
-		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout))
+		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout), Dependencies(deleteVSwitches))
 
 	return g
 }
@@ -67,5 +73,42 @@ func (c *FlowContext) deleteVpc(ctx context.Context) error {
 		}
 	}
 	c.state.SetAsDeleted(IdentifierVPC)
+	return nil
+}
+
+func (c *FlowContext) deleteVSwitches(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	current, err := c.collectExistingVSwitches(ctx)
+	if err != nil {
+		return err
+	}
+	for _, vsw := range current {
+		log.Info("deleting...", "VSwitchId", vsw.VSwitchId)
+		key := ChildIdZones + Separator + vsw.ZoneId + Separator + IdentifierZoneVSwitch
+		if c.state.IsAlreadyDeleted(key) {
+			continue
+		}
+		if err := c.actor.DeleteVSwitch(ctx, vsw.VSwitchId); err != nil {
+			return err
+		}
+		c.state.SetAsDeleted(key)
+	}
+	return nil
+}
+
+func (c *FlowContext) deleteNatGateway(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTags,
+		c.actor.GetNatGateway, c.actor.FindNatGatewayByTags)
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		log.Info("deleting...", "NatgatewayId", current.NatGatewayId)
+		if err := c.actor.DeleteNatGateway(ctx, current.NatGatewayId); err != nil {
+			return err
+		}
+	}
+	c.state.SetAsDeleted(IdentifierNatGateway)
 	return nil
 }

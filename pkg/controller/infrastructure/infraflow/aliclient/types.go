@@ -31,3 +31,12 @@ type VSwitch struct {
 	ZoneId    string
 	Status    *string
 }
+
+type NatGateway struct {
+	Tags
+	Name         string
+	NatGatewayId string
+	VpcId        *string
+	VswitchId    *string
+	Status       *string
+}

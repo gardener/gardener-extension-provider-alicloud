@@ -23,6 +23,8 @@ import (
 
 type Updater interface {
 	UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error)
+	UpdateVSwitch(ctx context.Context, desired, current *VSwitch) (modified bool, err error)
+	UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error)
 }
 
 type updater struct {
@@ -36,6 +38,23 @@ func NewUpdater(actor Actor) Updater {
 	return &updater{
 		actor: actor,
 	}
+}
+
+func (u *updater) UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error) {
+	return
+}
+
+func (u *updater) UpdateVSwitch(ctx context.Context, desired, current *VSwitch) (modified bool, err error) {
+	if desired.CidrBlock != current.CidrBlock {
+		return false, fmt.Errorf("cannot change CIDR block")
+	}
+	modified, err = u.UpdateVpcTags(ctx, current.VSwitchId, desired.Tags, current.Tags, "VSWITCH")
+	if err != nil {
+		return
+	}
+
+	return
+
 }
 
 func (u *updater) UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error) {

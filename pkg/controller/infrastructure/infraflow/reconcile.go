@@ -26,7 +26,7 @@ import (
 
 const (
 	defaultTimeout     = 90 * time.Second
-	defaultLongTimeout = 3 * time.Minute
+	defaultLongTimeout = 5 * time.Minute
 )
 
 // Reconcile creates and runs the flow to reconcile the Alicloud infrastructure.
@@ -50,9 +50,14 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		c.ensureVpc,
 		Timeout(defaultTimeout))
 
-	_ = c.AddTask(g, "ensure vswitch",
+	ensureVSwitches := c.AddTask(g, "ensure vswitch",
 		c.ensureVSwitches,
 		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
+
+	_ = c.AddTask(g, "ensure natgateway",
+		c.ensureNatGateway,
+		Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
+
 	return g
 }
 
@@ -64,7 +69,20 @@ func (c *FlowContext) ensureVpc(ctx context.Context) error {
 }
 
 func (c *FlowContext) ensureExistingVpc(ctx context.Context) error {
+	vpcID := *c.config.Networks.VPC.ID
+	log := c.LogFromContext(ctx)
+	log.Info("using configured VPC", "vpc", vpcID)
+	current, err := c.actor.GetVpc(ctx, vpcID)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return fmt.Errorf("VPC %s has not been found", vpcID)
+	}
+	c.state.Set(IdentifierVPC, vpcID)
+
 	return nil
+
 }
 
 func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
@@ -148,6 +166,17 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 			return err
 		}
 		c.state.GetChild(ChildIdZones).GetChild(vsw.ZoneId).Set(IdentifierZoneVSwitch, created.VSwitchId)
+		_, err = c.updater.UpdateVSwitch(ctx, vsw, created)
+		if err != nil {
+			return err
+		}
+	}
+	for _, vsw := range toBeChecked {
+		c.state.GetChild(ChildIdZones).GetChild(vsw.current.ZoneId).Set(IdentifierZoneVSwitch, vsw.current.VSwitchId)
+		_, err = c.updater.UpdateVSwitch(ctx, vsw.desired, vsw.current)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -184,4 +213,72 @@ outer:
 		current = append(current, item)
 	}
 	return current, nil
+}
+
+func (c *FlowContext) ensureNatGateway(ctx context.Context) error {
+
+	createNatGateway := c.config.Networks.VPC.ID == nil || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
+
+	if !createNatGateway {
+		return c.ensureExistingNatGateway(ctx)
+	}
+	return c.ensureManagedNatGateway(ctx)
+}
+func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
+	vpcID := c.state.Get(IdentifierVPC)
+	gw, err := c.actor.FindNatGatewayByVPC(ctx, *vpcID)
+	if err != nil {
+		return fmt.Errorf("find NatGateway failed %w", err)
+	}
+	c.state.Set(IdentifierNatGateway, gw.NatGatewayId)
+	return nil
+}
+
+func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
+
+	log := c.LogFromContext(ctx)
+	log.Info("using managed NatGateway")
+
+	ngwSwitch := c.getNatGatewaySWitchid()
+	if ngwSwitch == nil {
+		return fmt.Errorf("can not determine natgateway zone")
+	}
+
+	desired := &aliclient.NatGateway{
+		Tags:      c.commonTags,
+		Name:      c.namespace + "-natgw",
+		VswitchId: ngwSwitch,
+		VpcId:     c.state.Get(IdentifierVPC),
+	}
+
+	current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTags,
+		c.actor.GetNatGateway, c.actor.FindNatGatewayByTags)
+
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		c.state.Set(IdentifierNatGateway, current.NatGatewayId)
+
+		_, err := c.updater.UpdateNatgateway(ctx, desired, current)
+		if err != nil {
+			return err
+		}
+	} else {
+		log.Info("creating...")
+		created, err := c.actor.CreateNatGateway(ctx, desired)
+		if err != nil {
+			return fmt.Errorf("create NatGateway failed %w", err)
+		}
+
+		c.state.Set(IdentifierNatGateway, created.NatGatewayId)
+		_, err = c.updater.UpdateNatgateway(ctx, desired, created)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+
 }
