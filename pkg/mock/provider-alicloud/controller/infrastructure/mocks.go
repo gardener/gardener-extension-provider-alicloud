@@ -11,7 +11,7 @@ import (
 	v1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	infrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	v1alpha10 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockTerraformChartOps is a mock of TerraformChartOps interface.
