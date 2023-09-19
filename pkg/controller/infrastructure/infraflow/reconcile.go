@@ -81,7 +81,9 @@ func (c *FlowContext) ensureExistingVpc(ctx context.Context) error {
 		return fmt.Errorf("VPC %s has not been found", vpcID)
 	}
 	c.state.Set(IdentifierVPC, vpcID)
-
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
 	return nil
 
 }
@@ -127,6 +129,9 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 		}
 
 	}
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -147,9 +152,6 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 
 	}
 
-	if err := c.PersistState(ctx, true); err != nil {
-		return err
-	}
 	current, err := c.collectExistingVSwitches(ctx)
 	if err != nil {
 		return err
@@ -161,13 +163,13 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	fmt.Println(toBeDeleted)
 	fmt.Println(toBeCreated)
 	fmt.Println(toBeChecked)
-	for _, vsw := range toBeCreated {
-		created, err := c.actor.CreateVSwitch(ctx, vsw)
+	for _, desired := range toBeCreated {
+		created, err := c.actor.CreateVSwitch(ctx, desired)
 		if err != nil {
 			return err
 		}
-		c.state.GetChild(ChildIdZones).GetChild(vsw.ZoneId).Set(IdentifierZoneVSwitch, created.VSwitchId)
-		_, err = c.updater.UpdateVSwitch(ctx, vsw, created)
+		c.state.GetChild(ChildIdZones).GetChild(desired.ZoneId).Set(IdentifierZoneVSwitch, created.VSwitchId)
+		_, err = c.updater.UpdateVSwitch(ctx, desired, created)
 		if err != nil {
 			return err
 		}
@@ -178,6 +180,9 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+	}
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
 	}
 
 	return nil
@@ -232,6 +237,9 @@ func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
 		return fmt.Errorf("find NatGateway failed %w", err)
 	}
 	c.state.Set(IdentifierNatGateway, gw.NatGatewayId)
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -267,7 +275,9 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		}
 	} else {
 		log.Info("creating...")
+		waiter := informOnWaiting(log, 10*time.Second, "still createing natgateway...")
 		created, err := c.actor.CreateNatGateway(ctx, desired)
+		waiter.Done(err)
 		if err != nil {
 			return fmt.Errorf("create NatGateway failed %w", err)
 		}
@@ -279,7 +289,9 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		}
 
 	}
-
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
 	return nil
 
 }
