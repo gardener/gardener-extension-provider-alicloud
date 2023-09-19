@@ -16,6 +16,7 @@ package infraflow
 
 import (
 	"context"
+	"time"
 
 	"github.com/gardener/gardener/pkg/utils/flow"
 
@@ -106,7 +107,10 @@ func (c *FlowContext) deleteNatGateway(ctx context.Context) error {
 	}
 	if current != nil {
 		log.Info("deleting...", "NatgatewayId", current.NatGatewayId)
-		if err := c.actor.DeleteNatGateway(ctx, current.NatGatewayId); err != nil {
+		waiter := informOnWaiting(log, 10*time.Second, "still deleting...", "NatGatewayID", current.NatGatewayId)
+		err := c.actor.DeleteNatGateway(ctx, current.NatGatewayId)
+		waiter.Done(err)
+		if err != nil {
 			return err
 		}
 	}

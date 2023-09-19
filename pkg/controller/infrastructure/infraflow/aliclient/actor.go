@@ -162,7 +162,30 @@ func (c *actor) DeleteNatGateway(ctx context.Context, id string) error {
 }
 
 func (c *actor) FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGateway, error) {
-	return nil, nil
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "NATGATEWAY"
+
+	var reqTag []vpc.ListTagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, vpc.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	var ngwList []*NatGateway
+	idList, err := c.listTagResources(ctx, req)
+	if err != nil {
+		return ngwList, err
+	}
+	for _, id := range idList {
+		ngw, err := c.GetNatGateway(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		ngwList = append(ngwList, ngw)
+	}
+
+	return ngwList, nil
+
 }
 
 func (c *actor) DeleteVSwitch(ctx context.Context, id string) error {
@@ -355,10 +378,11 @@ func (c *actor) FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error) {
 		return vpcList, err
 	}
 	for _, id := range idList {
-		theVpc, _ := c.GetVpc(ctx, id)
-		if theVpc != nil {
-			vpcList = append(vpcList, theVpc)
+		theVpc, err := c.GetVpc(ctx, id)
+		if err != nil {
+			return nil, err
 		}
+		vpcList = append(vpcList, theVpc)
 	}
 	return vpcList, nil
 
@@ -518,11 +542,11 @@ func (c *actor) fromNatGateway(item vpc.NatGateway) (*NatGateway, error) {
 		Status:       &item.Status,
 		VswitchId:    &item.NatGatewayPrivateInfo.VswitchId,
 	}
-	// tags := Tags{}
-	// for _, t := range item.Tags.Tag {
-	// 	tags[t.Key] = t.Value
-	// }
-	// ngw.Tags = tags
+	tags := Tags{}
+	for _, t := range item.Tags.Tag {
+		tags[t.Key] = t.Value
+	}
+	ngw.Tags = tags
 	return ngw, nil
 }
 

@@ -47,8 +47,9 @@ const (
 	// IdentifierVPC is the key for the VPC id
 	IdentifierVPC = "VPC"
 	// IdentifierZoneVSwitch is the key for the id of vswitch
-	IdentifierZoneVSwitch = "VSwitch"
-	IdentifierNatGateway  = "NatGateway"
+	IdentifierNatGatewayVSwitch = "NatGatewayVSwitch"
+	IdentifierZoneVSwitch       = "VSwitch"
+	IdentifierNatGateway        = "NatGateway"
 
 	// IdentifierDHCPOptions is the key for the id of the DHCPOptions resource
 	IdentifierDHCPOptions = "DHCPOptions"
@@ -202,18 +203,15 @@ func (c *FlowContext) getZoneSuffix(zoneName string) string {
 }
 
 func (c *FlowContext) getNatGatewaySWitchid() *string {
+	if switchId := c.state.Get(IdentifierNatGatewayVSwitch); switchId != nil {
+		return switchId
+	}
 	zones := c.state.GetChild(ChildIdZones)
 	for _, key := range zones.GetChildrenKeys() {
 		theChild := zones.GetChild(key)
-
-		if suffix := theChild.Get(IdentifierZoneSuffix); suffix != nil {
-			if *suffix == "z0" {
-				if switchId := theChild.Get(IdentifierZoneVSwitch); switchId != nil {
-					if !theChild.IsAlreadyDeleted(IdentifierZoneVSwitch) {
-						return switchId
-					}
-				}
-			}
+		if switchId := theChild.Get(IdentifierZoneVSwitch); switchId != nil {
+			c.state.Set(IdentifierNatGatewayVSwitch, *switchId)
+			return switchId
 		}
 	}
 	return nil
