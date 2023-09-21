@@ -34,9 +34,10 @@ type VSwitch struct {
 
 type NatGateway struct {
 	Tags
-	Name         string
-	NatGatewayId string
-	VpcId        *string
-	VswitchId    *string
-	Status       *string
+	Name               string
+	NatGatewayId       string
+	VpcId              *string
+	VswitchId          *string
+	Status             *string
+	AvailableVSwitches []string
 }

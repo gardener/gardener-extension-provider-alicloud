@@ -68,6 +68,13 @@ type Whiteboard interface {
 
 	// CurrentGeneration returns current generation, which increments with any change
 	CurrentGeneration() int64
+
+	// clean all data
+	Clean()
+	// clean a child
+	CleanChild(key string)
+
+	ObjectsKeys() []string
 }
 
 type whiteboard struct {
@@ -112,6 +119,41 @@ func (w *whiteboard) IsEmpty() bool {
 		}
 	}
 	return true
+}
+
+func (w *whiteboard) CleanChild(key string) {
+	w.Lock()
+	defer w.Unlock()
+
+	child := w.children[key]
+	if child != nil {
+		child.Clean()
+		delete(w.children, key)
+		w.modified()
+	}
+}
+
+func (w *whiteboard) Clean() {
+
+	w.Lock()
+	defer w.Unlock()
+
+	for _, key := range sortedKeys(w.data) {
+		delete(w.data, key)
+	}
+
+	for _, key := range sortedKeys(w.objects) {
+		delete(w.objects, key)
+	}
+
+	for _, childKey := range sortedKeys(w.children) {
+		child := w.children[childKey]
+		if child != nil {
+			child.Clean()
+			delete(w.children, childKey)
+		}
+	}
+	w.modified()
 }
 
 func (w *whiteboard) GetChild(key string) Whiteboard {
@@ -162,6 +204,13 @@ func (w *whiteboard) Keys() []string {
 	defer w.Unlock()
 
 	return sortedKeys(w.data)
+}
+
+func (w *whiteboard) ObjectsKeys() []string {
+	w.Lock()
+	defer w.Unlock()
+
+	return sortedKeys(w.objects)
 }
 
 func (w *whiteboard) AsMap() map[string]string {

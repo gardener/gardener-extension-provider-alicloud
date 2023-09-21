@@ -202,19 +202,16 @@ func (c *FlowContext) getZoneSuffix(zoneName string) string {
 	}
 }
 
-func (c *FlowContext) getNatGatewaySWitchid() *string {
-	if switchId := c.state.Get(IdentifierNatGatewayVSwitch); switchId != nil {
-		return switchId
-	}
+func (c *FlowContext) getAllVSwitchid() []string {
+	ids := []string{}
 	zones := c.state.GetChild(ChildIdZones)
 	for _, key := range zones.GetChildrenKeys() {
 		theChild := zones.GetChild(key)
 		if switchId := theChild.Get(IdentifierZoneVSwitch); switchId != nil {
-			c.state.Set(IdentifierNatGatewayVSwitch, *switchId)
-			return switchId
+			ids = append(ids, *switchId)
 		}
 	}
-	return nil
+	return ids
 
 }
 

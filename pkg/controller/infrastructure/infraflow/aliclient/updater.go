@@ -41,9 +41,7 @@ func NewUpdater(actor Actor) Updater {
 }
 
 func (u *updater) UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error) {
-	if *desired.VswitchId != *current.VswitchId {
-		return false, fmt.Errorf("need recreate natgateway")
-	}
+
 	modified, err = u.UpdateVpcTags(ctx, current.NatGatewayId, desired.Tags, current.Tags, "NATGATEWAY")
 	if err != nil {
 		return
