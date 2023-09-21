@@ -16,7 +16,6 @@ package infraflow
 
 import (
 	"context"
-	"time"
 
 	"github.com/gardener/gardener/pkg/utils/flow"
 
@@ -39,21 +38,15 @@ func (c *FlowContext) Delete(ctx context.Context) error {
 
 func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 	deleteVPC := c.config.Networks.VPC.ID == nil
-	deleteNatGateway := deleteVPC || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
-
 	g := flow.NewGraph("Alicloud infrastructure destruction")
 
-	deleteNatgateway := c.AddTask(g, "delete natgateway",
-		c.deleteNatGateway,
-		DoIf(deleteNatGateway && c.hasNatGateway()), Timeout(defaultLongTimeout))
-
-	deleteVSwitches := c.AddTask(g, "delete vswitch",
-		c.deleteVSwitches,
-		Timeout(defaultTimeout), Dependencies(deleteNatgateway))
+	deleteZones := c.AddTask(g, "delete vswitch",
+		c.deleteZones,
+		Timeout(defaultTimeout))
 
 	_ = c.AddTask(g, "delete VPC",
 		c.deleteVpc,
-		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout), Dependencies(deleteVSwitches))
+		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout), Dependencies(deleteZones))
 
 	return g
 }
@@ -69,51 +62,11 @@ func (c *FlowContext) deleteVpc(ctx context.Context) error {
 		return err
 	}
 	if current != nil {
-		log.Info("deleting...", "VpcId", current.VpcId)
+		log.Info("deleting vpc ...", "VpcId", current.VpcId)
 		if err := c.actor.DeleteVpc(ctx, current.VpcId); err != nil {
 			return err
 		}
 	}
 	c.state.SetAsDeleted(IdentifierVPC)
-	return nil
-}
-
-func (c *FlowContext) deleteVSwitches(ctx context.Context) error {
-	log := c.LogFromContext(ctx)
-	current, err := c.collectExistingVSwitches(ctx)
-	if err != nil {
-		return err
-	}
-	for _, vsw := range current {
-		log.Info("deleting...", "VSwitchId", vsw.VSwitchId)
-		key := ChildIdZones + Separator + vsw.ZoneId + Separator + IdentifierZoneVSwitch
-		if c.state.IsAlreadyDeleted(key) {
-			continue
-		}
-		if err := c.actor.DeleteVSwitch(ctx, vsw.VSwitchId); err != nil {
-			return err
-		}
-		c.state.SetAsDeleted(key)
-	}
-	return nil
-}
-
-func (c *FlowContext) deleteNatGateway(ctx context.Context) error {
-	log := c.LogFromContext(ctx)
-	current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTags,
-		c.actor.GetNatGateway, c.actor.FindNatGatewayByTags)
-	if err != nil {
-		return err
-	}
-	if current != nil {
-		log.Info("deleting...", "NatgatewayId", current.NatGatewayId)
-		waiter := informOnWaiting(log, 10*time.Second, "still deleting...", "NatGatewayID", current.NatGatewayId)
-		err := c.actor.DeleteNatGateway(ctx, current.NatGatewayId)
-		waiter.Done(err)
-		if err != nil {
-			return err
-		}
-	}
-	c.state.SetAsDeleted(IdentifierNatGateway)
 	return nil
 }

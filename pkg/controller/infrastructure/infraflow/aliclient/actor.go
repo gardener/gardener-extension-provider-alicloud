@@ -77,10 +77,14 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 }
 
 func (c *actor) CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGateway, error) {
+	if len(ngw.AvailableVSwitches) == 0 {
+		return nil, fmt.Errorf("length of AvailableVSwitches is 0")
+	}
+
 	req := vpc.CreateCreateNatGatewayRequest()
 	req.Name = ngw.Name
 	req.VpcId = *ngw.VpcId
-	req.VSwitchId = *ngw.VswitchId
+	req.VSwitchId = ngw.AvailableVSwitches[0]
 	req.NatType = "Enhanced"
 	resp, err := callApi(c.vpcClient.CreateNatGateway, req)
 	if err != nil {
@@ -181,7 +185,9 @@ func (c *actor) FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGate
 		if err != nil {
 			return nil, err
 		}
-		ngwList = append(ngwList, ngw)
+		if ngw != nil {
+			ngwList = append(ngwList, ngw)
+		}
 	}
 
 	return ngwList, nil
@@ -266,7 +272,10 @@ func (c *actor) GetVSwitches(ctx context.Context, ids []string) ([]*VSwitch, err
 		if err != nil {
 			return nil, err
 		}
-		vswitchList = append(vswitchList, vsw)
+		if vsw != nil {
+			vswitchList = append(vswitchList, vsw)
+		}
+
 	}
 
 	return vswitchList, nil
@@ -294,6 +303,7 @@ func (c *actor) FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch,
 func (c *actor) DeleteVpc(ctx context.Context, id string) error {
 	req := vpc.CreateDeleteVpcRequest()
 	req.VpcId = id
+	req.ForceDelete = requests.NewBoolean(true)
 
 	_, err := callApi(c.vpcClient.DeleteVpc, req)
 	if err != nil {
@@ -382,7 +392,10 @@ func (c *actor) FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error) {
 		if err != nil {
 			return nil, err
 		}
-		vpcList = append(vpcList, theVpc)
+		if theVpc != nil {
+			vpcList = append(vpcList, theVpc)
+		}
+
 	}
 	return vpcList, nil
 

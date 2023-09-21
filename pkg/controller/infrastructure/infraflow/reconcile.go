@@ -52,7 +52,7 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		Timeout(defaultTimeout))
 
 	ensureVSwitches := c.AddTask(g, "ensure vswitch",
-		c.ensureVSwitches,
+		c.reconcileZones,
 		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
 	_ = c.AddTask(g, "ensure natgateway",
@@ -116,7 +116,7 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 			return err
 		}
 	} else {
-		log.Info("creating...")
+		log.Info("creating vpc ...")
 		created, err := c.actor.CreateVpc(ctx, desired)
 		if err != nil {
 			return fmt.Errorf("create VPC failed %w", err)
@@ -128,58 +128,6 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 			return err
 		}
 
-	}
-	if err := c.PersistState(ctx, true); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
-	var desired []*aliclient.VSwitch
-	for _, zone := range c.config.Networks.Zones {
-		zoneSuffix := c.getZoneSuffix(zone.Name)
-		workerSuffix := fmt.Sprintf("nodes-%s", zoneSuffix)
-		desired = append(desired,
-			&aliclient.VSwitch{
-				Name:      c.namespace + zone.Name + "-vsw",
-				CidrBlock: zone.Workers,
-				VpcId:     c.state.Get(IdentifierVPC),
-				Tags:      c.commonTagsWithSuffix(workerSuffix),
-				ZoneId:    zone.Name,
-			})
-
-	}
-
-	current, err := c.collectExistingVSwitches(ctx)
-	if err != nil {
-		return err
-	}
-
-	toBeDeleted, toBeCreated, toBeChecked := diffByID(desired, current, func(item *aliclient.VSwitch) string {
-		return item.ZoneId + "-" + item.CidrBlock
-	})
-	fmt.Println(toBeDeleted)
-	fmt.Println(toBeCreated)
-	fmt.Println(toBeChecked)
-	for _, desired := range toBeCreated {
-		created, err := c.actor.CreateVSwitch(ctx, desired)
-		if err != nil {
-			return err
-		}
-		c.state.GetChild(ChildIdZones).GetChild(desired.ZoneId).Set(IdentifierZoneVSwitch, created.VSwitchId)
-		_, err = c.updater.UpdateVSwitch(ctx, desired, created)
-		if err != nil {
-			return err
-		}
-	}
-	for _, vsw := range toBeChecked {
-		c.state.GetChild(ChildIdZones).GetChild(vsw.current.ZoneId).Set(IdentifierZoneVSwitch, vsw.current.VSwitchId)
-		_, err = c.updater.UpdateVSwitch(ctx, vsw.desired, vsw.current)
-		if err != nil {
-			return err
-		}
 	}
 	if err := c.PersistState(ctx, true); err != nil {
 		return err
@@ -248,16 +196,16 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 	log := c.LogFromContext(ctx)
 	log.Info("using managed NatGateway")
 
-	ngwSwitch := c.getNatGatewaySWitchid()
-	if ngwSwitch == nil {
-		return fmt.Errorf("can not determine natgateway zone")
+	availableVSwitches := c.getAllVSwitchid()
+	if len(availableVSwitches) == 0 {
+		return fmt.Errorf("no available VSwitchcan found for natgateway")
 	}
 
 	desired := &aliclient.NatGateway{
-		Tags:      c.commonTags,
-		Name:      c.namespace + "-natgw",
-		VswitchId: ngwSwitch,
-		VpcId:     c.state.Get(IdentifierVPC),
+		Tags:               c.commonTagsWithSuffix("natgw"),
+		Name:               c.namespace + "-natgw",
+		VpcId:              c.state.Get(IdentifierVPC),
+		AvailableVSwitches: availableVSwitches,
 	}
 
 	current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTags,
@@ -268,13 +216,15 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 	}
 	if current != nil {
 		c.state.Set(IdentifierNatGateway, current.NatGatewayId)
-
+		if !contains(desired.AvailableVSwitches, *current.VswitchId) {
+			return fmt.Errorf("the natgateway should be deleted")
+		}
 		_, err := c.updater.UpdateNatgateway(ctx, desired, current)
 		if err != nil {
 			return err
 		}
 	} else {
-		log.Info("creating...")
+		log.Info("creating natgateway ...")
 		waiter := informOnWaiting(log, 10*time.Second, "still createing natgateway...")
 		created, err := c.actor.CreateNatGateway(ctx, desired)
 		waiter.Done(err)
@@ -294,4 +244,8 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 	}
 	return nil
 
+}
+
+func getZoneName(item *aliclient.VSwitch) string {
+	return item.ZoneId
 }

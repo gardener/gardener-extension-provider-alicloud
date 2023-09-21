@@ -165,3 +165,12 @@ func copyMap(src map[string]string) map[string]string {
 	}
 	return dst
 }
+
+func contains(elems []string, elem string) bool {
+	for _, e := range elems {
+		if e == elem {
+			return true
+		}
+	}
+	return false
+}
