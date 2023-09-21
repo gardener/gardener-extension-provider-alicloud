@@ -25,6 +25,7 @@ type Updater interface {
 	UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error)
 	UpdateVSwitch(ctx context.Context, desired, current *VSwitch) (modified bool, err error)
 	UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error)
+	UpdateEIP(ctx context.Context, desired, current *EIP) (modified bool, err error)
 }
 
 type updater struct {
@@ -38,6 +39,20 @@ func NewUpdater(actor Actor) Updater {
 	return &updater{
 		actor: actor,
 	}
+}
+
+func (u *updater) UpdateEIP(ctx context.Context, desired, current *EIP) (modified bool, err error) {
+	if desired.Bandwidth != current.Bandwidth {
+		u.actor.ModifyEIP(ctx, current.EipId, desired)
+		modified = true
+	}
+	tagModified, err := u.UpdateVpcTags(ctx, current.EipId, desired.Tags, current.Tags, "EIP")
+	if err != nil {
+		return
+	}
+	modified = modified || tagModified
+
+	return
 }
 
 func (u *updater) UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error) {

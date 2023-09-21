@@ -23,9 +23,93 @@ import (
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
 	"github.com/gardener/gardener/pkg/utils/flow"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
-func (c *FlowContext) reconcileZones(ctx context.Context) error {
+func (c *FlowContext) ensureZones(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	log.Info("begin ensure zones")
+	g := flow.NewGraph("Alicloud infrastructure : zones")
+
+	for _, zone := range c.config.Networks.Zones {
+		c.addZoneReconcileTasks(g, zone.Name)
+	}
+
+	f := g.Compile()
+	if err := f.Run(ctx, flow.Opts{Log: c.Log}); err != nil {
+		return flow.Causes(err)
+	}
+	return nil
+}
+
+func (c *FlowContext) addZoneReconcileTasks(g *flow.Graph, zoneName string) {
+	_ = c.AddTask(g, "ensure NAT gateway elastic IP "+zoneName,
+		c.ensureElasticIP(zoneName),
+		Timeout(defaultLongTimeout))
+
+}
+
+func (c *FlowContext) ensureElasticIP(zoneName string) flow.TaskFn {
+	return func(ctx context.Context) error {
+		zone := c.getZoneConfig(zoneName)
+		if zone == nil {
+			return fmt.Errorf("can not get zone config for %s", zoneName)
+		}
+		log := c.LogFromContext(ctx)
+		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
+
+			eipId := *zone.NatGateway.EIPAllocationID
+			log.Info("using configured EIP", "eipId", eipId)
+			current, err := c.actor.GetEIP(ctx, eipId)
+			if err != nil {
+				return err
+			}
+			if current == nil {
+				return fmt.Errorf("EIP %s has not been found", eipId)
+			}
+			return nil
+		}
+
+		zoneSuffix := c.getZoneSuffix(zone.Name)
+		eipSuffix := fmt.Sprintf("eip-natgw-%s", zoneSuffix)
+		child := c.getZoneChild(zone.Name)
+		id := child.Get(IdentifierZoneNATGWElasticIP)
+		desired := &aliclient.EIP{
+			Name:               c.namespace + "-" + eipSuffix,
+			Tags:               c.commonTagsWithSuffix(eipSuffix),
+			Bandwidth:          "100",
+			InternetChargeType: "PayByTraffic",
+		}
+		current, err := findExisting(ctx, id, desired.Tags, c.actor.GetEIP, c.actor.FindEIPsByTags)
+		if err != nil {
+			return err
+		}
+
+		if current != nil {
+			child.Set(IdentifierZoneNATGWElasticIP, current.EipId)
+			if _, err := c.updater.UpdateEIP(ctx, desired, current); err != nil {
+				return err
+			}
+		} else {
+			log.Info("creating...")
+			created, err := c.actor.CreateEIP(ctx, desired)
+			if err != nil {
+				return err
+			}
+			child.Set(IdentifierZoneNATGWElasticIP, created.EipId)
+			if _, err := c.updater.UpdateEIP(ctx, desired, created); err != nil {
+				return err
+			}
+		}
+		if err := c.PersistState(ctx, true); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	log := c.LogFromContext(ctx)
 	var desired []*aliclient.VSwitch
 	for _, zone := range c.config.Networks.Zones {
@@ -33,7 +117,7 @@ func (c *FlowContext) reconcileZones(ctx context.Context) error {
 		workerSuffix := fmt.Sprintf("nodes-%s", zoneSuffix)
 		desired = append(desired,
 			&aliclient.VSwitch{
-				Name:      c.namespace + zone.Name + "-vsw",
+				Name:      c.namespace + "-" + zone.Name + "-vsw",
 				CidrBlock: zone.Workers,
 				VpcId:     c.state.Get(IdentifierVPC),
 				Tags:      c.commonTagsWithSuffix(workerSuffix),
@@ -123,7 +207,40 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 }
 
 func (c *FlowContext) addZoneDeletionTasks(g *flow.Graph, zoneName string) flow.TaskIDer {
-	return nil
+
+	deleteElasticIP := c.AddTask(g, "delete NAT gateway elastic IP "+zoneName,
+		c.deleteElasticIP(zoneName),
+		Timeout(defaultTimeout))
+
+	return deleteElasticIP
+}
+
+func (c *FlowContext) deleteElasticIP(zoneName string) flow.TaskFn {
+	return func(ctx context.Context) error {
+		child := c.getZoneChild(zoneName)
+		if child.IsAlreadyDeleted(IdentifierZoneNATGWElasticIP) {
+			return nil
+		}
+		zoneSuffix := c.getZoneSuffix(zoneName)
+		eipSuffix := fmt.Sprintf("eip-natgw-%s", zoneSuffix)
+		tags := c.commonTagsWithSuffix(eipSuffix)
+		current, err := findExisting(ctx, child.Get(IdentifierZoneNATGWElasticIP), tags, c.actor.GetEIP, c.actor.FindEIPsByTags)
+		if err != nil {
+			return err
+		}
+		if current != nil {
+			log := c.LogFromContext(ctx)
+			log.Info("deleting...", "AllocationId", current.EipId)
+			waiter := informOnWaiting(log, 10*time.Second, "still deleting...", "AllocationId", current.EipId)
+			err = c.actor.DeleteEIP(ctx, current.EipId)
+			waiter.Done(err)
+			if err != nil {
+				return err
+			}
+		}
+		child.SetAsDeleted(IdentifierZoneNATGWElasticIP)
+		return nil
+	}
 }
 
 func (c *FlowContext) deleteNatGatewayInVSwitches(vswitchIds []string) flow.TaskFn {
@@ -176,4 +293,17 @@ func (c *FlowContext) deleteZones(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (c *FlowContext) getZoneConfig(zoneName string) *alicloud.Zone {
+	for _, zone := range c.config.Networks.Zones {
+		if zone.Name == zoneName {
+			return &zone
+		}
+	}
+	return nil
+}
+
+func (c *FlowContext) getZoneChild(zoneName string) Whiteboard {
+	return c.state.GetChild(ChildIdZones).GetChild(zoneName)
 }

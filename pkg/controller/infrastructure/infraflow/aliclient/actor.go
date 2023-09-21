@@ -34,20 +34,29 @@ import (
 type Actor interface {
 	CreateVpc(ctx context.Context, vpc *VPC) (*VPC, error)
 	GetVpc(ctx context.Context, id string) (*VPC, error)
+	ListVpcs(ctx context.Context, ids []string) ([]*VPC, error)
 	FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error)
 	DeleteVpc(ctx context.Context, id string) error
 
 	CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, error)
 	GetVSwitch(ctx context.Context, id string) (*VSwitch, error)
-	GetVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error)
+	ListVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error)
 	FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch, error)
 	DeleteVSwitch(ctx context.Context, id string) error
 
 	CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGateway, error)
 	GetNatGateway(ctx context.Context, id string) (*NatGateway, error)
+	ListNatGateways(ctx context.Context, ids []string) ([]*NatGateway, error)
 	FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGateway, error)
 	FindNatGatewayByVPC(ctx context.Context, vpcId string) (*NatGateway, error)
 	DeleteNatGateway(ctx context.Context, id string) error
+
+	CreateEIP(ctx context.Context, eip *EIP) (*EIP, error)
+	GetEIP(ctx context.Context, id string) (*EIP, error)
+	ListEIPs(ctx context.Context, ids []string) ([]*EIP, error)
+	FindEIPsByTags(ctx context.Context, tags Tags) ([]*EIP, error)
+	DeleteEIP(ctx context.Context, id string) error
+	ModifyEIP(ctx context.Context, id string, eip *EIP) error
 
 	CreateVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
 	DeleteVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
@@ -74,6 +83,125 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 		Logger:       log.Log.WithName("alicloud-client"),
 		PollInterval: 5 * time.Second,
 	}, nil
+}
+
+func (c *actor) ModifyEIP(ctx context.Context, id string, eip *EIP) error {
+	req := vpc.CreateModifyEipAddressAttributeRequest()
+	req.AllocationId = id
+	req.Bandwidth = eip.Bandwidth
+	_, err := callApi(c.vpcClient.ModifyEipAddressAttribute, req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *actor) CreateEIP(ctx context.Context, eip *EIP) (*EIP, error) {
+	req := vpc.CreateAllocateEipAddressRequest()
+	req.Name = eip.Name
+	req.Bandwidth = eip.Bandwidth
+	req.InstanceChargeType = "PostPaid"
+	req.InternetChargeType = eip.InternetChargeType
+
+	resp, err := callApi(c.vpcClient.AllocateEipAddress, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *EIP
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+
+		created, err = c.GetEIP(ctx, resp.AllocationId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+
+		return true, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
+
+}
+
+func (c *actor) GetEIP(ctx context.Context, id string) (*EIP, error) {
+	return c.getEIP(id)
+}
+
+func (c *actor) getEIP(id string) (*EIP, error) {
+	req := vpc.CreateDescribeEipAddressesRequest()
+	req.AllocationId = id
+	resp, err := c.describeEIP(req)
+
+	return single(resp, err)
+}
+
+func (c *actor) ListEIPs(ctx context.Context, ids []string) ([]*EIP, error) {
+	return listByIds(c.getEIP, ids)
+}
+
+func (c *actor) FindEIPsByTags(ctx context.Context, tags Tags) ([]*EIP, error) {
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "EIP"
+
+	var reqTag []vpc.ListTagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, vpc.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	// var eipList []*EIP
+	idList, err := c.listTagResources(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return c.ListEIPs(ctx, idList)
+	// for _, id := range idList {
+	// 	eip, err := c.GetEIP(ctx, id)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if eip != nil {
+	// 		eipList = append(eipList, eip)
+	// 	}
+	// }
+
+	// return eipList, nil
+}
+
+func (c *actor) DeleteEIP(ctx context.Context, id string) error {
+	req := vpc.CreateReleaseEipAddressRequest()
+	req.AllocationId = id
+	_, err := callApi(c.vpcClient.ReleaseEipAddress, req)
+	if err != nil {
+		return err
+	}
+
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		current, err := c.GetEIP(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		if current == nil {
+			return true, nil
+		}
+		return false, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 func (c *actor) CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGateway, error) {
@@ -117,18 +245,26 @@ func (c *actor) CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGate
 }
 
 func (c *actor) GetNatGateway(ctx context.Context, id string) (*NatGateway, error) {
+	return c.getNatGateway(id)
+}
+
+func (c *actor) getNatGateway(id string) (*NatGateway, error) {
 	req := vpc.CreateDescribeNatGatewaysRequest()
 	req.NatGatewayId = id
-	resp, err := c.describeNatGateway(ctx, req)
+	resp, err := c.describeNatGateway(req)
 
 	return single(resp, err)
+}
+
+func (c *actor) ListNatGateways(ctx context.Context, ids []string) ([]*NatGateway, error) {
+	return listByIds(c.getNatGateway, ids)
 }
 
 func (c *actor) FindNatGatewayByVPC(ctx context.Context, vpcId string) (*NatGateway, error) {
 	req := vpc.CreateDescribeNatGatewaysRequest()
 	req.VpcId = vpcId
 
-	resp, err := c.describeNatGateway(ctx, req)
+	resp, err := c.describeNatGateway(req)
 	if err != nil {
 		return nil, err
 	}
@@ -175,22 +311,23 @@ func (c *actor) FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGate
 	}
 	req.Tag = &reqTag
 
-	var ngwList []*NatGateway
+	// var ngwList []*NatGateway
 	idList, err := c.listTagResources(ctx, req)
 	if err != nil {
-		return ngwList, err
+		return nil, err
 	}
-	for _, id := range idList {
-		ngw, err := c.GetNatGateway(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		if ngw != nil {
-			ngwList = append(ngwList, ngw)
-		}
-	}
+	return c.ListNatGateways(ctx, idList)
+	// for _, id := range idList {
+	// 	ngw, err := c.GetNatGateway(ctx, id)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if ngw != nil {
+	// 		ngwList = append(ngwList, ngw)
+	// 	}
+	// }
 
-	return ngwList, nil
+	// return ngwList, nil
 
 }
 
@@ -257,28 +394,34 @@ func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, erro
 
 	return created, nil
 }
+
 func (c *actor) GetVSwitch(ctx context.Context, id string) (*VSwitch, error) {
+	return c.getVSwitch(id)
+}
+
+func (c *actor) getVSwitch(id string) (*VSwitch, error) {
 
 	req := vpc.CreateDescribeVSwitchesRequest()
 	req.VSwitchId = id
-	resp, err := c.describeVSwitches(ctx, req)
+	resp, err := c.describeVSwitches(req)
 	return single(resp, err)
 }
 
-func (c *actor) GetVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error) {
-	var vswitchList []*VSwitch
-	for _, id := range ids {
-		vsw, err := c.GetVSwitch(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		if vsw != nil {
-			vswitchList = append(vswitchList, vsw)
-		}
+func (c *actor) ListVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error) {
+	return listByIds(c.getVSwitch, ids)
+	// var vswitchList []*VSwitch
+	// for _, id := range ids {
+	// 	vsw, err := c.GetVSwitch(ctx, id)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if vsw != nil {
+	// 		vswitchList = append(vswitchList, vsw)
+	// 	}
 
-	}
+	// }
 
-	return vswitchList, nil
+	// return vswitchList, nil
 }
 
 func (c *actor) FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch, error) {
@@ -291,13 +434,16 @@ func (c *actor) FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch,
 	}
 	req.Tag = &reqTag
 
-	var vswitchList []*VSwitch
 	idList, err := c.listTagResources(ctx, req)
 	if err != nil {
-		return vswitchList, err
+		return nil, err
 	}
-	return c.GetVSwitches(ctx, idList)
+	return c.ListVSwitches(ctx, idList)
 
+}
+
+func (c *actor) ListVpcs(ctx context.Context, ids []string) ([]*VPC, error) {
+	return listByIds(c.getVpc, ids)
 }
 
 func (c *actor) DeleteVpc(ctx context.Context, id string) error {
@@ -364,11 +510,15 @@ func (c *actor) CreateVpc(ctx context.Context, desired *VPC) (*VPC, error) {
 }
 
 func (c *actor) GetVpc(ctx context.Context, id string) (*VPC, error) {
+	return c.getVpc(id)
+}
+
+func (c *actor) getVpc(id string) (*VPC, error) {
 
 	req := vpc.CreateDescribeVpcsRequest()
 	req.VpcId = id
 
-	resp, err := c.describeVpcs(ctx, req)
+	resp, err := c.describeVpcs(req)
 	return single(resp, err)
 }
 
@@ -382,22 +532,23 @@ func (c *actor) FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error) {
 	}
 	req.Tag = &reqTag
 
-	var vpcList []*VPC
+	// var vpcList []*VPC
 	idList, err := c.listTagResources(ctx, req)
 	if err != nil {
-		return vpcList, err
+		return nil, err
 	}
-	for _, id := range idList {
-		theVpc, err := c.GetVpc(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		if theVpc != nil {
-			vpcList = append(vpcList, theVpc)
-		}
+	return c.ListVpcs(ctx, idList)
+	// for _, id := range idList {
+	// 	theVpc, err := c.GetVpc(ctx, id)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if theVpc != nil {
+	// 		vpcList = append(vpcList, theVpc)
+	// 	}
 
-	}
-	return vpcList, nil
+	// }
+	// return vpcList, nil
 
 }
 
@@ -461,12 +612,35 @@ func (c *actor) listTagResources(ctx context.Context, req *vpc.ListTagResourcesR
 	return idList, nil
 }
 
-func (c *actor) describeNatGateway(ctx context.Context, req *vpc.DescribeNatGatewaysRequest) ([]*NatGateway, error) {
+func (c *actor) describeEIP(req *vpc.DescribeEipAddressesRequest) ([]*EIP, error) {
+	var eipList []*EIP
+
+	respList, err := call_describe(c.vpcClient.DescribeEipAddresses, req)
+	if err != nil {
+		return nil, err
+	}
+	var theList []vpc.EipAddress
+	for _, resp := range respList {
+		theList = append(theList, resp.EipAddresses.EipAddress...)
+	}
+
+	for _, item := range theList {
+		eip, err := c.fromEip(item)
+		if err == nil && eip != nil {
+			eipList = append(eipList, eip)
+		}
+	}
+
+	return eipList, nil
+
+}
+
+func (c *actor) describeNatGateway(req *vpc.DescribeNatGatewaysRequest) ([]*NatGateway, error) {
 	var ngwList []*NatGateway
 
 	respList, err := call_describe(c.vpcClient.DescribeNatGateways, req)
 	if err != nil {
-		return ngwList, err
+		return nil, err
 	}
 	var theList []vpc.NatGateway
 	for _, resp := range respList {
@@ -484,12 +658,12 @@ func (c *actor) describeNatGateway(ctx context.Context, req *vpc.DescribeNatGate
 
 }
 
-func (c *actor) describeVpcs(ctx context.Context, req *vpc.DescribeVpcsRequest) ([]*VPC, error) {
+func (c *actor) describeVpcs(req *vpc.DescribeVpcsRequest) ([]*VPC, error) {
 	var vpcList []*VPC
 
 	respList, err := call_describe(c.vpcClient.DescribeVpcs, req)
 	if err != nil {
-		return vpcList, err
+		return nil, err
 	}
 	var theList []vpc.Vpc
 	for _, resp := range respList {
@@ -507,13 +681,13 @@ func (c *actor) describeVpcs(ctx context.Context, req *vpc.DescribeVpcsRequest) 
 
 }
 
-func (c *actor) describeVSwitches(ctx context.Context, req *vpc.DescribeVSwitchesRequest) ([]*VSwitch, error) {
+func (c *actor) describeVSwitches(req *vpc.DescribeVSwitchesRequest) ([]*VSwitch, error) {
 
 	var vswitchList []*VSwitch
 
 	respList, err := call_describe(c.vpcClient.DescribeVSwitches, req)
 	if err != nil {
-		return vswitchList, err
+		return nil, err
 	}
 	var theList []vpc.VSwitch
 	for _, resp := range respList {
@@ -563,6 +737,22 @@ func (c *actor) fromNatGateway(item vpc.NatGateway) (*NatGateway, error) {
 	return ngw, nil
 }
 
+func (c *actor) fromEip(item vpc.EipAddress) (*EIP, error) {
+	eip := &EIP{
+		Name:               item.Name,
+		Bandwidth:          item.Bandwidth,
+		InternetChargeType: item.InternetChargeType,
+		EipId:              item.AllocationId,
+		Status:             &item.Status,
+	}
+	tags := Tags{}
+	for _, t := range item.Tags.Tag {
+		tags[t.Key] = t.Value
+	}
+	eip.Tags = tags
+	return eip, nil
+}
+
 func (c *actor) fromVpc(item vpc.Vpc) (*VPC, error) {
 	vpc := &VPC{
 		Name:  item.VpcName,
@@ -581,9 +771,27 @@ func (c *actor) fromVpc(item vpc.Vpc) (*VPC, error) {
 	return vpc, nil
 }
 
+func listByIds[RESP any](geter func(id string) (*RESP, error), ids []string) ([]*RESP, error) {
+	var theList []*RESP
+	for _, id := range ids {
+		obj, err := geter(id)
+		if err != nil {
+			return nil, err
+		}
+		if obj != nil {
+			theList = append(theList, obj)
+		}
+	}
+	return theList, nil
+}
+
 func callApi[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) (*RESP, error) {
 	var resp *RESP
 	var err error
+	retry_error_code_list := []string{
+		"Throttling.User",
+		"TaskConflict",
+	}
 	try_count := 0
 	for {
 		need_try := false
@@ -592,13 +800,13 @@ func callApi[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) (*
 		resp, err = call(req)
 		if err != nil {
 			if serverErr, ok := err.(*alierrors.ServerError); ok {
-				if serverErr.ErrorCode() == "Throttling.User" && try_count < 5 {
+				if contains(retry_error_code_list, serverErr.ErrorCode()) && try_count < 5 {
 					need_try = true
 				}
 			}
 		}
 		if need_try {
-			time.Sleep(10 * time.Second)
+			time.Sleep(5 * time.Second)
 		} else {
 			break
 		}
@@ -610,6 +818,7 @@ func call_describe[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *R
 		"DescribeVpcsRequest",
 		"DescribeVSwitchesRequest",
 		"DescribeNatGatewaysRequest",
+		"DescribeEipAddressesRequest",
 	}
 
 	reqTypeName := reflect.ValueOf(req).Elem().Type().Name()
