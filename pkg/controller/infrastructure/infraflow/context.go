@@ -50,6 +50,8 @@ const (
 	IdentifierNatGatewayVSwitch = "NatGatewayVSwitch"
 	IdentifierZoneVSwitch       = "VSwitch"
 	IdentifierNatGateway        = "NatGateway"
+	// IdentifierZoneNATGWElasticIP is the key for the id of the elastic IP resource used for the NAT gateway
+	IdentifierZoneNATGWElasticIP = "NATGatewayElasticIP"
 
 	// IdentifierDHCPOptions is the key for the id of the DHCPOptions resource
 	IdentifierDHCPOptions = "DHCPOptions"
@@ -69,8 +71,7 @@ const (
 	IdentifierZoneSubnetPrivate = "SubnetPrivateUtility"
 	// IdentifierZoneSuffix is the key for the suffix used for a zone
 	IdentifierZoneSuffix = "Suffix"
-	// IdentifierZoneNATGWElasticIP is the key for the id of the elastic IP resource used for the NAT gateway
-	IdentifierZoneNATGWElasticIP = "NATGatewayElasticIP"
+
 	// IdentifierZoneNATGateway is the key for the id of the NAT gateway resource
 	IdentifierZoneNATGateway = "NATGateway"
 	// IdentifierZoneRouteTable is the key for the id of route table of the zone

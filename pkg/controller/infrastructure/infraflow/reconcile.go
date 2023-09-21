@@ -52,12 +52,16 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		Timeout(defaultTimeout))
 
 	ensureVSwitches := c.AddTask(g, "ensure vswitch",
-		c.reconcileZones,
+		c.ensureVSwitches,
 		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
-	_ = c.AddTask(g, "ensure natgateway",
+	ensureNatGateway := c.AddTask(g, "ensure natgateway",
 		c.ensureNatGateway,
 		Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
+
+	_ = c.AddTask(g, "ensure zones",
+		c.ensureZones,
+		Timeout(defaultTimeout), Dependencies(ensureNatGateway))
 
 	return g
 }
@@ -147,7 +151,7 @@ func (c *FlowContext) collectExistingVSwitches(ctx context.Context) ([]*aliclien
 	}
 	var current []*aliclient.VSwitch
 	if len(ids) > 0 {
-		found, err := c.actor.GetVSwitches(ctx, ids)
+		found, err := c.actor.ListVSwitches(ctx, ids)
 		if err != nil {
 			return nil, err
 		}

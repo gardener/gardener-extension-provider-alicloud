@@ -133,6 +133,10 @@ type VPC interface {
 	DeleteNatGateway(request *vpc.DeleteNatGatewayRequest) (response *vpc.DeleteNatGatewayResponse, err error)
 	DescribeSnatTableEntries(request *vpc.DescribeSnatTableEntriesRequest) (response *vpc.DescribeSnatTableEntriesResponse, err error)
 	DescribeEipAddresses(request *vpc.DescribeEipAddressesRequest) (response *vpc.DescribeEipAddressesResponse, err error)
+
+	AllocateEipAddress(request *vpc.AllocateEipAddressRequest) (response *vpc.AllocateEipAddressResponse, err error)
+	ReleaseEipAddress(request *vpc.ReleaseEipAddressRequest) (response *vpc.ReleaseEipAddressResponse, err error)
+	ModifyEipAddressAttribute(request *vpc.ModifyEipAddressAttributeRequest) (response *vpc.ModifyEipAddressAttributeResponse, err error)
 }
 
 // ramClient implements the RAM interface.

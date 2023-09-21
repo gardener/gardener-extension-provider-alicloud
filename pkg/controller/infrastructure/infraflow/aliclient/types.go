@@ -41,3 +41,13 @@ type NatGateway struct {
 	Status             *string
 	AvailableVSwitches []string
 }
+
+type EIP struct {
+	Tags
+	Name               string
+	Bandwidth          string
+	InternetChargeType string
+	ZoneId             string
+	Status             *string
+	EipId              string
+}
