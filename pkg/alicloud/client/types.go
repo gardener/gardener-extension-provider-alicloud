@@ -137,6 +137,8 @@ type VPC interface {
 	AllocateEipAddress(request *vpc.AllocateEipAddressRequest) (response *vpc.AllocateEipAddressResponse, err error)
 	ReleaseEipAddress(request *vpc.ReleaseEipAddressRequest) (response *vpc.ReleaseEipAddressResponse, err error)
 	ModifyEipAddressAttribute(request *vpc.ModifyEipAddressAttributeRequest) (response *vpc.ModifyEipAddressAttributeResponse, err error)
+	AssociateEipAddress(request *vpc.AssociateEipAddressRequest) (response *vpc.AssociateEipAddressResponse, err error)
+	UnassociateEipAddress(request *vpc.UnassociateEipAddressRequest) (response *vpc.UnassociateEipAddressResponse, err error)
 }
 
 // ramClient implements the RAM interface.
