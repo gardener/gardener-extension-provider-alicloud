@@ -60,6 +60,11 @@ type Actor interface {
 	AssociateEIP(ctx context.Context, id, to, insType string) error
 	UnAssociateEIP(ctx context.Context, eip *EIP) error
 
+	CreateSNatEntry(ctx context.Context, entry *SNATEntry) (*SNATEntry, error)
+	GetSNatEntry(ctx context.Context, id, snatTableId string) (*SNATEntry, error)
+	FindSNatEntriesByNatGateway(ctx context.Context, ngwId string) ([]*SNATEntry, error)
+	DeleteSNatEntry(ctx context.Context, id, snatTableId string) error
+
 	CreateVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
 	DeleteVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
 }
@@ -85,6 +90,91 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 		Logger:       log.Log.WithName("alicloud-client"),
 		PollInterval: 5 * time.Second,
 	}, nil
+}
+
+func (c *actor) FindSNatEntriesByNatGateway(ctx context.Context, ngwId string) ([]*SNATEntry, error) {
+	req := vpc.CreateDescribeSnatTableEntriesRequest()
+	req.NatGatewayId = ngwId
+
+	resp, err := c.describeSNATEntry(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *actor) CreateSNatEntry(ctx context.Context, entry *SNATEntry) (*SNATEntry, error) {
+	req := vpc.CreateCreateSnatEntryRequest()
+	req.SnatTableId = entry.SnatTableId
+	req.SourceVSwitchId = entry.VSwitchId
+	req.SnatIp = entry.IpAddress
+	req.SnatEntryName = entry.Name
+
+	resp, err := callApi(c.vpcClient.CreateSnatEntry, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *SNATEntry
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+
+		created, err = c.GetSNatEntry(ctx, resp.SnatEntryId, entry.SnatTableId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+		return true, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
+
+}
+func (c *actor) GetSNatEntry(ctx context.Context, id, snatTableId string) (*SNATEntry, error) {
+	return c.getSNatEntry(id, snatTableId)
+}
+
+func (c *actor) getSNatEntry(id, snatTableId string) (*SNATEntry, error) {
+	req := vpc.CreateDescribeSnatTableEntriesRequest()
+	req.SnatEntryId = id
+	req.SnatTableId = snatTableId
+	resp, err := c.describeSNATEntry(req)
+
+	return single(resp, err)
+}
+
+func (c *actor) DeleteSNatEntry(ctx context.Context, id, snatTableId string) error {
+	req := vpc.CreateDeleteSnatEntryRequest()
+	req.SnatEntryId = id
+	req.SnatTableId = snatTableId
+	_, err := callApi(c.vpcClient.DeleteSnatEntry, req)
+	if err != nil {
+		return err
+	}
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+		current, err := c.GetSNatEntry(ctx, id, snatTableId)
+		if err != nil {
+			return false, err
+		}
+		if current == nil {
+			return true, nil
+		}
+		return false, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 func (c *actor) ModifyEIP(ctx context.Context, id string, eip *EIP) error {
@@ -229,23 +319,12 @@ func (c *actor) FindEIPsByTags(ctx context.Context, tags Tags) ([]*EIP, error) {
 	}
 	req.Tag = &reqTag
 
-	// var eipList []*EIP
 	idList, err := c.listTagResources(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 	return c.ListEIPs(ctx, idList)
-	// for _, id := range idList {
-	// 	eip, err := c.GetEIP(ctx, id)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	if eip != nil {
-	// 		eipList = append(eipList, eip)
-	// 	}
-	// }
 
-	// return eipList, nil
 }
 
 func (c *actor) DeleteEIP(ctx context.Context, id string) error {
@@ -378,23 +457,11 @@ func (c *actor) FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGate
 	}
 	req.Tag = &reqTag
 
-	// var ngwList []*NatGateway
 	idList, err := c.listTagResources(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 	return c.ListNatGateways(ctx, idList)
-	// for _, id := range idList {
-	// 	ngw, err := c.GetNatGateway(ctx, id)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	if ngw != nil {
-	// 		ngwList = append(ngwList, ngw)
-	// 	}
-	// }
-
-	// return ngwList, nil
 
 }
 
@@ -474,19 +541,6 @@ func (c *actor) getVSwitch(id string) (*VSwitch, error) {
 
 func (c *actor) ListVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error) {
 	return listByIds(c.getVSwitch, ids)
-	// var vswitchList []*VSwitch
-	// for _, id := range ids {
-	// 	vsw, err := c.GetVSwitch(ctx, id)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	if vsw != nil {
-	// 		vswitchList = append(vswitchList, vsw)
-	// 	}
-
-	// }
-
-	// return vswitchList, nil
 }
 
 func (c *actor) FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch, error) {
@@ -601,17 +655,6 @@ func (c *actor) FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error) {
 		return nil, err
 	}
 	return c.ListVpcs(ctx, idList)
-	// for _, id := range idList {
-	// 	theVpc, err := c.GetVpc(ctx, id)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	if theVpc != nil {
-	// 		vpcList = append(vpcList, theVpc)
-	// 	}
-
-	// }
-	// return vpcList, nil
 
 }
 
@@ -673,6 +716,29 @@ func (c *actor) listTagResources(ctx context.Context, req *vpc.ListTagResourcesR
 	}
 
 	return idList, nil
+}
+
+func (c *actor) describeSNATEntry(req *vpc.DescribeSnatTableEntriesRequest) ([]*SNATEntry, error) {
+	var entryList []*SNATEntry
+
+	respList, err := call_describe(c.vpcClient.DescribeSnatTableEntries, req)
+	if err != nil {
+		return nil, err
+	}
+	var theList []vpc.SnatTableEntry
+	for _, resp := range respList {
+		theList = append(theList, resp.SnatTableEntries.SnatTableEntry...)
+	}
+
+	for _, item := range theList {
+		entry, err := c.fromSNATEntry(item)
+		if err == nil && entry != nil {
+			entryList = append(entryList, entry)
+		}
+	}
+
+	return entryList, nil
+
 }
 
 func (c *actor) describeEIP(req *vpc.DescribeEipAddressesRequest) ([]*EIP, error) {
@@ -806,6 +872,19 @@ func (c *actor) fromNatGateway(item vpc.NatGateway) (*NatGateway, error) {
 	return ngw, nil
 }
 
+func (c *actor) fromSNATEntry(item vpc.SnatTableEntry) (*SNATEntry, error) {
+	entry := &SNATEntry{
+		Name:        item.SnatEntryName,
+		VSwitchId:   item.SourceVSwitchId,
+		IpAddress:   item.SnatIp,
+		SnatTableId: item.SnatTableId,
+		SnatEntryId: item.SnatEntryId,
+		Status:      &item.Status,
+	}
+	return entry, nil
+
+}
+
 func (c *actor) fromEip(item vpc.EipAddress) (*EIP, error) {
 	eip := &EIP{
 		Name:               item.Name,
@@ -815,6 +894,7 @@ func (c *actor) fromEip(item vpc.EipAddress) (*EIP, error) {
 		Status:             &item.Status,
 		InstanceType:       &item.InstanceType,
 		InstanceId:         &item.InstanceId,
+		IpAddress:          item.IpAddress,
 	}
 	tags := Tags{}
 	for _, t := range item.Tags.Tag {
@@ -890,6 +970,7 @@ func call_describe[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *R
 		"DescribeVSwitchesRequest",
 		"DescribeNatGatewaysRequest",
 		"DescribeEipAddressesRequest",
+		"DescribeSnatTableEntriesRequest",
 	}
 
 	reqTypeName := reflect.ValueOf(req).Elem().Type().Name()

@@ -139,6 +139,8 @@ type VPC interface {
 	ModifyEipAddressAttribute(request *vpc.ModifyEipAddressAttributeRequest) (response *vpc.ModifyEipAddressAttributeResponse, err error)
 	AssociateEipAddress(request *vpc.AssociateEipAddressRequest) (response *vpc.AssociateEipAddressResponse, err error)
 	UnassociateEipAddress(request *vpc.UnassociateEipAddressRequest) (response *vpc.UnassociateEipAddressResponse, err error)
+	CreateSnatEntry(request *vpc.CreateSnatEntryRequest) (response *vpc.CreateSnatEntryResponse, err error)
+	DeleteSnatEntry(request *vpc.DeleteSnatEntryRequest) (response *vpc.DeleteSnatEntryResponse, err error)
 }
 
 // ramClient implements the RAM interface.

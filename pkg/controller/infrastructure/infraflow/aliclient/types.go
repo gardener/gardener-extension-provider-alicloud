@@ -53,4 +53,15 @@ type EIP struct {
 	EipId              string
 	InstanceType       *string
 	InstanceId         *string
+	IpAddress          string
+}
+
+type SNATEntry struct {
+	Name         string
+	NatGatewayId string
+	VSwitchId    string
+	IpAddress    string
+	SnatTableId  string
+	SnatEntryId  string
+	Status       *string
 }

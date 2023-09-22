@@ -26,6 +26,7 @@ type Updater interface {
 	UpdateVSwitch(ctx context.Context, desired, current *VSwitch) (modified bool, err error)
 	UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error)
 	UpdateEIP(ctx context.Context, desired, current *EIP) (modified bool, err error)
+	UpdateSNATEntry(ctx context.Context, desired, current *SNATEntry) (modified bool, err error)
 }
 
 type updater struct {
@@ -39,6 +40,10 @@ func NewUpdater(actor Actor) Updater {
 	return &updater{
 		actor: actor,
 	}
+}
+
+func (u *updater) UpdateSNATEntry(ctx context.Context, desired, current *SNATEntry) (modified bool, err error) {
+	return
 }
 
 func (u *updater) UpdateEIP(ctx context.Context, desired, current *EIP) (modified bool, err error) {
