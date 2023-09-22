@@ -44,10 +44,47 @@ func (c *FlowContext) ensureZones(ctx context.Context) error {
 }
 
 func (c *FlowContext) addZoneReconcileTasks(g *flow.Graph, zoneName string) {
-	_ = c.AddTask(g, "ensure NAT gateway elastic IP "+zoneName,
+	ensureElasticIP := c.AddTask(g, "ensure elastic IP "+zoneName,
 		c.ensureElasticIP(zoneName),
 		Timeout(defaultLongTimeout))
+	_ = c.AddTask(g, "ensure eip association "+zoneName,
+		c.ensureEipAssociation(zoneName),
+		Timeout(defaultLongTimeout), Dependencies(ensureElasticIP))
+}
 
+func (c *FlowContext) ensureEipAssociation(zoneName string) flow.TaskFn {
+	return func(ctx context.Context) error {
+		zone := c.getZoneConfig(zoneName)
+		child := c.getZoneChild(zoneName)
+		eipId := child.Get(IdentifierZoneNATGWElasticIP)
+		ngwId := c.state.Get(IdentifierNatGateway)
+		if eipId == nil && zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
+			eipId = zone.NatGateway.EIPAllocationID
+		}
+		if eipId == nil {
+			return fmt.Errorf("no Eip exist @ zone %s", zoneName)
+		}
+		current, err := c.actor.GetEIP(ctx, *eipId)
+		if err != nil {
+			return err
+		}
+		if *current.Status == "Available" {
+			// association
+			err := c.actor.AssociateEIP(ctx, *eipId, *ngwId, "Nat")
+			if err != nil {
+				return err
+			}
+		} else if *current.Status == "InUse" {
+			if *current.InstanceId != *ngwId {
+				return fmt.Errorf("the eip %s is not associated to natgateway %s", *eipId, *ngwId)
+			}
+
+		} else {
+			return fmt.Errorf(" eip %s status %s not allowed", *eipId, *current.Status)
+
+		}
+		return nil
+	}
 }
 
 func (c *FlowContext) ensureElasticIP(zoneName string) flow.TaskFn {
@@ -208,11 +245,40 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 
 func (c *FlowContext) addZoneDeletionTasks(g *flow.Graph, zoneName string) flow.TaskIDer {
 
-	deleteElasticIP := c.AddTask(g, "delete NAT gateway elastic IP "+zoneName,
-		c.deleteElasticIP(zoneName),
+	deleteEipAssociation := c.AddTask(g, "delete eip association "+zoneName,
+		c.deleteEipAssociation(zoneName),
 		Timeout(defaultTimeout))
 
+	deleteElasticIP := c.AddTask(g, "delete elastic IP "+zoneName,
+		c.deleteElasticIP(zoneName),
+		Timeout(defaultTimeout), Dependencies(deleteEipAssociation))
+
 	return deleteElasticIP
+}
+
+func (c *FlowContext) deleteEipAssociation(zoneName string) flow.TaskFn {
+	return func(ctx context.Context) error {
+		zone := c.getZoneConfig(zoneName)
+		child := c.getZoneChild(zoneName)
+		eipId := child.Get(IdentifierZoneNATGWElasticIP)
+		if eipId == nil && zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
+			eipId = zone.NatGateway.EIPAllocationID
+		}
+		if eipId == nil {
+			return nil
+		}
+		current, err := c.actor.GetEIP(ctx, *eipId)
+		if err != nil {
+			return err
+		}
+		if *current.Status == "InUse" {
+			if err := c.actor.UnAssociateEIP(ctx, current); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 }
 
 func (c *FlowContext) deleteElasticIP(zoneName string) flow.TaskFn {

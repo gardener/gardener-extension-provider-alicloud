@@ -57,6 +57,8 @@ type Actor interface {
 	FindEIPsByTags(ctx context.Context, tags Tags) ([]*EIP, error)
 	DeleteEIP(ctx context.Context, id string) error
 	ModifyEIP(ctx context.Context, id string, eip *EIP) error
+	AssociateEIP(ctx context.Context, id, to, insType string) error
+	UnAssociateEIP(ctx context.Context, eip *EIP) error
 
 	CreateVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
 	DeleteVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
@@ -96,6 +98,75 @@ func (c *actor) ModifyEIP(ctx context.Context, id string, eip *EIP) error {
 	return nil
 }
 
+func (c *actor) AssociateEIP(ctx context.Context, id, to, insType string) error {
+	req := vpc.CreateAssociateEipAddressRequest()
+	req.AllocationId = id
+	req.InstanceId = to
+	req.InstanceType = insType
+	_, err := callApi(c.vpcClient.AssociateEipAddress, req)
+	if err != nil {
+		return err
+	}
+
+	var theEip *EIP
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+
+		theEip, err = c.GetEIP(ctx, id)
+
+		if err != nil {
+			return false, err
+		}
+		if *theEip.Status != "InUse" {
+			return false, nil
+		}
+
+		return true, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return err
+	}
+	if *theEip.InstanceId != to {
+		return fmt.Errorf("the eip %s is not associated to the target %s", id, to)
+	}
+
+	return nil
+}
+
+func (c *actor) UnAssociateEIP(ctx context.Context, eip *EIP) error {
+	req := vpc.CreateUnassociateEipAddressRequest()
+	req.AllocationId = eip.EipId
+	req.InstanceId = *eip.InstanceId
+	req.InstanceType = *eip.InstanceType
+
+	_, err := callApi(c.vpcClient.UnassociateEipAddress, req)
+	if err != nil {
+		return err
+	}
+
+	var theEip *EIP
+	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+
+		theEip, err = c.GetEIP(ctx, eip.EipId)
+
+		if err != nil {
+			return false, err
+		}
+		if *theEip.Status != "Available" {
+			return false, nil
+		}
+
+		return true, nil
+	}, ctx.Done())
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 func (c *actor) CreateEIP(ctx context.Context, eip *EIP) (*EIP, error) {
 	req := vpc.CreateAllocateEipAddressRequest()
 	req.Name = eip.Name
@@ -121,7 +192,6 @@ func (c *actor) CreateEIP(ctx context.Context, eip *EIP) (*EIP, error) {
 		if *created.Status != "Available" {
 			return false, nil
 		}
-
 		return true, nil
 	}, ctx.Done())
 
@@ -185,7 +255,6 @@ func (c *actor) DeleteEIP(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-
 	err = wait.PollUntil(5*time.Second, func() (bool, error) {
 		current, err := c.GetEIP(ctx, id)
 		if err != nil {
@@ -232,7 +301,6 @@ func (c *actor) CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGate
 		if *created.Status != "Available" {
 			return false, nil
 		}
-
 		return true, nil
 	}, ctx.Done())
 
@@ -283,7 +351,6 @@ func (c *actor) DeleteNatGateway(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-
 	err = wait.PollUntil(5*time.Second, func() (bool, error) {
 		current, err := c.GetNatGateway(ctx, id)
 		if err != nil {
@@ -339,7 +406,6 @@ func (c *actor) DeleteVSwitch(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-
 	err = wait.PollUntil(5*time.Second, func() (bool, error) {
 		current, err := c.GetVSwitch(ctx, id)
 		if err != nil {
@@ -384,7 +450,6 @@ func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, erro
 		if *created.Status != "Available" {
 			return false, nil
 		}
-
 		return true, nil
 	}, ctx.Done())
 
@@ -455,7 +520,6 @@ func (c *actor) DeleteVpc(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-
 	err = wait.PollUntil(5*time.Second, func() (bool, error) {
 		current, err := c.GetVpc(ctx, id)
 		if err != nil {
@@ -498,7 +562,6 @@ func (c *actor) CreateVpc(ctx context.Context, desired *VPC) (*VPC, error) {
 		if *created.Status != "Available" {
 			return false, nil
 		}
-
 		return true, nil
 	}, ctx.Done())
 
@@ -734,6 +797,12 @@ func (c *actor) fromNatGateway(item vpc.NatGateway) (*NatGateway, error) {
 		tags[t.Key] = t.Value
 	}
 	ngw.Tags = tags
+
+	snatTableId := []string{}
+	snatTableId = append(snatTableId, item.SnatTableIds.SnatTableId...)
+
+	ngw.SNATTableIDs = snatTableId
+
 	return ngw, nil
 }
 
@@ -744,6 +813,8 @@ func (c *actor) fromEip(item vpc.EipAddress) (*EIP, error) {
 		InternetChargeType: item.InternetChargeType,
 		EipId:              item.AllocationId,
 		Status:             &item.Status,
+		InstanceType:       &item.InstanceType,
+		InstanceId:         &item.InstanceId,
 	}
 	tags := Tags{}
 	for _, t := range item.Tags.Tag {
@@ -795,7 +866,7 @@ func callApi[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) (*
 	try_count := 0
 	for {
 		need_try := false
-		try_count = try_count + 1
+		try_count += 1
 		cleanQueryParam(req)
 		resp, err = call(req)
 		if err != nil {

@@ -40,6 +40,7 @@ type NatGateway struct {
 	VswitchId          *string
 	Status             *string
 	AvailableVSwitches []string
+	SNATTableIDs       []string
 }
 
 type EIP struct {
@@ -50,4 +51,6 @@ type EIP struct {
 	ZoneId             string
 	Status             *string
 	EipId              string
+	InstanceType       *string
+	InstanceId         *string
 }
