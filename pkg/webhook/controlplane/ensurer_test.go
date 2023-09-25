@@ -50,12 +50,23 @@ func TestController(t *testing.T) {
 var _ = Describe("Ensurer", func() {
 	var (
 		ctrl       *gomock.Controller
-		eContext22 = gcontext.NewInternalGardenContext(
+		eContext26 = gcontext.NewInternalGardenContext(
 			&extensionscontroller.Cluster{
 				Shoot: &gardencorev1beta1.Shoot{
 					Spec: gardencorev1beta1.ShootSpec{
 						Kubernetes: gardencorev1beta1.Kubernetes{
-							Version: "1.22.0",
+							Version: "1.26.0",
+						},
+					},
+				},
+			},
+		)
+		eContext27 = gcontext.NewInternalGardenContext(
+			&extensionscontroller.Cluster{
+				Shoot: &gardencorev1beta1.Shoot{
+					Spec: gardencorev1beta1.ShootSpec{
+						Kubernetes: gardencorev1beta1.Kubernetes{
+							Version: "1.27.0",
 						},
 					},
 				},
@@ -97,10 +108,9 @@ var _ = Describe("Ensurer", func() {
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext22, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext26, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{})
-
 		})
 
 		It("should modify existing elements of kube-apiserver deployment", func() {
@@ -133,7 +143,7 @@ var _ = Describe("Ensurer", func() {
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext22, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext26, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{})
 		})
@@ -162,7 +172,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger, false)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext22, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext26, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -192,7 +202,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger, false)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext22, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext26, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -217,11 +227,8 @@ var _ = Describe("Ensurer", func() {
 		})
 
 		DescribeTable("should modify existing elements of kubelet.service unit options",
-			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version, cloudProvider string, equalGreaterV123 bool) {
-				valueofPreStart := `/bin/sh -c "echo Z3JlcCAtc3EgUFJPVklERVJfSUQgL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmlmIFsgJD8gLW5lIDAgXTsgdGhlbgpNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQpQUk9WSURFUl9JRD1gd2dldCAtcU8tICRNRVRBX0VQL3JlZ2lvbi1pZGAuYHdnZXQgLXFPLSAkTUVUQV9FUC9pbnN0YW5jZS1pZGAKZWNobyBQUk9WSURFUl9JRD0kUFJPVklERVJfSUQgPj4gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmVjaG8gUFJPVklERVJfSUQ9JFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9leHRyYV9hcmdzCmZpCg==| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
-				if equalGreaterV123 {
-					valueofPreStart = `/bin/sh -c "echo IyBzZXQgcHJvdmlkZXJpZCBpbiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CmdyZXAgLXNxIHBsYWNlX2hvbGRlcl9vZl9wcm92aWRlcmlkIC92YXIvbGliL2t1YmVsZXQvY29uZmlnL2t1YmVsZXQKaWYgWyAkPyAtZXEgMCBdOyB0aGVuCiAgICBNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQogICAgUFJPVklERVJfSUQ9YHdnZXQgLXFPLSAkTUVUQV9FUC9yZWdpb24taWRgLmB3Z2V0IC1xTy0gJE1FVEFfRVAvaW5zdGFuY2UtaWRgCiAgICBzdWRvIHNlZCAgLWkgInMvcGxhY2VfaG9sZGVyX29mX3Byb3ZpZGVyaWQvJHtQUk9WSURFUl9JRH0vZyIgL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldAogICAgZWNobyAicHJvdmlkZXJJRD0gJFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldCIKZmkK| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
-				}
+			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version, cloudProvider string) {
+				valueofPreStart := `/bin/sh -c "echo IyBzZXQgcHJvdmlkZXJpZCBpbiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CmdyZXAgLXNxIHBsYWNlX2hvbGRlcl9vZl9wcm92aWRlcmlkIC92YXIvbGliL2t1YmVsZXQvY29uZmlnL2t1YmVsZXQKaWYgWyAkPyAtZXEgMCBdOyB0aGVuCiAgICBNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQogICAgUFJPVklERVJfSUQ9YHdnZXQgLXFPLSAkTUVUQV9FUC9yZWdpb24taWRgLmB3Z2V0IC1xTy0gJE1FVEFfRVAvaW5zdGFuY2UtaWRgCiAgICBzdWRvIHNlZCAgLWkgInMvcGxhY2VfaG9sZGVyX29mX3Byb3ZpZGVyaWQvJHtQUk9WSURFUl9JRH0vZyIgL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldAogICAgZWNobyAicHJvdmlkZXJJRD0gJFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldCIKZmkK| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
 				newUnitOptions := []*unit.UnitOption{
 					{
 						Section: "Service",
@@ -241,20 +248,13 @@ var _ = Describe("Ensurer", func() {
     --cloud-provider=` + cloudProvider
 				}
 
-				if !equalGreaterV123 {
-					newUnitOptions[0].Value += ` \
-    --provider-id=${PROVIDER_ID}`
-					newUnitOptions[0].Value += ` \
-    --enable-controller-attach-detach=true`
-				}
-
 				opts, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), gctx, kubeletVersion, oldUnitOptions, nil)
 				Expect(err).To(Not(HaveOccurred()))
 				Expect(opts).To(Equal(newUnitOptions))
 			},
 
-			Entry("kubelet version < 1.23", eContext22, semver.MustParse("1.22.0"), "external", false),
-			Entry("kubelet version >= 1.23", eContext22, semver.MustParse("1.23.0"), "external", true),
+			Entry("kubelet version < 1.27", eContext26, semver.MustParse("1.26.0"), "external"),
+			Entry("kubelet version >= 1.27", eContext27, semver.MustParse("1.27.0"), "external"),
 		)
 	})
 
@@ -274,25 +274,13 @@ var _ = Describe("Ensurer", func() {
 		})
 
 		DescribeTable("should modify existing elements of kubelet configuration",
-			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version, csiFeatureGateName string, equalGreaterV123 bool) {
-				var (
-					enableControllerAttachDetach *bool  = nil
-					providerId                   string = ""
-				)
-				if equalGreaterV123 {
-					enableControllerAttachDetach = pointer.Bool(true)
-					providerId = "place_holder_of_providerid"
-				}
+			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version) {
 				newKubeletConfig := &kubeletconfigv1beta1.KubeletConfiguration{
 					FeatureGates: map[string]bool{
 						"Foo": true,
 					},
-					EnableControllerAttachDetach: enableControllerAttachDetach,
-					ProviderID:                   providerId,
-				}
-
-				if csiFeatureGateName != "" {
-					newKubeletConfig.FeatureGates[csiFeatureGateName] = true
+					EnableControllerAttachDetach: pointer.Bool(true),
+					ProviderID:                   "place_holder_of_providerid",
 				}
 
 				kubeletConfig := *oldKubeletConfig
@@ -302,8 +290,8 @@ var _ = Describe("Ensurer", func() {
 				Expect(&kubeletConfig).To(Equal(newKubeletConfig))
 			},
 
-			Entry("kubelet < 1.23", eContext22, semver.MustParse("1.22.0"), "", false),
-			Entry("kubelet >= 1.23", eContext22, semver.MustParse("1.23.0"), "", true),
+			Entry("kubelet < 1.27", eContext26, semver.MustParse("1.26.0")),
+			Entry("kubelet >= 1.27", eContext27, semver.MustParse("1.27.0")),
 		)
 	})
 
