@@ -151,8 +151,29 @@ func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, sta
 		}
 	}
 	if vpcID != "" {
+		var vswitches []aliv1alpha1.VSwitch
+		prefix := infraflow.ChildIdZones + shared.Separator
+		for k, v := range state.Data {
+			if !shared.IsValidValue(v) {
+				continue
+			}
+			if strings.HasPrefix(k, prefix) {
+				parts := strings.Split(k, shared.Separator)
+				if len(parts) != 3 {
+					continue
+				}
+				if parts[2] == infraflow.IdentifierZoneVSwitch {
+					vswitches = append(vswitches, aliv1alpha1.VSwitch{
+						ID:      v,
+						Purpose: aliv1alpha1.PurposeNodes,
+						Zone:    parts[1],
+					})
+				}
+			}
+		}
 		status.VPC = aliv1alpha1.VPCStatus{
-			ID: vpcID,
+			ID:        vpcID,
+			VSwitches: vswitches,
 		}
 		if groupID := state.Data[infraflow.IdentifierNodesSecurityGroup]; shared.IsValidValue(groupID) {
 			status.VPC.SecurityGroups = []aliv1alpha1.SecurityGroup{
@@ -162,6 +183,7 @@ func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, sta
 				},
 			}
 		}
+
 	}
 
 	return status, nil
