@@ -78,6 +78,17 @@ type ECS interface {
 	CreateEgressRule(request *ecs.AuthorizeSecurityGroupEgressRequest) error
 	RevokeIngressRule(request *ecs.RevokeSecurityGroupRequest) error
 	RevokeEgressRule(request *ecs.RevokeSecurityGroupEgressRequest) error
+
+	CreateSecurityGroup(request *ecs.CreateSecurityGroupRequest) (response *ecs.CreateSecurityGroupResponse, err error)
+	DeleteSecurityGroup(request *ecs.DeleteSecurityGroupRequest) (response *ecs.DeleteSecurityGroupResponse, err error)
+	AuthorizeSecurityGroup(request *ecs.AuthorizeSecurityGroupRequest) (response *ecs.AuthorizeSecurityGroupResponse, err error)
+	RevokeSecurityGroup(request *ecs.RevokeSecurityGroupRequest) (response *ecs.RevokeSecurityGroupResponse, err error)
+	AuthorizeSecurityGroupEgress(request *ecs.AuthorizeSecurityGroupEgressRequest) (response *ecs.AuthorizeSecurityGroupEgressResponse, err error)
+	RevokeSecurityGroupEgress(request *ecs.RevokeSecurityGroupEgressRequest) (response *ecs.RevokeSecurityGroupEgressResponse, err error)
+
+	ListTagResources(request *ecs.ListTagResourcesRequest) (response *ecs.ListTagResourcesResponse, err error)
+	TagResources(request *ecs.TagResourcesRequest) (response *ecs.TagResourcesResponse, err error)
+	UntagResources(request *ecs.UntagResourcesRequest) (response *ecs.UntagResourcesResponse, err error)
 }
 
 // stsClient implements the STS interface.

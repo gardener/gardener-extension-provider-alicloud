@@ -23,6 +23,7 @@ import (
 
 	alierrors "github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -65,12 +66,22 @@ type Actor interface {
 	FindSNatEntriesByNatGateway(ctx context.Context, ngwId string) ([]*SNATEntry, error)
 	DeleteSNatEntry(ctx context.Context, id, snatTableId string) error
 
-	CreateVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
-	DeleteVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
+	CreateTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
+	DeleteTags(ctx context.Context, resources []string, tags Tags, resourceType string) error
+
+	CreateSecurityGroup(ctx context.Context, sg *SecurityGroup) (*SecurityGroup, error)
+	GetSecurityGroup(ctx context.Context, id string) (*SecurityGroup, error)
+	ListSecurityGroups(ctx context.Context, ids []string) ([]*SecurityGroup, error)
+	FindSecurityGroupsByTags(ctx context.Context, tags Tags) ([]*SecurityGroup, error)
+	DeleteSecurityGroup(ctx context.Context, id string) error
+
+	AuthorizeSecurityGroupRule(ctx context.Context, sgId string, rule SecurityGroupRule) error
+	RevokeSecurityGroupRule(ctx context.Context, sgId, ruleId, direction string) error
 }
 
 type actor struct {
 	vpcClient    alicloudclient.VPC
+	ecsClient    alicloudclient.ECS
 	Logger       logr.Logger
 	PollInterval time.Duration
 }
@@ -84,12 +95,292 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	ecsClient, err := clientFactory.NewECSClient(region, accessKeyID, secretAccessKey)
+	if err != nil {
+		return nil, err
+	}
 	return &actor{
 		vpcClient:    vpcClient,
+		ecsClient:    ecsClient,
 		Logger:       log.Log.WithName("alicloud-client"),
 		PollInterval: 5 * time.Second,
 	}, nil
+}
+
+func (c *actor) CreateTags(ctx context.Context, resources []string, tags Tags, resourceType string) error {
+	typeClass := c.getResourceClass(resourceType)
+	if typeClass == "vpc" {
+		return c.createVpcTags(resources, tags, resourceType)
+	} else if typeClass == "ecs" {
+		return c.createEcsTags(resources, tags, resourceType)
+	}
+	return fmt.Errorf("unknown resource type %s", resourceType)
+}
+
+func (c *actor) DeleteTags(ctx context.Context, resources []string, tags Tags, resourceType string) error {
+
+	typeClass := c.getResourceClass(resourceType)
+	if typeClass == "vpc" {
+		return c.deleteVpcTags(resources, tags, resourceType)
+	} else if typeClass == "ecs" {
+		return c.deleteEcsTags(resources, tags, resourceType)
+	}
+	return fmt.Errorf("unknown resource type %s", resourceType)
+}
+
+func (c *actor) getResourceClass(resourceType string) string {
+	vpc_resourceType_list := []string{
+		"VPC",
+		"VSWITCH",
+		"ROUTETABLE",
+		"EIP",
+		"VpnGateWay",
+		"NATGATEWAY",
+		"COMMONBANDWIDTHPACKAGE",
+	}
+	ecs_resourceType_list := []string{
+		"instance",
+		"disk",
+		"snapshot",
+		"image",
+		"securitygroup",
+		"volume",
+		"eni",
+		"ddh",
+		"ddhcluster",
+		"keypair",
+		"launchtemplate",
+		"reservedinstance",
+		"snapshotpolicy",
+		"elasticityassurance",
+		"capacityreservation",
+		"command",
+		"invocation",
+		"activation",
+		"managedinstance",
+	}
+	if contains(vpc_resourceType_list, resourceType) {
+		return "vpc"
+	}
+	if contains(ecs_resourceType_list, resourceType) {
+		return "ecs"
+	}
+	return "unknown"
+}
+
+func (c *actor) CreateSecurityGroup(ctx context.Context, sg *SecurityGroup) (*SecurityGroup, error) {
+
+	req := ecs.CreateCreateSecurityGroupRequest()
+	req.SecurityGroupName = sg.Name
+	req.VpcId = sg.VpcId
+	req.Description = sg.Description
+
+	resp, err := callApi(c.ecsClient.CreateSecurityGroup, req)
+	if err != nil {
+		return nil, err
+	}
+	return c.GetSecurityGroup(ctx, resp.SecurityGroupId)
+
+}
+
+func (c *actor) GetSecurityGroup(ctx context.Context, id string) (*SecurityGroup, error) {
+	return c.getSecurityGroup(id)
+}
+
+func (c *actor) getSecurityGroup(id string) (*SecurityGroup, error) {
+	req := ecs.CreateDescribeSecurityGroupsRequest()
+	req.SecurityGroupId = id
+	resp, err := c.describeSecurityGroup(req)
+
+	sg, err := single(resp, err)
+	if err != nil {
+		return nil, err
+	}
+	rules, err := c.listSecurityGroupRule(sg.SecurityGroupId)
+	if err != nil {
+		return nil, err
+	}
+
+	sg.Rules = append(sg.Rules, rules...)
+
+	return sg, nil
+
+}
+
+func (c *actor) ListSecurityGroups(ctx context.Context, ids []string) ([]*SecurityGroup, error) {
+	return listByIds(c.getSecurityGroup, ids)
+}
+
+func (c *actor) FindSecurityGroupsByTags(ctx context.Context, tags Tags) ([]*SecurityGroup, error) {
+	req := ecs.CreateListTagResourcesRequest()
+	req.ResourceType = "securitygroup"
+
+	var reqTag []ecs.ListTagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, ecs.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	idList, err := c.listEcsTagResources(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return c.ListSecurityGroups(ctx, idList)
+}
+func (c *actor) DeleteSecurityGroup(ctx context.Context, id string) error {
+	sg, err := c.getSecurityGroup(id)
+	if err != nil {
+		return err
+	}
+	for _, rule := range sg.Rules {
+		if err := c.RevokeSecurityGroupRule(ctx, id, rule.SecurityGroupRuleId, rule.Direction); err != nil {
+			return err
+		}
+	}
+
+	req := ecs.CreateDeleteSecurityGroupRequest()
+	req.SecurityGroupId = id
+	_, err = callApi(c.ecsClient.DeleteSecurityGroup, req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *actor) listSecurityGroupRule(sgId string) ([]*SecurityGroupRule, error) {
+	var rule_list []*SecurityGroupRule
+	req := ecs.CreateDescribeSecurityGroupAttributeRequest()
+	req.SecurityGroupId = sgId
+
+	resp, err := callApi(c.ecsClient.DescribeSecurityGroupAttribute, req)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, permission := range resp.Permissions.Permission {
+		the_rule, err := c.fromSecurityGroupRule(permission)
+		if err != nil {
+			return nil, err
+		}
+		rule_list = append(rule_list, the_rule)
+
+	}
+	return rule_list, nil
+}
+
+func (c *actor) AuthorizeSecurityGroupRule(ctx context.Context, sgId string, rule SecurityGroupRule) error {
+	if rule.Direction == "ingress" {
+		return c.addIngressSecurityGroupRule(sgId, rule)
+	} else if rule.Direction == "egress" {
+		return c.addEgressSecurityGroupRule(sgId, rule)
+	}
+	return nil
+}
+
+func (c *actor) addIngressSecurityGroupRule(sgId string, rule SecurityGroupRule) error {
+	req := ecs.CreateAuthorizeSecurityGroupRequest()
+	req.SecurityGroupId = sgId
+	req.Permissions = &[]ecs.AuthorizeSecurityGroupPermissions{
+		{
+			Policy:       rule.Policy,
+			Priority:     rule.Priority,
+			IpProtocol:   rule.IpProtocol,
+			SourceCidrIp: rule.SourceCidrIp,
+			PortRange:    rule.PortRange,
+		},
+	}
+
+	_, err := callApi(c.ecsClient.AuthorizeSecurityGroup, req)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (c *actor) addEgressSecurityGroupRule(sgId string, rule SecurityGroupRule) error {
+	req := ecs.CreateAuthorizeSecurityGroupEgressRequest()
+	req.SecurityGroupId = sgId
+	req.Permissions = &[]ecs.AuthorizeSecurityGroupEgressPermissions{
+		{
+			Policy:     rule.Policy,
+			Priority:   rule.Priority,
+			IpProtocol: rule.IpProtocol,
+			PortRange:  rule.PortRange,
+			DestCidrIp: rule.DestCidrIp,
+		},
+	}
+
+	_, err := callApi(c.ecsClient.AuthorizeSecurityGroupEgress, req)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (c *actor) RevokeSecurityGroupRule(ctx context.Context, sgId, ruleId, direction string) error {
+	if direction == "ingress" {
+		return c.removeIngressSecurityGroupRule(sgId, ruleId)
+	} else if direction == "egress" {
+		return c.removeEgressSecurityGroupRule(sgId, ruleId)
+	}
+	return nil
+}
+
+func (c *actor) removeIngressSecurityGroupRule(sgId, ruleId string) error {
+	req := ecs.CreateRevokeSecurityGroupRequest()
+	req.SecurityGroupId = sgId
+	req.SecurityGroupRuleId = &[]string{
+		ruleId,
+	}
+	_, err := callApi(c.ecsClient.RevokeSecurityGroup, req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *actor) removeEgressSecurityGroupRule(sgId, ruleId string) error {
+	req := ecs.CreateRevokeSecurityGroupEgressRequest()
+	req.SecurityGroupId = sgId
+	req.SecurityGroupRuleId = &[]string{
+		ruleId,
+	}
+	_, err := callApi(c.ecsClient.RevokeSecurityGroupEgress, req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *actor) createEcsTags(resources []string, tags Tags, resourceType string) error {
+	req := ecs.CreateTagResourcesRequest()
+	req.ResourceType = resourceType
+	req.ResourceId = &resources
+
+	var reqTag []ecs.TagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, ecs.TagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	_, err := callApi(c.ecsClient.TagResources, req)
+	return err
+}
+
+func (c *actor) deleteEcsTags(resources []string, tags Tags, resourceType string) error {
+	req := ecs.CreateUntagResourcesRequest()
+	req.ResourceType = resourceType
+	req.ResourceId = &resources
+
+	var reqTag []string
+	for k := range tags {
+		reqTag = append(reqTag, k)
+	}
+	req.TagKey = &reqTag
+	_, err := callApi(c.ecsClient.UntagResources, req)
+	return err
 }
 
 func (c *actor) FindSNatEntriesByNatGateway(ctx context.Context, ngwId string) ([]*SNATEntry, error) {
@@ -319,7 +610,7 @@ func (c *actor) FindEIPsByTags(ctx context.Context, tags Tags) ([]*EIP, error) {
 	}
 	req.Tag = &reqTag
 
-	idList, err := c.listTagResources(ctx, req)
+	idList, err := c.listVpcTagResources(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -457,7 +748,7 @@ func (c *actor) FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGate
 	}
 	req.Tag = &reqTag
 
-	idList, err := c.listTagResources(ctx, req)
+	idList, err := c.listVpcTagResources(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +844,7 @@ func (c *actor) FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch,
 	}
 	req.Tag = &reqTag
 
-	idList, err := c.listTagResources(ctx, req)
+	idList, err := c.listVpcTagResources(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -650,7 +941,7 @@ func (c *actor) FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error) {
 	req.Tag = &reqTag
 
 	// var vpcList []*VPC
-	idList, err := c.listTagResources(ctx, req)
+	idList, err := c.listVpcTagResources(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -658,7 +949,7 @@ func (c *actor) FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error) {
 
 }
 
-func (c *actor) CreateVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error {
+func (c *actor) createVpcTags(resources []string, tags Tags, resourceType string) error {
 	req := vpc.CreateTagResourcesRequest()
 	req.ResourceType = resourceType
 	req.ResourceId = &resources
@@ -673,42 +964,33 @@ func (c *actor) CreateVpcTags(ctx context.Context, resources []string, tags Tags
 	return err
 }
 
-func (c *actor) DeleteVpcTags(ctx context.Context, resources []string, tags Tags, resourceType string) error {
+func (c *actor) deleteVpcTags(resources []string, tags Tags, resourceType string) error {
 	req := vpc.CreateUnTagResourcesRequest()
 	req.ResourceType = resourceType
 	req.ResourceId = &resources
 
-	var reqTag []vpc.UnTagResourcesTag
-	for k, v := range tags {
-		reqTag = append(reqTag, vpc.UnTagResourcesTag{Key: k, Value: v})
+	var reqTag []string
+	for k := range tags {
+		reqTag = append(reqTag, k)
 	}
-	req.Tag = &reqTag
+	req.TagKey = &reqTag
 	_, err := callApi(c.vpcClient.UnTagResources, req)
 	return err
 }
 
-func (c *actor) listTagResources(ctx context.Context, req *vpc.ListTagResourcesRequest) ([]string, error) {
-
-	var theList []vpc.TagResource
+func (c *actor) listEcsTagResources(ctx context.Context, req *ecs.ListTagResourcesRequest) ([]string, error) {
 	var idList []string
-	resp, err := callApi(c.vpcClient.ListTagResources, req)
 
+	respList, err := page_call(c.ecsClient.ListTagResources, req)
 	if err != nil {
-		return idList, err
-	}
-	theList = append(theList, resp.TagResources.TagResource...)
-	for {
-		if resp.NextToken == "" {
-			break
-		} else {
-			req.NextToken = resp.NextToken
-			resp, err := callApi(c.vpcClient.ListTagResources, req)
-			if err == nil {
-				theList = append(theList, resp.TagResources.TagResource...)
-			}
-		}
+		return nil, err
 	}
 
+	var theList []ecs.TagResource
+	for _, resp := range respList {
+		theList = append(theList, resp.TagResources.TagResource...)
+
+	}
 	for _, item := range theList {
 		if !contains(idList, item.ResourceId) {
 			idList = append(idList, item.ResourceId)
@@ -716,12 +998,85 @@ func (c *actor) listTagResources(ctx context.Context, req *vpc.ListTagResourcesR
 	}
 
 	return idList, nil
+
+}
+
+func (c *actor) listVpcTagResources(ctx context.Context, req *vpc.ListTagResourcesRequest) ([]string, error) {
+	var idList []string
+
+	respList, err := page_call(c.vpcClient.ListTagResources, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var theList []vpc.TagResource
+	for _, resp := range respList {
+		theList = append(theList, resp.TagResources.TagResource...)
+
+	}
+	for _, item := range theList {
+		if !contains(idList, item.ResourceId) {
+			idList = append(idList, item.ResourceId)
+		}
+	}
+
+	return idList, nil
+
+	// var theList []vpc.TagResource
+	// var idList []string
+	// resp, err := callApi(c.vpcClient.ListTagResources, req)
+
+	// if err != nil {
+	// 	return idList, err
+	// }
+	// theList = append(theList, resp.TagResources.TagResource...)
+	// for {
+	// 	if resp.NextToken == "" {
+	// 		break
+	// 	} else {
+	// 		req.NextToken = resp.NextToken
+	// 		resp, err := callApi(c.vpcClient.ListTagResources, req)
+	// 		if err == nil {
+	// 			theList = append(theList, resp.TagResources.TagResource...)
+	// 		}
+	// 	}
+	// }
+
+	// for _, item := range theList {
+	// 	if !contains(idList, item.ResourceId) {
+	// 		idList = append(idList, item.ResourceId)
+	// 	}
+	// }
+
+	// return idList, nil
+}
+
+func (c *actor) describeSecurityGroup(req *ecs.DescribeSecurityGroupsRequest) ([]*SecurityGroup, error) {
+	var objList []*SecurityGroup
+
+	respList, err := page_call(c.ecsClient.DescribeSecurityGroups, req)
+	if err != nil {
+		return nil, err
+	}
+	var theList []ecs.SecurityGroup
+	for _, resp := range respList {
+		theList = append(theList, resp.SecurityGroups.SecurityGroup...)
+	}
+
+	for _, item := range theList {
+		entry, err := c.fromSecurityGroup(item)
+		if err == nil && entry != nil {
+			objList = append(objList, entry)
+		}
+	}
+
+	return objList, nil
 }
 
 func (c *actor) describeSNATEntry(req *vpc.DescribeSnatTableEntriesRequest) ([]*SNATEntry, error) {
 	var entryList []*SNATEntry
 
-	respList, err := call_describe(c.vpcClient.DescribeSnatTableEntries, req)
+	respList, err := page_call(c.vpcClient.DescribeSnatTableEntries, req)
 	if err != nil {
 		return nil, err
 	}
@@ -744,7 +1099,7 @@ func (c *actor) describeSNATEntry(req *vpc.DescribeSnatTableEntriesRequest) ([]*
 func (c *actor) describeEIP(req *vpc.DescribeEipAddressesRequest) ([]*EIP, error) {
 	var eipList []*EIP
 
-	respList, err := call_describe(c.vpcClient.DescribeEipAddresses, req)
+	respList, err := page_call(c.vpcClient.DescribeEipAddresses, req)
 	if err != nil {
 		return nil, err
 	}
@@ -767,7 +1122,7 @@ func (c *actor) describeEIP(req *vpc.DescribeEipAddressesRequest) ([]*EIP, error
 func (c *actor) describeNatGateway(req *vpc.DescribeNatGatewaysRequest) ([]*NatGateway, error) {
 	var ngwList []*NatGateway
 
-	respList, err := call_describe(c.vpcClient.DescribeNatGateways, req)
+	respList, err := page_call(c.vpcClient.DescribeNatGateways, req)
 	if err != nil {
 		return nil, err
 	}
@@ -790,7 +1145,7 @@ func (c *actor) describeNatGateway(req *vpc.DescribeNatGatewaysRequest) ([]*NatG
 func (c *actor) describeVpcs(req *vpc.DescribeVpcsRequest) ([]*VPC, error) {
 	var vpcList []*VPC
 
-	respList, err := call_describe(c.vpcClient.DescribeVpcs, req)
+	respList, err := page_call(c.vpcClient.DescribeVpcs, req)
 	if err != nil {
 		return nil, err
 	}
@@ -814,7 +1169,7 @@ func (c *actor) describeVSwitches(req *vpc.DescribeVSwitchesRequest) ([]*VSwitch
 
 	var vswitchList []*VSwitch
 
-	respList, err := call_describe(c.vpcClient.DescribeVSwitches, req)
+	respList, err := page_call(c.vpcClient.DescribeVSwitches, req)
 	if err != nil {
 		return nil, err
 	}
@@ -833,6 +1188,35 @@ func (c *actor) describeVSwitches(req *vpc.DescribeVSwitchesRequest) ([]*VSwitch
 	return vswitchList, nil
 
 }
+
+func (c *actor) fromSecurityGroupRule(item ecs.Permission) (*SecurityGroupRule, error) {
+	rule := &SecurityGroupRule{
+		SecurityGroupRuleId: item.SecurityGroupRuleId,
+		Policy:              item.Policy,
+		Priority:            item.Priority,
+		IpProtocol:          item.IpProtocol,
+		PortRange:           item.PortRange,
+		DestCidrIp:          item.DestCidrIp,
+		SourceCidrIp:        item.SourceCidrIp,
+		Direction:           item.Direction,
+	}
+	return rule, nil
+}
+
+func (c *actor) fromSecurityGroup(item ecs.SecurityGroup) (*SecurityGroup, error) {
+	sg := &SecurityGroup{
+		Name:            item.SecurityGroupName,
+		VpcId:           item.VpcId,
+		SecurityGroupId: item.SecurityGroupId,
+	}
+	tags := Tags{}
+	for _, t := range item.Tags.Tag {
+		tags[t.Key] = t.Value
+	}
+	sg.Tags = tags
+	return sg, nil
+}
+
 func (c *actor) fromVSwitch(item vpc.VSwitch) (*VSwitch, error) {
 	vswitch := &VSwitch{
 		Name:      item.VSwitchName,
@@ -964,7 +1348,7 @@ func callApi[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) (*
 	}
 	return resp, err
 }
-func call_describe[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) ([]RESP, error) {
+func page_call[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) ([]RESP, error) {
 	type1_req_type_name_list := []string{
 		"DescribeVpcsRequest",
 		"DescribeVSwitchesRequest",
@@ -972,15 +1356,21 @@ func call_describe[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *R
 		"DescribeEipAddressesRequest",
 		"DescribeSnatTableEntriesRequest",
 	}
+	type2_req_type_name_list := []string{
+		"ListTagResourcesRequest",
+		"DescribeSecurityGroupsRequest",
+	}
 
 	reqTypeName := reflect.ValueOf(req).Elem().Type().Name()
 	if contains(type1_req_type_name_list, reqTypeName) {
-		return call_describe_type1(call, req)
+		return page_call_type_1(call, req)
+	} else if contains(type2_req_type_name_list, reqTypeName) {
+		return page_call_type_2(call, req)
 	}
 	return nil, fmt.Errorf(fmt.Sprintf("can not found suitable describe function for %s", reqTypeName))
 }
 
-func call_describe_type1[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) ([]RESP, error) {
+func page_call_type_1[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) ([]RESP, error) {
 
 	var theList []RESP
 	const PAGE_SIZE = 10
@@ -1006,6 +1396,33 @@ func call_describe_type1[REQ any, RESP any](call func(req *REQ) (*RESP, error), 
 		cur_page++
 	}
 	return theList, nil
+}
+
+func page_call_type_2[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) ([]RESP, error) {
+	var theList []RESP
+
+	resp, err := callApi(call, req)
+
+	if err != nil {
+		return nil, err
+	}
+	theList = append(theList, *resp)
+
+	for {
+		nextToken := reflect.ValueOf(*resp).FieldByName("NextToken").String()
+		if nextToken == "" {
+			break
+		} else {
+			reflect.ValueOf(req).Elem().FieldByName("NextToken").SetString(nextToken)
+			resp, err := callApi(call, req)
+			if err == nil {
+				theList = append(theList, *resp)
+			}
+		}
+	}
+
+	return theList, nil
+
 }
 
 func cleanQueryParam(theReq interface{}) {

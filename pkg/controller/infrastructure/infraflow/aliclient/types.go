@@ -65,3 +65,24 @@ type SNATEntry struct {
 	SnatEntryId  string
 	Status       *string
 }
+
+type SecurityGroup struct {
+	Tags
+	Name            string
+	VpcId           string
+	Description     string
+	SecurityGroupId string
+	Status          *string
+	Rules           []*SecurityGroupRule
+}
+
+type SecurityGroupRule struct {
+	SecurityGroupRuleId string
+	Policy              string
+	Priority            string
+	IpProtocol          string
+	PortRange           string
+	DestCidrIp          string
+	SourceCidrIp        string
+	Direction           string
+}
