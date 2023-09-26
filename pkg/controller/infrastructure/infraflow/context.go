@@ -17,6 +17,7 @@ package infraflow
 import (
 	"fmt"
 
+	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -52,6 +53,8 @@ const (
 	IdentifierNatGateway        = "NatGateway"
 	// IdentifierZoneNATGWElasticIP is the key for the id of the elastic IP resource used for the NAT gateway
 	IdentifierZoneNATGWElasticIP = "NATGatewayElasticIP"
+	// IdentifierNodesSecurityGroup is the key for the id of the nodes security group
+	IdentifierNodesSecurityGroup = "NodesSecurityGroup"
 
 	// IdentifierDHCPOptions is the key for the id of the DHCPOptions resource
 	IdentifierDHCPOptions = "DHCPOptions"
@@ -61,8 +64,7 @@ const (
 	IdentifierInternetGateway = "InternetGateway"
 	// IdentifierMainRouteTable is the key for the id of the main route table
 	IdentifierMainRouteTable = "MainRouteTable"
-	// IdentifierNodesSecurityGroup is the key for the id of the nodes security group
-	IdentifierNodesSecurityGroup = "NodesSecurityGroup"
+
 	// IdentifierZoneSubnetWorkers is the key for the id of the workers subnet
 	IdentifierZoneSubnetWorkers = "SubnetWorkers"
 	// IdentifierZoneSubnetPublic is the key for the id of the public utility subnet
@@ -127,12 +129,13 @@ type FlowContext struct {
 	commonTags  aliclient.Tags
 	updater     aliclient.Updater
 	actor       aliclient.Actor
+	cluster     *extensioncontroller.Cluster
 }
 
 // NewFlowContext creates a new FlowContext object
 func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 	infra *extensionsv1alpha1.Infrastructure, config *aliapi.InfrastructureConfig,
-	oldState shared.FlatMap, persistor shared.FlowStatePersistor) (*FlowContext, error) {
+	oldState shared.FlatMap, persistor shared.FlowStatePersistor, cluster *extensioncontroller.Cluster) (*FlowContext, error) {
 
 	actor, err := aliclient.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
 	if err != nil {
@@ -152,6 +155,7 @@ func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 		config:           config,
 		updater:          updater,
 		actor:            actor,
+		cluster:          cluster,
 	}
 	flowContext.commonTags = aliclient.Tags{
 		flowContext.tagKeyCluster(): TagValueCluster,

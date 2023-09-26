@@ -51,6 +51,10 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		c.ensureVpc,
 		Timeout(defaultTimeout))
 
+	_ = c.AddTask(g, "ensure SecurityGroup",
+		c.ensureSecurityGroup,
+		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
+
 	ensureVSwitches := c.AddTask(g, "ensure vswitch",
 		c.ensureVSwitches,
 		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
@@ -64,6 +68,122 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		Timeout(defaultTimeout), Dependencies(ensureNatGateway))
 
 	return g
+}
+
+func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
+
+	vpc, err := c.actor.GetVpc(ctx, *c.state.Get(IdentifierVPC))
+	if err != nil {
+		return err
+	}
+	log := c.LogFromContext(ctx)
+	groupName := fmt.Sprintf("%s-sg", c.namespace)
+	desired := &aliclient.SecurityGroup{
+		Tags:        c.commonTagsWithSuffix("sg"),
+		Name:        groupName,
+		VpcId:       vpc.VpcId,
+		Description: fmt.Sprintf("Security group for %s", c.namespace),
+		Rules: []*aliclient.SecurityGroupRule{
+			{
+				Direction:    "ingress",
+				Policy:       "Accept",
+				Priority:     "1",
+				IpProtocol:   "TCP",
+				PortRange:    "30000/32767",
+				SourceCidrIp: "0.0.0.0/0",
+			},
+			{
+				Direction:    "ingress",
+				Policy:       "Accept",
+				Priority:     "1",
+				IpProtocol:   "TCP",
+				PortRange:    "1/22",
+				SourceCidrIp: vpc.CidrBlock,
+			},
+			{
+				Direction:    "ingress",
+				Policy:       "Accept",
+				Priority:     "1",
+				IpProtocol:   "TCP",
+				PortRange:    "24/513",
+				SourceCidrIp: vpc.CidrBlock,
+			},
+			{
+				Direction:    "ingress",
+				Policy:       "Accept",
+				Priority:     "1",
+				IpProtocol:   "TCP",
+				PortRange:    "515/65535",
+				SourceCidrIp: vpc.CidrBlock,
+			},
+			{
+				Direction:    "ingress",
+				Policy:       "Accept",
+				Priority:     "1",
+				IpProtocol:   "UDP",
+				PortRange:    "1/22",
+				SourceCidrIp: vpc.CidrBlock,
+			},
+			{
+				Direction:    "ingress",
+				Policy:       "Accept",
+				Priority:     "1",
+				IpProtocol:   "UDP",
+				PortRange:    "24/513",
+				SourceCidrIp: vpc.CidrBlock,
+			},
+			{
+				Direction:    "ingress",
+				Policy:       "Accept",
+				Priority:     "1",
+				IpProtocol:   "UDP",
+				PortRange:    "515/65535",
+				SourceCidrIp: vpc.CidrBlock,
+			},
+		},
+	}
+
+	if c.cluster != nil {
+		desired.Rules = append(desired.Rules, &aliclient.SecurityGroupRule{
+			Direction:    "ingress",
+			Policy:       "Accept",
+			Priority:     "1",
+			IpProtocol:   "ALL",
+			PortRange:    "-1/-1",
+			SourceCidrIp: *c.cluster.Shoot.Spec.Networking.Pods,
+		})
+	}
+	current, err := findExisting(ctx, c.state.Get(IdentifierNodesSecurityGroup), c.commonTagsWithSuffix("sg"),
+		c.actor.GetSecurityGroup, c.actor.FindSecurityGroupsByTags)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		log.Info("creating security group ...")
+		current, err = c.actor.CreateSecurityGroup(ctx, desired)
+		if err != nil {
+			return err
+		}
+	}
+	c.state.Set(IdentifierNodesSecurityGroup, current.SecurityGroupId)
+	if _, err := c.updater.UpdateSecurityGroup(ctx, desired, current); err != nil {
+		return err
+	}
+	toBeDeleted, toBeCreated, _ := diffByID(desired.Rules, current.Rules, func(item *aliclient.SecurityGroupRule) string {
+		return item.Direction + "-" + item.Policy + "-" + item.SourceCidrIp + "-" + item.DestCidrIp + "-" + item.PortRange + "-" + item.IpProtocol + "-" + item.Priority
+	})
+	for _, rule := range toBeDeleted {
+		if err := c.actor.RevokeSecurityGroupRule(ctx, current.SecurityGroupId, rule.SecurityGroupRuleId, rule.Direction); err != nil {
+			return err
+		}
+	}
+
+	for _, rule := range toBeCreated {
+		if err := c.actor.AuthorizeSecurityGroupRule(ctx, current.SecurityGroupId, *rule); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *FlowContext) ensureVpc(ctx context.Context) error {

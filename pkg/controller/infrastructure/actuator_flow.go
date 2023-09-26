@@ -44,7 +44,7 @@ func (a *actuator) shouldUseFlow(infrastructure *extensionsv1alpha1.Infrastructu
 		(cluster.Seed != nil && strings.EqualFold(cluster.Seed.Labels[aliapi.SeedLabelKeyUseFlow], "true"))
 }
 
-func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) error {
+func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
 	log.Info("reconcileWithFlow")
 
 	oldState, err := a.getFlowStateFromInfraStatus(infrastructure)
@@ -59,7 +59,7 @@ func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infra
 		}
 	}
 
-	flowContext, err := a.createFlowContext(ctx, log, infrastructure, oldState)
+	flowContext, err := a.createFlowContext(ctx, log, infrastructure, cluster, oldState)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (a *actuator) decodeInfrastructureConfig(infrastructure *extensionsv1alpha1
 }
 
 func (a *actuator) createFlowContext(ctx context.Context, log logr.Logger,
-	infrastructure *extensionsv1alpha1.Infrastructure, oldState *infraflow.PersistentState) (*infraflow.FlowContext, error) {
+	infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, oldState *infraflow.PersistentState) (*infraflow.FlowContext, error) {
 	if oldState.MigratedFromTerraform() && !oldState.TerraformCleanedUp() {
 		err := a.cleanupTerraformerResources(ctx, log, infrastructure)
 		if err != nil {
@@ -219,7 +219,7 @@ func (a *actuator) createFlowContext(ctx context.Context, log logr.Logger,
 		oldFlatState = oldState.ToFlatMap()
 	}
 
-	return infraflow.NewFlowContext(log, shootCloudProviderCredentials, infrastructure, infrastructureConfig, oldFlatState, persistor)
+	return infraflow.NewFlowContext(log, shootCloudProviderCredentials, infrastructure, infrastructureConfig, oldFlatState, persistor, cluster)
 }
 
 func (a *actuator) cleanupTerraformerResources(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) error {
@@ -256,7 +256,7 @@ func (a *actuator) deleteWithFlow(ctx context.Context, log logr.Logger, infrastr
 			return err
 		}
 	}
-	flowContext, err := a.createFlowContext(ctx, log, infrastructure, oldState)
+	flowContext, err := a.createFlowContext(ctx, log, infrastructure, nil, oldState)
 	if err != nil {
 		return err
 	}

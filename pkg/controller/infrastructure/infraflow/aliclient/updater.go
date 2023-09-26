@@ -27,6 +27,7 @@ type Updater interface {
 	UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error)
 	UpdateEIP(ctx context.Context, desired, current *EIP) (modified bool, err error)
 	UpdateSNATEntry(ctx context.Context, desired, current *SNATEntry) (modified bool, err error)
+	UpdateSecurityGroup(ctx context.Context, desired, current *SecurityGroup) (modified bool, err error)
 }
 
 type updater struct {
@@ -42,6 +43,16 @@ func NewUpdater(actor Actor) Updater {
 	}
 }
 
+func (u *updater) UpdateSecurityGroup(ctx context.Context, desired, current *SecurityGroup) (modified bool, err error) {
+
+	modified, err = u.updateTags(ctx, current.SecurityGroupId, desired.Tags, current.Tags, "securitygroup")
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 func (u *updater) UpdateSNATEntry(ctx context.Context, desired, current *SNATEntry) (modified bool, err error) {
 	return
 }
@@ -51,7 +62,7 @@ func (u *updater) UpdateEIP(ctx context.Context, desired, current *EIP) (modifie
 		u.actor.ModifyEIP(ctx, current.EipId, desired)
 		modified = true
 	}
-	tagModified, err := u.UpdateVpcTags(ctx, current.EipId, desired.Tags, current.Tags, "EIP")
+	tagModified, err := u.updateTags(ctx, current.EipId, desired.Tags, current.Tags, "EIP")
 	if err != nil {
 		return
 	}
@@ -62,7 +73,7 @@ func (u *updater) UpdateEIP(ctx context.Context, desired, current *EIP) (modifie
 
 func (u *updater) UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error) {
 
-	modified, err = u.UpdateVpcTags(ctx, current.NatGatewayId, desired.Tags, current.Tags, "NATGATEWAY")
+	modified, err = u.updateTags(ctx, current.NatGatewayId, desired.Tags, current.Tags, "NATGATEWAY")
 	if err != nil {
 		return
 	}
@@ -74,7 +85,7 @@ func (u *updater) UpdateVSwitch(ctx context.Context, desired, current *VSwitch) 
 	if desired.CidrBlock != current.CidrBlock {
 		return false, fmt.Errorf("cannot change CIDR block")
 	}
-	modified, err = u.UpdateVpcTags(ctx, current.VSwitchId, desired.Tags, current.Tags, "VSWITCH")
+	modified, err = u.updateTags(ctx, current.VSwitchId, desired.Tags, current.Tags, "VSWITCH")
 	if err != nil {
 		return
 	}
@@ -87,7 +98,7 @@ func (u *updater) UpdateVpc(ctx context.Context, desired, current *VPC) (modifie
 	if desired.CidrBlock != current.CidrBlock {
 		return false, fmt.Errorf("cannot change CIDR block")
 	}
-	modified, err = u.UpdateVpcTags(ctx, current.VpcId, desired.Tags, current.Tags, "VPC")
+	modified, err = u.updateTags(ctx, current.VpcId, desired.Tags, current.Tags, "VPC")
 	if err != nil {
 		return
 	}
@@ -107,7 +118,7 @@ func (u *updater) equalJSON(a, b string) (bool, error) {
 	return reflect.DeepEqual(ma, mb), nil
 }
 
-func (u *updater) UpdateVpcTags(ctx context.Context, id string, desired, current Tags, resourceType string) (bool, error) {
+func (u *updater) updateTags(ctx context.Context, id string, desired, current Tags, resourceType string) (bool, error) {
 	modified := false
 	toBeDeleted := Tags{}
 	toBeCreated := Tags{}
@@ -131,13 +142,13 @@ func (u *updater) UpdateVpcTags(ctx context.Context, id string, desired, current
 	}
 
 	if len(toBeDeleted) > 0 {
-		if err := u.actor.DeleteVpcTags(ctx, []string{id}, toBeDeleted, resourceType); err != nil {
+		if err := u.actor.DeleteTags(ctx, []string{id}, toBeDeleted, resourceType); err != nil {
 			return false, err
 		}
 		modified = true
 	}
 	if len(toBeCreated) > 0 {
-		if err := u.actor.CreateVpcTags(ctx, []string{id}, toBeCreated, resourceType); err != nil {
+		if err := u.actor.CreateTags(ctx, []string{id}, toBeCreated, resourceType); err != nil {
 			return false, err
 		}
 		modified = true
