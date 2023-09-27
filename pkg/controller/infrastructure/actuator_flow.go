@@ -72,15 +72,15 @@ func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infra
 
 func (a *actuator) migrateFlowStateFromTerraformerState(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) (*infraflow.PersistentState, error) {
 	log.Info("starting terraform state migration")
-	// infrastructureConfig, err := a.decodeInfrastructureConfig(infrastructure)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	state := infraflow.NewPersistentState()
-	// state, err := migrateTerraformStateToFlowState(infrastructure.Status.State, infrastructureConfig.Networks.Zones)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("migration from terraform state failed: %w", err)
-	// }
+	infrastructureConfig, err := a.decodeInfrastructureConfig(infrastructure)
+	if err != nil {
+		return nil, err
+	}
+	// state := infraflow.NewPersistentState()
+	state, err := migrateTerraformStateToFlowState(infrastructure.Status.State, infrastructureConfig.Networks.Zones)
+	if err != nil {
+		return nil, fmt.Errorf("migration from terraform state failed: %w", err)
+	}
 
 	if err := a.updateStatusState(ctx, infrastructure, state); err != nil {
 		return nil, fmt.Errorf("updating status state failed: %w", err)
