@@ -575,12 +575,12 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 	}
 
 	var machineImages []apisalicloud.MachineImage
-	if cluster.Shoot != nil {
-		machineImages, err = a.ensureImagesForShootProviderAccount(ctx, log, infra, cluster)
-		if err != nil {
-			return fmt.Errorf("failed to ensure machine images for shoot: %w", err)
-		}
-	}
+	// if cluster.Shoot != nil {
+	// 	machineImages, err = a.ensureImagesForShootProviderAccount(ctx, log, infra, cluster)
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to ensure machine images for shoot: %w", err)
+	// 	}
+	// }
 
 	status, err := a.generateStatus(ctx, tf, config, machineImages)
 	if err != nil {
