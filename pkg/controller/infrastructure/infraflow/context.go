@@ -225,3 +225,7 @@ func (c *FlowContext) clusterTags() aliclient.Tags {
 	tags[c.tagKeyCluster()] = TagValueCluster
 	return tags
 }
+
+func (c *FlowContext) ExportState() shared.FlatMap {
+	return c.state.ExportAsFlatMap()
+}
