@@ -41,9 +41,6 @@ func (c *FlowContext) Reconcile(ctx context.Context) error {
 }
 
 func (c *FlowContext) buildReconcileGraph() *flow.Graph {
-	createVPC := c.config.Networks.VPC.ID == nil
-	createNatGateway := createVPC || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
-	fmt.Println(createNatGateway)
 
 	g := flow.NewGraph("Alicloud infrastructure reconcilation")
 

@@ -47,6 +47,18 @@ func (a *actuator) shouldUseFlow(infrastructure *extensionsv1alpha1.Infrastructu
 func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
 	log.Info("reconcileWithFlow")
 
+	var (
+		machineImages []aliapi.MachineImage
+		err           error
+	)
+
+	if cluster.Shoot != nil {
+		machineImages, err = a.ensureImagesForShootProviderAccount(ctx, log, infrastructure, cluster)
+		if err != nil {
+			return fmt.Errorf("failed to ensure machine images for shoot: %w", err)
+		}
+	}
+
 	oldState, err := a.getFlowStateFromInfraStatus(infrastructure)
 	if err != nil {
 		return err
@@ -64,10 +76,12 @@ func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infra
 		return err
 	}
 	if err = flowContext.Reconcile(ctx); err != nil {
-		_ = flowContext.PersistState(ctx, true)
+		// _ = flowContext.PersistState(ctx, true)
+		_ = a.updateStatusStateWithMachineImages(ctx, infrastructure, machineImages, flowContext.ExportState())
 		return util.DetermineError(err, helper.KnownCodes)
 	}
-	return flowContext.PersistState(ctx, true)
+	// return flowContext.PersistState(ctx, true)
+	return a.updateStatusStateWithMachineImages(ctx, infrastructure, machineImages, flowContext.ExportState())
 }
 
 func (a *actuator) migrateFlowStateFromTerraformerState(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) (*infraflow.PersistentState, error) {
@@ -76,7 +90,7 @@ func (a *actuator) migrateFlowStateFromTerraformerState(ctx context.Context, log
 	if err != nil {
 		return nil, err
 	}
-	// state := infraflow.NewPersistentState()
+
 	state, err := migrateTerraformStateToFlowState(infrastructure.Status.State, infrastructureConfig.Networks.Zones)
 	if err != nil {
 		return nil, fmt.Errorf("migration from terraform state failed: %w", err)
@@ -109,10 +123,37 @@ func (a *actuator) updateStatusState(ctx context.Context, infra *extensionsv1alp
 	return updateProviderStatus(ctx, a.client, infra, infrastructureStatus, stateBytes)
 }
 
+func (a *actuator) updateStatusStateWithMachineImages(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, machineImages []aliapi.MachineImage, flatState shared.FlatMap) error {
+
+	infrastructureConfig, err := a.decodeInfrastructureConfig(infra)
+	if err != nil {
+		return err
+	}
+
+	state := infraflow.NewPersistentStateFromFlatMap(flatState)
+	infrastructureStatus, err := computeProviderStatusFromFlowState(infrastructureConfig, state)
+
+	if err != nil {
+		return err
+	}
+
+	machineImagesV1alpha1, err := a.convertImageListToV1alpha1(machineImages)
+	if err != nil {
+		return err
+	}
+
+	infrastructureStatus.MachineImages = machineImagesV1alpha1
+
+	patch := client.MergeFrom(infra.DeepCopy())
+	infra.Status.ProviderStatus = &runtime.RawExtension{Object: infrastructureStatus}
+	return a.client.Status().Patch(ctx, infra, patch)
+
+}
+
 func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureStatus *aliv1alpha1.InfrastructureStatus, stateBytes []byte) error {
 
 	patch := client.MergeFrom(infrastructure.DeepCopy())
-	infrastructure.Status.ProviderStatus = &runtime.RawExtension{Object: infrastructureStatus}
+	// infrastructure.Status.ProviderStatus = &runtime.RawExtension{Object: infrastructureStatus}
 	infrastructure.Status.State = &runtime.RawExtension{Raw: stateBytes}
 	return c.Status().Patch(ctx, infrastructure, patch)
 }
