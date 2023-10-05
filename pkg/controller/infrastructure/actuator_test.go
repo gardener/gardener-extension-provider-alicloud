@@ -39,12 +39,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/imagevector"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 	mockinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/controller/infrastructure"
 )

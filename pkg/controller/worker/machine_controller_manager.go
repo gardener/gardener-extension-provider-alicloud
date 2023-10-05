@@ -27,14 +27,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/charts"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 )
 
 var (
 	mcmChart = &chart.Chart{
-		Name:   alicloud.MachineControllerManagerName,
-		Path:   filepath.Join(alicloud.InternalChartsPath, alicloud.MachineControllerManagerName, "seed"),
-		Images: []string{alicloud.MachineControllerManagerImageName, alicloud.MachineControllerManagerProviderAlicloudImageName},
+		Name:       alicloud.MachineControllerManagerName,
+		EmbeddedFS: &charts.InternalChart,
+		Path:       filepath.Join(charts.InternalChartsPath, alicloud.MachineControllerManagerName, "seed"),
+		Images:     []string{alicloud.MachineControllerManagerImageName, alicloud.MachineControllerManagerProviderAlicloudImageName},
 		Objects: []*chart.Object{
 			{Type: &appsv1.Deployment{}, Name: alicloud.MachineControllerManagerName},
 			{Type: &corev1.Service{}, Name: alicloud.MachineControllerManagerName},
@@ -46,8 +48,9 @@ var (
 	}
 
 	mcmShootChart = &chart.Chart{
-		Name: alicloud.MachineControllerManagerName,
-		Path: filepath.Join(alicloud.InternalChartsPath, alicloud.MachineControllerManagerName, "shoot"),
+		Name:       alicloud.MachineControllerManagerName,
+		EmbeddedFS: &charts.InternalChart,
+		Path:       filepath.Join(charts.InternalChartsPath, alicloud.MachineControllerManagerName, "shoot"),
 		Objects: []*chart.Object{
 			{Type: &rbacv1.ClusterRole{}, Name: fmt.Sprintf("extensions.gardener.cloud:%s:%s", alicloud.Name, alicloud.MachineControllerManagerName)},
 			{Type: &rbacv1.ClusterRoleBinding{}, Name: fmt.Sprintf("extensions.gardener.cloud:%s:%s", alicloud.Name, alicloud.MachineControllerManagerName)},

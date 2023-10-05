@@ -34,8 +34,8 @@ import (
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/utils/pointer"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/imagevector"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 )
 
 // NewEnsurer creates a new controlplane ensurer.

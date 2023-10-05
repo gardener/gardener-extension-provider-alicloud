@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/charts"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
@@ -108,8 +109,9 @@ func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
 }
 
 var controlPlaneChart = &chart.Chart{
-	Name: "seed-controlplane",
-	Path: filepath.Join(alicloud.InternalChartsPath, "seed-controlplane"),
+	Name:       "seed-controlplane",
+	EmbeddedFS: &charts.InternalChart,
+	Path:       filepath.Join(charts.InternalChartsPath, "seed-controlplane"),
 	SubCharts: []*chart.Chart{
 		{
 			Name:   "alicloud-cloud-controller-manager",
@@ -150,8 +152,9 @@ var controlPlaneChart = &chart.Chart{
 }
 
 var controlPlaneShootChart = &chart.Chart{
-	Name: "shoot-system-components",
-	Path: filepath.Join(alicloud.InternalChartsPath, "shoot-system-components"),
+	Name:       "shoot-system-components",
+	EmbeddedFS: &charts.InternalChart,
+	Path:       filepath.Join(charts.InternalChartsPath, "shoot-system-components"),
 	SubCharts: []*chart.Chart{
 		{
 			Name: "alicloud-cloud-controller-manager",
@@ -221,8 +224,9 @@ var controlPlaneShootChart = &chart.Chart{
 }
 
 var controlPlaneShootCRDsChart = &chart.Chart{
-	Name: "shoot-crds",
-	Path: filepath.Join(alicloud.InternalChartsPath, "shoot-crds"),
+	Name:       "shoot-crds",
+	EmbeddedFS: &charts.InternalChart,
+	Path:       filepath.Join(charts.InternalChartsPath, "shoot-crds"),
 	SubCharts: []*chart.Chart{
 		{
 			Name: "volumesnapshots",
@@ -236,8 +240,9 @@ var controlPlaneShootCRDsChart = &chart.Chart{
 }
 
 var storageClassChart = &chart.Chart{
-	Name: "shoot-storageclasses",
-	Path: filepath.Join(alicloud.InternalChartsPath, "shoot-storageclasses"),
+	Name:       "shoot-storageclasses",
+	EmbeddedFS: &charts.InternalChart,
+	Path:       filepath.Join(charts.InternalChartsPath, "shoot-storageclasses"),
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.

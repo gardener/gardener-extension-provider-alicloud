@@ -45,6 +45,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/charts"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	apiv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
@@ -559,9 +560,10 @@ var _ = Describe("Machines", func() {
 				It("should return the expected machine deployments for profile image types", func() {
 					workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
 					chartApplier.EXPECT().
-						Apply(
+						ApplyFromEmbeddedFS(
 							context.TODO(),
-							filepath.Join(alicloud.InternalChartsPath, "machineclass"),
+							charts.InternalChart,
+							filepath.Join(charts.InternalChartsPath, "machineclass"),
 							namespace,
 							"machineclass",
 							kubernetes.Values(machineClasses),

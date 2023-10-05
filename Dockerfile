@@ -15,7 +15,6 @@ FROM gcr.io/distroless/static-debian11:nonroot AS base
 FROM base AS gardener-extension-provider-alicloud
 WORKDIR /
 
-COPY charts /charts
 COPY --from=builder /go/bin/gardener-extension-provider-alicloud /gardener-extension-provider-alicloud
 ENTRYPOINT ["/gardener-extension-provider-alicloud"]
 

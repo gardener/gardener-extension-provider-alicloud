@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
+	"github.com/gardener/gardener-extension-provider-alicloud/imagevector"
 )
 
 var _ = Describe("Terraform", func() {

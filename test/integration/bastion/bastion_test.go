@@ -122,9 +122,7 @@ var _ = BeforeSuite(func() {
 	flag.Parse()
 	validateFlags()
 
-	internalChartsPath = alicloud.InternalChartsPath
 	repoRoot := filepath.Join("..", "..", "..")
-	alicloud.InternalChartsPath = filepath.Join(repoRoot, alicloud.InternalChartsPath)
 
 	// enable manager logs
 	logf.SetLogger(logger.MustNewZapLogger(logger.DebugLevel, logger.FormatJSON, zap.WriteTo(GinkgoWriter)))
@@ -203,8 +201,6 @@ var _ = AfterSuite(func() {
 
 	By("stopping test environment")
 	Expect(testEnv.Stop()).To(Succeed())
-
-	alicloud.InternalChartsPath = internalChartsPath
 })
 
 var _ = Describe("Bastion tests", func() {

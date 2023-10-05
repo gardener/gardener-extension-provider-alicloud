@@ -27,9 +27,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/imagevector"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 )
 
 var (

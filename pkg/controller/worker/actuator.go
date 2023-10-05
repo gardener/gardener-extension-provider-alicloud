@@ -33,10 +33,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/imagevector"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 )
 
 type delegateFactory struct {
