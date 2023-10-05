@@ -686,7 +686,7 @@ func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 
 	describeVpcsReq := vpc.CreateDescribeVpcsRequest()
 	describeVpcsReq.VpcId = createVPCsResp.VpcId
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		describeVpcsResp, err := vpcClient.DescribeVpcs(describeVpcsReq)
 		if err != nil {
 			return false, err
@@ -697,7 +697,7 @@ func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 		}
 
 		return true, nil
-	}, ctx.Done())
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	createVSwitchsReq := vpc.CreateCreateVSwitchRequest()
@@ -710,7 +710,7 @@ func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 
 	describeVSwitchesReq := vpc.CreateDescribeVSwitchesRequest()
 	describeVSwitchesReq.VSwitchId = createVSwitchsResp.VSwitchId
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		describeVSwitchesResp, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
 		if err != nil {
 			return false, err
@@ -721,7 +721,7 @@ func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 		}
 
 		return true, nil
-	}, ctx.Done())
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	createNatGatewayReq := vpc.CreateCreateNatGatewayRequest()
@@ -734,7 +734,7 @@ func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 
 	describeNatGatewaysReq := vpc.CreateDescribeNatGatewaysRequest()
 	describeNatGatewaysReq.NatGatewayId = createNatGatewayResp.NatGatewayId
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		describeNatGatewaysResp, err := vpcClient.DescribeNatGateways(describeNatGatewaysReq)
 		if err != nil {
 			return false, err
@@ -745,7 +745,7 @@ func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 		}
 
 		return true, nil
-	}, ctx.Done())
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	return infrastructureIdentifiers{
@@ -768,7 +768,7 @@ func cleanupVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 
 	describeNatGatewaysReq := vpc.CreateDescribeNatGatewaysRequest()
 	describeNatGatewaysReq.NatGatewayId = *identifiers.natGatewayID
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		describeNatGatewaysResp, err := vpcClient.DescribeNatGateways(describeNatGatewaysReq)
 		if err != nil {
 			return false, err
@@ -779,12 +779,12 @@ func cleanupVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 		}
 
 		return false, nil
-	}, ctx.Done())
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	describeSecurityGroupsReq := ecs.CreateDescribeSecurityGroupsRequest()
 	describeSecurityGroupsReq.VpcId = *identifiers.vpcID
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		describeSecurityGroupsResp, err := ecsClient.DescribeSecurityGroups(describeSecurityGroupsReq)
 
 		if err != nil {
@@ -796,7 +796,7 @@ func cleanupVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 		}
 
 		return false, nil
-	}, ctx.Done())
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	deleteVSwitchReq := vpc.CreateDeleteVSwitchRequest()
@@ -806,7 +806,7 @@ func cleanupVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 
 	describeVSwitchesReq := vpc.CreateDescribeVSwitchesRequest()
 	describeVSwitchesReq.VSwitchId = *identifiers.vswitchID
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		describeVSwitchesResp, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
 
 		if err != nil {
@@ -818,7 +818,7 @@ func cleanupVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 		}
 
 		return false, nil
-	}, ctx.Done())
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	deleteVpcReq := vpc.CreateDeleteVpcRequest()
@@ -828,7 +828,7 @@ func cleanupVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 
 	describeVpcsReq := vpc.CreateDescribeVpcsRequest()
 	describeVpcsReq.VpcId = *identifiers.vpcID
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		describeVpcsResp, err := vpcClient.DescribeVpcs(describeVpcsReq)
 
 		if err != nil {
@@ -840,6 +840,6 @@ func cleanupVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 		}
 
 		return false, nil
-	}, ctx.Done())
+	})
 	Expect(err).NotTo(HaveOccurred())
 }
