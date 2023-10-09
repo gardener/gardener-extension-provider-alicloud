@@ -214,6 +214,36 @@ func (mr *MockECSMockRecorder) AllocatePublicIp(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocatePublicIp", reflect.TypeOf((*MockECS)(nil).AllocatePublicIp), arg0)
 }
 
+// AuthorizeSecurityGroup mocks base method.
+func (m *MockECS) AuthorizeSecurityGroup(arg0 *ecs.AuthorizeSecurityGroupRequest) (*ecs.AuthorizeSecurityGroupResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AuthorizeSecurityGroup", arg0)
+	ret0, _ := ret[0].(*ecs.AuthorizeSecurityGroupResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AuthorizeSecurityGroup indicates an expected call of AuthorizeSecurityGroup.
+func (mr *MockECSMockRecorder) AuthorizeSecurityGroup(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthorizeSecurityGroup", reflect.TypeOf((*MockECS)(nil).AuthorizeSecurityGroup), arg0)
+}
+
+// AuthorizeSecurityGroupEgress mocks base method.
+func (m *MockECS) AuthorizeSecurityGroupEgress(arg0 *ecs.AuthorizeSecurityGroupEgressRequest) (*ecs.AuthorizeSecurityGroupEgressResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AuthorizeSecurityGroupEgress", arg0)
+	ret0, _ := ret[0].(*ecs.AuthorizeSecurityGroupEgressResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AuthorizeSecurityGroupEgress indicates an expected call of AuthorizeSecurityGroupEgress.
+func (mr *MockECSMockRecorder) AuthorizeSecurityGroupEgress(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthorizeSecurityGroupEgress", reflect.TypeOf((*MockECS)(nil).AuthorizeSecurityGroupEgress), arg0)
+}
+
 // CheckIfImageExists mocks base method.
 func (m *MockECS) CheckIfImageExists(arg0 string) (bool, error) {
 	m.ctrl.T.Helper()
@@ -287,6 +317,21 @@ func (mr *MockECSMockRecorder) CreateInstances(arg0, arg1, arg2, arg3, arg4, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstances", reflect.TypeOf((*MockECS)(nil).CreateInstances), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 }
 
+// CreateSecurityGroup mocks base method.
+func (m *MockECS) CreateSecurityGroup(arg0 *ecs.CreateSecurityGroupRequest) (*ecs.CreateSecurityGroupResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSecurityGroup", arg0)
+	ret0, _ := ret[0].(*ecs.CreateSecurityGroupResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSecurityGroup indicates an expected call of CreateSecurityGroup.
+func (mr *MockECSMockRecorder) CreateSecurityGroup(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecurityGroup", reflect.TypeOf((*MockECS)(nil).CreateSecurityGroup), arg0)
+}
+
 // CreateSecurityGroups mocks base method.
 func (m *MockECS) CreateSecurityGroups(arg0, arg1 string) (*ecs.CreateSecurityGroupResponse, error) {
 	m.ctrl.T.Helper()
@@ -314,6 +359,21 @@ func (m *MockECS) DeleteInstances(arg0 string, arg1 bool) error {
 func (mr *MockECSMockRecorder) DeleteInstances(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstances", reflect.TypeOf((*MockECS)(nil).DeleteInstances), arg0, arg1)
+}
+
+// DeleteSecurityGroup mocks base method.
+func (m *MockECS) DeleteSecurityGroup(arg0 *ecs.DeleteSecurityGroupRequest) (*ecs.DeleteSecurityGroupResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSecurityGroup", arg0)
+	ret0, _ := ret[0].(*ecs.DeleteSecurityGroupResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteSecurityGroup indicates an expected call of DeleteSecurityGroup.
+func (mr *MockECSMockRecorder) DeleteSecurityGroup(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecurityGroup", reflect.TypeOf((*MockECS)(nil).DeleteSecurityGroup), arg0)
 }
 
 // DeleteSecurityGroups mocks base method.
@@ -449,6 +509,21 @@ func (mr *MockECSMockRecorder) GetSecurityGroupWithID(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecurityGroupWithID", reflect.TypeOf((*MockECS)(nil).GetSecurityGroupWithID), arg0)
 }
 
+// ListTagResources mocks base method.
+func (m *MockECS) ListTagResources(arg0 *ecs.ListTagResourcesRequest) (*ecs.ListTagResourcesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTagResources", arg0)
+	ret0, _ := ret[0].(*ecs.ListTagResourcesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListTagResources indicates an expected call of ListTagResources.
+func (mr *MockECSMockRecorder) ListTagResources(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagResources", reflect.TypeOf((*MockECS)(nil).ListTagResources), arg0)
+}
+
 // RevokeEgressRule mocks base method.
 func (m *MockECS) RevokeEgressRule(arg0 *ecs.RevokeSecurityGroupEgressRequest) error {
 	m.ctrl.T.Helper()
@@ -477,6 +552,36 @@ func (mr *MockECSMockRecorder) RevokeIngressRule(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeIngressRule", reflect.TypeOf((*MockECS)(nil).RevokeIngressRule), arg0)
 }
 
+// RevokeSecurityGroup mocks base method.
+func (m *MockECS) RevokeSecurityGroup(arg0 *ecs.RevokeSecurityGroupRequest) (*ecs.RevokeSecurityGroupResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeSecurityGroup", arg0)
+	ret0, _ := ret[0].(*ecs.RevokeSecurityGroupResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RevokeSecurityGroup indicates an expected call of RevokeSecurityGroup.
+func (mr *MockECSMockRecorder) RevokeSecurityGroup(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSecurityGroup", reflect.TypeOf((*MockECS)(nil).RevokeSecurityGroup), arg0)
+}
+
+// RevokeSecurityGroupEgress mocks base method.
+func (m *MockECS) RevokeSecurityGroupEgress(arg0 *ecs.RevokeSecurityGroupEgressRequest) (*ecs.RevokeSecurityGroupEgressResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeSecurityGroupEgress", arg0)
+	ret0, _ := ret[0].(*ecs.RevokeSecurityGroupEgressResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RevokeSecurityGroupEgress indicates an expected call of RevokeSecurityGroupEgress.
+func (mr *MockECSMockRecorder) RevokeSecurityGroupEgress(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSecurityGroupEgress", reflect.TypeOf((*MockECS)(nil).RevokeSecurityGroupEgress), arg0)
+}
+
 // ShareImageToAccount mocks base method.
 func (m *MockECS) ShareImageToAccount(arg0 context.Context, arg1, arg2, arg3 string) error {
 	m.ctrl.T.Helper()
@@ -489,6 +594,36 @@ func (m *MockECS) ShareImageToAccount(arg0 context.Context, arg1, arg2, arg3 str
 func (mr *MockECSMockRecorder) ShareImageToAccount(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShareImageToAccount", reflect.TypeOf((*MockECS)(nil).ShareImageToAccount), arg0, arg1, arg2, arg3)
+}
+
+// TagResources mocks base method.
+func (m *MockECS) TagResources(arg0 *ecs.TagResourcesRequest) (*ecs.TagResourcesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TagResources", arg0)
+	ret0, _ := ret[0].(*ecs.TagResourcesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TagResources indicates an expected call of TagResources.
+func (mr *MockECSMockRecorder) TagResources(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResources", reflect.TypeOf((*MockECS)(nil).TagResources), arg0)
+}
+
+// UntagResources mocks base method.
+func (m *MockECS) UntagResources(arg0 *ecs.UntagResourcesRequest) (*ecs.UntagResourcesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UntagResources", arg0)
+	ret0, _ := ret[0].(*ecs.UntagResourcesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UntagResources indicates an expected call of UntagResources.
+func (mr *MockECSMockRecorder) UntagResources(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagResources", reflect.TypeOf((*MockECS)(nil).UntagResources), arg0)
 }
 
 // MockSTS is a mock of STS interface.
@@ -633,6 +768,36 @@ func (m *MockVPC) EXPECT() *MockVPCMockRecorder {
 	return m.recorder
 }
 
+// AllocateEipAddress mocks base method.
+func (m *MockVPC) AllocateEipAddress(arg0 *vpc.AllocateEipAddressRequest) (*vpc.AllocateEipAddressResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AllocateEipAddress", arg0)
+	ret0, _ := ret[0].(*vpc.AllocateEipAddressResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AllocateEipAddress indicates an expected call of AllocateEipAddress.
+func (mr *MockVPCMockRecorder) AllocateEipAddress(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocateEipAddress", reflect.TypeOf((*MockVPC)(nil).AllocateEipAddress), arg0)
+}
+
+// AssociateEipAddress mocks base method.
+func (m *MockVPC) AssociateEipAddress(arg0 *vpc.AssociateEipAddressRequest) (*vpc.AssociateEipAddressResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssociateEipAddress", arg0)
+	ret0, _ := ret[0].(*vpc.AssociateEipAddressResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssociateEipAddress indicates an expected call of AssociateEipAddress.
+func (mr *MockVPCMockRecorder) AssociateEipAddress(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEipAddress", reflect.TypeOf((*MockVPC)(nil).AssociateEipAddress), arg0)
+}
+
 // CreateNatGateway mocks base method.
 func (m *MockVPC) CreateNatGateway(arg0 *vpc.CreateNatGatewayRequest) (*vpc.CreateNatGatewayResponse, error) {
 	m.ctrl.T.Helper()
@@ -646,6 +811,21 @@ func (m *MockVPC) CreateNatGateway(arg0 *vpc.CreateNatGatewayRequest) (*vpc.Crea
 func (mr *MockVPCMockRecorder) CreateNatGateway(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNatGateway", reflect.TypeOf((*MockVPC)(nil).CreateNatGateway), arg0)
+}
+
+// CreateSnatEntry mocks base method.
+func (m *MockVPC) CreateSnatEntry(arg0 *vpc.CreateSnatEntryRequest) (*vpc.CreateSnatEntryResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSnatEntry", arg0)
+	ret0, _ := ret[0].(*vpc.CreateSnatEntryResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSnatEntry indicates an expected call of CreateSnatEntry.
+func (mr *MockVPCMockRecorder) CreateSnatEntry(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSnatEntry", reflect.TypeOf((*MockVPC)(nil).CreateSnatEntry), arg0)
 }
 
 // CreateVSwitch mocks base method.
@@ -691,6 +871,21 @@ func (m *MockVPC) DeleteNatGateway(arg0 *vpc.DeleteNatGatewayRequest) (*vpc.Dele
 func (mr *MockVPCMockRecorder) DeleteNatGateway(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNatGateway", reflect.TypeOf((*MockVPC)(nil).DeleteNatGateway), arg0)
+}
+
+// DeleteSnatEntry mocks base method.
+func (m *MockVPC) DeleteSnatEntry(arg0 *vpc.DeleteSnatEntryRequest) (*vpc.DeleteSnatEntryResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSnatEntry", arg0)
+	ret0, _ := ret[0].(*vpc.DeleteSnatEntryResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteSnatEntry indicates an expected call of DeleteSnatEntry.
+func (mr *MockVPCMockRecorder) DeleteSnatEntry(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSnatEntry", reflect.TypeOf((*MockVPC)(nil).DeleteSnatEntry), arg0)
 }
 
 // DeleteVSwitch mocks base method.
@@ -933,6 +1128,36 @@ func (mr *MockVPCMockRecorder) ListTagResources(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagResources", reflect.TypeOf((*MockVPC)(nil).ListTagResources), arg0)
 }
 
+// ModifyEipAddressAttribute mocks base method.
+func (m *MockVPC) ModifyEipAddressAttribute(arg0 *vpc.ModifyEipAddressAttributeRequest) (*vpc.ModifyEipAddressAttributeResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyEipAddressAttribute", arg0)
+	ret0, _ := ret[0].(*vpc.ModifyEipAddressAttributeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyEipAddressAttribute indicates an expected call of ModifyEipAddressAttribute.
+func (mr *MockVPCMockRecorder) ModifyEipAddressAttribute(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyEipAddressAttribute", reflect.TypeOf((*MockVPC)(nil).ModifyEipAddressAttribute), arg0)
+}
+
+// ReleaseEipAddress mocks base method.
+func (m *MockVPC) ReleaseEipAddress(arg0 *vpc.ReleaseEipAddressRequest) (*vpc.ReleaseEipAddressResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseEipAddress", arg0)
+	ret0, _ := ret[0].(*vpc.ReleaseEipAddressResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReleaseEipAddress indicates an expected call of ReleaseEipAddress.
+func (mr *MockVPCMockRecorder) ReleaseEipAddress(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseEipAddress", reflect.TypeOf((*MockVPC)(nil).ReleaseEipAddress), arg0)
+}
+
 // TagResources mocks base method.
 func (m *MockVPC) TagResources(arg0 *vpc.TagResourcesRequest) (*vpc.TagResourcesResponse, error) {
 	m.ctrl.T.Helper()
@@ -961,6 +1186,21 @@ func (m *MockVPC) UnTagResources(arg0 *vpc.UnTagResourcesRequest) (*vpc.UnTagRes
 func (mr *MockVPCMockRecorder) UnTagResources(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnTagResources", reflect.TypeOf((*MockVPC)(nil).UnTagResources), arg0)
+}
+
+// UnassociateEipAddress mocks base method.
+func (m *MockVPC) UnassociateEipAddress(arg0 *vpc.UnassociateEipAddressRequest) (*vpc.UnassociateEipAddressResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnassociateEipAddress", arg0)
+	ret0, _ := ret[0].(*vpc.UnassociateEipAddressResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnassociateEipAddress indicates an expected call of UnassociateEipAddress.
+func (mr *MockVPCMockRecorder) UnassociateEipAddress(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnassociateEipAddress", reflect.TypeOf((*MockVPC)(nil).UnassociateEipAddress), arg0)
 }
 
 // MockOSS is a mock of OSS interface.
