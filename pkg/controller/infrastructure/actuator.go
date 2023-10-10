@@ -698,6 +698,11 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extension
 	return nil
 }
 
+// ForceDelete implements infrastructure.Actuator.
+func (a *actuator) ForceDelete(_ context.Context, _ logr.Logger, _ *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
+	return nil
+}
+
 // Migrate implements infrastructure.Actuator.
 func (a *actuator) Migrate(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
 	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.restConfig, TerraformerPurpose, infra, a.disableProjectedTokenMount)
