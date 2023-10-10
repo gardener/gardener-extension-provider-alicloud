@@ -16,4 +16,4 @@ spec:
       --access-key-secret=$ACCESS_KEY_SECRET
       --region=$REGION
 
-  image: eu.gcr.io/gardener-project/3rd/golang:1.21.1
+  image: golang:1.21.1
