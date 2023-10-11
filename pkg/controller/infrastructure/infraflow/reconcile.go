@@ -329,7 +329,7 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		AvailableVSwitches: availableVSwitches,
 	}
 
-	current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTags,
+	current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTagsWithSuffix("natgw"),
 		c.actor.GetNatGateway, c.actor.FindNatGatewayByTags)
 
 	if err != nil {
