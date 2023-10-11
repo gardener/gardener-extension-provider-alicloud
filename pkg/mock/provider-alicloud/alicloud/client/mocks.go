@@ -13,7 +13,7 @@ import (
 	vpc "github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	client "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	v1 "k8s.io/api/core/v1"
 	client0 "sigs.k8s.io/controller-runtime/pkg/client"
 )

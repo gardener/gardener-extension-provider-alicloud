@@ -27,8 +27,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/imagevector"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/imagevector"
 )
 
 const (

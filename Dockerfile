@@ -1,5 +1,5 @@
 ############# builder
-FROM golang:1.19.3 AS builder
+FROM golang:1.21.1 AS builder
 
 WORKDIR /go/src/github.com/gardener/gardener-extension-provider-alicloud
 COPY . .
@@ -15,7 +15,6 @@ FROM gcr.io/distroless/static-debian11:nonroot AS base
 FROM base AS gardener-extension-provider-alicloud
 WORKDIR /
 
-COPY charts /charts
 COPY --from=builder /go/bin/gardener-extension-provider-alicloud /gardener-extension-provider-alicloud
 ENTRYPOINT ["/gardener-extension-provider-alicloud"]
 

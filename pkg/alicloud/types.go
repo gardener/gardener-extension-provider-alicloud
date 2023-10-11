@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/charts"
 )
 
 const (
@@ -106,10 +108,8 @@ const (
 var (
 	// ChartsPath is the path to the charts
 	ChartsPath = filepath.Join("charts")
-	// InternalChartsPath is the path to the internal charts
-	InternalChartsPath = filepath.Join(ChartsPath, "internal")
 	// InfraChartPath is the path to the alicloud-infra chart.
-	InfraChartPath = filepath.Join(InternalChartsPath, "alicloud-infra")
+	InfraChartPath = filepath.Join(ChartsPath, charts.InternalChartsPath, "alicloud-infra")
 
 	// UsernamePrefix is a constant for the username prefix of components deployed by AWS.
 	UsernamePrefix = extensionsv1alpha1.SchemeGroupVersion.Group + ":" + Name + ":"
