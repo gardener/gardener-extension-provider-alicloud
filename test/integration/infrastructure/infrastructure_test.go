@@ -19,7 +19,10 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
@@ -51,9 +54,23 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/matchers"
+	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow"
+	gomegatypes "github.com/onsi/gomega/types"
+
+	"github.com/onsi/gomega/format"
+)
+
+type flowUsage int
+
+const (
+	fuUseTerraformer flowUsage = iota
+	fuMigrateFromTerraformer
+	fuUseFlow
+	fuUseFlowRecoverState
 )
 
 var (
@@ -159,18 +176,37 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Infrastructure tests", func() {
 	Context("with infrastructure that requests new vpc (networks.vpc.cidr)", func() {
-		It("should successfully create and delete", func() {
+		It("should successfully create and delete (terraformer)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR: pointer.String(vpcCIDR),
 			}, availabilityZone)
 
-			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory)
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseTerraformer)
 			Expect(err).NotTo(HaveOccurred())
 		})
+
+		It("should successfully create and delete (flow)", func() {
+			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
+				CIDR: pointer.String(vpcCIDR),
+			}, availabilityZone)
+
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseFlowRecoverState)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should successfully create and delete (migration from terraformer)", func() {
+			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
+				CIDR: pointer.String(vpcCIDR),
+			}, availabilityZone)
+
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuMigrateFromTerraformer)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 	})
 
 	Context("with infrastructure that requests existing vpc", func() {
-		It("should successfully create and delete", func() {
+		It("should successfully create and delete (terraformer)", func() {
 			identifiers := prepareVPC(ctx, clientFactory, *region, vpcCIDR, natGatewayCIDR)
 			framework.AddCleanupAction(func() {
 				cleanupVPC(ctx, clientFactory, identifiers)
@@ -180,13 +216,27 @@ var _ = Describe("Infrastructure tests", func() {
 				ID: identifiers.vpcID,
 			}, availabilityZone)
 
-			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory)
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseTerraformer)
 			Expect(err).NotTo(HaveOccurred())
 		})
+		It("should successfully create and delete (flow)", func() {
+			identifiers := prepareVPC(ctx, clientFactory, *region, vpcCIDR, natGatewayCIDR)
+			framework.AddCleanupAction(func() {
+				cleanupVPC(ctx, clientFactory, identifiers)
+			})
+
+			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
+				ID: identifiers.vpcID,
+			}, availabilityZone)
+
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseFlow)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 	})
 
 	Context("with invalid credentials", func() {
-		It("should fail creation but succeed deletion", func() {
+		It("should fail creation but succeed deletion (terraformer)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR: pointer.String(vpcCIDR),
 			}, availabilityZone)
@@ -249,7 +299,7 @@ var _ = Describe("Infrastructure tests", func() {
 			Expect(c.Create(ctx, cluster)).To(Succeed())
 
 			By("create infrastructure")
-			infra, err = newInfrastructure(namespace.Name, providerConfig)
+			infra, err = newInfrastructure(namespace.Name, providerConfig, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(c.Create(ctx, infra)).To(Succeed())
 
@@ -270,10 +320,96 @@ var _ = Describe("Infrastructure tests", func() {
 			Expect(errors.As(err, &errorWithCode)).To(BeTrue())
 			Expect(errorWithCode.Codes()).To(ConsistOf(gardencorev1beta1.ErrorInfraUnauthenticated, gardencorev1beta1.ErrorConfigurationProblem))
 		})
+
+		It("should fail creation but succeed deletion (flow)", func() {
+			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
+				CIDR: pointer.String(vpcCIDR),
+			}, availabilityZone)
+
+			var (
+				namespace *corev1.Namespace
+				cluster   *extensionsv1alpha1.Cluster
+				infra     *extensionsv1alpha1.Infrastructure
+				err       error
+			)
+
+			framework.AddCleanupAction(func() {
+				By("cleaning up namespace and cluster")
+				Expect(client.IgnoreNotFound(c.Delete(ctx, namespace))).To(Succeed())
+				Expect(client.IgnoreNotFound(c.Delete(ctx, cluster))).To(Succeed())
+			})
+
+			defer func() {
+				By("delete infrastructure")
+				Expect(client.IgnoreNotFound(c.Delete(ctx, infra))).To(Succeed())
+
+				By("wait until infrastructure is deleted")
+				// deletion should succeed even though creation failed with invalid credentials (no-op)
+				err := extensions.WaitUntilExtensionObjectDeleted(
+					ctx,
+					c,
+					log,
+					infra,
+					extensionsv1alpha1.InfrastructureResource,
+					10*time.Second,
+					30*time.Minute,
+				)
+				Expect(err).NotTo(HaveOccurred())
+			}()
+
+			By("create namespace for test execution")
+			namespace = &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "provider-alicloud-test-",
+				},
+			}
+			Expect(c.Create(ctx, namespace)).To(Succeed())
+
+			By("deploy invalid cloudprovider secret into namespace")
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: namespace.Name,
+				},
+				Data: map[string][]byte{
+					alicloud.AccessKeyID:     []byte("invalid"),
+					alicloud.AccessKeySecret: []byte("fake"),
+				},
+			}
+			Expect(c.Create(ctx, secret)).To(Succeed())
+
+			By("create cluster which contains information of shoot info. It is used for encrypted image testing")
+			cluster, err = newCluster(namespace.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(c.Create(ctx, cluster)).To(Succeed())
+
+			By("create infrastructure")
+			infra, err = newInfrastructure(namespace.Name, providerConfig, true)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(c.Create(ctx, infra)).To(Succeed())
+
+			By("wait until infrastructure creation has failed")
+			err = extensions.WaitUntilExtensionObjectReady(
+				ctx,
+				c,
+				log,
+				infra,
+				extensionsv1alpha1.InfrastructureResource,
+				10*time.Second,
+				30*time.Second,
+				5*time.Minute,
+				nil,
+			)
+			Expect(err).To(MatchError(ContainSubstring("Specified access key is not found")))
+			var errorWithCode *gardencorev1beta1helper.ErrorWithCodes
+			Expect(errors.As(err, &errorWithCode)).To(BeTrue())
+			Expect(errorWithCode.Codes()).To(ConsistOf(gardencorev1beta1.ErrorInfraUnauthenticated, gardencorev1beta1.ErrorConfigurationProblem))
+		})
+
 	})
 })
 
-func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
+func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory, flow flowUsage) error {
 	var (
 		namespace                 *corev1.Namespace
 		cluster                   *extensionsv1alpha1.Cluster
@@ -344,7 +480,7 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 	}
 
 	By("create infrastructure")
-	infra, err = newInfrastructure(namespace.Name, providerConfig)
+	infra, err = newInfrastructure(namespace.Name, providerConfig, flow == fuUseFlow || flow == fuUseFlowRecoverState)
 	if err != nil {
 		return err
 	}
@@ -388,6 +524,56 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 	By("verify infrastructure creation")
 	infrastructureIdentifiers = verifyCreation(clientFactory, infra, providerStatus, providerConfig)
 
+	oldState := infra.Status.State
+	if flow == fuUseFlowRecoverState {
+		By("drop state for testing recover")
+		patch := client.MergeFrom(infra.DeepCopy())
+		infra.Status.ProviderStatus = nil
+		state, err := infraflow.NewPersistentState().ToJSON()
+		Expect(err).To(Succeed())
+		infra.Status.State = &runtime.RawExtension{Raw: state}
+		err = c.Status().Patch(ctx, infra, patch)
+		Expect(err).To(Succeed())
+	}
+
+	By("triggering infrastructure reconciliation")
+	infraCopy := infra.DeepCopy()
+	metav1.SetMetaDataAnnotation(&infra.ObjectMeta, "gardener.cloud/operation", "reconcile")
+	if flow == fuMigrateFromTerraformer {
+		metav1.SetMetaDataAnnotation(&infra.ObjectMeta, aliapi.AnnotationKeyUseFlow, "true")
+	}
+	Expect(c.Patch(ctx, infra, client.MergeFrom(infraCopy))).To(Succeed())
+
+	By("wait until infrastructure is reconciled")
+	time.Sleep(5 * time.Second)
+
+	if err := extensions.WaitUntilExtensionObjectReady(
+		ctx,
+		c,
+		logger,
+		infra,
+		extensionsv1alpha1.InfrastructureResource,
+		10*time.Second,
+		30*time.Second,
+		16*time.Minute,
+		nil,
+	); err != nil {
+		return err
+	}
+
+	if flow == fuUseFlowRecoverState {
+		By("check state recovery")
+		if err := c.Get(ctx, client.ObjectKey{Namespace: infra.Namespace, Name: infra.Name}, infra); err != nil {
+			return err
+		}
+		Expect(infra.Status.State).To(Equal(oldState))
+		newProviderStatus := &alicloudv1alpha1.InfrastructureStatus{}
+		if _, _, err := decoder.Decode(infra.Status.ProviderStatus.Raw, nil, newProviderStatus); err != nil {
+			return err
+		}
+		Expect(newProviderStatus).To(EqualInfrastructureStatus(providerStatus))
+	}
+
 	if *enableEncryptedImage {
 		By("verify image prepared in infrastructure status")
 		if err := verifyImageInfraStatus(providerStatus); err != nil {
@@ -396,6 +582,47 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 	}
 
 	return nil
+}
+
+func EqualInfrastructureStatus(expected *alicloudv1alpha1.InfrastructureStatus) gomegatypes.GomegaMatcher {
+	return &equalInfrastructureStatusMatcher{
+		expected: expected,
+	}
+}
+
+type equalInfrastructureStatusMatcher struct {
+	expected *alicloudv1alpha1.InfrastructureStatus
+}
+
+func (matcher *equalInfrastructureStatusMatcher) Match(actual interface{}) (success bool, err error) {
+	status, ok := actual.(*alicloudv1alpha1.InfrastructureStatus)
+	if !ok {
+		return false, fmt.Errorf("only %s/%s is supported for this matcher", alicloudv1alpha1.SchemeGroupVersion.String(), "InfrastructureStatus")
+	}
+
+	sort.Slice(status.VPC.VSwitches, func(i, j int) bool {
+		return status.VPC.VSwitches[i].ID < status.VPC.VSwitches[j].ID
+	})
+	sort.Slice(matcher.expected.VPC.VSwitches, func(i, j int) bool {
+		return matcher.expected.VPC.VSwitches[i].ID < matcher.expected.VPC.VSwitches[j].ID
+	})
+
+	return reflect.DeepEqual(status, matcher.expected), nil
+}
+
+func (matcher *equalInfrastructureStatusMatcher) FailureMessage(actual interface{}) (message string) {
+	actualString, actualOK := actual.(string)
+	expected := interface{}(matcher.expected)
+	expectedString, expectedOK := expected.(string)
+	if actualOK && expectedOK {
+		return format.MessageWithDiff(actualString, "to equal", expectedString)
+	}
+
+	return format.Message(actual, "to equal", expectedString)
+}
+
+func (matcher *equalInfrastructureStatusMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+	return format.Message(actual, "not to equal", matcher.expected)
 }
 
 func newProviderConfig(vpc *alicloudv1alpha1.VPC, availabilityZone string) *alicloudv1alpha1.InfrastructureConfig {
@@ -416,13 +643,13 @@ func newProviderConfig(vpc *alicloudv1alpha1.VPC, availabilityZone string) *alic
 	}
 }
 
-func newInfrastructure(namespace string, providerConfig *alicloudv1alpha1.InfrastructureConfig) (*extensionsv1alpha1.Infrastructure, error) {
+func newInfrastructure(namespace string, providerConfig *alicloudv1alpha1.InfrastructureConfig, useFlow bool) (*extensionsv1alpha1.Infrastructure, error) {
 	providerConfigJSON, err := json.Marshal(&providerConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	return &extensionsv1alpha1.Infrastructure{
+	infra := &extensionsv1alpha1.Infrastructure{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "infrastructure",
 			Namespace: namespace,
@@ -440,7 +667,11 @@ func newInfrastructure(namespace string, providerConfig *alicloudv1alpha1.Infras
 			},
 			Region: *region,
 		},
-	}, nil
+	}
+	if useFlow {
+		infra.Annotations = map[string]string{aliapi.AnnotationKeyUseFlow: "true"}
+	}
+	return infra, nil
 }
 
 type infrastructureIdentifiers struct {

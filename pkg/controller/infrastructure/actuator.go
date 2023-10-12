@@ -527,7 +527,8 @@ func (a *actuator) makeImageVisibleForShoot(ctx context.Context, log logr.Logger
 // Reconcile implements infrastructure.Actuator.
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
 	if a.shouldUseFlow(infra, cluster) {
-		return a.reconcileWithFlow(ctx, log, infra, cluster)
+		err := a.reconcileWithFlow(ctx, log, infra, cluster)
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 	return a.reconcile(ctx, log, infra, cluster, terraformer.StateConfigMapInitializerFunc(terraformer.CreateState))
 }
