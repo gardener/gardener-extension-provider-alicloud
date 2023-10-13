@@ -180,6 +180,9 @@ func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
 			return err
 		}
 	}
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
 	return nil
 }
 
