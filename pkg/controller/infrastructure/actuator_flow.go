@@ -39,6 +39,11 @@ import (
 // - annotation `alicloud.provider.extensions.gardener.cloud/use-flow=true` on shoot resource
 // - label `alicloud.provider.extensions.gardener.cloud/use-flow=true` on seed resource (label instead of annotation, as only labels are transported from managedseed to seed object)
 func (a *actuator) shouldUseFlow(infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) bool {
+	flowState, err := a.getFlowStateFromInfraStatus(infrastructure)
+	if err == nil && flowState != nil {
+		return true
+	}
+
 	return strings.EqualFold(infrastructure.Annotations[aliapi.AnnotationKeyUseFlow], "true") ||
 		(cluster.Shoot != nil && strings.EqualFold(cluster.Shoot.Annotations[aliapi.AnnotationKeyUseFlow], "true")) ||
 		(cluster.Seed != nil && strings.EqualFold(cluster.Seed.Labels[aliapi.SeedLabelKeyUseFlow], "true"))
