@@ -36,6 +36,7 @@ import (
 	runtimelog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
@@ -94,8 +95,10 @@ func main() {
 	}
 
 	mgr, err := manager.New(cfg, manager.Options{
-		MetricsBindAddress: "0",
-		Logger:             zap.New(zap.UseDevMode(true)),
+		Metrics: server.Options{
+			BindAddress: "0",
+		},
+		Logger: zap.New(zap.UseDevMode(true)),
 	})
 
 	if err != nil {

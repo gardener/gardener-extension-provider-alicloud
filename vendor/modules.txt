@@ -556,6 +556,9 @@ github.com/ulikunitz/xz/lzma
 # github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 ## explicit
 github.com/xi2/xz
+# go.uber.org/atomic v1.10.0
+## explicit; go 1.18
+go.uber.org/atomic
 # go.uber.org/mock v0.2.0
 ## explicit; go 1.19
 go.uber.org/mock/gomock
