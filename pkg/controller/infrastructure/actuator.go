@@ -535,6 +535,10 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, infra *extens
 
 // Restore implements infrastructure.Actuator.
 func (a *actuator) Restore(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+	if a.shouldUseFlow(infra, cluster) {
+		err := a.reconcileWithFlow(ctx, log, infra, cluster)
+		return util.DetermineError(err, helper.KnownCodes)
+	}
 	terraformState, err := terraformer.UnmarshalRawState(infra.Status.State)
 	if err != nil {
 		return err
@@ -712,6 +716,13 @@ func (a *actuator) delete(ctx context.Context, log logr.Logger, infra *extension
 
 // Migrate implements infrastructure.Actuator.
 func (a *actuator) Migrate(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
+	flowState, err := a.getFlowStateFromInfraStatus(infra)
+	if err != nil {
+		return err
+	}
+	if flowState != nil {
+		return nil // nothing to do if already using new flow without Terraformer
+	}
 	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.restConfig, TerraformerPurpose, infra, a.disableProjectedTokenMount)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
