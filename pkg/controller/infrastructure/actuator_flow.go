@@ -52,6 +52,19 @@ func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infra
 		err           error
 	)
 
+	_, credentials, err := a.getConfigAndCredentialsForInfra(ctx, infrastructure)
+	if err != nil {
+		return err
+	}
+
+	if err := a.ensureServiceLinkedRole(ctx, infrastructure, credentials); err != nil {
+		return err
+	}
+
+	if err = a.ensureOldSSHKeyDetached(ctx, log, infrastructure); err != nil {
+		return err
+	}
+
 	if cluster.Shoot != nil {
 		machineImages, err = a.ensureImagesForShootProviderAccount(ctx, log, infrastructure, cluster)
 		if err != nil {
