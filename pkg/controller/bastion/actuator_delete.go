@@ -64,6 +64,10 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, bastion *extensi
 	return nil
 }
 
+func (a *actuator) ForceDelete(_ context.Context, _ logr.Logger, _ *extensionsv1alpha1.Bastion, _ *controller.Cluster) error {
+	return nil
+}
+
 func removeSecurityGroup(c aliclient.ECS, opt *Options) error {
 	response, err := c.GetSecurityGroup(opt.SecurityGroupName)
 	if err != nil {
