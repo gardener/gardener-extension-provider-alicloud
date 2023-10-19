@@ -22,6 +22,7 @@ import (
 	"github.com/gardener/gardener/pkg/utils/flow"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
@@ -32,8 +33,10 @@ func (c *FlowContext) ensureZones(ctx context.Context) error {
 	log.Info("begin ensure zones")
 	g := flow.NewGraph("Alicloud infrastructure : zones")
 
+	eipIntenetChargeType := c.getEipInternetChargeType(ctx)
+
 	for _, zone := range c.config.Networks.Zones {
-		c.addZoneReconcileTasks(g, zone.Name)
+		c.addZoneReconcileTasks(g, zone.Name, eipIntenetChargeType)
 	}
 
 	f := g.Compile()
@@ -43,9 +46,27 @@ func (c *FlowContext) ensureZones(ctx context.Context) error {
 	return nil
 }
 
-func (c *FlowContext) addZoneReconcileTasks(g *flow.Graph, zoneName string) {
+func (c *FlowContext) getEipInternetChargeType(ctx context.Context) string {
+	var eipId *string
+	eipId = nil
+	for _, zone := range c.config.Networks.Zones {
+		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
+			eipId = zone.NatGateway.EIPAllocationID
+			break
+		}
+	}
+	if eipId == nil {
+		return client.DefaultInternetChargeType
+	}
+	provideEip, _ := c.actor.GetEIP(ctx, *eipId)
+	if provideEip != nil {
+		return provideEip.InternetChargeType
+	}
+	return client.DefaultInternetChargeType
+}
+func (c *FlowContext) addZoneReconcileTasks(g *flow.Graph, zoneName, eipIntenetChargeType string) {
 	ensureElasticIP := c.AddTask(g, "ensure elastic IP "+zoneName,
-		c.ensureElasticIP(zoneName),
+		c.ensureElasticIP(zoneName, eipIntenetChargeType),
 		Timeout(defaultLongTimeout))
 	ensureEipAssociation := c.AddTask(g, "ensure eip association "+zoneName,
 		c.ensureEipAssociation(zoneName),
@@ -177,7 +198,7 @@ func (c *FlowContext) ensureEipAssociation(zoneName string) flow.TaskFn {
 	}
 }
 
-func (c *FlowContext) ensureElasticIP(zoneName string) flow.TaskFn {
+func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flow.TaskFn {
 	return func(ctx context.Context) error {
 		zone := c.getZoneConfig(zoneName)
 		if zone == nil {
@@ -206,7 +227,7 @@ func (c *FlowContext) ensureElasticIP(zoneName string) flow.TaskFn {
 			Name:               c.namespace + "-" + eipSuffix,
 			Tags:               c.commonTagsWithSuffix(eipSuffix),
 			Bandwidth:          "100",
-			InternetChargeType: "PayByTraffic",
+			InternetChargeType: eipIntenetChargeType,
 		}
 		current, err := findExisting(ctx, id, desired.Tags, c.actor.GetEIP, c.actor.FindEIPsByTags)
 		if err != nil {
