@@ -205,6 +205,7 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 			return fmt.Errorf("can not get zone config for %s", zoneName)
 		}
 		log := c.LogFromContext(ctx)
+		child := c.getZoneChild(zone.Name)
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
 
 			eipId := *zone.NatGateway.EIPAllocationID
@@ -216,12 +217,12 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 			if current == nil {
 				return fmt.Errorf("EIP %s has not been found", eipId)
 			}
-			return nil
+			child.Set(ZoneNATGWElasticIPAddress, current.IpAddress)
+			return c.PersistState(ctx, true)
 		}
-
 		zoneSuffix := c.getZoneSuffix(zone.Name)
 		eipSuffix := fmt.Sprintf("eip-natgw-%s", zoneSuffix)
-		child := c.getZoneChild(zone.Name)
+
 		id := child.Get(IdentifierZoneNATGWElasticIP)
 		desired := &aliclient.EIP{
 			Name:               c.namespace + "-" + eipSuffix,
@@ -236,6 +237,7 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 
 		if current != nil {
 			child.Set(IdentifierZoneNATGWElasticIP, current.EipId)
+			child.Set(ZoneNATGWElasticIPAddress, current.IpAddress)
 			if _, err := c.updater.UpdateEIP(ctx, desired, current); err != nil {
 				return err
 			}
@@ -246,6 +248,7 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 				return err
 			}
 			child.Set(IdentifierZoneNATGWElasticIP, created.EipId)
+			child.Set(ZoneNATGWElasticIPAddress, created.IpAddress)
 			if _, err := c.updater.UpdateEIP(ctx, desired, created); err != nil {
 				return err
 			}

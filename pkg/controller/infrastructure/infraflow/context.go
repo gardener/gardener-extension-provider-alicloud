@@ -49,6 +49,8 @@ const (
 	IdentifierNatGateway = "NatGateway"
 	// IdentifierZoneNATGWElasticIP is the key for the id of the elastic IP resource used for the NAT gateway
 	IdentifierZoneNATGWElasticIP = "NATGatewayElasticIP"
+	//ZoneNATGWElasticIPAddress is the ipaddress of the elastic IP resource used for the NAT gateway
+	ZoneNATGWElasticIPAddress = "NATGatewayElasticIPAddress"
 	// IdentifierNodesSecurityGroup is the key for the id of the nodes security group
 	IdentifierNodesSecurityGroup = "NodesSecurityGroup"
 
