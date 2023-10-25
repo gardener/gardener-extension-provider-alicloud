@@ -41,10 +41,12 @@ const (
 
 	// IdentifierVPC is the key for the VPC id
 	IdentifierVPC = "VPC"
-	// IdentifierZoneVSwitch is the key for the id of vswitch
+	// IdentifierNatGatewayVSwitch is the natgateway id for the vswitch
 	IdentifierNatGatewayVSwitch = "NatGatewayVSwitch"
-	IdentifierZoneVSwitch       = "VSwitch"
-	IdentifierNatGateway        = "NatGateway"
+	// IdentifierZoneVSwitch is the key for the id of vswitch
+	IdentifierZoneVSwitch = "VSwitch"
+	// IdentifierNatGateway is the key for the id of natgateway
+	IdentifierNatGateway = "NatGateway"
 	// IdentifierZoneNATGWElasticIP is the key for the id of the elastic IP resource used for the NAT gateway
 	IdentifierZoneNATGWElasticIP = "NATGatewayElasticIP"
 	// IdentifierNodesSecurityGroup is the key for the id of the nodes security group
@@ -166,6 +168,7 @@ func (c *FlowContext) clusterTags() aliclient.Tags {
 	return tags
 }
 
+// ExportState is used to export the flatMap data
 func (c *FlowContext) ExportState() shared.FlatMap {
 	return c.state.ExportAsFlatMap()
 }

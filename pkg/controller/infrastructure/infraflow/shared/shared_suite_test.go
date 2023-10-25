@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestAws(t *testing.T) {
+func TestShare(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Infraflow Shared Test Suite")
 }

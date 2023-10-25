@@ -14,6 +14,7 @@
 
 package aliclient
 
+// VPC is the struct for a vpc object
 type VPC struct {
 	Tags
 	Name      string
@@ -22,6 +23,7 @@ type VPC struct {
 	Status    *string
 }
 
+// VSwitch is the struct for a vswitch object
 type VSwitch struct {
 	Tags
 	Name      string
@@ -32,6 +34,7 @@ type VSwitch struct {
 	Status    *string
 }
 
+// NatGateway is the struct for a nat gateway object
 type NatGateway struct {
 	Tags
 	Name               string
@@ -43,6 +46,7 @@ type NatGateway struct {
 	SNATTableIDs       []string
 }
 
+// EIP is the struct for a eip object
 type EIP struct {
 	Tags
 	Name               string
@@ -56,6 +60,7 @@ type EIP struct {
 	IpAddress          string
 }
 
+// SNATEntry is the struct for a snat entry object
 type SNATEntry struct {
 	Name         string
 	NatGatewayId string
@@ -66,6 +71,7 @@ type SNATEntry struct {
 	Status       *string
 }
 
+// SecurityGroup is the struct for a SecurityGroup object
 type SecurityGroup struct {
 	Tags
 	Name            string
@@ -76,6 +82,7 @@ type SecurityGroup struct {
 	Rules           []*SecurityGroupRule
 }
 
+// SecurityGroupRule is the struct for a SecurityGroupRule object
 type SecurityGroupRule struct {
 	SecurityGroupRuleId string
 	Policy              string

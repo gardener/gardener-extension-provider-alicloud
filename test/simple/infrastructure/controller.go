@@ -63,7 +63,7 @@ var (
 )
 
 func main() {
-
+	runtimelog.SetLogger(zap.New(zap.UseDevMode(true)))
 	repoRoot := filepath.Join("..", "..", "..")
 	var ctx = context.Background()
 
@@ -81,7 +81,7 @@ func main() {
 		if mgrCancel != nil {
 			mgrCancel()
 		}
-		testEnv.Stop()
+		_ = testEnv.Stop()
 	}()
 
 	cfg, err := testEnv.Start()

@@ -180,10 +180,7 @@ func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
 			return err
 		}
 	}
-	if err := c.PersistState(ctx, true); err != nil {
-		return err
-	}
-	return nil
+	return c.PersistState(ctx, true)
 }
 
 func (c *FlowContext) ensureVpc(ctx context.Context) error {
@@ -205,10 +202,7 @@ func (c *FlowContext) ensureExistingVpc(ctx context.Context) error {
 		return fmt.Errorf("VPC %s has not been found", vpcID)
 	}
 	c.state.Set(IdentifierVPC, vpcID)
-	if err := c.PersistState(ctx, true); err != nil {
-		return err
-	}
-	return nil
+	return c.PersistState(ctx, true)
 
 }
 
@@ -253,11 +247,7 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 		}
 
 	}
-	if err := c.PersistState(ctx, true); err != nil {
-		return err
-	}
-
-	return nil
+	return c.PersistState(ctx, true)
 }
 
 func (c *FlowContext) collectExistingVSwitches(ctx context.Context) ([]*aliclient.VSwitch, error) {
@@ -309,10 +299,7 @@ func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
 		return fmt.Errorf("find NatGateway failed %w", err)
 	}
 	c.state.Set(IdentifierNatGateway, gw.NatGatewayId)
-	if err := c.PersistState(ctx, true); err != nil {
-		return err
-	}
-	return nil
+	return c.PersistState(ctx, true)
 }
 
 func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
@@ -363,10 +350,7 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		}
 
 	}
-	if err := c.PersistState(ctx, true); err != nil {
-		return err
-	}
-	return nil
+	return c.PersistState(ctx, true)
 
 }
 

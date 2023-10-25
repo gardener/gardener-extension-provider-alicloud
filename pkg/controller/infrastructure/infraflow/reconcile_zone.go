@@ -130,10 +130,10 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 			if err != nil {
 				return err
 			}
-			c.updater.UpdateSNATEntry(ctx, desired, created)
+			_, _ = c.updater.UpdateSNATEntry(ctx, desired, created)
 		}
 		for _, item := range toBeChecked {
-			c.updater.UpdateSNATEntry(ctx, item.desired, item.current)
+			_, _ = c.updater.UpdateSNATEntry(ctx, item.desired, item.current)
 
 		}
 
@@ -250,10 +250,7 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 				return err
 			}
 		}
-		if err := c.PersistState(ctx, true); err != nil {
-			return err
-		}
-		return nil
+		return c.PersistState(ctx, true)
 	}
 }
 
@@ -309,6 +306,7 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	return nil
 }
 
+// DeleteZoneByVSwitches is called to delete zone per vswitch
 func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*aliclient.VSwitch) error {
 
 	g := flow.NewGraph("Alicloud infrastructure deletion: zones")
@@ -348,10 +346,7 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 		zones.CleanChild(zoneName)
 	}
 
-	if err := c.PersistState(ctx, true); err != nil {
-		return err
-	}
-	return nil
+	return c.PersistState(ctx, true)
 }
 
 func (c *FlowContext) addZoneDeletionTasks(g *flow.Graph, zoneName string) flow.TaskIDer {
@@ -528,10 +523,7 @@ func (c *FlowContext) deleteZones(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := c.DeleteZoneByVSwitches(ctx, current); err != nil {
-		return err
-	}
-	return nil
+	return c.DeleteZoneByVSwitches(ctx, current)
 }
 
 func (c *FlowContext) getZoneConfig(zoneName string) *alicloud.Zone {

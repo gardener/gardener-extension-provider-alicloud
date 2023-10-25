@@ -168,10 +168,9 @@ func (a *actuator) updateStatusStateWithMachineImages(ctx context.Context, infra
 
 }
 
-func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureStatus *aliv1alpha1.InfrastructureStatus, stateBytes []byte) error {
+func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, _ *aliv1alpha1.InfrastructureStatus, stateBytes []byte) error {
 
 	patch := client.MergeFrom(infrastructure.DeepCopy())
-	// infrastructure.Status.ProviderStatus = &runtime.RawExtension{Object: infrastructureStatus}
 	infrastructure.Status.State = &runtime.RawExtension{Raw: stateBytes}
 	return c.Status().Patch(ctx, infrastructure, patch)
 }

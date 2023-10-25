@@ -32,6 +32,7 @@ import (
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 )
 
+// Actor ia a interface to package alicloud api call
 type Actor interface {
 	CreateVpc(ctx context.Context, vpc *VPC) (*VPC, error)
 	GetVpc(ctx context.Context, id string) (*VPC, error)
@@ -88,6 +89,7 @@ type actor struct {
 
 var _ Actor = &actor{}
 
+// NewActor is to create a Actor object
 func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 
 	clientFactory := alicloudclient.NewClientFactory()
@@ -107,7 +109,7 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 	}, nil
 }
 
-func (c *actor) CreateTags(ctx context.Context, resources []string, tags Tags, resourceType string) error {
+func (c *actor) CreateTags(_ context.Context, resources []string, tags Tags, resourceType string) error {
 	typeClass := c.getResourceClass(resourceType)
 	if typeClass == "vpc" {
 		return c.createVpcTags(resources, tags, resourceType)
@@ -117,7 +119,7 @@ func (c *actor) CreateTags(ctx context.Context, resources []string, tags Tags, r
 	return fmt.Errorf("unknown resource type %s", resourceType)
 }
 
-func (c *actor) DeleteTags(ctx context.Context, resources []string, tags Tags, resourceType string) error {
+func (c *actor) DeleteTags(_ context.Context, resources []string, tags Tags, resourceType string) error {
 
 	typeClass := c.getResourceClass(resourceType)
 	if typeClass == "vpc" {
@@ -183,7 +185,7 @@ func (c *actor) CreateSecurityGroup(ctx context.Context, sg *SecurityGroup) (*Se
 
 }
 
-func (c *actor) GetSecurityGroup(ctx context.Context, id string) (*SecurityGroup, error) {
+func (c *actor) GetSecurityGroup(_ context.Context, id string) (*SecurityGroup, error) {
 	return c.getSecurityGroup(id)
 }
 
@@ -207,7 +209,7 @@ func (c *actor) getSecurityGroup(id string) (*SecurityGroup, error) {
 
 }
 
-func (c *actor) ListSecurityGroups(ctx context.Context, ids []string) ([]*SecurityGroup, error) {
+func (c *actor) ListSecurityGroups(_ context.Context, ids []string) ([]*SecurityGroup, error) {
 	return listByIds(c.getSecurityGroup, ids)
 }
 
@@ -268,7 +270,7 @@ func (c *actor) listSecurityGroupRule(sgId string) ([]*SecurityGroupRule, error)
 	return rule_list, nil
 }
 
-func (c *actor) AuthorizeSecurityGroupRule(ctx context.Context, sgId string, rule SecurityGroupRule) error {
+func (c *actor) AuthorizeSecurityGroupRule(_ context.Context, sgId string, rule SecurityGroupRule) error {
 	if rule.Direction == "ingress" {
 		return c.addIngressSecurityGroupRule(sgId, rule)
 	} else if rule.Direction == "egress" {
@@ -319,7 +321,7 @@ func (c *actor) addEgressSecurityGroupRule(sgId string, rule SecurityGroupRule) 
 
 }
 
-func (c *actor) RevokeSecurityGroupRule(ctx context.Context, sgId, ruleId, direction string) error {
+func (c *actor) RevokeSecurityGroupRule(_ context.Context, sgId, ruleId, direction string) error {
 	if direction == "ingress" {
 		return c.removeIngressSecurityGroupRule(sgId, ruleId)
 	} else if direction == "egress" {
@@ -383,7 +385,7 @@ func (c *actor) deleteEcsTags(resources []string, tags Tags, resourceType string
 	return err
 }
 
-func (c *actor) FindSNatEntriesByNatGateway(ctx context.Context, ngwId string) ([]*SNATEntry, error) {
+func (c *actor) FindSNatEntriesByNatGateway(_ context.Context, ngwId string) ([]*SNATEntry, error) {
 	req := vpc.CreateDescribeSnatTableEntriesRequest()
 	req.NatGatewayId = ngwId
 
@@ -407,8 +409,7 @@ func (c *actor) CreateSNatEntry(ctx context.Context, entry *SNATEntry) (*SNATEnt
 	}
 
 	var created *SNATEntry
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
-
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		created, err = c.GetSNatEntry(ctx, resp.SnatEntryId, entry.SnatTableId)
 		if err != nil {
 			return false, err
@@ -420,7 +421,7 @@ func (c *actor) CreateSNatEntry(ctx context.Context, entry *SNATEntry) (*SNATEnt
 			return false, nil
 		}
 		return true, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return nil, err
@@ -429,7 +430,7 @@ func (c *actor) CreateSNatEntry(ctx context.Context, entry *SNATEntry) (*SNATEnt
 	return created, nil
 
 }
-func (c *actor) GetSNatEntry(ctx context.Context, id, snatTableId string) (*SNATEntry, error) {
+func (c *actor) GetSNatEntry(_ context.Context, id, snatTableId string) (*SNATEntry, error) {
 	return c.getSNatEntry(id, snatTableId)
 }
 
@@ -450,7 +451,7 @@ func (c *actor) DeleteSNatEntry(ctx context.Context, id, snatTableId string) err
 	if err != nil {
 		return err
 	}
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		current, err := c.GetSNatEntry(ctx, id, snatTableId)
 		if err != nil {
 			return false, err
@@ -459,7 +460,7 @@ func (c *actor) DeleteSNatEntry(ctx context.Context, id, snatTableId string) err
 			return true, nil
 		}
 		return false, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return err
@@ -468,7 +469,7 @@ func (c *actor) DeleteSNatEntry(ctx context.Context, id, snatTableId string) err
 
 }
 
-func (c *actor) ModifyEIP(ctx context.Context, id string, eip *EIP) error {
+func (c *actor) ModifyEIP(_ context.Context, id string, eip *EIP) error {
 	req := vpc.CreateModifyEipAddressAttributeRequest()
 	req.AllocationId = id
 	req.Bandwidth = eip.Bandwidth
@@ -490,7 +491,7 @@ func (c *actor) AssociateEIP(ctx context.Context, id, to, insType string) error 
 	}
 
 	var theEip *EIP
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 
 		theEip, err = c.GetEIP(ctx, id)
 
@@ -502,7 +503,7 @@ func (c *actor) AssociateEIP(ctx context.Context, id, to, insType string) error 
 		}
 
 		return true, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return err
@@ -526,7 +527,7 @@ func (c *actor) UnAssociateEIP(ctx context.Context, eip *EIP) error {
 	}
 
 	var theEip *EIP
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 
 		theEip, err = c.GetEIP(ctx, eip.EipId)
 
@@ -538,7 +539,7 @@ func (c *actor) UnAssociateEIP(ctx context.Context, eip *EIP) error {
 		}
 
 		return true, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return err
@@ -561,7 +562,7 @@ func (c *actor) CreateEIP(ctx context.Context, eip *EIP) (*EIP, error) {
 	}
 
 	var created *EIP
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 
 		created, err = c.GetEIP(ctx, resp.AllocationId)
 		if err != nil {
@@ -574,7 +575,7 @@ func (c *actor) CreateEIP(ctx context.Context, eip *EIP) (*EIP, error) {
 			return false, nil
 		}
 		return true, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return nil, err
@@ -584,7 +585,7 @@ func (c *actor) CreateEIP(ctx context.Context, eip *EIP) (*EIP, error) {
 
 }
 
-func (c *actor) GetEIP(ctx context.Context, id string) (*EIP, error) {
+func (c *actor) GetEIP(_ context.Context, id string) (*EIP, error) {
 	return c.getEIP(id)
 }
 
@@ -596,7 +597,7 @@ func (c *actor) getEIP(id string) (*EIP, error) {
 	return single(resp, err)
 }
 
-func (c *actor) ListEIPs(ctx context.Context, ids []string) ([]*EIP, error) {
+func (c *actor) ListEIPs(_ context.Context, ids []string) ([]*EIP, error) {
 	return listByIds(c.getEIP, ids)
 }
 
@@ -625,7 +626,7 @@ func (c *actor) DeleteEIP(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		current, err := c.GetEIP(ctx, id)
 		if err != nil {
 			return false, err
@@ -634,7 +635,7 @@ func (c *actor) DeleteEIP(ctx context.Context, id string) error {
 			return true, nil
 		}
 		return false, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return err
@@ -659,7 +660,7 @@ func (c *actor) CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGate
 	}
 
 	var created *NatGateway
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 
 		created, err = c.GetNatGateway(ctx, resp.NatGatewayId)
 		if err != nil {
@@ -672,7 +673,7 @@ func (c *actor) CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGate
 			return false, nil
 		}
 		return true, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return nil, err
@@ -682,7 +683,7 @@ func (c *actor) CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGate
 
 }
 
-func (c *actor) GetNatGateway(ctx context.Context, id string) (*NatGateway, error) {
+func (c *actor) GetNatGateway(_ context.Context, id string) (*NatGateway, error) {
 	return c.getNatGateway(id)
 }
 
@@ -694,11 +695,11 @@ func (c *actor) getNatGateway(id string) (*NatGateway, error) {
 	return single(resp, err)
 }
 
-func (c *actor) ListNatGateways(ctx context.Context, ids []string) ([]*NatGateway, error) {
+func (c *actor) ListNatGateways(_ context.Context, ids []string) ([]*NatGateway, error) {
 	return listByIds(c.getNatGateway, ids)
 }
 
-func (c *actor) FindNatGatewayByVPC(ctx context.Context, vpcId string) (*NatGateway, error) {
+func (c *actor) FindNatGatewayByVPC(_ context.Context, vpcId string) (*NatGateway, error) {
 	req := vpc.CreateDescribeNatGatewaysRequest()
 	req.VpcId = vpcId
 
@@ -721,7 +722,8 @@ func (c *actor) DeleteNatGateway(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+
 		current, err := c.GetNatGateway(ctx, id)
 		if err != nil {
 			return false, err
@@ -730,7 +732,7 @@ func (c *actor) DeleteNatGateway(ctx context.Context, id string) error {
 			return true, nil
 		}
 		return false, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return err
@@ -764,7 +766,7 @@ func (c *actor) DeleteVSwitch(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		current, err := c.GetVSwitch(ctx, id)
 		if err != nil {
 			return false, err
@@ -773,7 +775,7 @@ func (c *actor) DeleteVSwitch(ctx context.Context, id string) error {
 			return true, nil
 		}
 		return false, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return err
@@ -796,7 +798,7 @@ func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, erro
 	}
 
 	var created *VSwitch
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 
 		created, err = c.GetVSwitch(ctx, resp.VSwitchId)
 		if err != nil {
@@ -809,7 +811,7 @@ func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, erro
 			return false, nil
 		}
 		return true, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return nil, err
@@ -818,7 +820,7 @@ func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, erro
 	return created, nil
 }
 
-func (c *actor) GetVSwitch(ctx context.Context, id string) (*VSwitch, error) {
+func (c *actor) GetVSwitch(_ context.Context, id string) (*VSwitch, error) {
 	return c.getVSwitch(id)
 }
 
@@ -830,7 +832,7 @@ func (c *actor) getVSwitch(id string) (*VSwitch, error) {
 	return single(resp, err)
 }
 
-func (c *actor) ListVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error) {
+func (c *actor) ListVSwitches(_ context.Context, ids []string) ([]*VSwitch, error) {
 	return listByIds(c.getVSwitch, ids)
 }
 
@@ -852,7 +854,7 @@ func (c *actor) FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch,
 
 }
 
-func (c *actor) ListVpcs(ctx context.Context, ids []string) ([]*VPC, error) {
+func (c *actor) ListVpcs(_ context.Context, ids []string) ([]*VPC, error) {
 	return listByIds(c.getVpc, ids)
 }
 
@@ -865,7 +867,7 @@ func (c *actor) DeleteVpc(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 		current, err := c.GetVpc(ctx, id)
 		if err != nil {
 			return false, err
@@ -874,7 +876,7 @@ func (c *actor) DeleteVpc(ctx context.Context, id string) error {
 			return true, nil
 		}
 		return false, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return err
@@ -895,7 +897,7 @@ func (c *actor) CreateVpc(ctx context.Context, desired *VPC) (*VPC, error) {
 	}
 
 	var created *VPC
-	err = wait.PollUntil(5*time.Second, func() (bool, error) {
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
 
 		created, err = c.GetVpc(ctx, resp.VpcId)
 		if err != nil {
@@ -908,7 +910,7 @@ func (c *actor) CreateVpc(ctx context.Context, desired *VPC) (*VPC, error) {
 			return false, nil
 		}
 		return true, nil
-	}, ctx.Done())
+	})
 
 	if err != nil {
 		return nil, err
@@ -917,7 +919,7 @@ func (c *actor) CreateVpc(ctx context.Context, desired *VPC) (*VPC, error) {
 	return created, nil
 }
 
-func (c *actor) GetVpc(ctx context.Context, id string) (*VPC, error) {
+func (c *actor) GetVpc(_ context.Context, id string) (*VPC, error) {
 	return c.getVpc(id)
 }
 
@@ -978,7 +980,7 @@ func (c *actor) deleteVpcTags(resources []string, tags Tags, resourceType string
 	return err
 }
 
-func (c *actor) listEcsTagResources(ctx context.Context, req *ecs.ListTagResourcesRequest) ([]string, error) {
+func (c *actor) listEcsTagResources(_ context.Context, req *ecs.ListTagResourcesRequest) ([]string, error) {
 	var idList []string
 
 	respList, err := page_call(c.ecsClient.ListTagResources, req)
@@ -1001,7 +1003,7 @@ func (c *actor) listEcsTagResources(ctx context.Context, req *ecs.ListTagResourc
 
 }
 
-func (c *actor) listVpcTagResources(ctx context.Context, req *vpc.ListTagResourcesRequest) ([]string, error) {
+func (c *actor) listVpcTagResources(_ context.Context, req *vpc.ListTagResourcesRequest) ([]string, error) {
 	var idList []string
 
 	respList, err := page_call(c.vpcClient.ListTagResources, req)
@@ -1330,7 +1332,7 @@ func callApi[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) (*
 	try_count := 0
 	for {
 		need_try := false
-		try_count += 1
+		try_count++
 		cleanQueryParam(req)
 		resp, err = call(req)
 		if err != nil {
@@ -1388,7 +1390,7 @@ func page_call_type_1[REQ any, RESP any](call func(req *REQ) (*RESP, error), req
 		total_page := total / PAGE_SIZE
 		remainder := total % PAGE_SIZE
 		if remainder > 0 {
-			total_page += 1
+			total_page++
 		}
 		if cur_page >= total_page {
 			break
@@ -1412,13 +1414,13 @@ func page_call_type_2[REQ any, RESP any](call func(req *REQ) (*RESP, error), req
 		nextToken := reflect.ValueOf(*resp).FieldByName("NextToken").String()
 		if nextToken == "" {
 			break
-		} else {
-			reflect.ValueOf(req).Elem().FieldByName("NextToken").SetString(nextToken)
-			resp, err := callApi(call, req)
-			if err == nil {
-				theList = append(theList, *resp)
-			}
 		}
+		reflect.ValueOf(req).Elem().FieldByName("NextToken").SetString(nextToken)
+		resp, err := callApi(call, req)
+		if err == nil {
+			theList = append(theList, *resp)
+		}
+
 	}
 
 	return theList, nil

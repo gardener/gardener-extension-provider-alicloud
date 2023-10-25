@@ -21,6 +21,7 @@ import (
 	"reflect"
 )
 
+// Updater is used for reconcile based with flow
 type Updater interface {
 	UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error)
 	UpdateVSwitch(ctx context.Context, desired, current *VSwitch) (modified bool, err error)
@@ -53,13 +54,13 @@ func (u *updater) UpdateSecurityGroup(ctx context.Context, desired, current *Sec
 	return
 }
 
-func (u *updater) UpdateSNATEntry(ctx context.Context, desired, current *SNATEntry) (modified bool, err error) {
+func (u *updater) UpdateSNATEntry(_ context.Context, _, _ *SNATEntry) (modified bool, err error) {
 	return
 }
 
 func (u *updater) UpdateEIP(ctx context.Context, desired, current *EIP) (modified bool, err error) {
 	if desired.Bandwidth != current.Bandwidth {
-		u.actor.ModifyEIP(ctx, current.EipId, desired)
+		_ = u.actor.ModifyEIP(ctx, current.EipId, desired)
 		modified = true
 	}
 	tagModified, err := u.updateTags(ctx, current.EipId, desired.Tags, current.Tags, "EIP")
@@ -157,7 +158,7 @@ func (u *updater) updateTags(ctx context.Context, id string, desired, current Ta
 	return modified, nil
 }
 
-func (u *updater) ignoreTag(key string) bool {
+func (u *updater) ignoreTag(_ string) bool {
 
 	return false
 }
