@@ -1024,33 +1024,6 @@ func (c *actor) listVpcTagResources(_ context.Context, req *vpc.ListTagResources
 
 	return idList, nil
 
-	// var theList []vpc.TagResource
-	// var idList []string
-	// resp, err := callApi(c.vpcClient.ListTagResources, req)
-
-	// if err != nil {
-	// 	return idList, err
-	// }
-	// theList = append(theList, resp.TagResources.TagResource...)
-	// for {
-	// 	if resp.NextToken == "" {
-	// 		break
-	// 	} else {
-	// 		req.NextToken = resp.NextToken
-	// 		resp, err := callApi(c.vpcClient.ListTagResources, req)
-	// 		if err == nil {
-	// 			theList = append(theList, resp.TagResources.TagResource...)
-	// 		}
-	// 	}
-	// }
-
-	// for _, item := range theList {
-	// 	if !contains(idList, item.ResourceId) {
-	// 		idList = append(idList, item.ResourceId)
-	// 	}
-	// }
-
-	// return idList, nil
 }
 
 func (c *actor) describeSecurityGroup(req *ecs.DescribeSecurityGroupsRequest) ([]*SecurityGroup, error) {

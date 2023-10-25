@@ -94,11 +94,9 @@ func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infra
 		return err
 	}
 	if err = flowContext.Reconcile(ctx); err != nil {
-		// _ = flowContext.PersistState(ctx, true)
 		_ = a.updateStatusStateWithMachineImages(ctx, infrastructure, machineImages, flowContext.ExportState())
 		return util.DetermineError(err, helper.KnownCodes)
 	}
-	// return flowContext.PersistState(ctx, true)
 	return a.updateStatusStateWithMachineImages(ctx, infrastructure, machineImages, flowContext.ExportState())
 }
 
@@ -179,21 +177,6 @@ func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, sta
 	if len(state.Data) == 0 {
 		return nil, nil
 	}
-
-	// return &aliv1alpha1.InfrastructureStatus{
-	// 	TypeMeta: StatusTypeMeta,
-	// 	VPC: aliv1alpha1.VPCStatus{
-	// 		ID:        vars[TerraformerOutputKeyVPCID],
-	// 		VSwitches: vswitches,
-	// 		SecurityGroups: []aliv1alpha1.SecurityGroup{
-	// 			{
-	// 				Purpose: aliv1alpha1.PurposeNodes,
-	// 				ID:      vars[TerraformerOutputKeySecurityGroupID],
-	// 			},
-	// 		},
-	// 	},
-	// 	MachineImages: machineImagesV1alpha1,
-	// }, nil
 
 	status := &aliv1alpha1.InfrastructureStatus{
 		TypeMeta: StatusTypeMeta,
