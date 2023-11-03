@@ -16,10 +16,9 @@ package mutator
 
 import (
 	"context"
+	encodingjson "encoding/json"
 	"time"
 
-	calicov1alpha1 "github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico/v1alpha1"
-	ciliumv1alpha1 "github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium/v1alpha1"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -573,33 +572,22 @@ var _ = Describe("Mutating Shoot", func() {
 			)
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
-				Object: &calicov1alpha1.NetworkConfig{
-					Overlay: &calicov1alpha1.Overlay{
-						Enabled: false,
-					},
-					SnatToUpstreamDNS: &calicov1alpha1.SnatToUpstreamDNS{Enabled: false},
-				},
-			}))
+			var networkConfig, expectedConfig map[string]interface{}
+			err = encodingjson.Unmarshal(newShoot.Spec.Networking.ProviderConfig.Raw, &networkConfig)
+			Expect(err).NotTo(HaveOccurred())
+			err = encodingjson.Unmarshal([]byte(`{"overlay": {"enabled": false}, "snatToUpstreamDNS": {"enabled": false}}`), &expectedConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(networkConfig).To(DeepEqual(expectedConfig))
 		})
 
 		It("should take overlay field value from old shoot when unspecified in new shoot", func() {
 			oldShoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
 				Raw: []byte(`{"overlay":{"enabled":true}}`),
-				Object: &calicov1alpha1.NetworkConfig{
-					Overlay: &calicov1alpha1.Overlay{
-						Enabled: true,
-					},
-				},
 			}
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
-				Object: &calicov1alpha1.NetworkConfig{
-					Overlay: &calicov1alpha1.Overlay{
-						Enabled: true,
-					},
-				},
+				Raw: []byte(`{"overlay":{"enabled":true}}`),
 			}))
 		})
 	})
@@ -687,31 +675,18 @@ var _ = Describe("Mutating Shoot", func() {
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
-				Object: &ciliumv1alpha1.NetworkConfig{
-					Overlay: &ciliumv1alpha1.Overlay{
-						Enabled: false,
-					},
-				},
+				Raw: []byte(`{"overlay":{"enabled":false}}`),
 			}))
 		})
 
 		It("should take overlay field value from old shoot when unspecified in new shoot", func() {
 			oldShoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
 				Raw: []byte(`{"overlay":{"enabled":true}}`),
-				Object: &ciliumv1alpha1.NetworkConfig{
-					Overlay: &ciliumv1alpha1.Overlay{
-						Enabled: true,
-					},
-				},
 			}
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
-				Object: &ciliumv1alpha1.NetworkConfig{
-					Overlay: &ciliumv1alpha1.Overlay{
-						Enabled: true,
-					},
-				},
+				Raw: []byte(`{"overlay":{"enabled":true}}`),
 			}))
 		})
 	})
