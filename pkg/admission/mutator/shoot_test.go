@@ -590,6 +590,50 @@ var _ = Describe("Mutating Shoot", func() {
 				Raw: []byte(`{"overlay":{"enabled":true}}`),
 			}))
 		})
+
+		It("should disable overlay for a new shoot with non empty network config", func() {
+			gomock.InOrder(
+				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
+						*obj = *cloudProfile
+						return nil
+					},
+				),
+				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
+						*obj = *secretBinding
+						return nil
+					},
+				),
+				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
+						*obj = *secret
+						return nil
+					},
+				),
+
+				alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil),
+				ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil),
+				ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil),
+			)
+			newShoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
+				Raw: []byte(`{"foo":{"enabled":true}}`),
+			}
+			err := mutator.Mutate(ctx, newShoot, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
+				Raw: []byte(`{"foo":{"enabled":true},"overlay":{"enabled":false},"snatToUpstreamDNS":{"enabled":false}}`),
+			}))
+		})
+
+		It("should not add the overlay field for a new shoot when unspecified in new and old shoot", func() {
+			err := mutator.Mutate(ctx, newShoot, oldShoot)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{
+				Raw: []byte(`{}`),
+			}))
+		})
+
 	})
 
 	Context("Mutate shoot networking providerconfig for type cilium", func() {
