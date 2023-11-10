@@ -19,7 +19,7 @@ images:
 - name: machine-controller-manager-provider-alicloud
   sourceRepository: github.com/gardener/machine-controller-manager-provider-alicloud
   repository: eu.gcr.io/gardener-project/gardener/machine-controller-manager-provider-alicloud
-  tag: "v0.10.0"
+  tag: "v0.10.1"
   labels:
   - name: 'gardener.cloud/cve-categorisation'
     value:
