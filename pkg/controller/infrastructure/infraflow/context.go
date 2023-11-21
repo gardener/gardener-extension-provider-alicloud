@@ -151,7 +151,7 @@ func (c *FlowContext) getZoneSuffix(zoneName string) string {
 	}
 }
 
-func (c *FlowContext) getAllVSwitchid() []string {
+func (c *FlowContext) getAllVSwitchids() []string {
 	ids := []string{}
 	zones := c.state.GetChild(ChildIdZones)
 	for _, key := range zones.GetChildrenKeys() {

@@ -17,7 +17,6 @@ package aliclient
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"reflect"
 )
 
@@ -47,10 +46,6 @@ func NewUpdater(actor Actor) Updater {
 func (u *updater) UpdateSecurityGroup(ctx context.Context, desired, current *SecurityGroup) (modified bool, err error) {
 
 	modified, err = u.updateTags(ctx, current.SecurityGroupId, desired.Tags, current.Tags, "securitygroup")
-	if err != nil {
-		return
-	}
-
 	return
 }
 
@@ -60,7 +55,10 @@ func (u *updater) UpdateSNATEntry(_ context.Context, _, _ *SNATEntry) (modified 
 
 func (u *updater) UpdateEIP(ctx context.Context, desired, current *EIP) (modified bool, err error) {
 	if desired.Bandwidth != current.Bandwidth {
-		_ = u.actor.ModifyEIP(ctx, current.EipId, desired)
+		err = u.actor.ModifyEIP(ctx, current.EipId, desired)
+		if err != nil {
+			return
+		}
 		modified = true
 	}
 	tagModified, err := u.updateTags(ctx, current.EipId, desired.Tags, current.Tags, "EIP")
@@ -75,35 +73,17 @@ func (u *updater) UpdateEIP(ctx context.Context, desired, current *EIP) (modifie
 func (u *updater) UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error) {
 
 	modified, err = u.updateTags(ctx, current.NatGatewayId, desired.Tags, current.Tags, "NATGATEWAY")
-	if err != nil {
-		return
-	}
-
 	return
 }
 
 func (u *updater) UpdateVSwitch(ctx context.Context, desired, current *VSwitch) (modified bool, err error) {
-	if desired.CidrBlock != current.CidrBlock {
-		return false, fmt.Errorf("cannot change CIDR block")
-	}
 	modified, err = u.updateTags(ctx, current.VSwitchId, desired.Tags, current.Tags, "VSWITCH")
-	if err != nil {
-		return
-	}
-
 	return
 
 }
 
 func (u *updater) UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error) {
-	if desired.CidrBlock != current.CidrBlock {
-		return false, fmt.Errorf("cannot change CIDR block")
-	}
 	modified, err = u.updateTags(ctx, current.VpcId, desired.Tags, current.Tags, "VPC")
-	if err != nil {
-		return
-	}
-
 	return
 }
 

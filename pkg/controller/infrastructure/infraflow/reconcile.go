@@ -307,9 +307,9 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 	log := c.LogFromContext(ctx)
 	log.Info("using managed NatGateway")
 
-	availableVSwitches := c.getAllVSwitchid()
+	availableVSwitches := c.getAllVSwitchids()
 	if len(availableVSwitches) == 0 {
-		return fmt.Errorf("no available VSwitchcan found for natgateway")
+		return fmt.Errorf("no available VSwitch can found for natgateway")
 	}
 
 	desired := &aliclient.NatGateway{
@@ -336,7 +336,7 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		}
 	} else {
 		log.Info("creating natgateway ...")
-		waiter := informOnWaiting(log, 10*time.Second, "still createing natgateway...")
+		waiter := informOnWaiting(log, 10*time.Second, "still creating natgateway...")
 		created, err := c.actor.CreateNatGateway(ctx, desired)
 		waiter.Done(err)
 		if err != nil {
