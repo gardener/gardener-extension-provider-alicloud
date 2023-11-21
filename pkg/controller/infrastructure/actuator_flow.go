@@ -305,20 +305,9 @@ func (a *actuator) getFlowStateFromInfraStatus(infrastructure *extensionsv1alpha
 	return nil, nil
 }
 
-func (a *actuator) deleteWithFlow(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) error {
+func (a *actuator) deleteWithFlow(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, oldState *infraflow.PersistentState) error {
 	log.Info("deleteWithFlow")
 
-	oldState, err := a.getFlowStateFromInfraStatus(infrastructure)
-	if err != nil {
-		return err
-	}
-	if oldState == nil {
-
-		oldState, err = a.migrateFlowStateFromTerraformerState(ctx, log, infrastructure)
-		if err != nil {
-			return err
-		}
-	}
 	flowContext, err := a.createFlowContext(ctx, log, infrastructure, nil, oldState)
 	if err != nil {
 		return err

@@ -651,9 +651,13 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 }
 
 // Delete implements infrastructure.Actuator.
-func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	if a.shouldUseFlow(infra, cluster) {
-		return a.deleteWithFlow(ctx, log, infra)
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
+	flowState, err := a.getFlowStateFromInfraStatus(infra)
+	if err != nil {
+		return err
+	}
+	if flowState != nil {
+		return a.deleteWithFlow(ctx, log, infra, flowState)
 	}
 
 	return a.delete(ctx, log, infra)
