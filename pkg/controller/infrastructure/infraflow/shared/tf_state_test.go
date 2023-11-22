@@ -37,22 +37,22 @@ var _ = Describe("TerraformState", func() {
 
 		Expect(tf.Outputs["vpc_id"]).To(Equal(shared.TFOutput{Type: "string", Value: "vpc-0123456"}))
 
-		tables := tf.FindManagedResourcesByType("aws_route_table")
+		tables := tf.FindManagedResourcesByType("fake_routetable")
 		Expect(len(tables)).To(Equal(2))
 
-		Expect(tf.GetManagedResourceInstanceID("aws_route_table", "routetable_private_utility_z0")).
+		Expect(tf.GetManagedResourceInstanceID("fake_routetable", "routetable_private_utility_z0")).
 			To(Equal(pointer.String("rtb-77777")))
 
-		Expect(tf.GetManagedResourceInstanceName("aws_iam_role", "nodes")).
+		Expect(tf.GetManagedResourceInstanceName("fake_resource_a", "nodes")).
 			To(Equal(pointer.String("shoot--foo--bar-nodes")))
 
-		Expect(tf.GetManagedResourceInstanceAttribute("aws_nat_gateway", "natgw_z0", "private_ip")).
-			To(Equal(pointer.String("10.180.46.81")))
+		Expect(tf.GetManagedResourceInstanceAttribute("fake_natgateway", "natgw_z0", "private_ip")).
+			To(Equal(pointer.String("10.100.201.202")))
 
-		Expect(tf.GetManagedResourceInstanceAttribute("aws_nat_gateway", "natgw_z0", "foobar")).
+		Expect(tf.GetManagedResourceInstanceAttribute("fake_natgateway", "natgw_z0", "foobar")).
 			To(BeNil())
 
-		Expect(tf.GetManagedResourceInstances("aws_route_table")).
+		Expect(tf.GetManagedResourceInstances("fake_routetable")).
 			To(Equal(map[string]string{
 				"routetable_main":               "rtb-66666",
 				"routetable_private_utility_z0": "rtb-77777",
@@ -74,7 +74,7 @@ const tfstate = `{
   "resources": [
     {
       "mode": "managed",
-      "type": "aws_iam_role",
+      "type": "fake_resource_a",
       "name": "nodes",
       "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
       "instances": [
@@ -90,7 +90,7 @@ const tfstate = `{
     },
     {
       "mode": "managed",
-      "type": "aws_nat_gateway",
+      "type": "fake_natgateway",
       "name": "natgw_z0",
       "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
       "instances": [
@@ -101,7 +101,7 @@ const tfstate = `{
             "connectivity_type": "public",
             "id": "nat-22222",
             "network_interface_id": "eni-33333",
-            "private_ip": "10.180.46.81",
+            "private_ip": "10.100.201.202",
             "public_ip": "1.2.3.4",
             "subnet_id": "subnet-44444",
             "tags": {
@@ -116,16 +116,16 @@ const tfstate = `{
           "sensitive_attributes": [],
           "private": "xxx",
           "dependencies": [
-            "aws_eip.eip_natgw_z0",
-            "aws_subnet.public_utility_z0",
-            "aws_vpc.vpc"
+            "fake_eip.eip_natgw_z0",
+            "fake_subnet.public_utility_z0",
+            "fake_vpc.vpc"
           ]
         }
       ]
     },
     {
       "mode": "managed",
-      "type": "aws_route_table",
+      "type": "fake_routetable",
       "name": "routetable_main",
       "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
       "instances": [
@@ -158,14 +158,14 @@ const tfstate = `{
           "sensitive_attributes": [],
           "private": "xxx",
           "dependencies": [
-            "aws_vpc.vpc"
+            "fake_vpc.vpc"
           ]
         }
       ]
     },
     {
       "mode": "managed",
-      "type": "aws_route_table",
+      "type": "fake_routetable",
       "name": "routetable_private_utility_z0",
       "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
       "instances": [
@@ -198,14 +198,14 @@ const tfstate = `{
           "sensitive_attributes": [],
           "private": "xxx",
           "dependencies": [
-            "aws_vpc.vpc"
+            "fake_vpc.vpc"
           ]
         }
       ]
     },
     {
       "mode": "managed",
-      "type": "aws_vpc",
+      "type": "fake_vpc",
       "name": "vpc",
       "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
       "instances": [
