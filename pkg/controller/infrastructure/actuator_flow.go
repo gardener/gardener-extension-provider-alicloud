@@ -94,10 +94,10 @@ func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infra
 		return err
 	}
 	if err = flowContext.Reconcile(ctx); err != nil {
-		_ = a.updateStatusStateWithMachineImages(ctx, infrastructure, machineImages, flowContext.ExportState())
+		_ = a.updateStatusProvider(ctx, infrastructure, machineImages, flowContext.ExportState())
 		return util.DetermineError(err, helper.KnownCodes)
 	}
-	return a.updateStatusStateWithMachineImages(ctx, infrastructure, machineImages, flowContext.ExportState())
+	return a.updateStatusProvider(ctx, infrastructure, machineImages, flowContext.ExportState())
 }
 
 func (a *actuator) migrateFlowStateFromTerraformerState(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) (*infraflow.PersistentState, error) {
@@ -121,25 +121,17 @@ func (a *actuator) migrateFlowStateFromTerraformerState(ctx context.Context, log
 }
 
 func (a *actuator) updateStatusState(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, state *infraflow.PersistentState) error {
-	infrastructureConfig, err := a.decodeInfrastructureConfig(infra)
-	if err != nil {
-		return err
-	}
-
-	infrastructureStatus, err := computeProviderStatusFromFlowState(infrastructureConfig, state)
-	if err != nil {
-		return err
-	}
-
 	stateBytes, err := state.ToJSON()
 	if err != nil {
 		return err
 	}
 
-	return updateProviderStatus(ctx, a.client, infra, infrastructureStatus, stateBytes)
+	patch := client.MergeFrom(infra.DeepCopy())
+	infra.Status.State = &runtime.RawExtension{Raw: stateBytes}
+	return a.client.Status().Patch(ctx, infra, patch)
 }
 
-func (a *actuator) updateStatusStateWithMachineImages(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, machineImages []aliapi.MachineImage, flatState shared.FlatMap) error {
+func (a *actuator) updateStatusProvider(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, machineImages []aliapi.MachineImage, flatState shared.FlatMap) error {
 
 	infrastructureConfig, err := a.decodeInfrastructureConfig(infra)
 	if err != nil {
@@ -164,13 +156,6 @@ func (a *actuator) updateStatusStateWithMachineImages(ctx context.Context, infra
 	infra.Status.ProviderStatus = &runtime.RawExtension{Object: infrastructureStatus}
 	return a.client.Status().Patch(ctx, infra, patch)
 
-}
-
-func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, _ *aliv1alpha1.InfrastructureStatus, stateBytes []byte) error {
-
-	patch := client.MergeFrom(infrastructure.DeepCopy())
-	infrastructure.Status.State = &runtime.RawExtension{Raw: stateBytes}
-	return c.Status().Patch(ctx, infrastructure, patch)
 }
 
 func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, state *infraflow.PersistentState) (*aliv1alpha1.InfrastructureStatus, error) {
