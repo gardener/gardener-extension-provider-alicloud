@@ -42,6 +42,9 @@ import (
 	alicloudinstall "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
+
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	schedulingv1 "k8s.io/api/scheduling/v1"
 )
 
 const (
@@ -144,6 +147,22 @@ func main() {
 
 	flag.Parse()
 	validateFlags()
+
+	priorityClass := &schedulingv1.PriorityClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: v1beta1constants.PriorityClassNameShootControlPlane300,
+		},
+		Description:   "PriorityClass for Shoot control plane components",
+		GlobalDefault: false,
+		Value:         999998300,
+	}
+
+	if err := c.Create(ctx, priorityClass); err != nil {
+		if !apiErrors.IsAlreadyExists(err) {
+			runtimelog.Log.Error(err, "error when create priorityClass")
+			panic("create priorityClass failed")
+		}
+	}
 
 	namespace = &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

@@ -20,14 +20,12 @@ import (
 	"strings"
 
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	aliv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow"
@@ -39,17 +37,12 @@ import (
 // - annotation `alicloud.provider.extensions.gardener.cloud/use-flow=true` on shoot resource
 // - label `alicloud.provider.extensions.gardener.cloud/use-flow=true` on seed resource (label instead of annotation, as only labels are transported from managedseed to seed object)
 func (a *actuator) shouldUseFlow(infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) bool {
-	flowState, err := a.getFlowStateFromInfraStatus(infrastructure)
-	if err == nil && flowState != nil {
-		return true
-	}
-
 	return strings.EqualFold(infrastructure.Annotations[aliapi.AnnotationKeyUseFlow], "true") ||
 		(cluster.Shoot != nil && strings.EqualFold(cluster.Shoot.Annotations[aliapi.AnnotationKeyUseFlow], "true")) ||
 		(cluster.Seed != nil && strings.EqualFold(cluster.Seed.Labels[aliapi.SeedLabelKeyUseFlow], "true"))
 }
 
-func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, oldState *infraflow.PersistentState) error {
 	log.Info("reconcileWithFlow")
 
 	var (
@@ -77,25 +70,13 @@ func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infra
 		}
 	}
 
-	oldState, err := a.getFlowStateFromInfraStatus(infrastructure)
-	if err != nil {
-		return err
-	}
-	if oldState == nil {
-
-		oldState, err = a.migrateFlowStateFromTerraformerState(ctx, log, infrastructure)
-		if err != nil {
-			return err
-		}
-	}
-
 	flowContext, err := a.createFlowContext(ctx, log, infrastructure, cluster, oldState)
 	if err != nil {
 		return err
 	}
 	if err = flowContext.Reconcile(ctx); err != nil {
 		_ = a.updateStatusProvider(ctx, infrastructure, machineImages, flowContext.ExportState())
-		return util.DetermineError(err, helper.KnownCodes)
+		return err
 	}
 	return a.updateStatusProvider(ctx, infrastructure, machineImages, flowContext.ExportState())
 }
@@ -299,7 +280,7 @@ func (a *actuator) deleteWithFlow(ctx context.Context, log logr.Logger, infrastr
 	}
 	if err = flowContext.Delete(ctx); err != nil {
 		_ = flowContext.PersistState(ctx, true)
-		return util.DetermineError(err, helper.KnownCodes)
+		return err
 	}
 	return flowContext.PersistState(ctx, true)
 

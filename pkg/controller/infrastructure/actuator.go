@@ -526,8 +526,20 @@ func (a *actuator) makeImageVisibleForShoot(ctx context.Context, log logr.Logger
 
 // Reconcile implements infrastructure.Actuator.
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	if a.shouldUseFlow(infra, cluster) {
-		err := a.reconcileWithFlow(ctx, log, infra, cluster)
+	flowState, err := a.getFlowStateFromInfraStatus(infra)
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+	if flowState == nil {
+		if a.shouldUseFlow(infra, cluster) {
+			flowState, err = a.migrateFlowStateFromTerraformerState(ctx, log, infra)
+			if err != nil {
+				return util.DetermineError(err, helper.KnownCodes)
+			}
+		}
+	}
+	if flowState != nil {
+		err = a.reconcileWithFlow(ctx, log, infra, cluster, flowState)
 		return util.DetermineError(err, helper.KnownCodes)
 	}
 	return a.reconcile(ctx, log, infra, cluster, terraformer.StateConfigMapInitializerFunc(terraformer.CreateState))
@@ -535,8 +547,20 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, infra *extens
 
 // Restore implements infrastructure.Actuator.
 func (a *actuator) Restore(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	if a.shouldUseFlow(infra, cluster) {
-		err := a.reconcileWithFlow(ctx, log, infra, cluster)
+	flowState, err := a.getFlowStateFromInfraStatus(infra)
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+	if flowState == nil {
+		if a.shouldUseFlow(infra, cluster) {
+			flowState, err = a.migrateFlowStateFromTerraformerState(ctx, log, infra)
+			if err != nil {
+				return util.DetermineError(err, helper.KnownCodes)
+			}
+		}
+	}
+	if flowState != nil {
+		err = a.reconcileWithFlow(ctx, log, infra, cluster, flowState)
 		return util.DetermineError(err, helper.KnownCodes)
 	}
 	terraformState, err := terraformer.UnmarshalRawState(infra.Status.State)
@@ -654,10 +678,11 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
 	flowState, err := a.getFlowStateFromInfraStatus(infra)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 	if flowState != nil {
-		return a.deleteWithFlow(ctx, log, infra, flowState)
+		err = a.deleteWithFlow(ctx, log, infra, flowState)
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 
 	return a.delete(ctx, log, infra)
@@ -727,7 +752,7 @@ func (a *actuator) ForceDelete(_ context.Context, _ logr.Logger, _ *extensionsv1
 func (a *actuator) Migrate(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
 	flowState, err := a.getFlowStateFromInfraStatus(infra)
 	if err != nil {
-		return err
+		return util.DetermineError(err, helper.KnownCodes)
 	}
 	if flowState != nil {
 		return nil // nothing to do if already using new flow without Terraformer
