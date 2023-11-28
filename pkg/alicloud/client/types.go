@@ -78,6 +78,17 @@ type ECS interface {
 	CreateEgressRule(request *ecs.AuthorizeSecurityGroupEgressRequest) error
 	RevokeIngressRule(request *ecs.RevokeSecurityGroupRequest) error
 	RevokeEgressRule(request *ecs.RevokeSecurityGroupEgressRequest) error
+
+	CreateSecurityGroup(request *ecs.CreateSecurityGroupRequest) (response *ecs.CreateSecurityGroupResponse, err error)
+	DeleteSecurityGroup(request *ecs.DeleteSecurityGroupRequest) (response *ecs.DeleteSecurityGroupResponse, err error)
+	AuthorizeSecurityGroup(request *ecs.AuthorizeSecurityGroupRequest) (response *ecs.AuthorizeSecurityGroupResponse, err error)
+	RevokeSecurityGroup(request *ecs.RevokeSecurityGroupRequest) (response *ecs.RevokeSecurityGroupResponse, err error)
+	AuthorizeSecurityGroupEgress(request *ecs.AuthorizeSecurityGroupEgressRequest) (response *ecs.AuthorizeSecurityGroupEgressResponse, err error)
+	RevokeSecurityGroupEgress(request *ecs.RevokeSecurityGroupEgressRequest) (response *ecs.RevokeSecurityGroupEgressResponse, err error)
+
+	ListTagResources(request *ecs.ListTagResourcesRequest) (response *ecs.ListTagResourcesResponse, err error)
+	TagResources(request *ecs.TagResourcesRequest) (response *ecs.TagResourcesResponse, err error)
+	UntagResources(request *ecs.UntagResourcesRequest) (response *ecs.UntagResourcesResponse, err error)
 }
 
 // stsClient implements the STS interface.
@@ -120,6 +131,9 @@ type VPC interface {
 
 	CreateVpc(request *vpc.CreateVpcRequest) (response *vpc.CreateVpcResponse, err error)
 	DescribeVpcs(request *vpc.DescribeVpcsRequest) (response *vpc.DescribeVpcsResponse, err error)
+	TagResources(request *vpc.TagResourcesRequest) (response *vpc.TagResourcesResponse, err error)
+	UnTagResources(request *vpc.UnTagResourcesRequest) (response *vpc.UnTagResourcesResponse, err error)
+	ListTagResources(request *vpc.ListTagResourcesRequest) (response *vpc.ListTagResourcesResponse, err error)
 	DeleteVpc(request *vpc.DeleteVpcRequest) (response *vpc.DeleteVpcResponse, err error)
 	CreateVSwitch(request *vpc.CreateVSwitchRequest) (response *vpc.CreateVSwitchResponse, err error)
 	DescribeVSwitches(request *vpc.DescribeVSwitchesRequest) (response *vpc.DescribeVSwitchesResponse, err error)
@@ -130,6 +144,14 @@ type VPC interface {
 	DeleteNatGateway(request *vpc.DeleteNatGatewayRequest) (response *vpc.DeleteNatGatewayResponse, err error)
 	DescribeSnatTableEntries(request *vpc.DescribeSnatTableEntriesRequest) (response *vpc.DescribeSnatTableEntriesResponse, err error)
 	DescribeEipAddresses(request *vpc.DescribeEipAddressesRequest) (response *vpc.DescribeEipAddressesResponse, err error)
+
+	AllocateEipAddress(request *vpc.AllocateEipAddressRequest) (response *vpc.AllocateEipAddressResponse, err error)
+	ReleaseEipAddress(request *vpc.ReleaseEipAddressRequest) (response *vpc.ReleaseEipAddressResponse, err error)
+	ModifyEipAddressAttribute(request *vpc.ModifyEipAddressAttributeRequest) (response *vpc.ModifyEipAddressAttributeResponse, err error)
+	AssociateEipAddress(request *vpc.AssociateEipAddressRequest) (response *vpc.AssociateEipAddressResponse, err error)
+	UnassociateEipAddress(request *vpc.UnassociateEipAddressRequest) (response *vpc.UnassociateEipAddressResponse, err error)
+	CreateSnatEntry(request *vpc.CreateSnatEntryRequest) (response *vpc.CreateSnatEntryResponse, err error)
+	DeleteSnatEntry(request *vpc.DeleteSnatEntryRequest) (response *vpc.DeleteSnatEntryResponse, err error)
 }
 
 // ramClient implements the RAM interface.
