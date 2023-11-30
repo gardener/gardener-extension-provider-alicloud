@@ -187,7 +187,7 @@ spec:
       namespace: garden
   ...
 ```
-An example of the referenced secret containing the credentials for the Alicloud Object Storage Service can be found in the [example folder](https://github.com/gardener/gardener-extension-provider-alicloud/blob/master/example/30-etcd-backup-secret.yaml).
+An example of the referenced secret containing the credentials for the Alicloud Object Storage Service can be found in the [example folder](../../example/30-etcd-backup-secret.yaml).
 
 #### Permissions for Alicloud Object Storage Service
 
