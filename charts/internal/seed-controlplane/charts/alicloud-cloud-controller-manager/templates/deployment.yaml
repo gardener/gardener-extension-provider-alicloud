@@ -52,6 +52,7 @@ spec:
         - --cloud-config=/etc/kubernetes/cloudprovider/cloudprovider.conf
         - --cluster-name={{ .Values.clusterName }}
         - --configure-cloud-routes=true
+        - --network=public
         {{- include "cloud-controller-manager.featureGates" . | trimSuffix "," | indent 8 }}
         livenessProbe:
           httpGet:
