@@ -405,6 +405,10 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 		return nil, fmt.Errorf("secret %q not found", csiSnapshotValidationServerName)
 	}
 
+	ccmNetworkFalg := "public"
+	if cluster.Seed.Spec.Provider.Type == alicloud.Type {
+		ccmNetworkFalg = "vpc"
+	}
 	values := map[string]interface{}{
 		"global": map[string]interface{}{
 			"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
@@ -416,7 +420,8 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"podLabels": map[string]interface{}{
 				v1beta1constants.LabelPodMaintenanceRestart: "true",
 			},
-			"cloudConfig": ccmConfig,
+			"cloudConfig":    ccmConfig,
+			"ccmNetworkFalg": ccmNetworkFalg,
 		},
 		"csi-alicloud": map[string]interface{}{
 			"regionID":           cp.Spec.Region,

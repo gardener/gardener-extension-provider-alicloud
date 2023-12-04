@@ -4,6 +4,7 @@ podNetwork: 192.168.0.0/16
 podAnnotations: {}
 podLabels: {}
 featureGates: {}
+ccmNetworkFalg: public
   # RotateKubeletServerCertificate: false
 images:
   alicloud-controller-manager: image-repository
