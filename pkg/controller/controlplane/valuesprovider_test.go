@@ -140,6 +140,7 @@ var _ = Describe("ValuesProvider", func() {
 				"featureGates": map[string]bool{
 					"RotateKubeletServerCertificate": true,
 				},
+				"ccmNetworkFalg": "public",
 			},
 			"csi-alicloud": map[string]interface{}{
 				"replicas":           1,
@@ -247,6 +248,21 @@ var _ = Describe("ValuesProvider", func() {
 			values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneChartValues))
+		})
+
+		It("should set chart values ccmNetworkFalg vpc when seed provider type is alicloud", func() {
+			// Call GetControlPlaneChartValues method and check the result
+			cluster.Seed = &gardencorev1beta1.Seed{
+				Spec: gardencorev1beta1.SeedSpec{
+					Provider: gardencorev1beta1.SeedProvider{
+						Type: "alicloud",
+					},
+				},
+			}
+			values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(HaveKey("alicloud-cloud-controller-manager"))
+			Expect(values["alicloud-cloud-controller-manager"]).To(HaveKeyWithValue("ccmNetworkFalg", "vpc"))
 		})
 
 		DescribeTable("topologyAwareRoutingEnabled value",
