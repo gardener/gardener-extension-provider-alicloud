@@ -406,7 +406,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 	}
 
 	ccmNetworkFalg := "public"
-	if cluster.Seed.Spec.Provider.Type == alicloud.Type {
+	if cluster.Seed != nil && cluster.Seed.Spec.Provider.Type == alicloud.Type {
 		ccmNetworkFalg = "vpc"
 	}
 	values := map[string]interface{}{
