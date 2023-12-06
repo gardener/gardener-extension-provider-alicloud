@@ -1,15 +1,12 @@
 gardener-extension-provider-alicloud:
-  template: 'default'
   base_definition:
-    repo: ~
     traits:
       version:
         preprocess: 'inject-commit-hash'
       publish:
-        oci-builder: 'kaniko'
+        oci-builder: 'docker-buildx'
         dockerimages:
           gardener-extension-provider-alicloud:
-            registry: 'gcr-readwrite'
             image: 'eu.gcr.io/gardener-project/gardener/extensions/provider-alicloud'
             dockerfile: 'Dockerfile'
             target: gardener-extension-provider-alicloud
@@ -21,7 +18,6 @@ gardener-extension-provider-alicloud:
               - type: 'emailAddress'
                 email: 'taylor.shao@sap.com'
           gardener-extension-admission-alicloud:
-            registry: 'gcr-readwrite'
             image: 'eu.gcr.io/gardener-project/gardener/extensions/admission-alicloud'
             dockerfile: 'Dockerfile'
             target: gardener-extension-admission-alicloud
@@ -68,7 +64,7 @@ gardener-extension-provider-alicloud:
               slack_cfg_name: 'scp_workspace'
         component_descriptor: ~
         publish:
-          oci-builder: 'kaniko'
+          oci-builder: 'docker-buildx'
           dockerimages:
             gardener-extension-provider-alicloud:
               tag_as_latest: true
