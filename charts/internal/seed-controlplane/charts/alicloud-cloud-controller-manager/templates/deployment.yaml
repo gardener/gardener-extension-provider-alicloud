@@ -65,7 +65,7 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 15
         ports:
-        - containerPort: 10258
+        - containerPort: 8080
           name: metrics
           protocol: TCP
         terminationMessagePath: /dev/termination-log
