@@ -80,6 +80,9 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 		allErrs = append(allErrs, vpcCIDR.ValidateSubset(cidrs...)...)
 		allErrs = append(allErrs, vpcCIDR.ValidateNotOverlap(pods, services)...)
 	}
+	if infra.DualStack != nil && infra.DualStack.Enabled && infra.Networks.VPC.ID != nil {
+		allErrs = append(allErrs, field.Invalid(networksPath.Child("vpc"), infra.Networks.VPC, "can not set vpc id when DualStack enabled"))
+	}
 
 	// make sure that VPC cidrs don't overlap with each other
 	allErrs = append(allErrs, cidrvalidation.ValidateCIDROverlap(cidrs, false)...)
@@ -99,6 +102,11 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.Networks.VPC, oldConfig.Networks.VPC, field.NewPath("networks").Child("vpc"))...)
 	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, field.NewPath("networks").Child("zones"))...)
+
+	if oldConfig.DualStack != nil && oldConfig.DualStack.Enabled && (newConfig.DualStack == nil || !newConfig.DualStack.Enabled) {
+		dualStackPath := field.NewPath("dualStack.enabled")
+		allErrs = append(allErrs, field.Forbidden(dualStackPath, "field can't be changed from \"true\" to \"false\""))
+	}
 
 	return allErrs
 }

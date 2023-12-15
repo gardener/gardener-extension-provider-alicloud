@@ -14,6 +14,9 @@ import (
 type InfrastructureConfig struct {
 	metav1.TypeMeta
 
+	// DualStack specifies whether dual-stack or IPv4-only should be supported.
+	DualStack *DualStack
+
 	// Networks specifies the networks for an infrastructure.
 	Networks Networks
 }
@@ -117,4 +120,10 @@ type InfrastructureStatus struct {
 	// it cannot reconcile anymore existing `Infrastructure` resources that are still using this version. Hence, it stores
 	// the used versions in the provider status to ensure reconciliation is possible.
 	MachineImages []MachineImage
+}
+
+// DualStack specifies whether dual-stack or IPv4-only should be supported.
+type DualStack struct {
+	// Enabled specifies if dual-stack is enabled or not.
+	Enabled bool
 }

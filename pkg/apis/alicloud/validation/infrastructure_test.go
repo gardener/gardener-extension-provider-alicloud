@@ -189,6 +189,22 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				Expect(errorList).To(BeEmpty())
 			})
 
+			It("should forbid if both provide vpc id and set dualstak enable true", func() {
+				vpcID := "vpc-provided"
+				infrastructureConfig.DualStack = &apisalicloud.DualStack{
+					Enabled: true,
+				}
+				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
+					ID: &vpcID,
+				}
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				Expect(errorList).To(ConsistOfFields(Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("networks.vpc"),
+					"Detail": ContainSubstring("can not set vpc id when DualStack enabled"),
+				}))
+			})
+
 		})
 	})
 
@@ -232,6 +248,22 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			Expect(errorList).To(ConsistOfFields(Fields{
 				"Type":  Equal(field.ErrorTypeForbidden),
 				"Field": Equal("networks.zones"),
+			}))
+		})
+
+		It("should forbid when change DualStack enable from true to false", func() {
+			infrastructureConfig.DualStack = &apisalicloud.DualStack{
+				Enabled: true,
+			}
+			newInfrastructureConfig := infrastructureConfig.DeepCopy()
+			newInfrastructureConfig.DualStack = nil
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+
+			Expect(errorList).To(HaveLen(1))
+			Expect(errorList).To(ConsistOfFields(Fields{
+				"Type":   Equal(field.ErrorTypeForbidden),
+				"Field":  Equal("dualStack.enabled"),
+				"Detail": ContainSubstring("field can't be changed from \"true\" to \"false\""),
 			}))
 		})
 
