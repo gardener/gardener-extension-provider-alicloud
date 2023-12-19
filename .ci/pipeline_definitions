@@ -20,7 +20,7 @@ gardener-extension-provider-alicloud:
               - type: 'emailAddress'
                 email: 'taylor.shao@sap.com'
           gardener-extension-admission-alicloud:
-            image: europe-docker.pkg.de/gardener-project/snapshots/gardener/extensions/admission-alicloud
+            image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/extensions/admission-alicloud
             dockerfile: 'Dockerfile'
             target: gardener-extension-admission-alicloud
             resource_labels:
@@ -74,5 +74,5 @@ gardener-extension-provider-alicloud:
               image: europe-docker.pkg.dev/gardener-project/releases/gardener/extensions/provider-alicloud
               tag_as_latest: true
             gardener-extension-admission-alicloud:
-              image: europe-docker.pkg.de/gardener-project/releases/gardener/extensions/admission-alicloud
+              image: europe-docker.pkg.dev/gardener-project/releases/gardener/extensions/admission-alicloud
               tag_as_latest: true
