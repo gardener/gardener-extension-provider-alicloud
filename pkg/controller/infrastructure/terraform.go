@@ -160,5 +160,14 @@ func (terraformOps) ComputeChartValues(
 			"securityGroupID":    TerraformerOutputKeySecurityGroupID,
 			"vswitchNodesPrefix": TerraformerOutputKeyVSwitchNodesPrefix,
 		},
+		"dualStack": map[string]interface{}{
+			"enabled":          values.DualStack.Enabled,
+			"zone_a":           values.DualStack.Zone_A,
+			"zone_a_cidr":      values.DualStack.Zone_A_CIDR,
+			"zone_a_ipv6_mask": values.DualStack.Zone_A_IPV6_MASK,
+			"zone_b":           values.DualStack.Zone_B,
+			"zone_b_cidr":      values.DualStack.Zone_B_CIDR,
+			"zone_b_ipv6_mask": values.DualStack.Zone_B_IPV6_MASK,
+		},
 	}
 }

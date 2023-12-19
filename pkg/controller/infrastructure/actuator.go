@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -196,7 +197,8 @@ func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, conf
 	if err := tplMainTF.Execute(&mainTF, chartValues); err != nil {
 		return nil, fmt.Errorf("could not render Terraform template: %+v", err)
 	}
-
+	// tf := mainTF.String()
+	// fmt.Println(tf)
 	return a.terraformerFactory.DefaultInitializer(a.client, mainTF.String(), string(variablesTF), terraformTFVars, stateInitializer), nil
 }
 
@@ -560,6 +562,51 @@ func (a *actuator) Restore(ctx context.Context, log logr.Logger, infra *extensio
 	return a.reconcile(ctx, log, infra, cluster, terraformer.CreateOrUpdateState{State: &terraformState.Data})
 }
 
+func (a *actuator) getDualStackValues(
+	infra *extensionsv1alpha1.Infrastructure,
+	config *alicloudv1alpha1.InfrastructureConfig,
+	credentials *alicloud.Credentials,
+) (*DualStack, error) {
+	dualStack := DualStack{
+		Enabled: false,
+	}
+	if config.DualStack == nil || !config.DualStack.Enabled {
+		return &dualStack, nil
+	}
+	dualStack.Enabled = true
+	dualStack.Zone_A_IPV6_MASK = 255
+	dualStack.Zone_B_IPV6_MASK = 254
+	nlbClient, err := a.newClientFactory.NewNLBClient(infra.Spec.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	zones, err := nlbClient.GetNLBAvailableZones(infra.Spec.Region)
+	if err != nil {
+		return nil, err
+	}
+	if len(zones) < 2 {
+		return nil, fmt.Errorf("not enough available zones for DualStack")
+	}
+	dualStack.Zone_A = zones[0]
+	dualStack.Zone_B = zones[1]
+
+	// DualStack only for managed vpc
+	// vpcCidr := config.Networks.VPC.CIDR
+
+	subCidr_a, err := getLastSubCidr(*config.Networks.VPC.CIDR, 28, 1)
+	if err != nil {
+		return nil, fmt.Errorf("get sub cidr failed")
+	}
+	subCidr_b, err := getLastSubCidr(*config.Networks.VPC.CIDR, 28, 2)
+	if err != nil {
+		return nil, fmt.Errorf("get sub cidr failed")
+	}
+	dualStack.Zone_A_CIDR = subCidr_a
+	dualStack.Zone_B_CIDR = subCidr_b
+
+	return &dualStack, nil
+}
+
 func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, stateInitializer terraformer.StateConfigMapInitializer) error {
 	config, credentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
 	if err != nil {
@@ -583,6 +630,12 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
+
+	dualStackValues, err := a.getDualStackValues(infra, config, credentials)
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+	initializerValues.DualStack = *dualStackValues
 
 	initializer, err := a.newInitializer(infra, config, cluster.Shoot.Spec.Networking.Pods, initializerValues, stateInitializer)
 	if err != nil {
@@ -777,4 +830,46 @@ func (a *actuator) ensureServiceLinkedRole(_ context.Context, infra *extensionsv
 	}
 
 	return nil
+}
+
+func getLastSubCidr(originCidr string, subNetMaskLen, index int) (string, error) {
+	_, ipnet, err := net.ParseCIDR(originCidr)
+	if err != nil {
+		return "", err
+	}
+
+	orgin_net_mask_len, _ := ipnet.Mask.Size()
+	if orgin_net_mask_len > subNetMaskLen {
+		return "", fmt.Errorf("not enough capacity to divide sub cidr")
+	}
+	sub_ip_mask_len := 32 - subNetMaskLen
+
+	subnets := 1 << uint(32-orgin_net_mask_len-sub_ip_mask_len)
+	if index > subnets {
+		return "", fmt.Errorf("index over subnets size")
+	}
+	ip_size := 1 << uint(sub_ip_mask_len)
+
+	subCidr := fmt.Sprintf("%s/%d", ipInc(ipnet.IP, (subnets-index)*ip_size), subNetMaskLen)
+
+	return subCidr, nil
+
+}
+
+func ipInc(ip net.IP, step int) net.IP {
+	res := make(net.IP, len(ip))
+	copy(res, ip)
+	for j := len(res) - 1; j >= 0; j-- {
+		if step > 255 {
+			res[j] += byte(step % 256)
+			step /= 256
+		} else {
+			res[j] += byte(step)
+			step = 0
+		}
+		if step == 0 {
+			break
+		}
+	}
+	return res
 }
