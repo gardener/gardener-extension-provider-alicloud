@@ -591,18 +591,14 @@ func (a *actuator) getDualStackValues(
 	dualStack.Zone_B = zones[1]
 
 	// DualStack only for managed vpc
-	// vpcCidr := config.Networks.VPC.CIDR
 
-	subCidr_a, err := getLastSubCidr(*config.Networks.VPC.CIDR, 28, 1)
-	if err != nil {
+	subCidrs, err := getLastSubCidr(*config.Networks.VPC.CIDR, 28, 2)
+	if err != nil || subCidrs == nil || len(subCidrs) < 2 {
 		return nil, fmt.Errorf("get sub cidr failed")
 	}
-	subCidr_b, err := getLastSubCidr(*config.Networks.VPC.CIDR, 28, 2)
-	if err != nil {
-		return nil, fmt.Errorf("get sub cidr failed")
-	}
-	dualStack.Zone_A_CIDR = subCidr_a
-	dualStack.Zone_B_CIDR = subCidr_b
+
+	dualStack.Zone_A_CIDR = subCidrs[0]
+	dualStack.Zone_B_CIDR = subCidrs[1]
 
 	return &dualStack, nil
 }
@@ -832,27 +828,31 @@ func (a *actuator) ensureServiceLinkedRole(_ context.Context, infra *extensionsv
 	return nil
 }
 
-func getLastSubCidr(originCidr string, subNetMaskLen, index int) (string, error) {
+func getLastSubCidr(originCidr string, subNetMaskLen, count int) ([]string, error) {
 	_, ipnet, err := net.ParseCIDR(originCidr)
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	if count <= 0 {
+		count = 1
 	}
 
 	orgin_net_mask_len, _ := ipnet.Mask.Size()
 	if orgin_net_mask_len > subNetMaskLen {
-		return "", fmt.Errorf("not enough capacity to divide sub cidr")
+		return nil, fmt.Errorf("not enough capacity to divide sub cidr")
 	}
 	sub_ip_mask_len := 32 - subNetMaskLen
 
 	subnets := 1 << uint(32-orgin_net_mask_len-sub_ip_mask_len)
-	if index > subnets {
-		return "", fmt.Errorf("index over subnets size")
+	if count > subnets {
+		return nil, fmt.Errorf("not enough subnets")
 	}
+	subCidrs := make([]string, 0, count)
 	ip_size := 1 << uint(sub_ip_mask_len)
-
-	subCidr := fmt.Sprintf("%s/%d", ipInc(ipnet.IP, (subnets-index)*ip_size), subNetMaskLen)
-
-	return subCidr, nil
+	for index := 1; index <= count; index++ {
+		subCidrs = append(subCidrs, fmt.Sprintf("%s/%d", ipInc(ipnet.IP, (subnets-index)*ip_size), subNetMaskLen))
+	}
+	return subCidrs, nil
 
 }
 
