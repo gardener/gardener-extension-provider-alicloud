@@ -7,10 +7,12 @@ package infraflow
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gardener/gardener/pkg/utils/flow"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/dualstack"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
 )
@@ -42,6 +44,10 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		c.ensureSecurityGroup,
 		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
+	_ = c.AddTask(g, "ensure DualStack",
+		c.ensureDualStack,
+		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
+
 	ensureVSwitches := c.AddTask(g, "ensure vswitch",
 		c.ensureVSwitches,
 		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
@@ -55,6 +61,125 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		Timeout(defaultTimeout), Dependencies(ensureNatGateway))
 
 	return g
+}
+
+func (c *FlowContext) ensureDualStack(ctx context.Context) error {
+	enableDualStack := c.config.DualStack != nil && c.config.DualStack.Enabled
+	if !enableDualStack {
+		return nil
+	}
+
+	vpc, err := c.actor.GetVpc(ctx, *c.state.Get(IdentifierVPC))
+	if err != nil {
+		return err
+	}
+	if !vpc.EnableIpv6 {
+		return fmt.Errorf("vpc is not enabled Ipv6")
+	}
+	dualStackValues, err := dualstack.CreateDualStackValues(true, c.infraSpec.Region, &vpc.CidrBlock, c.credentials)
+	if err != nil {
+		return err
+	}
+
+	if err = c.ensureIpv6Gateway(ctx); err != nil {
+		return err
+	}
+
+	if err = c.ensureIpv6VSwitches(ctx, dualStackValues.Zone_A_CIDR, dualStackValues.Zone_A, IdentifierDualStackVSwitch_A, dualStackValues.Zone_A_IPV6_MASK); err != nil {
+		return err
+	}
+
+	err = c.ensureIpv6VSwitches(ctx, dualStackValues.Zone_B_CIDR, dualStackValues.Zone_B, IdentifierDualStackVSwitch_B, dualStackValues.Zone_B_IPV6_MASK)
+	return err
+}
+
+func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	log.Info("ensureIpv6Gateway")
+	suffix := "DUAL_STACK-ipv6-gw"
+	desired := &aliclient.IPV6Gateway{
+		Tags:  c.commonTagsWithSuffix(suffix),
+		Name:  c.namespace + "-" + suffix,
+		VpcId: *c.state.Get(IdentifierVPC),
+	}
+
+	current, err := findExisting(ctx, c.state.Get(IdentifierIPV6Gateway), c.commonTagsWithSuffix(suffix),
+		c.actor.GetIpv6Gateway, c.actor.FindIpv6GatewaysByTags)
+
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		c.state.Set(IdentifierIPV6Gateway, current.IPV6GatewayId)
+
+		_, err := c.updater.UpdateIpv6Gateway(ctx, desired, current)
+		if err != nil {
+			return err
+		}
+	} else {
+		log.Info("creating ipv6gateway ...")
+		waiter := informOnWaiting(log, 10*time.Second, "still creating ipv6gateway...")
+		created, err := c.actor.CreateIpv6Gateway(ctx, desired)
+		waiter.Done(err)
+		if err != nil {
+			return fmt.Errorf("create Ipv6Gateway failed %w", err)
+		}
+
+		c.state.Set(IdentifierIPV6Gateway, created.IPV6GatewayId)
+		_, err = c.updater.UpdateIpv6Gateway(ctx, desired, created)
+		if err != nil {
+			return err
+		}
+
+	}
+	return c.PersistState(ctx, true)
+}
+
+func (c *FlowContext) ensureIpv6VSwitches(ctx context.Context, cidrBlock, zoneId, vswitchIdentifier string, ipv6CidrMask int) error {
+	log := c.LogFromContext(ctx)
+	log.Info("ensureIpv6VSwitches:" + vswitchIdentifier)
+	suffix := vswitchIdentifier
+	desired := &aliclient.VSwitch{
+		Name:          c.namespace + "-" + suffix,
+		CidrBlock:     cidrBlock,
+		VpcId:         c.state.Get(IdentifierVPC),
+		Tags:          c.commonTagsWithSuffix(suffix),
+		ZoneId:        zoneId,
+		EnableIpv6:    true,
+		Ipv6CidrkMask: &ipv6CidrMask,
+	}
+
+	current, err := findExisting(ctx, c.state.Get(vswitchIdentifier), c.commonTagsWithSuffix(suffix),
+		c.actor.GetVSwitch, c.actor.FindVSwitchesByTags)
+
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		c.state.Set(vswitchIdentifier, current.VSwitchId)
+
+		_, err := c.updater.UpdateVSwitch(ctx, desired, current)
+		if err != nil {
+			return err
+		}
+	} else {
+		log.Info("creating ipv6 vswitch ...")
+		waiter := informOnWaiting(log, 10*time.Second, "still creating ipv6 vswitch...")
+		created, err := c.actor.CreateVSwitch(ctx, desired)
+		waiter.Done(err)
+		if err != nil {
+			return fmt.Errorf("create pv6 vswitch failed %w", err)
+		}
+
+		c.state.Set(vswitchIdentifier, created.VSwitchId)
+		_, err = c.updater.UpdateVSwitch(ctx, desired, created)
+		if err != nil {
+			return err
+		}
+
+	}
+	return c.PersistState(ctx, true)
+
 }
 
 func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
@@ -189,7 +314,7 @@ func (c *FlowContext) ensureExistingVpc(ctx context.Context) error {
 		return err
 	}
 	if current == nil {
-		return fmt.Errorf("VPC %s has not been found", vpcID)
+		return fmt.Errorf("vpc %s has not been found", vpcID)
 	}
 	c.state.Set(IdentifierVPC, vpcID)
 	return c.PersistState(ctx, true)
@@ -203,11 +328,12 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 	if c.config.Networks.VPC.CIDR == nil {
 		return fmt.Errorf("missing VPC CIDR")
 	}
-
+	enableDualStack := c.config.DualStack != nil && c.config.DualStack.Enabled
 	desired := &aliclient.VPC{
-		Tags:      c.commonTags,
-		CidrBlock: *c.config.Networks.VPC.CIDR,
-		Name:      c.namespace + "-vpc",
+		Tags:       c.commonTags,
+		CidrBlock:  *c.config.Networks.VPC.CIDR,
+		Name:       c.namespace + "-vpc",
+		EnableIpv6: enableDualStack,
 	}
 
 	current, err := findExisting(ctx, c.state.Get(IdentifierVPC), c.commonTags,
@@ -263,12 +389,14 @@ func (c *FlowContext) collectExistingVSwitches(ctx context.Context) ([]*aliclien
 	}
 outer:
 	for _, item := range foundByTags {
-		for _, currentItem := range current {
-			if item.VSwitchId == currentItem.VSwitchId {
-				continue outer
+		if tagName, ok := item.Tags["Name"]; ok && strings.Contains(tagName, "nodes-z") {
+			for _, currentItem := range current {
+				if item.VSwitchId == currentItem.VSwitchId {
+					continue outer
+				}
 			}
+			current = append(current, item)
 		}
-		current = append(current, item)
 	}
 	return current, nil
 }

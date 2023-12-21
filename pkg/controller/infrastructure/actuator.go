@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -38,6 +37,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/dualstack"
 )
 
 // StatusTypeMeta is the TypeMeta of InfrastructureStatus.
@@ -562,51 +562,15 @@ func (a *actuator) Restore(ctx context.Context, log logr.Logger, infra *extensio
 	return a.reconcile(ctx, log, infra, cluster, terraformer.CreateOrUpdateState{State: &terraformState.Data})
 }
 
-func (a *actuator) getDualStackValues(
-	infra *extensionsv1alpha1.Infrastructure,
-	config *alicloudv1alpha1.InfrastructureConfig,
-	credentials *alicloud.Credentials,
-) (*DualStack, error) {
-	dualStack := DualStack{
-		Enabled: false,
-	}
-	if config.DualStack == nil || !config.DualStack.Enabled {
-		return &dualStack, nil
-	}
-	dualStack.Enabled = true
-	dualStack.Zone_A_IPV6_MASK = 255
-	dualStack.Zone_B_IPV6_MASK = 254
-	nlbClient, err := a.newClientFactory.NewNLBClient(infra.Spec.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
-	if err != nil {
-		return nil, err
-	}
-	zones, err := nlbClient.GetNLBAvailableZones(infra.Spec.Region)
-	if err != nil {
-		return nil, err
-	}
-	if len(zones) < 2 {
-		return nil, fmt.Errorf("not enough available zones for DualStack")
-	}
-	dualStack.Zone_A = zones[0]
-	dualStack.Zone_B = zones[1]
-
-	// DualStack only for managed vpc
-
-	subCidrs, err := getLastSubCidr(*config.Networks.VPC.CIDR, 28, 2)
-	if err != nil || subCidrs == nil || len(subCidrs) < 2 {
-		return nil, fmt.Errorf("get sub cidr failed")
-	}
-
-	dualStack.Zone_A_CIDR = subCidrs[0]
-	dualStack.Zone_B_CIDR = subCidrs[1]
-
-	return &dualStack, nil
-}
-
 func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, stateInitializer terraformer.StateConfigMapInitializer) error {
 	config, credentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
 	if err != nil {
 		return err
+	}
+
+	enableDualStack := config.DualStack != nil && config.DualStack.Enabled
+	if enableDualStack && config.Networks.VPC.CIDR == nil {
+		return fmt.Errorf("vpc cidr must be set when enable dualstack")
 	}
 
 	if err := a.ensureServiceLinkedRole(ctx, infra, credentials); err != nil {
@@ -627,7 +591,7 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 		return util.DetermineError(err, helper.KnownCodes)
 	}
 
-	dualStackValues, err := a.getDualStackValues(infra, config, credentials)
+	dualStackValues, err := dualstack.CreateDualStackValues(enableDualStack, infra.Spec.Region, config.Networks.VPC.CIDR, credentials)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
@@ -826,50 +790,4 @@ func (a *actuator) ensureServiceLinkedRole(_ context.Context, infra *extensionsv
 	}
 
 	return nil
-}
-
-func getLastSubCidr(originCidr string, subNetMaskLen, count int) ([]string, error) {
-	_, ipnet, err := net.ParseCIDR(originCidr)
-	if err != nil {
-		return nil, err
-	}
-	if count <= 0 {
-		count = 1
-	}
-
-	orgin_net_mask_len, _ := ipnet.Mask.Size()
-	if orgin_net_mask_len > subNetMaskLen {
-		return nil, fmt.Errorf("not enough capacity to divide sub cidr")
-	}
-	sub_ip_mask_len := 32 - subNetMaskLen
-
-	subnets := 1 << uint(32-orgin_net_mask_len-sub_ip_mask_len)
-	if count > subnets {
-		return nil, fmt.Errorf("not enough subnets")
-	}
-	subCidrs := make([]string, 0, count)
-	ip_size := 1 << uint(sub_ip_mask_len)
-	for index := 1; index <= count; index++ {
-		subCidrs = append(subCidrs, fmt.Sprintf("%s/%d", ipInc(ipnet.IP, (subnets-index)*ip_size), subNetMaskLen))
-	}
-	return subCidrs, nil
-
-}
-
-func ipInc(ip net.IP, step int) net.IP {
-	res := make(net.IP, len(ip))
-	copy(res, ip)
-	for j := len(res) - 1; j >= 0; j-- {
-		if step > 255 {
-			res[j] += byte(step % 256)
-			step /= 256
-		} else {
-			res[j] += byte(step)
-			step = 0
-		}
-		if step == 0 {
-			break
-		}
-	}
-	return res
 }

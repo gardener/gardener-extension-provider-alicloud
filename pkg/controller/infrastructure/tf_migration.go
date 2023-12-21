@@ -67,6 +67,21 @@ func migrateTerraformStateToFlowState(rawExtension *runtime.RawExtension, zones 
 			tfState.GetManagedResourceInstanceID("alicloud_vswitch", "vsw_"+suffix))
 	}
 
+	ipv6_gateway := tfState.GetManagedResourceInstanceID("alicloud_vpc_ipv6_gateway", "dual_stack_ipv6_gw")
+	if ipv6_gateway != nil && *ipv6_gateway != "" {
+		setFlowStateData(flowState, infraflow.IdentifierIPV6Gateway, ipv6_gateway)
+	}
+
+	dual_stack_vswitch_a := tfState.GetManagedResourceInstanceID("alicloud_vswitch", "dual_stack_vswitch_a")
+	if dual_stack_vswitch_a != nil && *dual_stack_vswitch_a != "" {
+		setFlowStateData(flowState, infraflow.IdentifierDualStackVSwitch_A, dual_stack_vswitch_a)
+	}
+
+	dual_stack_vswitch_b := tfState.GetManagedResourceInstanceID("alicloud_vswitch", "dual_stack_vswitch_b")
+	if dual_stack_vswitch_b != nil && *dual_stack_vswitch_b != "" {
+		setFlowStateData(flowState, infraflow.IdentifierDualStackVSwitch_B, dual_stack_vswitch_b)
+	}
+
 	flowState.SetMigratedFromTerraform()
 
 	return flowState, nil

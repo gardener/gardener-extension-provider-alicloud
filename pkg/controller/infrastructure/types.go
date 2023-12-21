@@ -9,6 +9,7 @@ import (
 
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/dualstack"
 )
 
 const (
@@ -51,23 +52,12 @@ type EIP struct {
 	InternetChargeType string
 }
 
-// DualStack contains values of EIP used to render terraform charts
-type DualStack struct {
-	Enabled          bool
-	Zone_A           string
-	Zone_A_CIDR      string
-	Zone_A_IPV6_MASK int
-	Zone_B           string
-	Zone_B_CIDR      string
-	Zone_B_IPV6_MASK int
-}
-
 // InitializerValues are values used to render a terraform initializer chart.
 type InitializerValues struct {
 	VPC        VPC
 	NATGateway NATGateway
 	EIP        EIP
-	DualStack  DualStack
+	DualStack  dualstack.DualStack
 }
 
 // TerraformChartOps are operations to do for interfacing with Terraform charts.

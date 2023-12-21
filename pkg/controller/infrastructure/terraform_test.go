@@ -16,6 +16,7 @@ import (
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/dualstack"
 )
 
 var _ = Describe("TerraformChartOps", func() {
@@ -165,7 +166,7 @@ var _ = Describe("TerraformChartOps", func() {
 					EIP: EIP{
 						InternetChargeType: internetChargeType,
 					},
-					DualStack: DualStack{
+					DualStack: dualstack.DualStack{
 						Enabled:          true,
 						Zone_A:           Zone_A,
 						Zone_A_CIDR:      Zone_A_CIDR,

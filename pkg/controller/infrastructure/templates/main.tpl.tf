@@ -9,7 +9,6 @@ resource "alicloud_vpc" "vpc" {
   vpc_name   = "{{ .clusterName }}-vpc"
   cidr_block = "{{ .vpc.cidr }}"
 {{ if .dualStack.enabled -}}
-  ipv6_isp    = "BGP"
   enable_ipv6 = true
 {{- end }}
   timeouts {
@@ -27,6 +26,10 @@ resource "alicloud_vswitch" "dual_stack_vswitch_a" {
   vswitch_name = "{{ .clusterName }}-DUAL_STACK-A-vsw"
   enable_ipv6 = true
   ipv6_cidr_block_mask = {{ .dualStack.zone_a_ipv6_mask }}
+  timeouts {
+    create = "5m"
+    delete = "5m"
+  }
 }
 
 resource "alicloud_vswitch" "dual_stack_vswitch_b" {
@@ -36,10 +39,14 @@ resource "alicloud_vswitch" "dual_stack_vswitch_b" {
   vswitch_name = "{{ .clusterName }}-DUAL_STACK-B-vsw"
   enable_ipv6 = true
   ipv6_cidr_block_mask = {{ .dualStack.zone_b_ipv6_mask }}
+  timeouts {
+    create = "5m"
+    delete = "5m"
+  }
 }
 
-resource "alicloud_vpc_ipv6_gateway" "dual_stack_ipv6_ngw" {
-  ipv6_gateway_name = "{{ .clusterName }}-DUAL_STACK-ipv6-ngw"
+resource "alicloud_vpc_ipv6_gateway" "dual_stack_ipv6_gw" {
+  ipv6_gateway_name = "{{ .clusterName }}-DUAL_STACK-ipv6-gw"
   vpc_id            =  {{ .vpc.id }}
 }
 

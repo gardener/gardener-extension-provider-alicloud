@@ -157,6 +157,11 @@ type VPC interface {
 	UnassociateEipAddress(request *vpc.UnassociateEipAddressRequest) (response *vpc.UnassociateEipAddressResponse, err error)
 	CreateSnatEntry(request *vpc.CreateSnatEntryRequest) (response *vpc.CreateSnatEntryResponse, err error)
 	DeleteSnatEntry(request *vpc.DeleteSnatEntryRequest) (response *vpc.DeleteSnatEntryResponse, err error)
+
+	CreateIpv6Gateway(request *vpc.CreateIpv6GatewayRequest) (response *vpc.CreateIpv6GatewayResponse, err error)
+	DeleteIpv6Gateway(request *vpc.DeleteIpv6GatewayRequest) (response *vpc.DeleteIpv6GatewayResponse, err error)
+	DescribeIpv6Gateways(request *vpc.DescribeIpv6GatewaysRequest) (response *vpc.DescribeIpv6GatewaysResponse, err error)
+	ModifyVpcAttribute(request *vpc.ModifyVpcAttributeRequest) (response *vpc.ModifyVpcAttributeResponse, err error)
 }
 
 // ramClient implements the RAM interface.

@@ -7,6 +7,7 @@ package aliclient
 import (
 	"context"
 	"fmt"
+	"net"
 	"reflect"
 	"strconv"
 	"time"
@@ -31,6 +32,7 @@ type Actor interface {
 	ListVpcs(ctx context.Context, ids []string) ([]*VPC, error)
 	FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error)
 	DeleteVpc(ctx context.Context, id string) error
+	ModifyVpc(ctx context.Context, id string, vpc *VPC) error
 
 	CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, error)
 	GetVSwitch(ctx context.Context, id string) (*VSwitch, error)
@@ -71,6 +73,12 @@ type Actor interface {
 
 	AuthorizeSecurityGroupRule(ctx context.Context, sgId string, rule SecurityGroupRule) error
 	RevokeSecurityGroupRule(ctx context.Context, sgId, ruleId, direction string) error
+
+	CreateIpv6Gateway(ctx context.Context, ipv6Gateway *IPV6Gateway) (*IPV6Gateway, error)
+	GetIpv6Gateway(ctx context.Context, id string) (*IPV6Gateway, error)
+	LisIpv6Gateways(ctx context.Context, ids []string) ([]*IPV6Gateway, error)
+	FindIpv6GatewaysByTags(ctx context.Context, tags Tags) ([]*IPV6Gateway, error)
+	DeleteIpv6Gateway(ctx context.Context, id string) error
 }
 
 type actor struct {
@@ -132,6 +140,7 @@ func (c *actor) getResourceClass(resourceType string) string {
 		"VpnGateWay",
 		"NATGATEWAY",
 		"COMMONBANDWIDTHPACKAGE",
+		"IPV6GATEWAY",
 	}
 	ecs_resourceType_list := []string{
 		"instance",
@@ -168,7 +177,6 @@ func (c *actor) ListEnhanhcedNatGatewayAvailableZones(_ context.Context, region 
 	req.RegionId = region
 
 	resp, err := callApi(c.vpcClient.ListEnhanhcedNatGatewayAvailableZones, req)
-
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +185,96 @@ func (c *actor) ListEnhanhcedNatGatewayAvailableZones(_ context.Context, region 
 		zoneIDs = append(zoneIDs, zone.ZoneId)
 	}
 	return zoneIDs, nil
+}
+
+func (c *actor) CreateIpv6Gateway(ctx context.Context, ipv6Gateway *IPV6Gateway) (*IPV6Gateway, error) {
+
+	req := vpc.CreateCreateIpv6GatewayRequest()
+	req.Name = ipv6Gateway.Name
+	req.VpcId = ipv6Gateway.VpcId
+
+	resp, err := callApi(c.vpcClient.CreateIpv6Gateway, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *IPV6Gateway
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+
+		created, err = c.GetIpv6Gateway(ctx, resp.Ipv6GatewayId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
+}
+func (c *actor) GetIpv6Gateway(_ context.Context, id string) (*IPV6Gateway, error) {
+	return c.getIpv6Gateway(id)
+}
+
+func (c *actor) getIpv6Gateway(id string) (*IPV6Gateway, error) {
+	req := vpc.CreateDescribeIpv6GatewaysRequest()
+	req.Ipv6GatewayId = id
+	resp, err := c.describeIpv6Gateway(req)
+
+	return single(resp, err)
+}
+
+func (c *actor) LisIpv6Gateways(_ context.Context, ids []string) ([]*IPV6Gateway, error) {
+	return listByIds(c.getIpv6Gateway, ids)
+}
+func (c *actor) FindIpv6GatewaysByTags(ctx context.Context, tags Tags) ([]*IPV6Gateway, error) {
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "IPV6GATEWAY"
+
+	var reqTag []vpc.ListTagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, vpc.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	idList, err := c.listVpcTagResources(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return c.LisIpv6Gateways(ctx, idList)
+}
+func (c *actor) DeleteIpv6Gateway(ctx context.Context, id string) error {
+	req := vpc.CreateDeleteIpv6GatewayRequest()
+	req.Ipv6GatewayId = id
+
+	_, err := callApi(c.vpcClient.DeleteIpv6Gateway, req)
+	if err != nil {
+		return err
+	}
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+
+		current, err := c.GetIpv6Gateway(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		if current == nil {
+			return true, nil
+		}
+		return false, nil
+	})
+
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *actor) CreateSecurityGroup(ctx context.Context, sg *SecurityGroup) (*SecurityGroup, error) {
@@ -808,6 +906,9 @@ func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, erro
 	req.VpcId = *vsw.VpcId
 	req.CidrBlock = vsw.CidrBlock
 	req.ZoneId = vsw.ZoneId
+	if vsw.EnableIpv6 {
+		req.Ipv6CidrBlock = requests.NewInteger(*vsw.Ipv6CidrkMask)
+	}
 
 	resp, err := callApi(c.vpcClient.CreateVSwitch, req)
 
@@ -908,6 +1009,7 @@ func (c *actor) CreateVpc(ctx context.Context, desired *VPC) (*VPC, error) {
 	req := vpc.CreateCreateVpcRequest()
 	req.VpcName = desired.Name
 	req.CidrBlock = desired.CidrBlock
+	req.EnableIpv6 = requests.NewBoolean(desired.EnableIpv6)
 
 	resp, err := callApi(c.vpcClient.CreateVpc, req)
 	if err != nil {
@@ -967,6 +1069,17 @@ func (c *actor) FindVpcsByTags(ctx context.Context, tags Tags) ([]*VPC, error) {
 	}
 	return c.ListVpcs(ctx, idList)
 
+}
+
+func (c *actor) ModifyVpc(_ context.Context, id string, desired *VPC) error {
+	req := vpc.CreateModifyVpcAttributeRequest()
+	req.VpcId = id
+	req.EnableIPv6 = requests.NewBoolean(desired.EnableIpv6)
+	_, err := callApi(c.vpcClient.ModifyVpcAttribute, req)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *actor) createVpcTags(resources []string, tags Tags, resourceType string) error {
@@ -1135,6 +1248,29 @@ func (c *actor) describeNatGateway(req *vpc.DescribeNatGatewaysRequest) ([]*NatG
 
 }
 
+func (c *actor) describeIpv6Gateway(req *vpc.DescribeIpv6GatewaysRequest) ([]*IPV6Gateway, error) {
+	var gwList []*IPV6Gateway
+
+	respList, err := page_call(c.vpcClient.DescribeIpv6Gateways, req)
+	if err != nil {
+		return nil, err
+	}
+	var theList []vpc.Ipv6Gateway
+	for _, resp := range respList {
+		theList = append(theList, resp.Ipv6Gateways.Ipv6Gateway...)
+	}
+
+	for _, item := range theList {
+		gw, err := c.fromIpv6Gateway(item)
+		if err == nil && gw != nil {
+			gwList = append(gwList, gw)
+		}
+	}
+
+	return gwList, nil
+
+}
+
 func (c *actor) describeVpcs(req *vpc.DescribeVpcsRequest) ([]*VPC, error) {
 	var vpcList []*VPC
 
@@ -1212,19 +1348,44 @@ func (c *actor) fromSecurityGroup(item ecs.SecurityGroup) (*SecurityGroup, error
 
 func (c *actor) fromVSwitch(item vpc.VSwitch) (*VSwitch, error) {
 	vswitch := &VSwitch{
-		Name:      item.VSwitchName,
-		VpcId:     &item.VpcId,
-		ZoneId:    item.ZoneId,
-		CidrBlock: item.CidrBlock,
-		Status:    &item.Status,
-		VSwitchId: item.VSwitchId,
+		Name:          item.VSwitchName,
+		VpcId:         &item.VpcId,
+		ZoneId:        item.ZoneId,
+		CidrBlock:     item.CidrBlock,
+		Status:        &item.Status,
+		VSwitchId:     item.VSwitchId,
+		EnableIpv6:    item.EnabledIpv6,
+		Ipv6CidrBlock: item.Ipv6CidrBlock,
 	}
+	if isValidIPv6CIDR(item.Ipv6CidrBlock) {
+		_, vswIpv6Mask, err := parseAlicloudVswIpv6(item.Ipv6CidrBlock)
+		if err == nil {
+			vswitch.Ipv6CidrkMask = &vswIpv6Mask
+		}
+	}
+
 	tags := Tags{}
 	for _, t := range item.Tags.Tag {
 		tags[t.Key] = t.Value
 	}
 	vswitch.Tags = tags
 	return vswitch, nil
+}
+
+func (c *actor) fromIpv6Gateway(item vpc.Ipv6Gateway) (*IPV6Gateway, error) {
+	gw := &IPV6Gateway{
+		Name:          item.Name,
+		IPV6GatewayId: item.Ipv6GatewayId,
+		VpcId:         item.VpcId,
+		Status:        &item.Status,
+	}
+	tags := Tags{}
+	for _, t := range item.Tags.Tag {
+		tags[t.Key] = t.Value
+	}
+	gw.Tags = tags
+
+	return gw, nil
 }
 
 func (c *actor) fromNatGateway(item vpc.NatGateway) (*NatGateway, error) {
@@ -1286,8 +1447,13 @@ func (c *actor) fromVpc(item vpc.Vpc) (*VPC, error) {
 		Name:  item.VpcName,
 		VpcId: item.VpcId,
 
-		CidrBlock: item.CidrBlock,
-		Status:    &item.Status,
+		CidrBlock:     item.CidrBlock,
+		Status:        &item.Status,
+		EnableIpv6:    false,
+		Ipv6CidrBlock: item.Ipv6CidrBlock,
+	}
+	if isValidIPv6CIDR(item.Ipv6CidrBlock) {
+		vpc.EnableIpv6 = true
 	}
 
 	tags := Tags{}
@@ -1348,6 +1514,7 @@ func page_call[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) 
 		"DescribeNatGatewaysRequest",
 		"DescribeEipAddressesRequest",
 		"DescribeSnatTableEntriesRequest",
+		"DescribeIpv6GatewaysRequest",
 	}
 	type2_req_type_name_list := []string{
 		"ListTagResourcesRequest",
@@ -1451,4 +1618,33 @@ func contains(elems []string, elem string) bool {
 		}
 	}
 	return false
+}
+
+func parseAlicloudVswIpv6(vswIpv6Cidr string) (string, int, error) {
+	ip, ipnet, err := net.ParseCIDR(vswIpv6Cidr)
+	if err != nil {
+		return "", -1, err
+	}
+	netMaskLen, _ := ipnet.Mask.Size()
+	if netMaskLen != 64 {
+		return "", -1, fmt.Errorf("net mask is not 64")
+	}
+	ip16 := ip.To16()
+	byte8 := ip16[7]
+	vswMask := int(byte8)
+
+	ip16[7] = 0
+	// Convert back to IP and create a new CIDR with /56 mask
+	vpcIP := net.IP(ip16)
+	vpcCIDR := net.IPNet{IP: vpcIP, Mask: net.CIDRMask(56, 128)}
+
+	return vpcCIDR.String(), vswMask, nil
+}
+
+func isValidIPv6CIDR(s string) bool {
+	ip, _, err := net.ParseCIDR(s)
+	if err != nil {
+		return false
+	}
+	return ip.To4() == nil
 }

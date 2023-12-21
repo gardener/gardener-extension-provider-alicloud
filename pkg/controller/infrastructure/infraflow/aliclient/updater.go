@@ -18,6 +18,7 @@ type Updater interface {
 	UpdateEIP(ctx context.Context, desired, current *EIP) (modified bool, err error)
 	UpdateSNATEntry(ctx context.Context, desired, current *SNATEntry) (modified bool, err error)
 	UpdateSecurityGroup(ctx context.Context, desired, current *SecurityGroup) (modified bool, err error)
+	UpdateIpv6Gateway(ctx context.Context, desired, current *IPV6Gateway) (modified bool, err error)
 }
 
 type updater struct {
@@ -66,6 +67,12 @@ func (u *updater) UpdateNatgateway(ctx context.Context, desired, current *NatGat
 	return
 }
 
+func (u *updater) UpdateIpv6Gateway(ctx context.Context, desired, current *IPV6Gateway) (modified bool, err error) {
+
+	modified, err = u.updateTags(ctx, current.IPV6GatewayId, desired.Tags, current.Tags, "IPV6GATEWAY")
+	return
+}
+
 func (u *updater) UpdateVSwitch(ctx context.Context, desired, current *VSwitch) (modified bool, err error) {
 	modified, err = u.updateTags(ctx, current.VSwitchId, desired.Tags, current.Tags, "VSWITCH")
 	return
@@ -73,7 +80,15 @@ func (u *updater) UpdateVSwitch(ctx context.Context, desired, current *VSwitch) 
 }
 
 func (u *updater) UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error) {
-	modified, err = u.updateTags(ctx, current.VpcId, desired.Tags, current.Tags, "VPC")
+	if desired.EnableIpv6 && !current.EnableIpv6 {
+		err = u.actor.ModifyVpc(ctx, current.VpcId, desired)
+		if err != nil {
+			return
+		}
+		modified = true
+	}
+	tagModified, err := u.updateTags(ctx, current.VpcId, desired.Tags, current.Tags, "VPC")
+	modified = modified || tagModified
 	return
 }
 

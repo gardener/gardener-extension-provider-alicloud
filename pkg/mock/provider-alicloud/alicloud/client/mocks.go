@@ -819,6 +819,21 @@ func (mr *MockVPCMockRecorder) AssociateEipAddress(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEipAddress", reflect.TypeOf((*MockVPC)(nil).AssociateEipAddress), arg0)
 }
 
+// CreateIpv6Gateway mocks base method.
+func (m *MockVPC) CreateIpv6Gateway(arg0 *vpc.CreateIpv6GatewayRequest) (*vpc.CreateIpv6GatewayResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateIpv6Gateway", arg0)
+	ret0, _ := ret[0].(*vpc.CreateIpv6GatewayResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateIpv6Gateway indicates an expected call of CreateIpv6Gateway.
+func (mr *MockVPCMockRecorder) CreateIpv6Gateway(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIpv6Gateway", reflect.TypeOf((*MockVPC)(nil).CreateIpv6Gateway), arg0)
+}
+
 // CreateNatGateway mocks base method.
 func (m *MockVPC) CreateNatGateway(arg0 *vpc.CreateNatGatewayRequest) (*vpc.CreateNatGatewayResponse, error) {
 	m.ctrl.T.Helper()
@@ -877,6 +892,21 @@ func (m *MockVPC) CreateVpc(arg0 *vpc.CreateVpcRequest) (*vpc.CreateVpcResponse,
 func (mr *MockVPCMockRecorder) CreateVpc(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVpc", reflect.TypeOf((*MockVPC)(nil).CreateVpc), arg0)
+}
+
+// DeleteIpv6Gateway mocks base method.
+func (m *MockVPC) DeleteIpv6Gateway(arg0 *vpc.DeleteIpv6GatewayRequest) (*vpc.DeleteIpv6GatewayResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteIpv6Gateway", arg0)
+	ret0, _ := ret[0].(*vpc.DeleteIpv6GatewayResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteIpv6Gateway indicates an expected call of DeleteIpv6Gateway.
+func (mr *MockVPCMockRecorder) DeleteIpv6Gateway(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteIpv6Gateway", reflect.TypeOf((*MockVPC)(nil).DeleteIpv6Gateway), arg0)
 }
 
 // DeleteNatGateway mocks base method.
@@ -952,6 +982,21 @@ func (m *MockVPC) DescribeEipAddresses(arg0 *vpc.DescribeEipAddressesRequest) (*
 func (mr *MockVPCMockRecorder) DescribeEipAddresses(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEipAddresses", reflect.TypeOf((*MockVPC)(nil).DescribeEipAddresses), arg0)
+}
+
+// DescribeIpv6Gateways mocks base method.
+func (m *MockVPC) DescribeIpv6Gateways(arg0 *vpc.DescribeIpv6GatewaysRequest) (*vpc.DescribeIpv6GatewaysResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeIpv6Gateways", arg0)
+	ret0, _ := ret[0].(*vpc.DescribeIpv6GatewaysResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeIpv6Gateways indicates an expected call of DescribeIpv6Gateways.
+func (mr *MockVPCMockRecorder) DescribeIpv6Gateways(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeIpv6Gateways", reflect.TypeOf((*MockVPC)(nil).DescribeIpv6Gateways), arg0)
 }
 
 // DescribeNatGateways mocks base method.
@@ -1177,6 +1222,21 @@ func (m *MockVPC) ModifyEipAddressAttribute(arg0 *vpc.ModifyEipAddressAttributeR
 func (mr *MockVPCMockRecorder) ModifyEipAddressAttribute(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyEipAddressAttribute", reflect.TypeOf((*MockVPC)(nil).ModifyEipAddressAttribute), arg0)
+}
+
+// ModifyVpcAttribute mocks base method.
+func (m *MockVPC) ModifyVpcAttribute(arg0 *vpc.ModifyVpcAttributeRequest) (*vpc.ModifyVpcAttributeResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyVpcAttribute", arg0)
+	ret0, _ := ret[0].(*vpc.ModifyVpcAttributeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyVpcAttribute indicates an expected call of ModifyVpcAttribute.
+func (mr *MockVPCMockRecorder) ModifyVpcAttribute(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyVpcAttribute", reflect.TypeOf((*MockVPC)(nil).ModifyVpcAttribute), arg0)
 }
 
 // ReleaseEipAddress mocks base method.

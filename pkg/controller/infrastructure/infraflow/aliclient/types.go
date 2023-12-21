@@ -21,21 +21,26 @@ func (f FactoryFunc) NewActor(accessKeyID, secretAccessKey, region string) (Acto
 // VPC is the struct for a vpc object
 type VPC struct {
 	Tags
-	Name      string
-	VpcId     string
-	CidrBlock string
-	Status    *string
+	Name          string
+	VpcId         string
+	CidrBlock     string
+	EnableIpv6    bool
+	Ipv6CidrBlock string
+	Status        *string
 }
 
 // VSwitch is the struct for a vswitch object
 type VSwitch struct {
 	Tags
-	Name      string
-	VSwitchId string
-	VpcId     *string
-	CidrBlock string
-	ZoneId    string
-	Status    *string
+	Name          string
+	VSwitchId     string
+	VpcId         *string
+	CidrBlock     string
+	ZoneId        string
+	EnableIpv6    bool
+	Ipv6CidrkMask *int
+	Ipv6CidrBlock string
+	Status        *string
 }
 
 // NatGateway is the struct for a nat gateway object
@@ -96,4 +101,13 @@ type SecurityGroupRule struct {
 	DestCidrIp          string
 	SourceCidrIp        string
 	Direction           string
+}
+
+// IPV6Gateway is the struct for a ipv6 gateway object
+type IPV6Gateway struct {
+	Tags
+	Name          string
+	VpcId         string
+	IPV6GatewayId string
+	Status        *string
 }
