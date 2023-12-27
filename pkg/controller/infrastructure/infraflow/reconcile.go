@@ -12,6 +12,7 @@ import (
 
 	"github.com/gardener/gardener/pkg/utils/flow"
 
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/dualstack"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
@@ -76,7 +77,7 @@ func (c *FlowContext) ensureDualStack(ctx context.Context) error {
 	if !vpc.EnableIpv6 {
 		return fmt.Errorf("vpc is not enabled Ipv6")
 	}
-	dualStackValues, err := dualstack.CreateDualStackValues(true, c.infraSpec.Region, &vpc.CidrBlock, c.credentials)
+	dualStackValues, err := dualstack.CreateDualStackValues(true, c.infraSpec.Region, &vpc.CidrBlock, c.credentials, alicloudclient.NewClientFactory())
 	if err != nil {
 		return err
 	}

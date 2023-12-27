@@ -25,6 +25,7 @@ func CreateDualStackValues(
 	region string,
 	vpcCidr *string,
 	credentials *alicloud.Credentials,
+	clientFactory alicloudclient.ClientFactory,
 ) (*DualStack, error) {
 	dualStack := DualStack{
 		Enabled: enableDualStack,
@@ -37,7 +38,7 @@ func CreateDualStackValues(
 	}
 	dualStack.Zone_A_IPV6_MASK = 255
 	dualStack.Zone_B_IPV6_MASK = 254
-	nlbClient, err := alicloudclient.NewClientFactory().NewNLBClient(region, credentials.AccessKeyID, credentials.AccessKeySecret)
+	nlbClient, err := clientFactory.NewNLBClient(region, credentials.AccessKeyID, credentials.AccessKeySecret)
 	if err != nil {
 		return nil, err
 	}

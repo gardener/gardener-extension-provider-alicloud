@@ -591,7 +591,7 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 		return util.DetermineError(err, helper.KnownCodes)
 	}
 
-	dualStackValues, err := dualstack.CreateDualStackValues(enableDualStack, infra.Spec.Region, config.Networks.VPC.CIDR, credentials)
+	dualStackValues, err := dualstack.CreateDualStackValues(enableDualStack, infra.Spec.Region, config.Networks.VPC.CIDR, credentials, alicloudclient.NewClientFactory())
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
