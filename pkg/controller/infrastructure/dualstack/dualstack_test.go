@@ -62,6 +62,7 @@ var _ = Describe("DualStackValues", func() {
 			clientFactory.EXPECT().NewNLBClient(region, accessKeyID, accessKeySecret).Return(nlbClient, nil),
 			nlbClient.EXPECT().GetNLBAvailableZones(region).Return(zone_list, nil),
 		)
+		cidr = "192.168.0.0/16"
 		dualStackvalue, err := dualstack.CreateDualStackValues(true, region, &cidr, credentials, clientFactory)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(dualStackvalue).To(Equal(&dualstack.DualStack{
