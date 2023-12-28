@@ -171,6 +171,15 @@ var _ = Describe("Infrastructure tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("should successfully create and delete (terraformer) enableDualStack", func() {
+			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
+				CIDR: ptr.To(vpcCIDR),
+			}, availabilityZone, true)
+
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseTerraformer)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		It("should successfully create and delete (flow)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR: ptr.To(vpcCIDR),
@@ -180,12 +189,12 @@ var _ = Describe("Infrastructure tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should successfully create and delete (migration from terraformer)", func() {
+		It("should successfully create and delete (migration from terraformer) update to enableDualStack", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR: ptr.To(vpcCIDR),
 			}, availabilityZone)
 
-			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuMigrateFromTerraformer)
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuMigrateFromTerraformer, true)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -395,7 +404,7 @@ var _ = Describe("Infrastructure tests", func() {
 	})
 })
 
-func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory, flow flowUsage) error {
+func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory, flow flowUsage, checkEnableDualStack ...bool) error {
 	var (
 		namespace                 *corev1.Namespace
 		cluster                   *extensionsv1alpha1.Cluster
@@ -507,9 +516,6 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 		return err
 	}
 
-	By("verify infrastructure creation")
-	infrastructureIdentifiers = verifyCreation(clientFactory, infra, providerStatus, providerConfig)
-
 	oldState := infra.Status.State
 	if flow == fuUseFlowRecoverState {
 		By("drop state for testing recover")
@@ -524,10 +530,20 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 
 	By("triggering infrastructure reconciliation")
 	infraCopy := infra.DeepCopy()
+
 	metav1.SetMetaDataAnnotation(&infra.ObjectMeta, "gardener.cloud/operation", "reconcile")
 	if flow == fuMigrateFromTerraformer {
 		metav1.SetMetaDataAnnotation(&infra.ObjectMeta, aliapi.AnnotationKeyUseFlow, "true")
 	}
+	if len(checkEnableDualStack) > 0 && checkEnableDualStack[0] {
+		providerConfig.DualStack = &alicloudv1alpha1.DualStack{
+			Enabled: true,
+		}
+		providerConfigJSON, err := json.Marshal(&providerConfig)
+		Expect(err).To(Succeed())
+		infra.Spec.ProviderConfig.Raw = providerConfigJSON
+	}
+
 	Expect(c.Patch(ctx, infra, client.MergeFrom(infraCopy))).To(Succeed())
 
 	By("wait until infrastructure is reconciled")
@@ -546,6 +562,9 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 	); err != nil {
 		return err
 	}
+
+	By("verify infrastructure creation")
+	infrastructureIdentifiers = verifyCreation(clientFactory, infra, providerStatus, providerConfig)
 
 	if flow == fuUseFlowRecoverState {
 		By("check state recovery")
@@ -611,8 +630,8 @@ func (matcher *equalInfrastructureStatusMatcher) NegatedFailureMessage(actual in
 	return format.Message(actual, "not to equal", matcher.expected)
 }
 
-func newProviderConfig(vpc *alicloudv1alpha1.VPC, availabilityZone string) *alicloudv1alpha1.InfrastructureConfig {
-	return &alicloudv1alpha1.InfrastructureConfig{
+func newProviderConfig(vpc *alicloudv1alpha1.VPC, availabilityZone string, enableDualStack ...bool) *alicloudv1alpha1.InfrastructureConfig {
+	infraConfig := &alicloudv1alpha1.InfrastructureConfig{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: alicloudv1alpha1.SchemeGroupVersion.String(),
 			Kind:       "InfrastructureConfig",
@@ -627,6 +646,13 @@ func newProviderConfig(vpc *alicloudv1alpha1.VPC, availabilityZone string) *alic
 			},
 		},
 	}
+	if len(enableDualStack) > 0 && enableDualStack[0] {
+		infraConfig.DualStack = &alicloudv1alpha1.DualStack{
+			Enabled: true,
+		}
+	}
+	return infraConfig
+
 }
 
 func newInfrastructure(namespace string, providerConfig *alicloudv1alpha1.InfrastructureConfig, useFlow bool) (*extensionsv1alpha1.Infrastructure, error) {
@@ -668,6 +694,9 @@ type infrastructureIdentifiers struct {
 	elasticIPAllocationID *string
 	snatTableId           *string
 	snatEntryId           *string
+	ipv6GatewayID         *string
+	ipv6vswID_A           *string
+	ipv6vswID_B           *string
 }
 
 func verifyCreation(
@@ -700,17 +729,51 @@ func verifyCreation(
 	if providerConfig.Networks.VPC.CIDR != nil {
 		infrastructureIdentifier.vpcID = ptr.To(describeVpcsOutput.Vpcs.Vpc[0].VpcId)
 	}
+	if providerConfig.DualStack != nil && providerConfig.DualStack.Enabled {
+		Expect(describeVpcsOutput.Vpcs.Vpc[0].Ipv6CidrBlock).NotTo(BeEmpty())
+	}
+
+	//ipv6gateway
+	if providerConfig.DualStack != nil && providerConfig.DualStack.Enabled {
+		describeIpv6GatewaysReq := vpc.CreateDescribeIpv6GatewaysRequest()
+		describeIpv6GatewaysReq.VpcId = infraStatus.VPC.ID
+		describeIpv6GatewaysOutput, err := vpcClient.DescribeIpv6Gateways(describeIpv6GatewaysReq)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(describeIpv6GatewaysOutput.Ipv6Gateways.Ipv6Gateway).To(HaveLen(1))
+		Expect(describeIpv6GatewaysOutput.Ipv6Gateways.Ipv6Gateway[0].VpcId).To(Equal(infraStatus.VPC.ID))
+		infrastructureIdentifier.ipv6GatewayID = ptr.To(describeIpv6GatewaysOutput.Ipv6Gateways.Ipv6Gateway[0].Ipv6GatewayId)
+	}
 
 	// vswitch
 	describeVSwitchesReq := vpc.CreateDescribeVSwitchesRequest()
 	describeVSwitchesReq.VpcId = infraStatus.VPC.ID
 	describeVSwitchesOutput, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(describeVSwitchesOutput.VSwitches.VSwitch[0].CidrBlock).To(Equal(workersCIDR))
-	Expect(describeVSwitchesOutput.VSwitches.VSwitch[0].ZoneId).To(Equal(providerConfig.Networks.Zones[0].Name))
-	infrastructureIdentifier.vswitchID = ptr.To(describeVSwitchesOutput.VSwitches.VSwitch[0].VSwitchId)
+	vsw_list := []vpc.VSwitch{}
+	ipv6_vsw_count := 0
+	for _, vsw := range describeVSwitchesOutput.VSwitches.VSwitch {
+		if vsw.VSwitchName == infra.Namespace+"-DUAL_STACK-A-vsw" {
+			infrastructureIdentifier.ipv6vswID_A = ptr.To(vsw.VSwitchId)
+			Expect(vsw.EnabledIpv6).To(Equal(true))
+			ipv6_vsw_count++
+		} else if vsw.VSwitchName == infra.Namespace+"-DUAL_STACK-B-vsw" {
+			infrastructureIdentifier.ipv6vswID_B = ptr.To(vsw.VSwitchId)
+			Expect(vsw.EnabledIpv6).To(Equal(true))
+			ipv6_vsw_count++
+		} else {
+			vsw_list = append(vsw_list, vsw)
+		}
+	}
+
+	if providerConfig.DualStack != nil && providerConfig.DualStack.Enabled {
+		Expect(ipv6_vsw_count).To(Equal(2))
+	}
+
+	Expect(vsw_list[0].CidrBlock).To(Equal(workersCIDR))
+	Expect(vsw_list[0].ZoneId).To(Equal(providerConfig.Networks.Zones[0].Name))
+	infrastructureIdentifier.vswitchID = ptr.To(vsw_list[0].VSwitchId)
 	if providerConfig.Networks.VPC.CIDR != nil {
-		Expect(describeVSwitchesOutput.VSwitches.VSwitch).To(HaveLen(1))
+		Expect(vsw_list).To(HaveLen(1))
 	}
 
 	// nat gateway
@@ -727,7 +790,7 @@ func verifyCreation(
 	// snat entries
 	describeSnatTableEntriesReq := vpc.CreateDescribeSnatTableEntriesRequest()
 	describeSnatTableEntriesReq.SnatTableId = describeNatGatewaysOutput.NatGateways.NatGateway[0].SnatTableIds.SnatTableId[0]
-	describeSnatTableEntriesReq.SourceVSwitchId = describeVSwitchesOutput.VSwitches.VSwitch[0].VSwitchId
+	describeSnatTableEntriesReq.SourceVSwitchId = vsw_list[0].VSwitchId
 	describeSnatTableEntriesOutput, err := vpcClient.DescribeSnatTableEntries(describeSnatTableEntriesReq)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(describeSnatTableEntriesOutput.SnatTableEntries.SnatTableEntry).To(HaveLen(1))
@@ -852,6 +915,33 @@ func verifyDeletion(clientFactory alicloudclient.ClientFactory, infrastructureId
 		describeVSwitchesOutput, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(describeVSwitchesOutput.VSwitches.VSwitch).To(BeEmpty())
+	}
+
+	// ipv6vsw_a
+	if infrastructureIdentifier.ipv6vswID_A != nil {
+		describeVSwitchesReq := vpc.CreateDescribeVSwitchesRequest()
+		describeVSwitchesReq.VSwitchId = *infrastructureIdentifier.ipv6vswID_A
+		describeVSwitchesOutput, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(describeVSwitchesOutput.VSwitches.VSwitch).To(BeEmpty())
+	}
+
+	// ipv6vsw_b
+	if infrastructureIdentifier.ipv6vswID_A != nil {
+		describeVSwitchesReq := vpc.CreateDescribeVSwitchesRequest()
+		describeVSwitchesReq.VSwitchId = *infrastructureIdentifier.ipv6vswID_B
+		describeVSwitchesOutput, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(describeVSwitchesOutput.VSwitches.VSwitch).To(BeEmpty())
+	}
+
+	// ipv6gateway
+	if infrastructureIdentifier.ipv6GatewayID != nil {
+		describeIpv6GatewaysReq := vpc.CreateDescribeIpv6GatewaysRequest()
+		describeIpv6GatewaysReq.Ipv6GatewayId = *infrastructureIdentifier.ipv6GatewayID
+		describeIpv6GatewaysOutput, err := vpcClient.DescribeIpv6Gateways(describeIpv6GatewaysReq)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(describeIpv6GatewaysOutput.Ipv6Gateways.Ipv6Gateway).To(BeEmpty())
 	}
 
 	// nat gateway
@@ -980,6 +1070,79 @@ func cleanupVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 	Expect(err).NotTo(HaveOccurred())
 	ecsClient, err := clientFactory.NewECSClient(*region, *accessKeyID, *accessKeySecret)
 	Expect(err).NotTo(HaveOccurred())
+
+	if identifiers.ipv6vswID_A != nil {
+		deleteVSwitchReq := vpc.CreateDeleteVSwitchRequest()
+		deleteVSwitchReq.VSwitchId = *identifiers.ipv6vswID_A
+		_, err = vpcClient.DeleteVSwitch(deleteVSwitchReq)
+		Expect(err).NotTo(HaveOccurred())
+
+		describeVSwitchesReq := vpc.CreateDescribeVSwitchesRequest()
+		describeVSwitchesReq.VSwitchId = *identifiers.ipv6vswID_A
+		err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+			describeVSwitchesResp, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
+
+			if err != nil {
+				return false, err
+			}
+
+			if len(describeVSwitchesResp.VSwitches.VSwitch) == 0 {
+				return true, nil
+			}
+
+			return false, nil
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+	}
+
+	if identifiers.ipv6vswID_B != nil {
+		deleteVSwitchReq := vpc.CreateDeleteVSwitchRequest()
+		deleteVSwitchReq.VSwitchId = *identifiers.ipv6vswID_B
+		_, err = vpcClient.DeleteVSwitch(deleteVSwitchReq)
+		Expect(err).NotTo(HaveOccurred())
+
+		describeVSwitchesReq := vpc.CreateDescribeVSwitchesRequest()
+		describeVSwitchesReq.VSwitchId = *identifiers.ipv6vswID_B
+		err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+			describeVSwitchesResp, err := vpcClient.DescribeVSwitches(describeVSwitchesReq)
+
+			if err != nil {
+				return false, err
+			}
+
+			if len(describeVSwitchesResp.VSwitches.VSwitch) == 0 {
+				return true, nil
+			}
+
+			return false, nil
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+	}
+
+	if identifiers.ipv6GatewayID != nil {
+		deleteIpv6gatewayReq := vpc.CreateDeleteIpv6GatewayRequest()
+		deleteIpv6gatewayReq.Ipv6GatewayId = *identifiers.ipv6GatewayID
+		_, err := vpcClient.DeleteIpv6Gateway(deleteIpv6gatewayReq)
+		Expect(err).NotTo(HaveOccurred())
+
+		describIpv6GatewaysReq := vpc.CreateDescribeIpv6GatewaysRequest()
+		describIpv6GatewaysReq.Ipv6GatewayId = *identifiers.ipv6GatewayID
+		err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+			describeIpv6GatewaysResp, err := vpcClient.DescribeIpv6Gateways(describIpv6GatewaysReq)
+			if err != nil {
+				return false, err
+			}
+
+			if len(describeIpv6GatewaysResp.Ipv6Gateways.Ipv6Gateway) == 0 {
+				return true, nil
+			}
+
+			return false, nil
+		})
+		Expect(err).NotTo(HaveOccurred())
+	}
 
 	deleteNatGatewayReq := vpc.CreateDeleteNatGatewayRequest()
 	deleteNatGatewayReq.NatGatewayId = *identifiers.natGatewayID
