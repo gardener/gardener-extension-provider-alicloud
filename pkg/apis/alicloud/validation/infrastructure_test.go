@@ -21,12 +21,14 @@ var _ = Describe("InfrastructureConfig validation", func() {
 	var (
 		infrastructureConfig *apisalicloud.InfrastructureConfig
 
-		pods        = "100.96.0.0/11"
-		services    = "100.64.0.0/13"
-		nodes       = "10.250.0.0/16"
-		vpc         = "10.0.0.0/8"
-		invalidCIDR = "invalid-cidr"
-		networking  = core.Networking{}
+		pods                = "100.96.0.0/11"
+		services            = "100.64.0.0/13"
+		nodes               = "10.250.0.0/16"
+		vpc                 = "10.0.0.0/8"
+		invalidCIDR         = "invalid-cidr"
+		networking          = core.Networking{}
+		shootRegion         = "region1"
+		dualStackRegionList []string
 	)
 
 	BeforeEach(func() {
@@ -52,6 +54,10 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				},
 			},
 		}
+		dualStackRegionList = make([]string, 2)
+		dualStackRegionList = append(dualStackRegionList, "region1")
+		dualStackRegionList = append(dualStackRegionList, "region2")
+
 	})
 
 	Describe("#ValidateInfrastructureConfig", func() {
@@ -59,7 +65,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid invalid VPC CIDRs", func() {
 				infrastructureConfig.Networks.VPC.CIDR = &invalidCIDR
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -71,7 +77,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid invalid workers CIDR", func() {
 				infrastructureConfig.Networks.Zones[0].Workers = invalidCIDR
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -83,7 +89,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid workers CIDR which are not in Nodes CIDR", func() {
 				infrastructureConfig.Networks.Zones[0].Workers = "1.1.1.1/32"
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -101,7 +107,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				networking.Nodes = &notOverlappingCIDR
 				infrastructureConfig.Networks.Zones[0].Workers = notOverlappingCIDR
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -120,7 +126,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid Pod CIDR to overlap with VPC CIDR", func() {
 				networking.Pods = ptr.To("10.0.0.1/32")
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -131,7 +137,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid Services CIDR to overlap with VPC CIDR", func() {
 				networking.Services = ptr.To("10.0.0.1/32")
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -153,7 +159,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				infrastructureConfig.Networks.Zones[0].Workers = "10.250.3.8/24"
 				infrastructureConfig.Networks.VPC = apisalicloud.VPC{CIDR: &vpcCIDR}
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 
 				Expect(errorList).To(HaveLen(2))
 				Expect(errorList).To(ConsistOfFields(Fields{
@@ -173,22 +179,31 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					EIPAllocationID: &ipAllocID,
 				}
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should allow specifying valid config", func() {
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should allow specifying valid config with podsCIDR=nil and servicesCIDR=nil", func() {
 				networking.Pods = nil
 				networking.Services = nil
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 				Expect(errorList).To(BeEmpty())
 			})
-
+			It("should forbid if first zone is not in valid zone list", func() {
+				infrastructureConfig.Networks.Zones[0].Name = "not-support-enhancenatgateway"
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
+				Expect(errorList).To(ConsistOfFields(Fields{
+					"Type":     Equal(field.ErrorTypeNotSupported),
+					"Field":    Equal("networks.zones[0]"),
+					"BadValue": Equal("not-support-enhancenatgateway"),
+					"Detail":   ContainSubstring("supported values"),
+				}))
+			})
 			It("should forbid if both provide vpc id and set dualstak enable true", func() {
 				vpcID := "vpc-provided"
 				infrastructureConfig.DualStack = &apisalicloud.DualStack{
@@ -197,11 +212,23 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
 					ID: &vpcID,
 				}
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
 					"Field":  Equal("networks.vpc"),
 					"Detail": ContainSubstring("can not set vpc id when DualStack enabled"),
+				}))
+			})
+			It("should forbid if shoot region is not in dualstack region list and set dualstak enable true", func() {
+				infrastructureConfig.DualStack = &apisalicloud.DualStack{
+					Enabled: true,
+				}
+				shootRegion = "no_dualstack_region"
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
+				Expect(errorList).To(ConsistOfFields(Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("dualstack.enabled"),
+					"Detail": ContainSubstring("can not enable DualStack in target region"),
 				}))
 			})
 

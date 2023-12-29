@@ -14,7 +14,7 @@ import (
 )
 
 // ValidateInfrastructureConfig validates a InfrastructureConfig object.
-func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, networking *core.Networking) field.ErrorList {
+func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, networking *core.Networking, shootRegion string, dualStackRegionList []string) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	var (
@@ -80,8 +80,21 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 		allErrs = append(allErrs, vpcCIDR.ValidateSubset(cidrs...)...)
 		allErrs = append(allErrs, vpcCIDR.ValidateNotOverlap(pods, services)...)
 	}
-	if infra.DualStack != nil && infra.DualStack.Enabled && infra.Networks.VPC.ID != nil {
-		allErrs = append(allErrs, field.Invalid(networksPath.Child("vpc"), infra.Networks.VPC, "can not set vpc id when DualStack enabled"))
+	if infra.DualStack != nil && infra.DualStack.Enabled {
+		if infra.Networks.VPC.ID != nil {
+			allErrs = append(allErrs, field.Invalid(networksPath.Child("vpc"), infra.Networks.VPC, "can not set vpc id when DualStack enabled"))
+		}
+		validDualStackRegion := false
+		for _, region := range dualStackRegionList {
+			if shootRegion == region {
+				validDualStackRegion = true
+				break
+			}
+		}
+		if !validDualStackRegion {
+			dualstackPath := field.NewPath("dualstack")
+			allErrs = append(allErrs, field.Invalid(dualstackPath.Child("enabled"), infra.DualStack.Enabled, "can not enable DualStack in target region"))
+		}
 	}
 
 	// make sure that VPC cidrs don't overlap with each other

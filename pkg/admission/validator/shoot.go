@@ -75,11 +75,29 @@ func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
 	return s.validateShootCreation(ctx, shoot)
 }
 
-func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
+func (s *shoot) listDualStackRegion() []string {
+	return []string{
+		"cn-hangzhou",
+		"cn-beijing",
+		"cn-shenzhen",
+		"cn-shanghai",
+		"cn-qingdao",
+		"cn-zhangjiakou",
+		"cn-chengdu",
+		"cn-guangzhou",
+		"cn-hongkong",
+		"ap-southeast-1",
+		"eu-central-1",
+		"us-east-1",
+	}
+}
 
+func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
+
+	dualStackRegionList := s.listDualStackRegion()
 	if infraConfig != nil {
 		// Provider validation
-		if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking); len(errList) != 0 {
+		if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking, shoot.Spec.Region, dualStackRegionList); len(errList) != 0 {
 			return errList.ToAggregate()
 		}
 		// Shoot workers
