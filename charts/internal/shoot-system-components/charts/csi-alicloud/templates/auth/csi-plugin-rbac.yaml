@@ -8,11 +8,7 @@ automountServiceAccountToken: false
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  {{- if not .Values.pspDisabled }}
-  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:psp:kube-system:csi-disk-plugin-alicloud
-  {{- else }}
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-disk-plugin-alicloud
-  {{- end }}
 rules:
 - apiGroups: [""]
   resources: ["nodes"]
@@ -26,35 +22,16 @@ rules:
 - apiGroups: ["storage.k8s.io"]
   resources: ["volumeattachments"]
   verbs: ["get", "list", "watch", "update"]
-{{- if not .Values.pspDisabled }}
-- apiGroups:
-  - policy
-  - extensions
-  resourceNames:
-  - {{ include "csi-disk-plugin.extensionsGroup" . }}.kube-system.csi-disk-plugin-alicloud
-  resources:
-  - podsecuritypolicies
-  verbs:
-  - use
-{{- end }}
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  {{- if not .Values.pspDisabled }}
-  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:psp:csi-disk-plugin-alicloud
-  {{- else }}
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:csi-disk-plugin-alicloud
-  {{- end }}
 subjects:
 - kind: ServiceAccount
   name: csi-disk-plugin-alicloud
   namespace: kube-system
 roleRef:
   kind: ClusterRole
-  {{- if not .Values.pspDisabled }}
-  name: {{ include "csi-disk-plugin.extensionsGroup" . }}:psp:kube-system:csi-disk-plugin-alicloud
-  {{- else }}
   name: {{ include "csi-disk-plugin.extensionsGroup" . }}:kube-system:csi-disk-plugin-alicloud
-  {{- end }}
   apiGroup: rbac.authorization.k8s.io

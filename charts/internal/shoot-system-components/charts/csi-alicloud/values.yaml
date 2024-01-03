@@ -37,8 +37,6 @@ resources:
     limits:
       memory: 300Mi
 
-pspDisabled: false
-
 vpa:
   resourcePolicy:
     driver:

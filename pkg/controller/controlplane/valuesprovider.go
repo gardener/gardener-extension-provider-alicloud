@@ -36,7 +36,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -175,9 +174,6 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &appsv1.DaemonSet{}, Name: "csi-disk-plugin-alicloud"},
 				{Type: &corev1.Secret{}, Name: "csi-diskplugin-alicloud"},
 				{Type: &corev1.ServiceAccount{}, Name: "csi-disk-plugin-alicloud"},
-				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":psp:kube-system:csi-disk-plugin-alicloud"},
-				{Type: &rbacv1.ClusterRoleBinding{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":psp:csi-disk-plugin-alicloud"},
-				{Type: &policyv1beta1.PodSecurityPolicy{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ".kube-system.csi-disk-plugin-alicloud"},
 				{Type: extensionscontroller.GetVerticalPodAutoscalerObject(), Name: "csi-diskplugin-alicloud"},
 				// csi-controller-ali-plugin
 				{Type: &corev1.ServiceAccount{}, Name: "csi-controller-ali-plugin"},
@@ -483,7 +479,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 				"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 				"caBundle": string(caSecret.Data[secretutils.DataKeyCertificateBundle]),
 			},
-			"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		},
 	}
 
