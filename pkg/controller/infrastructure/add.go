@@ -20,6 +20,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -55,6 +56,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, options A
 
 	return infrastructure.Add(ctx, mgr, infrastructure.AddArgs{
 		Actuator:          actuator,
+		ConfigValidator:   NewConfigValidator(mgr, log.Log),
 		ControllerOptions: options.Controller,
 		Predicates:        infrastructure.DefaultPredicates(ctx, mgr, options.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,
