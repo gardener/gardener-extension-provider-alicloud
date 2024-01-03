@@ -12,3 +12,6 @@ spec:
     matchLabels:
       app: kubernetes
       role: csi-plugin-controller
+{{- if semverCompare ">= 1.26-0" .Capabilities.KubeVersion.Version }}
+  unhealthyPodEvictionPolicy: AlwaysAllow
+{{- end }}
