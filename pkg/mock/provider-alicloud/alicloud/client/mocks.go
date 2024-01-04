@@ -1113,6 +1113,21 @@ func (mr *MockVPCMockRecorder) GetVSwitchesInfoByID(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVSwitchesInfoByID", reflect.TypeOf((*MockVPC)(nil).GetVSwitchesInfoByID), arg0)
 }
 
+// ListEnhanhcedNatGatewayAvailableZones mocks base method.
+func (m *MockVPC) ListEnhanhcedNatGatewayAvailableZones(arg0 *vpc.ListEnhanhcedNatGatewayAvailableZonesRequest) (*vpc.ListEnhanhcedNatGatewayAvailableZonesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEnhanhcedNatGatewayAvailableZones", arg0)
+	ret0, _ := ret[0].(*vpc.ListEnhanhcedNatGatewayAvailableZonesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListEnhanhcedNatGatewayAvailableZones indicates an expected call of ListEnhanhcedNatGatewayAvailableZones.
+func (mr *MockVPCMockRecorder) ListEnhanhcedNatGatewayAvailableZones(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEnhanhcedNatGatewayAvailableZones", reflect.TypeOf((*MockVPC)(nil).ListEnhanhcedNatGatewayAvailableZones), arg0)
+}
+
 // ListTagResources mocks base method.
 func (m *MockVPC) ListTagResources(arg0 *vpc.ListTagResourcesRequest) (*vpc.ListTagResourcesResponse, error) {
 	m.ctrl.T.Helper()

@@ -18,30 +18,31 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
-	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 )
 
 // configValidator implements ConfigValidator for alicloud infrastructure resources.
 type configValidator struct {
-	mgr    manager.Manager
-	logger logr.Logger
+	factory aliclient.Factory
+	mgr     manager.Manager
+	logger  logr.Logger
 }
 
 // NewConfigValidator creates a new ConfigValidator.
-func NewConfigValidator(mgr manager.Manager, logger logr.Logger) infrastructure.ConfigValidator {
+func NewConfigValidator(mgr manager.Manager, logger logr.Logger, factory aliclient.Factory) infrastructure.ConfigValidator {
 	return &configValidator{
-		mgr:    mgr,
-		logger: logger.WithName("alicloud-infrastructure-config-validator"),
+		factory: factory,
+		mgr:     mgr,
+		logger:  logger.WithName("alicloud-infrastructure-config-validator"),
 	}
 }
 
@@ -51,9 +52,8 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 
 	logger := c.logger.WithValues("infrastructure", client.ObjectKeyFromObject(infra))
 
-	config := &alicloudapi.InfrastructureConfig{}
-	decoder := serializer.NewCodecFactory(c.mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()
-	if err := util.Decode(decoder, infra.Spec.ProviderConfig.Raw, config); err != nil {
+	config, err := helper.InfrastructureConfigFromInfrastructure(infra)
+	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, err))
 		return allErrs
 	}
@@ -63,7 +63,7 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		allErrs = append(allErrs, field.InternalError(nil, fmt.Errorf("could not get Alicloud credentials: %+v", err)))
 		return allErrs
 	}
-	actor, err := aliclient.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
+	actor, err := c.factory.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, fmt.Errorf("create aliclient actor failed: %+v", err)))
 		return allErrs
@@ -73,12 +73,10 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 	createManagedNATGateway := true
 	if config.Networks.VPC.ID != nil {
 		logger.Info("Validating infrastructure networks.vpc.id")
-		allErrs = append(allErrs, c.validateVPC(ctx, actor, *config.Networks.VPC.ID, infra.Spec.Region, field.NewPath("networks", "vpc", "id"))...)
 		if config.Networks.VPC.GardenerManagedNATGateway == nil || !*config.Networks.VPC.GardenerManagedNATGateway {
 			createManagedNATGateway = false
-			logger.Info("Validating infrastructure networks.vpc.gardenerManagedNATGateway")
-			allErrs = append(allErrs, c.validateUserNatGateway(ctx, actor, *config.Networks.VPC.ID, infra.Spec.Region, field.NewPath("networks", "vpc", "gardenerManagedNATGateway"))...)
 		}
+		allErrs = append(allErrs, c.validateVPC(ctx, actor, *config.Networks.VPC.ID, !createManagedNATGateway, field.NewPath("networks", "vpc", "id"))...)
 	}
 	if createManagedNATGateway {
 		logger.Info("Validating infrastructure networks.zones[0].name")
@@ -95,22 +93,21 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 	return allErrs
 }
 
-func (c *configValidator) validateVPC(ctx context.Context, actor aliclient.Actor, vpcID, region string, fldPath *field.Path) field.ErrorList {
+func (c *configValidator) validateVPC(ctx context.Context, actor aliclient.Actor, vpcID string, checkNatgatewayExists bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	// check vpc if exists
 	vpc, err := actor.GetVpc(ctx, vpcID)
 	if err != nil || vpc == nil {
 		allErrs = append(allErrs, field.NotFound(fldPath, vpcID))
+		return allErrs
 	}
-	return allErrs
-}
+	if checkNatgatewayExists {
+		gw, err := actor.FindNatGatewayByVPC(ctx, vpcID)
+		if err != nil || gw == nil {
+			allErrs = append(allErrs, field.Invalid(fldPath, vpcID, "no user natgateway found"))
+		}
+	}
 
-func (c *configValidator) validateUserNatGateway(ctx context.Context, actor aliclient.Actor, vpcID, region string, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-	gw, err := actor.FindNatGatewayByVPC(ctx, vpcID)
-	if err != nil || gw == nil {
-		allErrs = append(allErrs, field.Invalid(fldPath, vpcID, "no user natgateway found"))
-	}
 	return allErrs
 }
 
