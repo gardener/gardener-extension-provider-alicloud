@@ -53,6 +53,7 @@ func getImageId(region string) string {
 		"cn-shanghai":    "m-uf6a3012pcuemma21nfk",
 		"ap-southeast-2": "m-p0w8c5rj528oj84nlise",
 		"eu-central-1":   "m-gw83xpc3q3yzpoahhckf",
+		"ap-southeast-1": "m-t4nf5uqofn0vvqjracjy",
 	}
 
 	return regionImageMap[region]
@@ -63,6 +64,7 @@ func getSingleZone(region string) string {
 		"cn-shanghai":    "cn-shanghai-g",
 		"ap-southeast-2": "ap-southeast-2a",
 		"eu-central-1":   "eu-central-1a",
+		"ap-southeast-1": "ap-southeast-1a",
 	}
 
 	return regionZoneMap[region]

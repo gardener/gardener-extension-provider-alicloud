@@ -320,6 +320,7 @@ func getImageId(region string) string {
 		"cn-shanghai":    "m-uf6a3012pcuemma21nfk",
 		"ap-southeast-2": "m-p0w8c5rj528oj84nlise",
 		"eu-central-1":   "m-gw83xpc3q3yzpoahhckf",
+		"ap-southeast-1": "m-t4nf5uqofn0vvqjracjy",
 	}
 
 	return regionImageMap[region]
