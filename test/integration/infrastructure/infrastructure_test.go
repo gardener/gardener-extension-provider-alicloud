@@ -145,7 +145,7 @@ var _ = BeforeSuite(func() {
 	clientFactory = alicloudclient.NewClientFactory()
 
 	availabilityZone = getSingleZone(*region)
-
+	By("=========Region is" + *region)
 	By("ensure encrypted image is cleaned in the current account")
 	Expect(deleteEncryptedImageStackIfExists(mgrContext, clientFactory)).To(Succeed())
 
