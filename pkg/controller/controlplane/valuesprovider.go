@@ -110,7 +110,7 @@ func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
 
 var controlPlaneChart = &chart.Chart{
 	Name:       "seed-controlplane",
-	EmbeddedFS: &charts.InternalChart,
+	EmbeddedFS: charts.InternalChart,
 	Path:       filepath.Join(charts.InternalChartsPath, "seed-controlplane"),
 	SubCharts: []*chart.Chart{
 		{
@@ -153,7 +153,7 @@ var controlPlaneChart = &chart.Chart{
 
 var controlPlaneShootChart = &chart.Chart{
 	Name:       "shoot-system-components",
-	EmbeddedFS: &charts.InternalChart,
+	EmbeddedFS: charts.InternalChart,
 	Path:       filepath.Join(charts.InternalChartsPath, "shoot-system-components"),
 	SubCharts: []*chart.Chart{
 		{
@@ -225,7 +225,7 @@ var controlPlaneShootChart = &chart.Chart{
 
 var controlPlaneShootCRDsChart = &chart.Chart{
 	Name:       "shoot-crds",
-	EmbeddedFS: &charts.InternalChart,
+	EmbeddedFS: charts.InternalChart,
 	Path:       filepath.Join(charts.InternalChartsPath, "shoot-crds"),
 	SubCharts: []*chart.Chart{
 		{
@@ -241,7 +241,7 @@ var controlPlaneShootCRDsChart = &chart.Chart{
 
 var storageClassChart = &chart.Chart{
 	Name:       "shoot-storageclasses",
-	EmbeddedFS: &charts.InternalChart,
+	EmbeddedFS: charts.InternalChart,
 	Path:       filepath.Join(charts.InternalChartsPath, "shoot-storageclasses"),
 }
 

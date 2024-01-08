@@ -16,46 +16,12 @@ package worker
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
 
-	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-	"github.com/gardener/gardener/pkg/utils/chart"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/charts"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-)
-
-var (
-	mcmChart = &chart.Chart{
-		Name:       alicloud.MachineControllerManagerName,
-		EmbeddedFS: &charts.InternalChart,
-		Path:       filepath.Join(charts.InternalChartsPath, alicloud.MachineControllerManagerName, "seed"),
-		Images:     []string{alicloud.MachineControllerManagerImageName, alicloud.MachineControllerManagerProviderAlicloudImageName},
-		Objects: []*chart.Object{
-			{Type: &appsv1.Deployment{}, Name: alicloud.MachineControllerManagerName},
-			{Type: &corev1.Service{}, Name: alicloud.MachineControllerManagerName},
-			{Type: &corev1.ServiceAccount{}, Name: alicloud.MachineControllerManagerName},
-			{Type: &corev1.Secret{}, Name: alicloud.MachineControllerManagerName},
-			{Type: extensionscontroller.GetVerticalPodAutoscalerObject(), Name: alicloud.MachineControllerManagerVpaName},
-			{Type: &corev1.ConfigMap{}, Name: alicloud.MachineControllerManagerMonitoringConfigName},
-		},
-	}
-
-	mcmShootChart = &chart.Chart{
-		Name:       alicloud.MachineControllerManagerName,
-		EmbeddedFS: &charts.InternalChart,
-		Path:       filepath.Join(charts.InternalChartsPath, alicloud.MachineControllerManagerName, "shoot"),
-		Objects: []*chart.Object{
-			{Type: &rbacv1.ClusterRole{}, Name: fmt.Sprintf("extensions.gardener.cloud:%s:%s", alicloud.Name, alicloud.MachineControllerManagerName)},
-			{Type: &rbacv1.ClusterRoleBinding{}, Name: fmt.Sprintf("extensions.gardener.cloud:%s:%s", alicloud.Name, alicloud.MachineControllerManagerName)},
-		},
-	}
 )
 
 func (w *workerDelegate) GetMachineControllerManagerChartValues(ctx context.Context) (map[string]interface{}, error) {
