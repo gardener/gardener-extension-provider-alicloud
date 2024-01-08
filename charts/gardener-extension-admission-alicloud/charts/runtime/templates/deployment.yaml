@@ -53,6 +53,7 @@ spec:
         - --metrics-bind-address=:{{ .Values.global.metricsPort }}
         {{- end }}
         - --health-bind-address=:{{ .Values.global.healthPort }}
+        - --leader-election-id={{ include "leaderelectionid" . }}
         livenessProbe:
           httpGet:
             path: /healthz
