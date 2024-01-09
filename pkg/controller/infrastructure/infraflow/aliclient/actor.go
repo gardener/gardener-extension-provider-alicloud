@@ -198,13 +198,14 @@ func (c *actor) getSecurityGroup(id string) (*SecurityGroup, error) {
 	if err != nil {
 		return nil, err
 	}
-	rules, err := c.listSecurityGroupRule(sg.SecurityGroupId)
-	if err != nil {
-		return nil, err
+	if sg != nil {
+		rules, err := c.listSecurityGroupRule(sg.SecurityGroupId)
+		if err != nil {
+			return nil, err
+		}
+
+		sg.Rules = append(sg.Rules, rules...)
 	}
-
-	sg.Rules = append(sg.Rules, rules...)
-
 	return sg, nil
 
 }

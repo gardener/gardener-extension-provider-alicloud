@@ -145,12 +145,15 @@ func (c *FlowContext) getCurrentSnatEntryForZone(ctx context.Context, zoneName s
 	child := c.getZoneChild(zoneName)
 	vswitchId := child.Get(IdentifierZoneVSwitch)
 	ngwId := c.state.Get(IdentifierNatGateway)
+	entryList := []*aliclient.SNATEntry{}
+	if ngwId == nil {
+		return entryList, nil
+	}
 	entries, err := c.actor.FindSNatEntriesByNatGateway(ctx, *ngwId)
 	if err != nil {
 		return nil, err
 	}
 
-	entryList := []*aliclient.SNATEntry{}
 	for _, entry := range entries {
 		if entry.VSwitchId == *vswitchId {
 			entryList = append(entryList, entry)
