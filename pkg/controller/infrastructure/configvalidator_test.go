@@ -209,7 +209,7 @@ var _ = Describe("ConfigValidator", func() {
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(ConsistOfFields(Fields{
-			"Type":  Equal(field.ErrorTypeNotSupported),
+			"Type":  Equal(field.ErrorTypeForbidden),
 			"Field": Equal("networks.zones[0].name"),
 		}))
 	})

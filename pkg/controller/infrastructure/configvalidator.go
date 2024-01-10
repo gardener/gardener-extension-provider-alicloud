@@ -17,6 +17,7 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -135,7 +136,7 @@ func (c *configValidator) validateEnhancedNatGatewayZone(ctx context.Context, ac
 		}
 	}
 	if !validNatGatewayZone {
-		allErrs = append(allErrs, field.NotSupported(fldPath, zone, validZones))
+		allErrs = append(allErrs, field.Forbidden(fldPath, fmt.Sprintf("zone %s does not support enhance natgateway, please use follow zones: %s", zone, strings.Join(validZones, " "))))
 	}
 	return allErrs
 }
