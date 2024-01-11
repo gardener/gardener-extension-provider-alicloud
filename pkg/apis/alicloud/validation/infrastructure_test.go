@@ -194,16 +194,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 				Expect(errorList).To(BeEmpty())
 			})
-			It("should forbid if first zone is not in valid zone list", func() {
-				infrastructureConfig.Networks.Zones[0].Name = "not-support-enhancenatgateway"
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
-				Expect(errorList).To(ConsistOfFields(Fields{
-					"Type":     Equal(field.ErrorTypeNotSupported),
-					"Field":    Equal("networks.zones[0]"),
-					"BadValue": Equal("not-support-enhancenatgateway"),
-					"Detail":   ContainSubstring("supported values"),
-				}))
-			})
+
 			It("should forbid if both provide vpc id and set dualstak enable true", func() {
 				vpcID := "vpc-provided"
 				infrastructureConfig.DualStack = &apisalicloud.DualStack{

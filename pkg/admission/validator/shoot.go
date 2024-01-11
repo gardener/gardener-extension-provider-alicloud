@@ -92,7 +92,7 @@ func (s *shoot) listDualStackRegion() []string {
 	}
 }
 
-func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
+func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
 
 	dualStackRegionList := s.listDualStackRegion()
 	if infraConfig != nil {
