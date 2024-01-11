@@ -24,7 +24,7 @@ import (
 )
 
 // ValidateInfrastructureConfig validates a InfrastructureConfig object.
-func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, networking *core.Networking, natGatewayZones []string) field.ErrorList {
+func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, networking *core.Networking) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	var (
@@ -48,10 +48,6 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 	networksPath := field.NewPath("networks")
 	if len(infra.Networks.Zones) == 0 {
 		allErrs = append(allErrs, field.Required(networksPath.Child("zones"), "must specify at least the network for one zone"))
-	} else {
-
-		natGatewayTargetZone := infra.Networks.Zones[0]
-		allErrs = append(allErrs, ValidateEnhancedNatGateway(natGatewayTargetZone, natGatewayZones, networksPath.Child("zones").Index(0))...)
 	}
 
 	var (
@@ -151,22 +147,5 @@ func ValidateNatGatewayConfig(natGateway *apisalicloud.NatGatewayConfig, fldPath
 		}
 	}
 
-	return allErrs
-}
-
-// ValidateEnhancedNatGateway validates whether enhanced natGateway is available in given zone
-func ValidateEnhancedNatGateway(natGatewayTargetZone apisalicloud.Zone, validZones []string, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	validNatGatewayZone := false
-	for _, zoneName := range validZones {
-		if natGatewayTargetZone.Name == zoneName {
-			validNatGatewayZone = true
-			break
-		}
-	}
-	if !validNatGatewayZone {
-		allErrs = append(allErrs, field.NotSupported(fldPath, natGatewayTargetZone.Name, validZones))
-	}
 	return allErrs
 }

@@ -14,6 +14,20 @@
 
 package aliclient
 
+// Factory creates instances of Interface.
+type Factory interface {
+	// NewClient creates a new instance of Actor for the given alicloud credentials and region.
+	NewActor(accessKeyID, secretAccessKey, region string) (Actor, error)
+}
+
+// FactoryFunc is a function that implements Factory.
+type FactoryFunc func(accessKeyID, secretAccessKey, region string) (Actor, error)
+
+// NewActor creates a new instance of Actor for the given Alicloud credentials and region.
+func (f FactoryFunc) NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
+	return f(accessKeyID, secretAccessKey, region)
+}
+
 // VPC is the struct for a vpc object
 type VPC struct {
 	Tags

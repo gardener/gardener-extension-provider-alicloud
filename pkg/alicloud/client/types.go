@@ -121,6 +121,8 @@ type vpcClient struct {
 
 // VPC is an interface which declares VPC related methods.
 type VPC interface {
+	ListEnhanhcedNatGatewayAvailableZones(request *vpc.ListEnhanhcedNatGatewayAvailableZonesRequest) (response *vpc.ListEnhanhcedNatGatewayAvailableZonesResponse, err error)
+
 	GetVPCWithID(ctx context.Context, vpcID string) ([]vpc.Vpc, error)
 	GetNatGatewaysWithVPCID(ctx context.Context, vpcID string) ([]vpc.NatGateway, error)
 	GetEIPWithID(ctx context.Context, eipID string) ([]vpc.EipAddress, error)

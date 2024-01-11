@@ -34,6 +34,8 @@ import (
 
 // Actor ia a interface to package alicloud api call
 type Actor interface {
+	ListEnhanhcedNatGatewayAvailableZones(ctx context.Context, region string) ([]string, error)
+
 	CreateVpc(ctx context.Context, vpc *VPC) (*VPC, error)
 	GetVpc(ctx context.Context, id string) (*VPC, error)
 	ListVpcs(ctx context.Context, ids []string) ([]*VPC, error)
@@ -168,6 +170,22 @@ func (c *actor) getResourceClass(resourceType string) string {
 		return "ecs"
 	}
 	return "unknown"
+}
+
+func (c *actor) ListEnhanhcedNatGatewayAvailableZones(_ context.Context, region string) ([]string, error) {
+	req := vpc.CreateListEnhanhcedNatGatewayAvailableZonesRequest()
+	req.RegionId = region
+
+	resp, err := callApi(c.vpcClient.ListEnhanhcedNatGatewayAvailableZones, req)
+
+	if err != nil {
+		return nil, err
+	}
+	zoneIDs := make([]string, 0, len(resp.Zones))
+	for _, zone := range resp.Zones {
+		zoneIDs = append(zoneIDs, zone.ZoneId)
+	}
+	return zoneIDs, nil
 }
 
 func (c *actor) CreateSecurityGroup(ctx context.Context, sg *SecurityGroup) (*SecurityGroup, error) {

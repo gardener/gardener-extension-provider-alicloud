@@ -22,16 +22,12 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorehelper "github.com/gardener/gardener/pkg/apis/core/helper"
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	alicloudAPI "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
@@ -89,15 +85,11 @@ func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
 	return s.validateShootCreation(ctx, shoot)
 }
 
-func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
-	natGatewayZones, err := s.getEnhancedNatGatewayAvailableZones(ctx, shoot)
-	if err != nil {
-		return err
-	}
+func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
 
 	if infraConfig != nil {
 		// Provider validation
-		if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking, natGatewayZones); len(errList) != 0 {
+		if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking); len(errList) != 0 {
 			return errList.ToAggregate()
 		}
 		// Shoot workers
@@ -184,43 +176,4 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 	}
 
 	return nil
-}
-
-func (s *shoot) getEnhancedNatGatewayAvailableZones(ctx context.Context, shoot *core.Shoot) ([]string, error) {
-	regionID := shoot.Spec.Region
-	var (
-		secretBinding = &gardencorev1beta1.SecretBinding{}
-	)
-
-	if shoot.Spec.SecretBindingName == nil {
-		return nil, fmt.Errorf("secretBindingName can't be nil")
-	}
-
-	secretBindingKey := kutil.Key(shoot.Namespace, *shoot.Spec.SecretBindingName)
-	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
-		return nil, err
-	}
-
-	var (
-		secret    = &corev1.Secret{}
-		secretRef = secretBinding.SecretRef.Name
-		secretKey = kutil.Key(secretBinding.SecretRef.Namespace, secretRef)
-	)
-	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
-		return nil, err
-	}
-	accessKeyID, ok := secret.Data[alicloudAPI.AccessKeyID]
-	if !ok {
-		return nil, fmt.Errorf("missing %q field in secret %s", alicloudAPI.AccessKeyID, secretRef)
-	}
-	accessKeySecret, ok := secret.Data[alicloudAPI.AccessKeySecret]
-	if !ok {
-		return nil, fmt.Errorf("missing %q field in secret %s", alicloudAPI.AccessKeySecret, secretRef)
-	}
-	shootVPCClient, err := s.alicloudClientFactory.NewVPCClient(regionID, string(accessKeyID), string(accessKeySecret))
-	if err != nil {
-		return nil, err
-	}
-	return shootVPCClient.GetEnhanhcedNatGatewayAvailableZones(ctx, regionID)
-
 }
