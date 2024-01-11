@@ -136,7 +136,7 @@ func (c *configValidator) validateEnhancedNatGatewayZone(ctx context.Context, ac
 		}
 	}
 	if !validNatGatewayZone {
-		allErrs = append(allErrs, field.Forbidden(fldPath, fmt.Sprintf("zone %s does not support enhance natgateway, please use follow zones: %s", zone, strings.Join(validZones, " "))))
+		allErrs = append(allErrs, field.Forbidden(fldPath, fmt.Sprintf("zone %s does not support enhance natgateway, please use following zones: %s", zone, strings.Join(validZones, " "))))
 	}
 	return allErrs
 }
