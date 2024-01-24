@@ -82,10 +82,11 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 		log.Info("ensureSnatEntry", "zoneName", zoneName)
 		zone := c.getZoneConfig(zoneName)
 		child := c.getZoneChild(zoneName)
-		eipId := child.Get(IdentifierZoneNATGWElasticIP)
+		managed_eipId := child.Get(IdentifierZoneNATGWElasticIP)
 		ngwId := c.state.Get(IdentifierNatGateway)
 		vswitchId := child.Get(IdentifierZoneVSwitch)
-		if eipId == nil && zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
+		eipId := managed_eipId
+		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
 			eipId = zone.NatGateway.EIPAllocationID
 		}
 		if eipId == nil {
@@ -132,8 +133,59 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 			}
 			_, _ = c.updater.UpdateSNATEntry(ctx, desired, created)
 		}
+		toUnAssociateEIPs := sets.New[string]()
 		for _, item := range toBeChecked {
-			_, _ = c.updater.UpdateSNATEntry(ctx, item.desired, item.current)
+			if item.desired.IpAddress != item.current.IpAddress {
+				toUnAssociateEIPs.Insert(item.current.IpAddress)
+
+				waiter := informOnWaiting(log, 5*time.Second, "still deleting snate entry ...", "SnatEntryId", item.current.SnatEntryId, "SnatTableId", item.current.SnatTableId)
+				err := c.actor.DeleteSNatEntry(ctx, item.current.SnatEntryId, item.current.SnatTableId)
+				waiter.Done(err)
+				if err != nil {
+					return err
+				}
+
+				created, err := c.actor.CreateSNatEntry(ctx, item.desired)
+				if err != nil {
+					return err
+				}
+
+				_, _ = c.updater.UpdateSNATEntry(ctx, item.desired, created)
+			} else {
+				_, _ = c.updater.UpdateSNATEntry(ctx, item.desired, item.current)
+			}
+		}
+
+		for ipAddress := range toUnAssociateEIPs {
+			the_eip, err := c.actor.GetEIPByAddress(ctx, ipAddress)
+			if err != nil {
+				return err
+			}
+			if *the_eip.Status == "InUse" {
+				if err := c.actor.UnAssociateEIP(ctx, the_eip); err != nil {
+					return err
+				}
+			}
+		}
+
+		if managed_eipId != nil && eipId != managed_eipId {
+			managed_eip, err := c.actor.GetEIP(ctx, *managed_eipId)
+			if err != nil {
+				return err
+			}
+
+			if managed_eip != nil {
+				log := c.LogFromContext(ctx)
+				log.Info("deleting...", "AllocationId", managed_eip.EipId)
+				waiter := informOnWaiting(log, 5*time.Second, "still deleting...", "AllocationId", managed_eip.EipId)
+				err = c.actor.DeleteEIP(ctx, managed_eip.EipId)
+				waiter.Done(err)
+				if err != nil {
+					return err
+				}
+			}
+			child.SetAsDeleted(IdentifierZoneNATGWElasticIP)
+			c.PersistState(ctx, true)
 
 		}
 
@@ -171,7 +223,7 @@ func (c *FlowContext) ensureEipAssociation(zoneName string) flow.TaskFn {
 		eipId := child.Get(IdentifierZoneNATGWElasticIP)
 		ngwId := c.state.Get(IdentifierNatGateway)
 
-		if eipId == nil && zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
+		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
 			eipId = zone.NatGateway.EIPAllocationID
 		}
 		if eipId == nil {
