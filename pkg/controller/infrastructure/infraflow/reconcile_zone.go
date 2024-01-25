@@ -161,7 +161,7 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 			if err != nil {
 				return err
 			}
-			if *the_eip.Status == "InUse" {
+			if the_eip != nil && *the_eip.Status == "InUse" {
 				if err := c.actor.UnAssociateEIP(ctx, the_eip); err != nil {
 					return err
 				}
