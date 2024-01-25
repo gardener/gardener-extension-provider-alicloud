@@ -185,7 +185,9 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 				}
 			}
 			child.SetAsDeleted(IdentifierZoneNATGWElasticIP)
-			c.PersistState(ctx, true)
+			if err := c.PersistState(ctx, true); err != nil {
+				return err
+			}
 
 		}
 

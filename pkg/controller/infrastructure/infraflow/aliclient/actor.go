@@ -605,7 +605,7 @@ func (c *actor) CreateEIP(ctx context.Context, eip *EIP) (*EIP, error) {
 
 }
 
-func (c *actor) GetEIPByAddress(ctx context.Context, ipAddress string) (*EIP, error) {
+func (c *actor) GetEIPByAddress(_ context.Context, ipAddress string) (*EIP, error) {
 	req := vpc.CreateDescribeEipAddressesRequest()
 	req.EipAddress = ipAddress
 	resp, err := c.describeEIP(req)
