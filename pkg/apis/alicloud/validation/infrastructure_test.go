@@ -181,7 +181,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				eipBandwidth := 500
 				infrastructureConfig.Networks.VPC.Bandwidth = &eipBandwidth
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, validNatGatewayZones)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -193,7 +193,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				eipBandwidth := 200
 				infrastructureConfig.Networks.VPC.Bandwidth = &eipBandwidth
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, validNatGatewayZones)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
 				Expect(errorList).To(BeEmpty())
 			})
 
