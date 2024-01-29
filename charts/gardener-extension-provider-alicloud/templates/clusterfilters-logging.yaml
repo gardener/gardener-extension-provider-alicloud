@@ -1,3 +1,18 @@
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.gardener/type: "seed"
+    fluentbit.gardener.cloud/type: "seed"
+  name: cloud-controller-manager-alicloud-cloud-controller-manager
+spec:
+  filters:
+  - parser:
+      keyName: log
+      parser: kube-apiserver-parser
+      reserveData: true
+  match: kubernetes.*cloud-controller-manager*alicloud-cloud-controller-manager*
+---
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: ClusterFilter
