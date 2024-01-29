@@ -48,7 +48,6 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/healthcheck"
 	alicloudinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	alicloudworker "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
-	controlplanewebhook "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplane"
 	alicloudcontrolplaneexposure "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplaneexposure"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/shoot"
 )
@@ -218,12 +217,6 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			reconcileOpts.Completed().Apply(&alicloudworker.DefaultAddOptions.IgnoreOperationAnnotation)
 			reconcileOpts.Completed().Apply(&alicloudbastion.DefaultAddOptions.IgnoreOperationAnnotation)
 			workerCtrlOpts.Completed().Apply(&alicloudworker.DefaultAddOptions.Controller)
-
-			// TODO(rfranzke): Remove the GardenletManagesMCM fields as soon as the general options no longer support the
-			//  GardenletManagesMCM field.
-			alicloudworker.DefaultAddOptions.GardenletManagesMCM = generalOpts.Completed().GardenletManagesMCM
-			controlplanewebhook.GardenletManagesMCM = generalOpts.Completed().GardenletManagesMCM
-			healthcheck.GardenletManagesMCM = generalOpts.Completed().GardenletManagesMCM
 
 			atomicShootWebhookConfig, err := webhookOptions.Completed().AddToManager(ctx, mgr)
 			if err != nil {

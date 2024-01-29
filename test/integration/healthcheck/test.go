@@ -27,11 +27,9 @@
 			1.2) HealthCondition Type: Shoot SystemComponentsHealthy
 				- update the ManagedResource 'extension-controlplane-shoot' with an unhealthy condition and verify health check conditions in the ControlPlane status.
 		2) Worker
-			2.1) HealthCondition Type: Shoot ControlPlaneHealthy
-				- delete the deployment 'machine-controller-manager' and verify health check conditions in the Worker status.
-			2.2) HealthCondition Type: Shoot SystemComponentsHealthy
+			2.1) HealthCondition Type: Shoot SystemComponentsHealthy
 				- update the ManagedResource 'extension-worker-mcm-shoot' with an unhealthy condition and verify health check conditions in the Worker status.
-			2.3) HealthCondition Type: Shoot EveryNodeReady
+			2.2) HealthCondition Type: Shoot EveryNodeReady
 				- delete a machine of the shoot cluster and verify the health check conditions in the Worker status report a missing node.
  **/
 
@@ -90,14 +88,6 @@ var _ = Describe("Provider-alicloud integration test: health checks", func() {
 	})
 
 	Context("Worker", func() {
-
-		Context("Condition type: ShootControlPlaneHealthy", func() {
-			f.Serial().Release().CIt(fmt.Sprintf("Worker CRD should contain unhealthy condition because the deployment '%s' cannot be found in the shoot namespace in the seed", alicloud.MachineControllerManagerName), func(ctx context.Context) {
-				err := healthcheckoperation.WorkerHealthCheckDeleteSeedDeployment(ctx, f, f.Shoot.GetName(), alicloud.MachineControllerManagerName, gardencorev1beta1.ShootControlPlaneHealthy)
-				framework.ExpectNoError(err)
-			}, timeout)
-		})
-
 		Context("Condition type: ShootSystemComponentsHealthy", func() {
 			f.Serial().Release().CIt(fmt.Sprintf("Worker CRD should contain unhealthy condition due to ManagedResource ('%s') unhealthy", genericworkeractuator.McmShootResourceName), func(ctx context.Context) {
 				err := healthcheckoperation.WorkerHealthCheckWithManagedResource(ctx, setupContextTimeout, f, genericworkeractuator.McmShootResourceName, gardencorev1beta1.ShootSystemComponentsHealthy)
