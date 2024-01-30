@@ -171,8 +171,8 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("Infrastructure tests", func() {
-	Context("with infrastructure that requests new vpc (networks.vpc.cidr) ", func() {
-		It("should successfully create and delete (terraformer) without bandwith", func() {
+	Context("with infrastructure that requests new vpc (networks.vpc.cidr)", func() {
+		It("should successfully create and delete (terraformer)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR: pointer.String(vpcCIDR),
 			}, availabilityZone)
