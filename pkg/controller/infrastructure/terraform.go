@@ -147,8 +147,8 @@ func (terraformOps) ComputeChartValues(
 		"internetChargeType": values.EIP.InternetChargeType,
 	}
 
-	if config.Networks.VPC.Bandwidth != nil {
-		eipConfig["bandwidth"] = *config.Networks.VPC.Bandwidth
+	if config.Networks.Bandwidth != nil {
+		eipConfig["bandwidth"] = *config.Networks.Bandwidth
 	}
 
 	return map[string]interface{}{

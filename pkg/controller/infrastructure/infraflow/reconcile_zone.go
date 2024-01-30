@@ -285,8 +285,8 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 		zoneSuffix := c.getZoneSuffix(zone.Name)
 		eipSuffix := fmt.Sprintf("eip-natgw-%s", zoneSuffix)
 		eipBandwidth := 100
-		if c.config.Networks.VPC.Bandwidth != nil {
-			eipBandwidth = *c.config.Networks.VPC.Bandwidth
+		if c.config.Networks.Bandwidth != nil {
+			eipBandwidth = *c.config.Networks.Bandwidth
 		}
 		id := child.Get(IdentifierZoneNATGWElasticIP)
 		desired := &aliclient.EIP{

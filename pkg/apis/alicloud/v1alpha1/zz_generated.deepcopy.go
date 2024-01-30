@@ -292,6 +292,11 @@ func (in *Networks) DeepCopyInto(out *Networks) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Bandwidth != nil {
+		in, out := &in.Bandwidth, &out.Bandwidth
+		*out = new(int)
+		**out = **in
+	}
 	return
 }
 
@@ -348,11 +353,6 @@ func (in *VPC) DeepCopyInto(out *VPC) {
 	if in.CIDR != nil {
 		in, out := &in.CIDR, &out.CIDR
 		*out = new(string)
-		**out = **in
-	}
-	if in.Bandwidth != nil {
-		in, out := &in.Bandwidth, &out.Bandwidth
-		*out = new(int)
 		**out = **in
 	}
 	if in.GardenerManagedNATGateway != nil {

@@ -448,6 +448,7 @@ func autoConvert_v1alpha1_Networks_To_alicloud_Networks(in *Networks, out *alicl
 		return err
 	}
 	out.Zones = *(*[]alicloud.Zone)(unsafe.Pointer(&in.Zones))
+	out.Bandwidth = (*int)(unsafe.Pointer(in.Bandwidth))
 	return nil
 }
 
@@ -461,6 +462,7 @@ func autoConvert_alicloud_Networks_To_v1alpha1_Networks(in *alicloud.Networks, o
 		return err
 	}
 	out.Zones = *(*[]Zone)(unsafe.Pointer(&in.Zones))
+	out.Bandwidth = (*int)(unsafe.Pointer(in.Bandwidth))
 	return nil
 }
 
@@ -516,7 +518,6 @@ func Convert_alicloud_SecurityGroup_To_v1alpha1_SecurityGroup(in *alicloud.Secur
 func autoConvert_v1alpha1_VPC_To_alicloud_VPC(in *VPC, out *alicloud.VPC, s conversion.Scope) error {
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.CIDR = (*string)(unsafe.Pointer(in.CIDR))
-	out.Bandwidth = (*int)(unsafe.Pointer(in.Bandwidth))
 	out.GardenerManagedNATGateway = (*bool)(unsafe.Pointer(in.GardenerManagedNATGateway))
 	return nil
 }
@@ -529,7 +530,6 @@ func Convert_v1alpha1_VPC_To_alicloud_VPC(in *VPC, out *alicloud.VPC, s conversi
 func autoConvert_alicloud_VPC_To_v1alpha1_VPC(in *alicloud.VPC, out *VPC, s conversion.Scope) error {
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.CIDR = (*string)(unsafe.Pointer(in.CIDR))
-	out.Bandwidth = (*int)(unsafe.Pointer(in.Bandwidth))
 	out.GardenerManagedNATGateway = (*bool)(unsafe.Pointer(in.GardenerManagedNATGateway))
 	return nil
 }

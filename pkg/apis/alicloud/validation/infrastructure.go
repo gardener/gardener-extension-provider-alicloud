@@ -78,10 +78,10 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 	if nodes != nil {
 		allErrs = append(allErrs, nodes.ValidateSubset(workerCIDRs...)...)
 	}
-	if infra.Networks.VPC.Bandwidth != nil {
-		bandwidth := *infra.Networks.VPC.Bandwidth
+	if infra.Networks.Bandwidth != nil {
+		bandwidth := *infra.Networks.Bandwidth
 		if bandwidth < 1 || bandwidth > 200 {
-			allErrs = append(allErrs, field.Invalid(networksPath.Child("vpc").Child("eipBandwidth"), infra.Networks.VPC.Bandwidth, "if Bandwidth be set, the value should be an integer and between 1 and 200"))
+			allErrs = append(allErrs, field.Invalid(networksPath.Child("eipBandwidth"), infra.Networks.Bandwidth, "if Bandwidth be set, the value should be an integer and between 1 and 200"))
 		}
 	}
 	if (infra.Networks.VPC.ID == nil && infra.Networks.VPC.CIDR == nil) || (infra.Networks.VPC.ID != nil && infra.Networks.VPC.CIDR != nil) {

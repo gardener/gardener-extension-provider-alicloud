@@ -135,9 +135,7 @@ var _ = Describe("TerraformChartOps", func() {
 
 				config = v1alpha1.InfrastructureConfig{
 					Networks: v1alpha1.Networks{
-						VPC: v1alpha1.VPC{
-							Bandwidth: &bandwidth,
-						},
+						Bandwidth: &bandwidth,
 						Zones: []v1alpha1.Zone{
 							{
 								Name:       zone1Name,

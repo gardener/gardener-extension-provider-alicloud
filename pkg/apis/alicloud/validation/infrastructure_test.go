@@ -179,7 +179,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 			It("should forbid specifying eip Bandwidth not in validate range ", func() {
 				eipBandwidth := 500
-				infrastructureConfig.Networks.VPC.Bandwidth = &eipBandwidth
+				infrastructureConfig.Networks.Bandwidth = &eipBandwidth
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
 
@@ -191,7 +191,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 			It("should allow specifying eip Bandwidth", func() {
 				eipBandwidth := 200
-				infrastructureConfig.Networks.VPC.Bandwidth = &eipBandwidth
+				infrastructureConfig.Networks.Bandwidth = &eipBandwidth
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
 				Expect(errorList).To(BeEmpty())

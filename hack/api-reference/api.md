@@ -564,6 +564,18 @@ VPC
 <p>Zones are the network zones for an infrastructure.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>eipBandwidth</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Bandwidth is the bandwidth of the EIP associated with NATGateway if need, which is an integer between 1 and 200.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.Purpose">Purpose
@@ -699,18 +711,6 @@ string
 <td>
 <em>(Optional)</em>
 <p>CIDR is the CIDR of a VPC to create.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>eipBandwidth</code></br>
-<em>
-int
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Bandwidth is the bandwidth of the EIP associated with NATGateway if need, which is an integer between 1 and 200.</p>
 </td>
 </tr>
 <tr>
