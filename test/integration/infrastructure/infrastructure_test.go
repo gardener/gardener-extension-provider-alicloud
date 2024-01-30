@@ -171,8 +171,8 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("Infrastructure tests", func() {
-	Context("with infrastructure that requests new vpc (networks.vpc.cidr)  without bandwith", func() {
-		It("should successfully create and delete (terraformer)", func() {
+	Context("with infrastructure that requests new vpc (networks.vpc.cidr) ", func() {
+		It("should successfully create and delete (terraformer) without bandwith", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR: pointer.String(vpcCIDR),
 			}, availabilityZone)
@@ -190,27 +190,16 @@ var _ = Describe("Infrastructure tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should successfully create and delete (migration from terraformer)", func() {
+		It("should successfully create and delete (migration from terraformer) with bandwith", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
-				CIDR: pointer.String(vpcCIDR),
+				CIDR:      pointer.String(vpcCIDR),
+				Bandwidth: pointer.Int(eipBandwith),
 			}, availabilityZone)
 
 			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuMigrateFromTerraformer)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-	})
-
-	Context("with infrastructure that requests new vpc (networks.vpc.cidr) with bandwith(networks.vpc.bandwith) ", func() {
-		It("should successfully create and delete", func() {
-			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
-				CIDR:      pointer.String(vpcCIDR),
-				Bandwidth: pointer.Int(eipBandwith),
-			}, availabilityZone)
-
-			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseTerraformer)
-			Expect(err).NotTo(HaveOccurred())
-		})
 	})
 
 	Context("with infrastructure that requests existing vpc", func() {
