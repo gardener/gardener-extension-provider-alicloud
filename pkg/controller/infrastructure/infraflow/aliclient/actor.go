@@ -57,6 +57,7 @@ type Actor interface {
 
 	CreateEIP(ctx context.Context, eip *EIP) (*EIP, error)
 	GetEIP(ctx context.Context, id string) (*EIP, error)
+	GetEIPByAddress(ctx context.Context, ipAddress string) (*EIP, error)
 	ListEIPs(ctx context.Context, ids []string) ([]*EIP, error)
 	FindEIPsByTags(ctx context.Context, tags Tags) ([]*EIP, error)
 	DeleteEIP(ctx context.Context, id string) error
@@ -602,6 +603,14 @@ func (c *actor) CreateEIP(ctx context.Context, eip *EIP) (*EIP, error) {
 
 	return created, nil
 
+}
+
+func (c *actor) GetEIPByAddress(_ context.Context, ipAddress string) (*EIP, error) {
+	req := vpc.CreateDescribeEipAddressesRequest()
+	req.EipAddress = ipAddress
+	resp, err := c.describeEIP(req)
+
+	return single(resp, err)
 }
 
 func (c *actor) GetEIP(_ context.Context, id string) (*EIP, error) {

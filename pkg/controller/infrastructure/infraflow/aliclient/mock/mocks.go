@@ -385,6 +385,21 @@ func (mr *MockActorMockRecorder) GetEIP(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIP", reflect.TypeOf((*MockActor)(nil).GetEIP), arg0, arg1)
 }
 
+// GetEIPByAddress mocks base method.
+func (m *MockActor) GetEIPByAddress(arg0 context.Context, arg1 string) (*aliclient.EIP, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEIPByAddress", arg0, arg1)
+	ret0, _ := ret[0].(*aliclient.EIP)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEIPByAddress indicates an expected call of GetEIPByAddress.
+func (mr *MockActorMockRecorder) GetEIPByAddress(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIPByAddress", reflect.TypeOf((*MockActor)(nil).GetEIPByAddress), arg0, arg1)
+}
+
 // GetNatGateway mocks base method.
 func (m *MockActor) GetNatGateway(arg0 context.Context, arg1 string) (*aliclient.NatGateway, error) {
 	m.ctrl.T.Helper()
