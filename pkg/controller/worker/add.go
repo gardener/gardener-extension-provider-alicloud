@@ -38,8 +38,6 @@ type AddOptions struct {
 	Controller controller.Options
 	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
 	IgnoreOperationAnnotation bool
-	// GardenletManagesMCM specifies whether the machine-controller-manager should be managed.
-	GardenletManagesMCM bool
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
@@ -53,7 +51,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddO
 		return err
 	}
 
-	actuator, err := NewActuator(mgr, opts.GardenletManagesMCM)
+	actuator, err := NewActuator(mgr)
 	if err != nil {
 		return err
 	}
