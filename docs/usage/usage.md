@@ -104,6 +104,7 @@ An example `InfrastructureConfig` for the Alicloud extension looks as follows:
 apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
 kind: InfrastructureConfig
 networks:
+  # eipBandwidth: 100
   vpc: # specify either 'id' or 'cidr'
   # id: my-vpc
     cidr: 10.250.0.0/16
@@ -146,6 +147,8 @@ If provided, no new Elastic IP will be created and, instead, the Elastic IP spec
 
 ⚠️ If you change this field for an already existing infrastructure then it will disrupt egress traffic while Alicloud applies this change, because the NAT gateway must be recreated with the new Elastic IP association.
 Also, please note that the existing Elastic IP will be permanently deleted if it was earlier created by the Alicloud extension.
+
+The `networks.eipBandwidth` is an optional field， which controls the bandwidth of the Elastic IP created by provider. It is an integer from 1 to 200, with a default value of 100.
 
 ## `ControlPlaneConfig`
 
