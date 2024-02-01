@@ -14,7 +14,9 @@
 
 package infrastructure
 
-import "flag"
+import (
+	"flag"
+)
 
 const (
 	allCIDR     = "0.0.0.0/0"

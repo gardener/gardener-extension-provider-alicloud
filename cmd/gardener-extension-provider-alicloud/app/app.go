@@ -28,12 +28,14 @@ import (
 	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
+	"github.com/gardener/gardener/pkg/client/kubernetes"
 	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	"k8s.io/component-base/version/verflag"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -48,7 +50,6 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/healthcheck"
 	alicloudinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	alicloudworker "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
-	controlplanewebhook "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplane"
 	alicloudcontrolplaneexposure "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplaneexposure"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/shoot"
 )
@@ -198,6 +199,28 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			// add common meta types to schema for controller-runtime to use v1.ListOptions
 			metav1.AddToGroupVersion(scheme, machinev1alpha1.SchemeGroupVersion)
 
+			log := mgr.GetLogger()
+			log.Info("Getting rest config for garden")
+			gardenRESTConfig, err := kubernetes.RESTConfigFromKubeconfigFile(os.Getenv("GARDEN_KUBECONFIG"), kubernetes.AuthTokenFile)
+			if err != nil {
+				return err
+			}
+
+			log.Info("Setting up cluster object for garden")
+			gardenCluster, err := cluster.New(gardenRESTConfig, func(opts *cluster.Options) {
+				opts.Scheme = kubernetes.GardenScheme
+				opts.Logger = log
+			})
+			if err != nil {
+				return fmt.Errorf("failed creating garden cluster object: %w", err)
+			}
+
+			log.Info("Adding garden cluster to manager")
+			if err := mgr.Add(gardenCluster); err != nil {
+				return fmt.Errorf("failed adding garden cluster to manager: %w", err)
+			}
+
+			log.Info("Adding controllers to manager")
 			configFileOpts.Completed().ApplyMachineImageOwnerSecretRef(&alicloudinfrastructure.DefaultAddOptions.MachineImageOwnerSecretRef)
 			configFileOpts.Completed().ApplyToBeSharedImageIDs(&alicloudinfrastructure.DefaultAddOptions.ToBeSharedImageIDs)
 			configFileOpts.Completed().ApplyETCDStorage(&alicloudcontrolplaneexposure.DefaultAddOptions.ETCDStorage)
@@ -219,13 +242,9 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			reconcileOpts.Completed().Apply(&alicloudbastion.DefaultAddOptions.IgnoreOperationAnnotation)
 			workerCtrlOpts.Completed().Apply(&alicloudworker.DefaultAddOptions.Controller)
 
-			// TODO(rfranzke): Remove the GardenletManagesMCM fields as soon as the general options no longer support the
-			//  GardenletManagesMCM field.
-			alicloudworker.DefaultAddOptions.GardenletManagesMCM = generalOpts.Completed().GardenletManagesMCM
-			controlplanewebhook.GardenletManagesMCM = generalOpts.Completed().GardenletManagesMCM
-			healthcheck.GardenletManagesMCM = generalOpts.Completed().GardenletManagesMCM
+			alicloudworker.DefaultAddOptions.GardenCluster = gardenCluster
 
-			atomicShootWebhookConfig, err := webhookOptions.Completed().AddToManager(ctx, mgr)
+			atomicShootWebhookConfig, err := webhookOptions.Completed().AddToManager(ctx, mgr, nil)
 			if err != nil {
 				return fmt.Errorf("could not add webhooks to manager: %w", err)
 			}
