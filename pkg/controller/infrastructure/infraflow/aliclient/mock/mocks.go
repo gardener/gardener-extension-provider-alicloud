@@ -439,6 +439,16 @@ func (m *MockActor) GetEIPByAddress(arg0 context.Context, arg1 string) (*aliclie
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEIPByAddress", arg0, arg1)
 	ret0, _ := ret[0].(*aliclient.EIP)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEIPByAddress indicates an expected call of GetEIPByAddress.
+func (mr *MockActorMockRecorder) GetEIPByAddress(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIPByAddress", reflect.TypeOf((*MockActor)(nil).GetEIPByAddress), arg0, arg1)
+}
+
 // GetIpv6Gateway mocks base method.
 func (m *MockActor) GetIpv6Gateway(arg0 context.Context, arg1 string) (*aliclient.IPV6Gateway, error) {
 	m.ctrl.T.Helper()
@@ -448,10 +458,6 @@ func (m *MockActor) GetIpv6Gateway(arg0 context.Context, arg1 string) (*aliclien
 	return ret0, ret1
 }
 
-// GetEIPByAddress indicates an expected call of GetEIPByAddress.
-func (mr *MockActorMockRecorder) GetEIPByAddress(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIPByAddress", reflect.TypeOf((*MockActor)(nil).GetEIPByAddress), arg0, arg1)
 // GetIpv6Gateway indicates an expected call of GetIpv6Gateway.
 func (mr *MockActorMockRecorder) GetIpv6Gateway(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
