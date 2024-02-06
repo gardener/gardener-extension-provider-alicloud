@@ -82,7 +82,7 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 	}
 	if infra.DualStack != nil && infra.DualStack.Enabled {
 		if infra.Networks.VPC.ID != nil {
-			allErrs = append(allErrs, field.Invalid(networksPath.Child("vpc"), infra.Networks.VPC, "can not set vpc id when DualStack enabled"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("dualStack", "enabled"), infra.DualStack.Enabled, "can not enable DualStack when vpc id provided"))
 		}
 		validDualStackRegion := false
 		for _, region := range dualStackRegionList {

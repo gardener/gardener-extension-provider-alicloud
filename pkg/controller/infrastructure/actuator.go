@@ -197,8 +197,7 @@ func (a *actuator) newInitializer(infra *extensionsv1alpha1.Infrastructure, conf
 	if err := tplMainTF.Execute(&mainTF, chartValues); err != nil {
 		return nil, fmt.Errorf("could not render Terraform template: %+v", err)
 	}
-	// tf := mainTF.String()
-	// fmt.Println(tf)
+
 	return a.terraformerFactory.DefaultInitializer(a.client, mainTF.String(), string(variablesTF), terraformTFVars, stateInitializer), nil
 }
 

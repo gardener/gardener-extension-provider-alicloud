@@ -206,8 +206,8 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, shootRegion, dualStackRegionList)
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
-					"Field":  Equal("networks.vpc"),
-					"Detail": ContainSubstring("can not set vpc id when DualStack enabled"),
+					"Field":  Equal("dualStack.enabled"),
+					"Detail": ContainSubstring("can not enable DualStack when vpc id provided"),
 				}))
 			})
 			It("should forbid if shoot region is not in dualstack region list and set dualstak enable true", func() {
