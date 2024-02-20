@@ -63,6 +63,8 @@ spec:
             secretKeyRef:
               name: cloudprovider
               key: accessKeySecret
+        - name: ALIBABA_CLOUD_NO_ECS_METADATA
+          value: "true"
         imagePullPolicy: IfNotPresent
 {{- if .Values.csiPluginController.podResources.diskPlugin }}
         resources:
