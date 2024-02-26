@@ -66,13 +66,13 @@ var _ = Describe("DualStackValues", func() {
 		dualStackvalue, err := dualstack.CreateDualStackValues(true, region, &cidr, credentials, clientFactory)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(dualStackvalue).To(Equal(&dualstack.DualStack{
-			Enabled:          true,
-			Zone_A:           zone_list[0],
-			Zone_A_CIDR:      "192.168.255.240/28",
-			Zone_A_IPV6_MASK: 255,
-			Zone_B:           zone_list[1],
-			Zone_B_IPV6_MASK: 254,
-			Zone_B_CIDR:      "192.168.255.224/28",
+			Enabled:            true,
+			Zone_A:             zone_list[0],
+			Zone_A_CIDR:        "192.168.255.240/28",
+			Zone_A_IPV6_SUBNET: 255,
+			Zone_B:             zone_list[1],
+			Zone_B_IPV6_SUBNET: 254,
+			Zone_B_CIDR:        "192.168.255.224/28",
 		}))
 
 	})

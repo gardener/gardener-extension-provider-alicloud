@@ -25,7 +25,7 @@ resource "alicloud_vswitch" "dual_stack_vswitch_a" {
   zone_id      = "{{ .dualStack.zone_a }}"
   vswitch_name = "{{ .clusterName }}-DUAL_STACK-A-vsw"
   enable_ipv6 = true
-  ipv6_cidr_block_mask = {{ .dualStack.zone_a_ipv6_mask }}
+  ipv6_cidr_block_mask = {{ .dualStack.zone_a_ipv6_subnet }}
   timeouts {
     create = "5m"
     delete = "5m"
@@ -38,7 +38,7 @@ resource "alicloud_vswitch" "dual_stack_vswitch_b" {
   zone_id      = "{{ .dualStack.zone_b }}"
   vswitch_name = "{{ .clusterName }}-DUAL_STACK-B-vsw"
   enable_ipv6 = true
-  ipv6_cidr_block_mask = {{ .dualStack.zone_b_ipv6_mask }}
+  ipv6_cidr_block_mask = {{ .dualStack.zone_b_ipv6_subnet }}
   timeouts {
     create = "5m"
     delete = "5m"

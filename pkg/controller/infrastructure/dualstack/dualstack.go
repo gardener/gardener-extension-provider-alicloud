@@ -10,13 +10,13 @@ import (
 
 // DualStack contains values of EIP used to render terraform charts
 type DualStack struct {
-	Enabled          bool
-	Zone_A           string
-	Zone_A_CIDR      string
-	Zone_A_IPV6_MASK int
-	Zone_B           string
-	Zone_B_CIDR      string
-	Zone_B_IPV6_MASK int
+	Enabled            bool
+	Zone_A             string
+	Zone_A_CIDR        string
+	Zone_A_IPV6_SUBNET int
+	Zone_B             string
+	Zone_B_CIDR        string
+	Zone_B_IPV6_SUBNET int
 }
 
 // CreateDualStackValues create DualStack values
@@ -36,8 +36,8 @@ func CreateDualStackValues(
 	if vpcCidr == nil {
 		return nil, fmt.Errorf("vpcCidr must be set")
 	}
-	dualStack.Zone_A_IPV6_MASK = 255
-	dualStack.Zone_B_IPV6_MASK = 254
+	dualStack.Zone_A_IPV6_SUBNET = 255
+	dualStack.Zone_B_IPV6_SUBNET = 254
 	nlbClient, err := clientFactory.NewNLBClient(region, credentials.AccessKeyID, credentials.AccessKeySecret)
 	if err != nil {
 		return nil, err

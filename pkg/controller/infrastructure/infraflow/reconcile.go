@@ -86,11 +86,11 @@ func (c *FlowContext) ensureDualStack(ctx context.Context) error {
 		return err
 	}
 
-	if err = c.ensureIpv6VSwitches(ctx, dualStackValues.Zone_A_CIDR, dualStackValues.Zone_A, IdentifierDualStackVSwitch_A, dualStackValues.Zone_A_IPV6_MASK); err != nil {
+	if err = c.ensureIpv6VSwitches(ctx, dualStackValues.Zone_A_CIDR, dualStackValues.Zone_A, IdentifierDualStackVSwitch_A, dualStackValues.Zone_A_IPV6_SUBNET); err != nil {
 		return err
 	}
 
-	err = c.ensureIpv6VSwitches(ctx, dualStackValues.Zone_B_CIDR, dualStackValues.Zone_B, IdentifierDualStackVSwitch_B, dualStackValues.Zone_B_IPV6_MASK)
+	err = c.ensureIpv6VSwitches(ctx, dualStackValues.Zone_B_CIDR, dualStackValues.Zone_B, IdentifierDualStackVSwitch_B, dualStackValues.Zone_B_IPV6_SUBNET)
 	return err
 }
 
@@ -136,18 +136,18 @@ func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
 	return c.PersistState(ctx, true)
 }
 
-func (c *FlowContext) ensureIpv6VSwitches(ctx context.Context, cidrBlock, zoneId, vswitchIdentifier string, ipv6CidrMask int) error {
+func (c *FlowContext) ensureIpv6VSwitches(ctx context.Context, cidrBlock, zoneId, vswitchIdentifier string, ipv6CidrSubnet int) error {
 	log := c.LogFromContext(ctx)
 	log.Info("ensureIpv6VSwitches:" + vswitchIdentifier)
 	suffix := vswitchIdentifier
 	desired := &aliclient.VSwitch{
-		Name:          c.namespace + "-" + suffix,
-		CidrBlock:     cidrBlock,
-		VpcId:         c.state.Get(IdentifierVPC),
-		Tags:          c.commonTagsWithSuffix(suffix),
-		ZoneId:        zoneId,
-		EnableIpv6:    true,
-		Ipv6CidrkMask: &ipv6CidrMask,
+		Name:            c.namespace + "-" + suffix,
+		CidrBlock:       cidrBlock,
+		VpcId:           c.state.Get(IdentifierVPC),
+		Tags:            c.commonTagsWithSuffix(suffix),
+		ZoneId:          zoneId,
+		EnableIpv6:      true,
+		Ipv6CidrkSubnet: &ipv6CidrSubnet,
 	}
 
 	current, err := findExisting(ctx, c.state.Get(vswitchIdentifier), c.commonTagsWithSuffix(suffix),

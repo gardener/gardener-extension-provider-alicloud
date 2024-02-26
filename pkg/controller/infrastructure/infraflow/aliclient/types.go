@@ -32,15 +32,15 @@ type VPC struct {
 // VSwitch is the struct for a vswitch object
 type VSwitch struct {
 	Tags
-	Name          string
-	VSwitchId     string
-	VpcId         *string
-	CidrBlock     string
-	ZoneId        string
-	EnableIpv6    bool
-	Ipv6CidrkMask *int
-	Ipv6CidrBlock string
-	Status        *string
+	Name            string
+	VSwitchId       string
+	VpcId           *string
+	CidrBlock       string
+	ZoneId          string
+	EnableIpv6      bool
+	Ipv6CidrkSubnet *int
+	Ipv6CidrBlock   string
+	Status          *string
 }
 
 // NatGateway is the struct for a nat gateway object

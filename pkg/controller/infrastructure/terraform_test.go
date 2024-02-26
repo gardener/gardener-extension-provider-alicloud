@@ -147,10 +147,10 @@ var _ = Describe("TerraformChartOps", func() {
 				podCIDR            = "100.96.0.0/11"
 				Zone_A             = "Zone_A"
 				Zone_A_CIDR        = "192.170.254.0/24"
-				Zone_A_IPV6_MASK   = 254
+				Zone_A_IPV6_SUBNET = 254
 				Zone_B             = "Zone_B"
 				Zone_B_CIDR        = "192.170.255.0/24"
-				Zone_B_IPV6_MASK   = 255
+				Zone_B_IPV6_SUBNET = 255
 
 				values = InitializerValues{
 					VPC: VPC{
@@ -167,13 +167,13 @@ var _ = Describe("TerraformChartOps", func() {
 						InternetChargeType: internetChargeType,
 					},
 					DualStack: dualstack.DualStack{
-						Enabled:          true,
-						Zone_A:           Zone_A,
-						Zone_A_CIDR:      Zone_A_CIDR,
-						Zone_A_IPV6_MASK: Zone_A_IPV6_MASK,
-						Zone_B:           Zone_B,
-						Zone_B_CIDR:      Zone_B_CIDR,
-						Zone_B_IPV6_MASK: Zone_B_IPV6_MASK,
+						Enabled:            true,
+						Zone_A:             Zone_A,
+						Zone_A_CIDR:        Zone_A_CIDR,
+						Zone_A_IPV6_SUBNET: Zone_A_IPV6_SUBNET,
+						Zone_B:             Zone_B,
+						Zone_B_CIDR:        Zone_B_CIDR,
+						Zone_B_IPV6_SUBNET: Zone_B_IPV6_SUBNET,
 					},
 				}
 			)
@@ -219,13 +219,13 @@ var _ = Describe("TerraformChartOps", func() {
 					"vswitchNodesPrefix": TerraformerOutputKeyVSwitchNodesPrefix,
 				},
 				"dualStack": map[string]interface{}{
-					"enabled":          true,
-					"zone_a":           Zone_A,
-					"zone_a_cidr":      Zone_A_CIDR,
-					"zone_a_ipv6_mask": Zone_A_IPV6_MASK,
-					"zone_b":           Zone_B,
-					"zone_b_cidr":      Zone_B_CIDR,
-					"zone_b_ipv6_mask": Zone_B_IPV6_MASK,
+					"enabled":            true,
+					"zone_a":             Zone_A,
+					"zone_a_cidr":        Zone_A_CIDR,
+					"zone_a_ipv6_subnet": Zone_A_IPV6_SUBNET,
+					"zone_b":             Zone_B,
+					"zone_b_cidr":        Zone_B_CIDR,
+					"zone_b_ipv6_subnet": Zone_B_IPV6_SUBNET,
 				},
 			}))
 		})

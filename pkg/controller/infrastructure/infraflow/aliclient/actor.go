@@ -907,7 +907,7 @@ func (c *actor) CreateVSwitch(ctx context.Context, vsw *VSwitch) (*VSwitch, erro
 	req.CidrBlock = vsw.CidrBlock
 	req.ZoneId = vsw.ZoneId
 	if vsw.EnableIpv6 {
-		req.Ipv6CidrBlock = requests.NewInteger(*vsw.Ipv6CidrkMask)
+		req.Ipv6CidrBlock = requests.NewInteger(*vsw.Ipv6CidrkSubnet)
 	}
 
 	resp, err := callApi(c.vpcClient.CreateVSwitch, req)
@@ -1358,9 +1358,9 @@ func (c *actor) fromVSwitch(item vpc.VSwitch) (*VSwitch, error) {
 		Ipv6CidrBlock: item.Ipv6CidrBlock,
 	}
 	if isValidIPv6CIDR(item.Ipv6CidrBlock) {
-		_, vswIpv6Mask, err := parseAlicloudVswIpv6(item.Ipv6CidrBlock)
+		_, vswIpv6Subnet, err := parseAlicloudVswIpv6(item.Ipv6CidrBlock)
 		if err == nil {
-			vswitch.Ipv6CidrkMask = &vswIpv6Mask
+			vswitch.Ipv6CidrkSubnet = &vswIpv6Subnet
 		}
 	}
 
