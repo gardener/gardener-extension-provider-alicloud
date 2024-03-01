@@ -23,8 +23,8 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
-	"github.com/gardener/gardener/pkg/utils"
 	"golang.org/x/time/rate"
+	"k8s.io/utils/strings/slices"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -139,7 +139,7 @@ func (d *dnsClient) CreateOrUpdateDomainRecords(ctx context.Context, domainName,
 		}
 	}
 	for value, record := range records {
-		if !utils.ValueExists(value, values) {
+		if !slices.Contains(values, value) {
 			if err := d.deleteDomainRecord(ctx, record.RecordId); err != nil {
 				return err
 			}
