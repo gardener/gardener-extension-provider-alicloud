@@ -174,6 +174,16 @@ func (c *ossClient) CreateBucketIfNotExists(ctx context.Context, bucketName stri
 	return c.SetBucketLifecycle(bucketName, rules)
 }
 
+// GetBucketInfo retrieves bucket details.
+func (c *ossClient) GetBucketInfo(_ context.Context, bucketName string) (*oss.BucketInfo, error) {
+	result, err := c.Client.GetBucketInfo(bucketName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.BucketInfo, nil
+}
+
 // DeleteBucketIfExists deletes the Alicloud OSS bucket with name <bucketName>. If it does not exist,
 // no error is returned.
 func (c *ossClient) DeleteBucketIfExists(ctx context.Context, bucketName string) error {

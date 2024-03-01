@@ -11,6 +11,7 @@ import (
 	ecs "github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	resourcemanager "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	vpc "github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
+	oss "github.com/aliyun/aliyun-oss-go-sdk/oss"
 	client "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 	gomock "go.uber.org/mock/gomock"
@@ -1281,6 +1282,21 @@ func (m *MockOSS) DeleteObjectsWithPrefix(arg0 context.Context, arg1, arg2 strin
 func (mr *MockOSSMockRecorder) DeleteObjectsWithPrefix(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObjectsWithPrefix", reflect.TypeOf((*MockOSS)(nil).DeleteObjectsWithPrefix), arg0, arg1, arg2)
+}
+
+// GetBucketInfo mocks base method.
+func (m *MockOSS) GetBucketInfo(arg0 context.Context, arg1 string) (*oss.BucketInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBucketInfo", arg0, arg1)
+	ret0, _ := ret[0].(*oss.BucketInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBucketInfo indicates an expected call of GetBucketInfo.
+func (mr *MockOSSMockRecorder) GetBucketInfo(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketInfo", reflect.TypeOf((*MockOSS)(nil).GetBucketInfo), arg0, arg1)
 }
 
 // MockRAM is a mock of RAM interface.

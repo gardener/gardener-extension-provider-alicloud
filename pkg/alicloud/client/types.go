@@ -185,6 +185,7 @@ type OSS interface {
 	DeleteObjectsWithPrefix(ctx context.Context, bucketName, prefix string) error
 	CreateBucketIfNotExists(ctx context.Context, bucketName string) error
 	DeleteBucketIfExists(ctx context.Context, bucketName string) error
+	GetBucketInfo(ctx context.Context, bucketName string) (*oss.BucketInfo, error)
 }
 
 // VPCInfo contains info about an existing VPC.
