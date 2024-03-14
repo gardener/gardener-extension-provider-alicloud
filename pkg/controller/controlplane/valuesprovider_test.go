@@ -255,8 +255,14 @@ var _ = Describe("ValuesProvider", func() {
 			cluster.Seed = &gardencorev1beta1.Seed{
 				Spec: gardencorev1beta1.SeedSpec{
 					Provider: gardencorev1beta1.SeedProvider{
-						Type: "alicloud",
+						Type:   "alicloud",
+						Region: "region",
 					},
+				},
+			}
+			cluster.Shoot = &gardencorev1beta1.Shoot{
+				Spec: gardencorev1beta1.ShootSpec{
+					Region: "region",
 				},
 			}
 			values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums, false)
