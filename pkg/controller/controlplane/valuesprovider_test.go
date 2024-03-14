@@ -255,7 +255,7 @@ var _ = Describe("ValuesProvider", func() {
 			cluster.Seed = &gardencorev1beta1.Seed{
 				Spec: gardencorev1beta1.SeedSpec{
 					Provider: gardencorev1beta1.SeedProvider{
-						Type: "alicloud",
+						Type:   "alicloud",
 						Region: "region",
 					},
 				},
