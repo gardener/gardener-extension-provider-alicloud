@@ -177,7 +177,6 @@ var _ = Describe("ValuesProvider", func() {
 					"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 					"caBundle": "",
 				},
-				"pspDisabled": false,
 			},
 		}
 
@@ -212,7 +211,7 @@ var _ = Describe("ValuesProvider", func() {
 						Pods: &cidr,
 					},
 					Kubernetes: gardencorev1beta1.Kubernetes{
-						Version: "1.24.0",
+						Version: "1.28.0",
 						VerticalPodAutoscaler: &gardencorev1beta1.VerticalPodAutoscaler{
 							Enabled: true,
 						},
@@ -333,72 +332,6 @@ var _ = Describe("ValuesProvider", func() {
 			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneShootChartValues))
-		})
-
-		Context("podSecurityPolicy", func() {
-			It("should return correct shoot control plane chart when PodSecurityPolicy admission plugin is not disabled in the shoot", func() {
-				cluster.Shoot.Spec.Kubernetes.KubeAPIServer = &gardencorev1beta1.KubeAPIServerConfig{
-					AdmissionPlugins: []gardencorev1beta1.AdmissionPlugin{
-						{
-							Name: "PodSecurityPolicy",
-						},
-					},
-				}
-
-				// Call GetControlPlaneShootChartValues method and check the result
-				values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
-				Expect(err).NotTo(HaveOccurred())
-
-				controlPlaneShootChartValues := map[string]interface{}{
-					"csi-alicloud": map[string]interface{}{
-						"credential": map[string]interface{}{
-							"accessKeyID":     "Zm9v",
-							"accessKeySecret": "YmFy",
-						},
-						"enableADController": true,
-						"vpaEnabled":         true,
-						"webhookConfig": map[string]interface{}{
-							"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
-							"caBundle": "",
-						},
-						"pspDisabled": false,
-					},
-				}
-
-				Expect(values).To(Equal(controlPlaneShootChartValues))
-			})
-
-			It("should return correct shoot control plane chart when PodSecurityPolicy admission plugin is disabled in the shoot", func() {
-				cluster.Shoot.Spec.Kubernetes.KubeAPIServer = &gardencorev1beta1.KubeAPIServerConfig{
-					AdmissionPlugins: []gardencorev1beta1.AdmissionPlugin{
-						{
-							Name:     "PodSecurityPolicy",
-							Disabled: pointer.Bool(true),
-						},
-					},
-				}
-
-				// Call GetControlPlaneShootChartValues method and check the result
-				values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
-				Expect(err).NotTo(HaveOccurred())
-
-				controlPlaneShootChartValues := map[string]interface{}{
-					"csi-alicloud": map[string]interface{}{
-						"credential": map[string]interface{}{
-							"accessKeyID":     "Zm9v",
-							"accessKeySecret": "YmFy",
-						},
-						"enableADController": true,
-						"vpaEnabled":         true,
-						"webhookConfig": map[string]interface{}{
-							"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
-							"caBundle": "",
-						},
-						"pspDisabled": true,
-					},
-				}
-				Expect(values).To(Equal(controlPlaneShootChartValues))
-			})
 		})
 	})
 })
