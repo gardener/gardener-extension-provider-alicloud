@@ -43,7 +43,12 @@ const (
 	ZoneNATGWElasticIPAddress = "NATGatewayElasticIPAddress"
 	// IdentifierNodesSecurityGroup is the key for the id of the nodes security group
 	IdentifierNodesSecurityGroup = "NodesSecurityGroup"
-
+	// IdentifierIPV6Gateway is the key for the id of ipv6gateway
+	IdentifierIPV6Gateway = "DUAL_STACK_IPV6Gateway"
+	// IdentifierDualStackVSwitch_A is the key for the id of dualstack vswitch a
+	IdentifierDualStackVSwitch_A = "DUAL_STACK-A-vsw"
+	// IdentifierDualStackVSwitch_B is the key for the id of dualstack vswitch b
+	IdentifierDualStackVSwitch_B = "DUAL_STACK-B-vsw"
 	// IdentifierZoneSuffix is the key for the suffix used for a zone
 	IdentifierZoneSuffix = "Suffix"
 
@@ -56,14 +61,15 @@ const (
 // FlowContext contains the logic to reconcile or delete the AWS infrastructure.
 type FlowContext struct {
 	shared.BasicFlowContext
-	state      shared.Whiteboard
-	namespace  string
-	infraSpec  extensionsv1alpha1.InfrastructureSpec
-	config     *aliapi.InfrastructureConfig
-	commonTags aliclient.Tags
-	updater    aliclient.Updater
-	actor      aliclient.Actor
-	cluster    *extensioncontroller.Cluster
+	state       shared.Whiteboard
+	namespace   string
+	infraSpec   extensionsv1alpha1.InfrastructureSpec
+	config      *aliapi.InfrastructureConfig
+	commonTags  aliclient.Tags
+	updater     aliclient.Updater
+	actor       aliclient.Actor
+	cluster     *extensioncontroller.Cluster
+	credentials *alicloud.Credentials
 }
 
 // NewFlowContext creates a new FlowContext object
@@ -90,6 +96,7 @@ func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 		updater:          updater,
 		actor:            actor,
 		cluster:          cluster,
+		credentials:      credentials,
 	}
 	flowContext.commonTags = aliclient.Tags{
 		flowContext.tagKeyCluster(): TagValueCluster,
