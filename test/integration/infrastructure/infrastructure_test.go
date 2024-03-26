@@ -180,10 +180,11 @@ var _ = Describe("Infrastructure tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should successfully create and delete (migration from terraformer)", func() {
+		It("should successfully create and delete (migration from terraformer) with bandwith", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
 				CIDR: pointer.String(vpcCIDR),
 			}, availabilityZone)
+			providerConfig.Networks.Bandwidth = pointer.Int(eipBandwith)
 
 			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuMigrateFromTerraformer)
 			Expect(err).NotTo(HaveOccurred())
