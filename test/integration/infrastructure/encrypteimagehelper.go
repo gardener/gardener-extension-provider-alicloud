@@ -16,7 +16,7 @@ import (
 	"github.com/gardener/gardener/pkg/utils/retry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
@@ -87,12 +87,12 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 							Type: "ecs.g6.2xlarge",
 							Image: &gardencorev1beta1.ShootMachineImage{
 								Name:    imageName,
-								Version: pointer.String(imageVersion),
+								Version: ptr.To(imageVersion),
 							},
 						},
 						Volume: &gardencorev1beta1.Volume{
-							Name:       pointer.String("workgroup"),
-							Type:       pointer.String("cloud_efficiency"),
+							Name:       ptr.To("workgroup"),
+							Type:       ptr.To("cloud_efficiency"),
 							VolumeSize: "200Gi",
 							Encrypted:  enableEncryptedImage,
 						},
@@ -100,7 +100,7 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 				},
 			},
 			Networking: &gardencorev1beta1.Networking{
-				Pods: pointer.String(podCIDR),
+				Pods: ptr.To(podCIDR),
 			},
 		},
 	}

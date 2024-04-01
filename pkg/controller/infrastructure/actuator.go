@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/rest"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -457,7 +457,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 		Name:      worker.Machine.Image.Name,
 		Version:   *worker.Machine.Image.Version,
 		ID:        encryptedImageID,
-		Encrypted: pointer.Bool(true),
+		Encrypted: ptr.To(true),
 	}, nil
 }
 

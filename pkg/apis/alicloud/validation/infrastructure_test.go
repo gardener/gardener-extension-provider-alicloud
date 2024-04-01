@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
@@ -118,7 +118,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			})
 
 			It("should forbid Pod CIDR to overlap with VPC CIDR", func() {
-				networking.Pods = pointer.String("10.0.0.1/32")
+				networking.Pods = ptr.To("10.0.0.1/32")
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
 
@@ -129,7 +129,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			})
 
 			It("should forbid Services CIDR to overlap with VPC CIDR", func() {
-				networking.Services = pointer.String("10.0.0.1/32")
+				networking.Services = ptr.To("10.0.0.1/32")
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
 

@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -83,7 +83,7 @@ var _ = BeforeSuite(func() {
 
 	By("starting test environment")
 	testEnv = &envtest.Environment{
-		UseExistingCluster: pointer.Bool(true),
+		UseExistingCluster: ptr.To(true),
 		CRDInstallOptions: envtest.CRDInstallOptions{
 			Paths: []string{
 				filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_clusters.yaml"),
@@ -164,7 +164,7 @@ var _ = Describe("Infrastructure tests", func() {
 	Context("with infrastructure that requests new vpc (networks.vpc.cidr)", func() {
 		It("should successfully create and delete (terraformer)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
-				CIDR: pointer.String(vpcCIDR),
+				CIDR: ptr.To(vpcCIDR),
 			}, availabilityZone)
 
 			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseTerraformer)
@@ -173,7 +173,7 @@ var _ = Describe("Infrastructure tests", func() {
 
 		It("should successfully create and delete (flow)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
-				CIDR: pointer.String(vpcCIDR),
+				CIDR: ptr.To(vpcCIDR),
 			}, availabilityZone)
 
 			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseFlowRecoverState)
@@ -182,7 +182,7 @@ var _ = Describe("Infrastructure tests", func() {
 
 		It("should successfully create and delete (migration from terraformer)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
-				CIDR: pointer.String(vpcCIDR),
+				CIDR: ptr.To(vpcCIDR),
 			}, availabilityZone)
 
 			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuMigrateFromTerraformer)
@@ -224,7 +224,7 @@ var _ = Describe("Infrastructure tests", func() {
 	Context("with invalid credentials", func() {
 		It("should fail creation but succeed deletion (terraformer)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
-				CIDR: pointer.String(vpcCIDR),
+				CIDR: ptr.To(vpcCIDR),
 			}, availabilityZone)
 
 			var (
@@ -309,7 +309,7 @@ var _ = Describe("Infrastructure tests", func() {
 
 		It("should fail creation but succeed deletion (flow)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
-				CIDR: pointer.String(vpcCIDR),
+				CIDR: ptr.To(vpcCIDR),
 			}, availabilityZone)
 
 			var (
@@ -698,7 +698,7 @@ func verifyCreation(
 	Expect(describeVpcsOutput.Vpcs.Vpc[0].VpcId).To(Equal(infraStatus.VPC.ID))
 	Expect(describeVpcsOutput.Vpcs.Vpc[0].CidrBlock).To(Equal(vpcCIDR))
 	if providerConfig.Networks.VPC.CIDR != nil {
-		infrastructureIdentifier.vpcID = pointer.String(describeVpcsOutput.Vpcs.Vpc[0].VpcId)
+		infrastructureIdentifier.vpcID = ptr.To(describeVpcsOutput.Vpcs.Vpc[0].VpcId)
 	}
 
 	// vswitch
@@ -708,7 +708,7 @@ func verifyCreation(
 	Expect(err).NotTo(HaveOccurred())
 	Expect(describeVSwitchesOutput.VSwitches.VSwitch[0].CidrBlock).To(Equal(workersCIDR))
 	Expect(describeVSwitchesOutput.VSwitches.VSwitch[0].ZoneId).To(Equal(providerConfig.Networks.Zones[0].Name))
-	infrastructureIdentifier.vswitchID = pointer.String(describeVSwitchesOutput.VSwitches.VSwitch[0].VSwitchId)
+	infrastructureIdentifier.vswitchID = ptr.To(describeVSwitchesOutput.VSwitches.VSwitch[0].VSwitchId)
 	if providerConfig.Networks.VPC.CIDR != nil {
 		Expect(describeVSwitchesOutput.VSwitches.VSwitch).To(HaveLen(1))
 	}
@@ -721,7 +721,7 @@ func verifyCreation(
 	Expect(describeNatGatewaysOutput.NatGateways.NatGateway).To(HaveLen(1))
 	Expect(describeNatGatewaysOutput.NatGateways.NatGateway[0].SnatTableIds.SnatTableId).To(HaveLen(1))
 	if providerConfig.Networks.VPC.CIDR != nil {
-		infrastructureIdentifier.natGatewayID = pointer.String(describeNatGatewaysOutput.NatGateways.NatGateway[0].NatGatewayId)
+		infrastructureIdentifier.natGatewayID = ptr.To(describeNatGatewaysOutput.NatGateways.NatGateway[0].NatGatewayId)
 	}
 
 	// snat entries
@@ -732,8 +732,8 @@ func verifyCreation(
 	Expect(err).NotTo(HaveOccurred())
 	Expect(describeSnatTableEntriesOutput.SnatTableEntries.SnatTableEntry).To(HaveLen(1))
 	Expect(describeSnatTableEntriesOutput.SnatTableEntries.SnatTableEntry[0].SourceCIDR).To(Equal(workersCIDR))
-	infrastructureIdentifier.snatTableId = pointer.String(describeSnatTableEntriesOutput.SnatTableEntries.SnatTableEntry[0].SnatTableId)
-	infrastructureIdentifier.snatEntryId = pointer.String(describeSnatTableEntriesOutput.SnatTableEntries.SnatTableEntry[0].SnatEntryId)
+	infrastructureIdentifier.snatTableId = ptr.To(describeSnatTableEntriesOutput.SnatTableEntries.SnatTableEntry[0].SnatTableId)
+	infrastructureIdentifier.snatEntryId = ptr.To(describeSnatTableEntriesOutput.SnatTableEntries.SnatTableEntry[0].SnatEntryId)
 
 	// elastic ips
 	describeEipAddressesReq := vpc.CreateDescribeEipAddressesRequest()
@@ -743,7 +743,7 @@ func verifyCreation(
 	Expect(describeEipAddressesOutput.EipAddresses.EipAddress).To(HaveLen(1))
 	Expect(describeEipAddressesOutput.EipAddresses.EipAddress[0].InternetChargeType).To(Equal(alicloudclient.DefaultInternetChargeType))
 	Expect(describeEipAddressesOutput.EipAddresses.EipAddress[0].Name).To(Equal(infra.Namespace + eipSuffix))
-	infrastructureIdentifier.elasticIPAllocationID = pointer.String(describeEipAddressesOutput.EipAddresses.EipAddress[0].AllocationId)
+	infrastructureIdentifier.elasticIPAllocationID = ptr.To(describeEipAddressesOutput.EipAddresses.EipAddress[0].AllocationId)
 
 	// security groups
 	describeSecurityGroupsReq := ecs.CreateDescribeSecurityGroupsRequest()
@@ -969,9 +969,9 @@ func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory,
 	Expect(err).NotTo(HaveOccurred())
 
 	return infrastructureIdentifiers{
-		vpcID:        pointer.String(createVPCsResp.VpcId),
-		vswitchID:    pointer.String(createVSwitchsResp.VSwitchId),
-		natGatewayID: pointer.String(createNatGatewayResp.NatGatewayId),
+		vpcID:        ptr.To(createVPCsResp.VpcId),
+		vswitchID:    ptr.To(createVSwitchsResp.VSwitchId),
+		natGatewayID: ptr.To(createNatGatewayResp.NatGatewayId),
 	}
 }
 

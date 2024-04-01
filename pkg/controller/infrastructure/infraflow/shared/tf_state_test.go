@@ -8,7 +8,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
 )
@@ -31,13 +31,13 @@ var _ = Describe("TerraformState", func() {
 		Expect(len(tables)).To(Equal(2))
 
 		Expect(tf.GetManagedResourceInstanceID("fake_routetable", "routetable_private_utility_z0")).
-			To(Equal(pointer.String("rtb-77777")))
+			To(Equal(ptr.To("rtb-77777")))
 
 		Expect(tf.GetManagedResourceInstanceName("fake_resource_a", "nodes")).
-			To(Equal(pointer.String("shoot--foo--bar-nodes")))
+			To(Equal(ptr.To("shoot--foo--bar-nodes")))
 
 		Expect(tf.GetManagedResourceInstanceAttribute("fake_natgateway", "natgw_z0", "private_ip")).
-			To(Equal(pointer.String("10.100.201.202")))
+			To(Equal(ptr.To("10.100.201.202")))
 
 		Expect(tf.GetManagedResourceInstanceAttribute("fake_natgateway", "natgw_z0", "foobar")).
 			To(BeNil())

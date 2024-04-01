@@ -7,9 +7,8 @@ package helper
 import (
 	"fmt"
 
-	"k8s.io/utils/pointer"
-
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"k8s.io/utils/ptr"
 )
 
 // FindVSwitchForPurposeAndZone takes a list of vswitches and tries to find the first entry
@@ -51,7 +50,7 @@ func FindSecurityGroupByPurpose(securityGroups []api.SecurityGroup, purpose api.
 func matchEncryptedFlag(encrypted *bool, expectEncrypted bool) bool {
 	checkedVal := encrypted
 	if checkedVal == nil {
-		checkedVal = pointer.Bool(false)
+		checkedVal = ptr.To(false)
 	}
 
 	return *checkedVal == expectEncrypted
@@ -78,7 +77,7 @@ func FindMachineImage(machineImages []api.MachineImage, imageName, imageVersion 
 func AppendMachineImage(machineImages []api.MachineImage, machineImage api.MachineImage) []api.MachineImage {
 	expectEncripted := machineImage.Encrypted
 	if expectEncripted == nil {
-		expectEncripted = pointer.Bool(false)
+		expectEncripted = ptr.To(false)
 	}
 	if _, err := FindMachineImage(machineImages, machineImage.Name, machineImage.Version, *expectEncripted); err != nil {
 		return append(machineImages, machineImage)

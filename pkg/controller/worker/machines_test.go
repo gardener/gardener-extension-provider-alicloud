@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/charts"
@@ -288,7 +288,7 @@ var _ = Describe("Machines", func() {
 									{
 										Name:      machineImageName,
 										Version:   machineImageVersion,
-										Encrypted: pointer.Bool(true),
+										Encrypted: ptr.To(true),
 										ID:        encryptedImageID,
 									},
 								},
@@ -555,13 +555,13 @@ var _ = Describe("Machines", func() {
 								Name:      machineImageName,
 								Version:   machineImageVersion,
 								ID:        machineImageID,
-								Encrypted: pointer.Bool(false),
+								Encrypted: ptr.To(false),
 							},
 							{
 								Name:      machineImageName,
 								Version:   machineImageVersion,
 								ID:        encryptedImageID,
-								Encrypted: pointer.Bool(true),
+								Encrypted: ptr.To(true),
 							},
 						},
 					}

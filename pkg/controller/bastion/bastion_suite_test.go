@@ -21,7 +21,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestBastion(t *testing.T) {
@@ -360,7 +360,7 @@ func createShootTestStruct() *gardencorev1beta1.Shoot {
 	return &gardencorev1beta1.Shoot{
 		Spec: gardencorev1beta1.ShootSpec{
 			Region:            "eu-nl-1",
-			SecretBindingName: pointer.String(v1beta1constants.SecretNameCloudProvider),
+			SecretBindingName: ptr.To(v1beta1constants.SecretNameCloudProvider),
 			Provider: gardencorev1beta1.Provider{
 				InfrastructureConfig: &runtime.RawExtension{
 					Raw: []byte(json),
@@ -370,7 +370,7 @@ func createShootTestStruct() *gardencorev1beta1.Shoot {
 						Machine: gardencorev1beta1.Machine{
 							Image: &gardencorev1beta1.ShootMachineImage{
 								Name:    "machine-name",
-								Version: pointer.String("macchine-version"),
+								Version: ptr.To("macchine-version"),
 							},
 						},
 					},

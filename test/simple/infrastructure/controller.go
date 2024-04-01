@@ -22,7 +22,7 @@ import (
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	runtimelog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -60,7 +60,7 @@ func main() {
 	var ctx = context.Background()
 
 	var testEnv = &envtest.Environment{
-		UseExistingCluster: pointer.Bool(true),
+		UseExistingCluster: ptr.To(true),
 		CRDInstallOptions: envtest.CRDInstallOptions{
 			Paths: []string{
 				filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_clusters.yaml"),
@@ -259,20 +259,20 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 							Type: "ecs.g6.2xlarge",
 							Image: &gardencorev1beta1.ShootMachineImage{
 								Name:    imageName,
-								Version: pointer.String(imageVersion),
+								Version: ptr.To(imageVersion),
 							},
 						},
 						Volume: &gardencorev1beta1.Volume{
-							Name:       pointer.String("workgroup"),
-							Type:       pointer.String("cloud_efficiency"),
+							Name:       ptr.To("workgroup"),
+							Type:       ptr.To("cloud_efficiency"),
 							VolumeSize: "200Gi",
-							Encrypted:  pointer.Bool(false),
+							Encrypted:  ptr.To(false),
 						},
 					},
 				},
 			},
 			Networking: &gardencorev1beta1.Networking{
-				Pods: pointer.String(podCIDR),
+				Pods: ptr.To(podCIDR),
 			},
 		},
 	}
