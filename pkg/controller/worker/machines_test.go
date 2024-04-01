@@ -574,7 +574,7 @@ var _ = Describe("Machines", func() {
 					ctx := context.TODO()
 					c.EXPECT().Status().Return(statusWriter)
 					statusWriter.EXPECT().Patch(ctx, gomock.AssignableToTypeOf(&extensionsv1alpha1.Worker{}), gomock.Any()).DoAndReturn(
-						func(_ context.Context, obj *extensionsv1alpha1.Worker, _ client.Patch, opts ...client.PatchOption) error {
+						func(_ context.Context, obj *extensionsv1alpha1.Worker, _ client.Patch, _ ...client.PatchOption) error {
 							Expect(obj.Status.ProviderStatus).To(Equal(&runtime.RawExtension{
 								Object: expectedImages,
 							}))

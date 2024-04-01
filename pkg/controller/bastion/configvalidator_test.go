@@ -132,7 +132,7 @@ var _ = Describe("ConfigValidator", func() {
 			key := client.ObjectKey{Namespace: cluster.ObjectMeta.Name, Name: cluster.Shoot.Name}
 
 			c.EXPECT().Get(ctx, key, gomock.AssignableToTypeOf(&extensionsv1alpha1.Worker{})).DoAndReturn(
-				func(_ context.Context, namespacedName client.ObjectKey, obj *extensionsv1alpha1.Worker, _ ...client.GetOption) error {
+				func(_ context.Context, _ client.ObjectKey, obj *extensionsv1alpha1.Worker, _ ...client.GetOption) error {
 					worker.DeepCopyInto(obj)
 					return nil
 				})
@@ -240,7 +240,7 @@ func createClusters() *extensions.Cluster {
 }
 
 func clientGet(result client.Object) interface{} {
-	return func(ctx context.Context, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
+	return func(_ context.Context, _ client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 		switch obj.(type) {
 		case *corev1.Secret:
 			*obj.(*corev1.Secret) = *result.(*corev1.Secret)
