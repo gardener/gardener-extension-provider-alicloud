@@ -406,6 +406,10 @@ var _ = Describe("Machines", func() {
 							"name":      w.Spec.SecretRef.Name,
 							"namespace": w.Spec.SecretRef.Namespace,
 						},
+						"operatingSystem": map[string]interface{}{
+							"operatingSystemName":    machineImageName,
+							"operatingSystemVersion": machineImageVersion,
+						},
 					}
 
 					dataDisksPool1 := []map[string]interface{}{
