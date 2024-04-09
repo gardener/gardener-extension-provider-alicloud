@@ -20,7 +20,7 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	mockkubernetes "github.com/gardener/gardener/pkg/client/kubernetes/mock"
-	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/charts"
@@ -288,7 +288,7 @@ var _ = Describe("Machines", func() {
 									{
 										Name:      machineImageName,
 										Version:   machineImageVersion,
-										Encrypted: pointer.Bool(true),
+										Encrypted: ptr.To(true),
 										ID:        encryptedImageID,
 									},
 								},
@@ -555,13 +555,13 @@ var _ = Describe("Machines", func() {
 								Name:      machineImageName,
 								Version:   machineImageVersion,
 								ID:        machineImageID,
-								Encrypted: pointer.Bool(false),
+								Encrypted: ptr.To(false),
 							},
 							{
 								Name:      machineImageName,
 								Version:   machineImageVersion,
 								ID:        encryptedImageID,
-								Encrypted: pointer.Bool(true),
+								Encrypted: ptr.To(true),
 							},
 						},
 					}
@@ -574,7 +574,7 @@ var _ = Describe("Machines", func() {
 					ctx := context.TODO()
 					c.EXPECT().Status().Return(statusWriter)
 					statusWriter.EXPECT().Patch(ctx, gomock.AssignableToTypeOf(&extensionsv1alpha1.Worker{}), gomock.Any()).DoAndReturn(
-						func(_ context.Context, obj *extensionsv1alpha1.Worker, _ client.Patch, opts ...client.PatchOption) error {
+						func(_ context.Context, obj *extensionsv1alpha1.Worker, _ client.Patch, _ ...client.PatchOption) error {
 							Expect(obj.Status.ProviderStatus).To(Equal(&runtime.RawExtension{
 								Object: expectedImages,
 							}))

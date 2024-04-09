@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	vpaautoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestController(t *testing.T) {
@@ -269,7 +269,7 @@ var _ = Describe("Ensurer", func() {
 					FeatureGates: map[string]bool{
 						"Foo": true,
 					},
-					EnableControllerAttachDetach: pointer.Bool(true),
+					EnableControllerAttachDetach: ptr.To(true),
 					ProviderID:                   "place_holder_of_providerid",
 				}
 
@@ -297,7 +297,7 @@ var _ = Describe("Ensurer", func() {
 			DeferCleanup(testutils.WithVar(&ImageVector, imagevector.ImageVector{{
 				Name:       "machine-controller-manager-provider-alicloud",
 				Repository: "foo",
-				Tag:        pointer.String("bar"),
+				Tag:        ptr.To("bar"),
 			}}))
 		})
 

@@ -33,7 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -129,7 +129,7 @@ var _ = BeforeSuite(func() {
 
 	By("starting test environment")
 	testEnv = &envtest.Environment{
-		UseExistingCluster: pointer.Bool(true),
+		UseExistingCluster: ptr.To(true),
 		CRDInstallOptions: envtest.CRDInstallOptions{
 			Paths: []string{
 				filepath.Join(repoRoot, "example", "20-crd-extensions.gardener.cloud_clusters.yaml"),
@@ -413,14 +413,14 @@ func createShoot(infrastructureConfig []byte) *gardencorev1beta1.Shoot {
 		},
 		Spec: gardencorev1beta1.ShootSpec{
 			Region:            *region,
-			SecretBindingName: pointer.String(v1beta1constants.SecretNameCloudProvider),
+			SecretBindingName: ptr.To(v1beta1constants.SecretNameCloudProvider),
 			Provider: gardencorev1beta1.Provider{
 				InfrastructureConfig: &runtime.RawExtension{
 					Raw: infrastructureConfig,
 				},
 			},
 			Networking: &gardencorev1beta1.Networking{
-				Pods: pointer.String(podCIDR),
+				Pods: ptr.To(podCIDR),
 			},
 		},
 	}
@@ -560,11 +560,11 @@ func prepareVPCandShootSecurityGroup(ctx context.Context, clientFactory alicloud
 	Expect(err).NotTo(HaveOccurred())
 
 	return infrastructureIdentifiers{
-		vpcID:            pointer.String(createVPCsResp.VpcId),
-		vswitchID:        pointer.String(createVSwitchsResp.VSwitchId),
-		natGatewayID:     pointer.String(createNatGatewayResp.NatGatewayId),
-		securityGroupIDs: pointer.String(createSecurityGroupsResp.SecurityGroupId),
-		zone:             pointer.String(createVSwitchsReq.ZoneId),
+		vpcID:            ptr.To(createVPCsResp.VpcId),
+		vswitchID:        ptr.To(createVSwitchsResp.VSwitchId),
+		natGatewayID:     ptr.To(createNatGatewayResp.NatGatewayId),
+		securityGroupIDs: ptr.To(createSecurityGroupsResp.SecurityGroupId),
+		zone:             ptr.To(createVSwitchsReq.ZoneId),
 	}
 }
 

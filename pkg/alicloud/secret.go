@@ -10,7 +10,7 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,7 +40,7 @@ func ReadSecretCredentials(secret *corev1.Secret, allowDNSKeys bool) (*Credentia
 
 	var altAccessKeyIDKey, altAccessKeySecretKey *string
 	if allowDNSKeys {
-		altAccessKeyIDKey, altAccessKeySecretKey = pointer.String(dnsAccessKeyID), pointer.String(dnsAccessKeySecret)
+		altAccessKeyIDKey, altAccessKeySecretKey = ptr.To(dnsAccessKeyID), ptr.To(dnsAccessKeySecret)
 	}
 
 	accessKeyID, ok := getSecretDataValue(secret, AccessKeyID, altAccessKeyIDKey)

@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -202,7 +202,7 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 			volume := &worker.DataVolumes[i]
 			if volume.Encrypted == nil {
 				logger.Info("Set encrypted disk by default for data disk")
-				volume.Encrypted = pointer.Bool(true)
+				volume.Encrypted = ptr.To(true)
 			}
 		}
 	}
@@ -216,7 +216,7 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 			return nil
 		}
 		logger.Info("Customized Image is used and we set encrypted disk by default for system disk")
-		worker.Volume.Encrypted = pointer.Bool(true)
+		worker.Volume.Encrypted = ptr.To(true)
 	}
 	return nil
 }
@@ -337,7 +337,7 @@ func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(ctx context.C
 			if oldDataVolume == nil {
 				if dataVolume.Encrypted == nil {
 					logger.Info("Set encrypted disk by default for newly added data disk")
-					dataVolume.Encrypted = pointer.Bool(true)
+					dataVolume.Encrypted = ptr.To(true)
 				}
 				continue
 			}
@@ -454,11 +454,11 @@ func (s *shootMutator) mutateControlPlaneConfigForCreate(shoot *corev1beta1.Shoo
 
 	if cpConfig.CSI == nil {
 		cpConfig.CSI = &apisalicloudv1alpha1.CSI{
-			EnableADController: pointer.Bool(true),
+			EnableADController: ptr.To(true),
 		}
 	} else {
 		if cpConfig.CSI.EnableADController == nil {
-			cpConfig.CSI.EnableADController = pointer.Bool(true)
+			cpConfig.CSI.EnableADController = ptr.To(true)
 		}
 	}
 

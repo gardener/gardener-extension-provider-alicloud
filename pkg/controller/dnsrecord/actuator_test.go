@@ -9,16 +9,16 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/controller/dnsrecord"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
-	mockmanager "github.com/gardener/gardener/pkg/mock/controller-runtime/manager"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
+	mockmanager "github.com/gardener/gardener/third_party/mock/controller-runtime/manager"
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -127,9 +127,9 @@ var _ = Describe("Actuator", func() {
 		}
 		expectUpdateDNSRecordStatus = func(zone string) {
 			sw.EXPECT().Patch(ctx, gomock.AssignableToTypeOf(&extensionsv1alpha1.DNSRecord{}), gomock.Any()).DoAndReturn(
-				func(_ context.Context, obj *extensionsv1alpha1.DNSRecord, _ client.Patch, opts ...client.PatchOption) error {
+				func(_ context.Context, obj *extensionsv1alpha1.DNSRecord, _ client.Patch, _ ...client.PatchOption) error {
 					Expect(obj.Status).To(Equal(extensionsv1alpha1.DNSRecordStatus{
-						Zone: pointer.String(zone),
+						Zone: ptr.To(zone),
 					}))
 					return nil
 				},
@@ -151,7 +151,7 @@ var _ = Describe("Actuator", func() {
 		})
 
 		It("should reconcile the DNSRecord if a zone is specified and it's a domain name", func() {
-			dns.Spec.Zone = pointer.String(domainName)
+			dns.Spec.Zone = ptr.To(domainName)
 
 			expectGetDNSRecordSecret()
 			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
@@ -164,7 +164,7 @@ var _ = Describe("Actuator", func() {
 		})
 
 		It("should reconcile the DNSRecord if a zone is specified and it's a domain id", func() {
-			dns.Spec.Zone = pointer.String(domainId)
+			dns.Spec.Zone = ptr.To(domainId)
 
 			expectGetDNSRecordSecret()
 			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
@@ -178,8 +178,8 @@ var _ = Describe("Actuator", func() {
 		})
 
 		It("should reconcile the DNSRecord if a zone is specified and it's different from the status zone", func() {
-			dns.Spec.Zone = pointer.String(domainId)
-			dns.Status.Zone = pointer.String("example.com:2")
+			dns.Spec.Zone = ptr.To(domainId)
+			dns.Status.Zone = ptr.To("example.com:2")
 
 			expectGetDNSRecordSecret()
 			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
@@ -195,7 +195,7 @@ var _ = Describe("Actuator", func() {
 
 	Describe("#Delete", func() {
 		It("should delete the DNSRecord with a composite domain name in status", func() {
-			dns.Status.Zone = pointer.String(compositeDomainName)
+			dns.Status.Zone = ptr.To(compositeDomainName)
 
 			expectGetDNSRecordSecret()
 			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
@@ -206,7 +206,7 @@ var _ = Describe("Actuator", func() {
 		})
 
 		It("should delete the DNSRecord with a domain name in status", func() {
-			dns.Status.Zone = pointer.String(domainName)
+			dns.Status.Zone = ptr.To(domainName)
 
 			expectGetDNSRecordSecret()
 			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)

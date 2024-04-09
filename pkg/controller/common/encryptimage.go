@@ -159,7 +159,7 @@ func (ie *imageEncryptor) tryToGetEncrytpedImageIDFromStack(ctx context.Context,
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	err = retry.Until(timeoutCtx, interval, func(ctx context.Context) (done bool, err error) {
+	err = retry.Until(timeoutCtx, interval, func(_ context.Context) (done bool, err error) {
 		if imageId, needRetry, err = ie.getEncrytpedImageIDFromStack(stackId); err != nil {
 			if needRetry {
 				return retry.MinorError(err)

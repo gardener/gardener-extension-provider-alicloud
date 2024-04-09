@@ -10,7 +10,7 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
@@ -54,7 +54,7 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 				Name:      name,
 				Version:   version,
 				ID:        machineImageID,
-				Encrypted: pointer.Bool(encrypted),
+				Encrypted: ptr.To(encrypted),
 			}, nil
 		}
 	}

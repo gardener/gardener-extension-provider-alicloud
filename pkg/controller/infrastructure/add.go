@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 )
 
@@ -51,6 +52,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, options A
 		ControllerOptions: options.Controller,
 		Predicates:        infrastructure.DefaultPredicates(ctx, mgr, options.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,
+		KnownCodes:        helper.KnownCodes,
 	})
 }
 

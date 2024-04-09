@@ -14,10 +14,10 @@ import (
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/controllerutils"
-	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
-	mockmanager "github.com/gardener/gardener/pkg/mock/controller-runtime/manager"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
+	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
+	mockmanager "github.com/gardener/gardener/third_party/mock/controller-runtime/manager"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -146,14 +146,14 @@ var _ = Describe("Mutating Shoot", func() {
 		}
 		controlPlaneConfig := &apisalicloudv1alpha1.ControlPlaneConfig{
 			CSI: &apisalicloudv1alpha1.CSI{
-				EnableADController: pointer.Bool(false),
+				EnableADController: ptr.To(false),
 			}}
 		oldShoot = &corev1beta1.Shoot{
 			Spec: corev1beta1.ShootSpec{
-				SeedName: pointer.String("alicloud"),
+				SeedName: ptr.To("alicloud"),
 				Networking: &corev1beta1.Networking{
-					Nodes: pointer.String("10.250.0.0/16"),
-					Type:  pointer.String("calico"),
+					Nodes: ptr.To("10.250.0.0/16"),
+					Type:  ptr.To("calico"),
 				},
 				Provider: corev1beta1.Provider{
 					Type: alicloud.Type,
@@ -165,11 +165,11 @@ var _ = Describe("Mutating Shoot", func() {
 							Machine: corev1beta1.Machine{
 								Image: &corev1beta1.ShootMachineImage{
 									Name:    imageName,
-									Version: pointer.String(imageVersionStr),
+									Version: ptr.To(imageVersionStr),
 								},
 							},
 							Volume: &corev1beta1.Volume{
-								Encrypted: pointer.Bool(true),
+								Encrypted: ptr.To(true),
 							},
 							DataVolumes: []corev1beta1.DataVolume{
 								{},
@@ -186,12 +186,12 @@ var _ = Describe("Mutating Shoot", func() {
 				Namespace: namespace,
 			},
 			Spec: corev1beta1.ShootSpec{
-				SeedName: pointer.String("alicloud"),
+				SeedName: ptr.To("alicloud"),
 				Networking: &corev1beta1.Networking{
-					Nodes: pointer.String("10.250.0.0/16"),
-					Type:  pointer.String("calico"),
+					Nodes: ptr.To("10.250.0.0/16"),
+					Type:  ptr.To("calico"),
 				},
-				SecretBindingName: pointer.String(name),
+				SecretBindingName: ptr.To(name),
 				Provider: corev1beta1.Provider{
 					Type: alicloud.Type,
 					Workers: []corev1beta1.Worker{
@@ -199,7 +199,7 @@ var _ = Describe("Mutating Shoot", func() {
 							Machine: corev1beta1.Machine{
 								Image: &corev1beta1.ShootMachineImage{
 									Name:    imageName,
-									Version: pointer.String(imageVersionStr),
+									Version: ptr.To(imageVersionStr),
 								},
 							},
 							Volume: &corev1beta1.Volume{},
@@ -211,7 +211,7 @@ var _ = Describe("Mutating Shoot", func() {
 							Machine: corev1beta1.Machine{
 								Image: &corev1beta1.ShootMachineImage{
 									Name:    imageName,
-									Version: pointer.String(imageVersionStr),
+									Version: ptr.To(imageVersionStr),
 								},
 							},
 						},
@@ -398,13 +398,13 @@ var _ = Describe("Mutating Shoot", func() {
 
 		})
 		It("Should keep default encrypted flag unchanged if shoot is created in new version and this flag is not set explicitly", func() {
-			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
+			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = ptr.To(true)
 			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
 			sameName := "worker1"
 			oldShoot.Spec.Provider.Workers[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].Name = sameName
 
-			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = pointer.Bool(true)
+			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = ptr.To(true)
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
@@ -416,14 +416,14 @@ var _ = Describe("Mutating Shoot", func() {
 
 		})
 		It("Should use set encrypted flag if it's specified in new shoot", func() {
-			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(false)
+			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = ptr.To(true)
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = ptr.To(false)
 			sameName := "worker1"
 			oldShoot.Spec.Provider.Workers[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].Name = sameName
 
-			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = pointer.Bool(false)
-			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = pointer.Bool(true)
+			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = ptr.To(false)
+			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = ptr.To(true)
 			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Name = sameName
 
@@ -440,23 +440,23 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 
 		It("should not reconcile infra if system disk is already encrypted", func() {
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = ptr.To(true)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
 
 		It("should not reconcile infra if new version of machine is not encrypted", func() {
-			newShoot.Spec.Provider.Workers[1].Machine.Image.Version = pointer.String("2.0")
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
+			newShoot.Spec.Provider.Workers[1].Machine.Image.Version = ptr.To("2.0")
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = ptr.To(true)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
 
 		It("should reconcile infra if new version of machine is added and it is encrypted", func() {
-			newShoot.Spec.Provider.Workers[0].Machine.Image.Version = pointer.String("2.0")
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
+			newShoot.Spec.Provider.Workers[0].Machine.Image.Version = ptr.To("2.0")
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = ptr.To(true)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeTrue())
@@ -464,7 +464,7 @@ var _ = Describe("Mutating Shoot", func() {
 
 		It("should reconcile infra if machine is changed to be encrypted", func() {
 			oldShoot.Spec.Provider.Workers[0].Volume.Encrypted = nil
-			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = pointer.Bool(true)
+			newShoot.Spec.Provider.Workers[0].Volume.Encrypted = ptr.To(true)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeTrue())
@@ -495,7 +495,7 @@ var _ = Describe("Mutating Shoot", func() {
 				Type:           corev1beta1.LastOperationTypeReconcile,
 				State:          corev1beta1.LastOperationStateProcessing,
 			}
-			newShoot.Status.SeedName = pointer.String("aws")
+			newShoot.Status.SeedName = ptr.To("aws")
 			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
@@ -510,7 +510,7 @@ var _ = Describe("Mutating Shoot", func() {
 				Type:           corev1beta1.LastOperationTypeMigrate,
 				State:          corev1beta1.LastOperationStateProcessing,
 			}
-			newShoot.Status.SeedName = pointer.String("alicloud")
+			newShoot.Status.SeedName = ptr.To("alicloud")
 			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
@@ -629,8 +629,8 @@ var _ = Describe("Mutating Shoot", func() {
 	Context("Mutate shoot networking providerconfig for type cilium", func() {
 
 		BeforeEach(func() {
-			newShoot.Spec.Networking.Type = pointer.String("cilium")
-			oldShoot.Spec.Networking.Type = pointer.String("cilium")
+			newShoot.Spec.Networking.Type = ptr.To("cilium")
+			oldShoot.Spec.Networking.Type = ptr.To("cilium")
 		})
 
 		It("should return without mutation when shoot is in scheduled to new seed phase", func() {
@@ -641,7 +641,7 @@ var _ = Describe("Mutating Shoot", func() {
 				Type:           corev1beta1.LastOperationTypeReconcile,
 				State:          corev1beta1.LastOperationStateProcessing,
 			}
-			newShoot.Status.SeedName = pointer.String("aws")
+			newShoot.Status.SeedName = ptr.To("aws")
 			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
@@ -656,7 +656,7 @@ var _ = Describe("Mutating Shoot", func() {
 				Type:           corev1beta1.LastOperationTypeMigrate,
 				State:          corev1beta1.LastOperationStateProcessing,
 			}
-			newShoot.Status.SeedName = pointer.String("alicloud")
+			newShoot.Status.SeedName = ptr.To("alicloud")
 			expectedShootNetworkingProviderConfig := newShoot.Spec.Networking.ProviderConfig.DeepCopy()
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
