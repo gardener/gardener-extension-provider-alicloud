@@ -57,7 +57,7 @@ const (
 	natGatewayCIDR      = "10.250.128.0/21" // Enhanced NatGateway need bind with VSwitch, natGatewayCIDR is used for this VSwitch
 	podCIDR             = "100.96.0.0/11"
 	securityGroupSuffix = "-sg"
-	imageID             = "m-gw8c603eae9ygxgt2ig6"
+	imageID             = "m-gw88bda87u4y5m6wwyjv"
 )
 
 var myPublicIP = ""
