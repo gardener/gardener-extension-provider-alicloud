@@ -5,19 +5,12 @@
 package alicloud
 
 import (
-	"path/filepath"
-
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-
-	"github.com/gardener/gardener-extension-provider-alicloud/charts"
 )
 
 const (
 	// Name is the name of the Alicloud provider.
 	Name = "provider-alicloud"
-
-	// InfraRelease is the name of the alicloud-infra chart.
-	InfraRelease = "alicloud-infra"
 
 	// MachineControllerManagerProviderAlicloudImageName is the name of the MachineControllerManagerProviderAlicloud image.
 	MachineControllerManagerProviderAlicloudImageName = "machine-controller-manager-provider-alicloud"
@@ -48,17 +41,9 @@ const (
 	// CSISnapshotValidationWebhookImageName is the name of the csi-snapshot-validation-webhook image.
 	CSISnapshotValidationWebhookImageName = "csi-snapshot-validation-webhook"
 
-	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
-	MachineControllerManagerName = "machine-controller-manager"
-	// MachineControllerManagerVpaName is the name of the VerticalPodAutoscaler of the machine-controller-manager deployment.
-	MachineControllerManagerVpaName = "machine-controller-manager-vpa"
-	// MachineControllerManagerMonitoringConfigName is the name of the ConfigMap containing monitoring stack configurations for machine-controller-manager.
-	MachineControllerManagerMonitoringConfigName = "machine-controller-manager-monitoring-config"
-	// BackupSecretName is the name of the secret containing the credentials for storing the backups of Shoot clusters.
-	BackupSecretName = "etcd-backup"
 	// StorageEndpoint is the data field in a secret where the storage endpoint is stored at.
 	StorageEndpoint = "storageEndpoint"
-	//CloudControllerManagerName is the a constant for the name of the CloudController.
+	// CloudControllerManagerName is the a constant for the name of the CloudController.
 	CloudControllerManagerName = "cloud-controller-manager"
 	// CSIPluginController is the a constant for the name of the csi-plugin-controller Deployment in the Seed.
 	CSIPluginController = "csi-plugin-controller"
@@ -79,7 +64,7 @@ const (
 	// ServiceForNATGateway is a constant for the name of service of NAT gateway.
 	ServiceForNATGateway = "nat.aliyuncs.com"
 
-	//ErrorCodeNoPermission is a constant for the error code of no permission.
+	// ErrorCodeNoPermission is a constant for the error code of no permission.
 	ErrorCodeNoPermission = "NoPermission"
 	// ErrorCodeRoleEntityNotExist is a constant for the error code of role entity not exist.
 	ErrorCodeRoleEntityNotExist = "EntityNotExist.Role"
@@ -94,11 +79,6 @@ const (
 )
 
 var (
-	// ChartsPath is the path to the charts
-	ChartsPath = filepath.Join("charts")
-	// InfraChartPath is the path to the alicloud-infra chart.
-	InfraChartPath = filepath.Join(ChartsPath, charts.InternalChartsPath, "alicloud-infra")
-
 	// UsernamePrefix is a constant for the username prefix of components deployed by AWS.
 	UsernamePrefix = extensionsv1alpha1.SchemeGroupVersion.Group + ":" + Name + ":"
 )
