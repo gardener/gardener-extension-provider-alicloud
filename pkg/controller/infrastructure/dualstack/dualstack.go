@@ -61,7 +61,7 @@ func CreateDualStackValues(
 	dualStack.Zone_B = zones[1]
 
 	// DualStack only for managed vpc
-
+	// we use last two cidr to distinguish from user's subnet
 	subCidrs, err := getLastIpv4SubCidr(*vpcCidr, 28, 2)
 	if err != nil || subCidrs == nil || len(subCidrs) < 2 {
 		return nil, fmt.Errorf("get sub cidr failed")

@@ -1631,14 +1631,14 @@ func parseAlicloudVswIpv6(vswIpv6Cidr string) (string, int, error) {
 	}
 	ip16 := ip.To16()
 	byte8 := ip16[7]
-	vswMask := int(byte8)
-
+	vswSubnet := int(byte8)
+	// byte8 is the subnet dentifier, we need set it zero to get parent ipv6 ip
 	ip16[7] = 0
 	// Convert back to IP and create a new CIDR with /56 mask
 	vpcIP := net.IP(ip16)
 	vpcCIDR := net.IPNet{IP: vpcIP, Mask: net.CIDRMask(56, 128)}
 
-	return vpcCIDR.String(), vswMask, nil
+	return vpcCIDR.String(), vswSubnet, nil
 }
 
 func isValidIPv6CIDR(s string) bool {
