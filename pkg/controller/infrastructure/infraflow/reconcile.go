@@ -141,13 +141,13 @@ func (c *FlowContext) ensureIpv6VSwitches(ctx context.Context, cidrBlock, zoneId
 	log.Info("ensureIpv6VSwitches:" + vswitchIdentifier)
 	suffix := vswitchIdentifier
 	desired := &aliclient.VSwitch{
-		Name:            c.namespace + "-" + suffix,
-		CidrBlock:       cidrBlock,
-		VpcId:           c.state.Get(IdentifierVPC),
-		Tags:            c.commonTagsWithSuffix(suffix),
-		ZoneId:          zoneId,
-		EnableIpv6:      true,
-		Ipv6CidrkSubnet: &ipv6CidrSubnet,
+		Name:           c.namespace + "-" + suffix,
+		CidrBlock:      cidrBlock,
+		VpcId:          c.state.Get(IdentifierVPC),
+		Tags:           c.commonTagsWithSuffix(suffix),
+		ZoneId:         zoneId,
+		EnableIpv6:     true,
+		Ipv6CidrSubnet: &ipv6CidrSubnet,
 	}
 
 	current, err := findExisting(ctx, c.state.Get(vswitchIdentifier), c.commonTagsWithSuffix(suffix),
