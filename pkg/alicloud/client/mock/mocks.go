@@ -163,7 +163,7 @@ func (m *MockClientFactory) NewNLBClient(arg0, arg1, arg2 string) (client.NLB, e
 }
 
 // NewNLBClient indicates an expected call of NewNLBClient.
-func (mr *MockClientFactoryMockRecorder) NewNLBClient(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewNLBClient(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewNLBClient", reflect.TypeOf((*MockClientFactory)(nil).NewNLBClient), arg0, arg1, arg2)
 }

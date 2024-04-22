@@ -93,7 +93,7 @@ func (m *MockActor) CreateIpv6Gateway(arg0 context.Context, arg1 *aliclient.IPV6
 }
 
 // CreateIpv6Gateway indicates an expected call of CreateIpv6Gateway.
-func (mr *MockActorMockRecorder) CreateIpv6Gateway(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockActorMockRecorder) CreateIpv6Gateway(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIpv6Gateway", reflect.TypeOf((*MockActor)(nil).CreateIpv6Gateway), arg0, arg1)
 }
@@ -210,7 +210,7 @@ func (m *MockActor) DeleteIpv6Gateway(arg0 context.Context, arg1 string) error {
 }
 
 // DeleteIpv6Gateway indicates an expected call of DeleteIpv6Gateway.
-func (mr *MockActorMockRecorder) DeleteIpv6Gateway(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockActorMockRecorder) DeleteIpv6Gateway(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteIpv6Gateway", reflect.TypeOf((*MockActor)(nil).DeleteIpv6Gateway), arg0, arg1)
 }
@@ -324,7 +324,7 @@ func (m *MockActor) FindIpv6GatewaysByTags(arg0 context.Context, arg1 aliclient.
 }
 
 // FindIpv6GatewaysByTags indicates an expected call of FindIpv6GatewaysByTags.
-func (mr *MockActorMockRecorder) FindIpv6GatewaysByTags(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockActorMockRecorder) FindIpv6GatewaysByTags(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindIpv6GatewaysByTags", reflect.TypeOf((*MockActor)(nil).FindIpv6GatewaysByTags), arg0, arg1)
 }
@@ -444,7 +444,7 @@ func (m *MockActor) GetEIPByAddress(arg0 context.Context, arg1 string) (*aliclie
 }
 
 // GetEIPByAddress indicates an expected call of GetEIPByAddress.
-func (mr *MockActorMockRecorder) GetEIPByAddress(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockActorMockRecorder) GetEIPByAddress(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIPByAddress", reflect.TypeOf((*MockActor)(nil).GetEIPByAddress), arg0, arg1)
 }
@@ -459,7 +459,7 @@ func (m *MockActor) GetIpv6Gateway(arg0 context.Context, arg1 string) (*aliclien
 }
 
 // GetIpv6Gateway indicates an expected call of GetIpv6Gateway.
-func (mr *MockActorMockRecorder) GetIpv6Gateway(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockActorMockRecorder) GetIpv6Gateway(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIpv6Gateway", reflect.TypeOf((*MockActor)(nil).GetIpv6Gateway), arg0, arg1)
 }
@@ -549,7 +549,7 @@ func (m *MockActor) LisIpv6Gateways(arg0 context.Context, arg1 []string) ([]*ali
 }
 
 // LisIpv6Gateways indicates an expected call of LisIpv6Gateways.
-func (mr *MockActorMockRecorder) LisIpv6Gateways(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockActorMockRecorder) LisIpv6Gateways(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LisIpv6Gateways", reflect.TypeOf((*MockActor)(nil).LisIpv6Gateways), arg0, arg1)
 }
@@ -667,7 +667,7 @@ func (m *MockActor) ModifyVpc(arg0 context.Context, arg1 string, arg2 *aliclient
 }
 
 // ModifyVpc indicates an expected call of ModifyVpc.
-func (mr *MockActorMockRecorder) ModifyVpc(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockActorMockRecorder) ModifyVpc(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyVpc", reflect.TypeOf((*MockActor)(nil).ModifyVpc), arg0, arg1, arg2)
 }
