@@ -157,6 +157,7 @@ var controlPlaneShootChart = &chart.Chart{
 			Images: []string{
 				alicloud.CSINodeDriverRegistrarImageName,
 				alicloud.CSIPluginImageName,
+				alicloud.CSIPluginInitImageName,
 				alicloud.CSILivenessProbeImageName,
 			},
 			Objects: []*chart.Object{

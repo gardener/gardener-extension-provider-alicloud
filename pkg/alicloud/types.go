@@ -38,6 +38,9 @@ const (
 	// CSIPluginImageName is the name of the CSI plugin image.
 	CSIPluginImageName = "csi-plugin-alicloud"
 
+	// CSIPluginInitImageName is the name of the CSI plugin init image.
+	CSIPluginInitImageName = "csi-plugin-alicloud-init"
+
 	// CSISnapshotValidationWebhookImageName is the name of the csi-snapshot-validation-webhook image.
 	CSISnapshotValidationWebhookImageName = "csi-snapshot-validation-webhook"
 

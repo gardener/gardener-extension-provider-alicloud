@@ -1,6 +1,7 @@
 images:
   csi-driver-registrar: image-repository:image-tag
   csi-plugin-alicloud: image-repository:image-tag
+  csi-plugin-alicloud-init: image-repository:image-tag
   csi-liveness-probe: image-repository:image-tag
 
 credential:
