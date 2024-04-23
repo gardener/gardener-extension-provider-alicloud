@@ -33,6 +33,19 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: init
+        image: {{ index .Values.images "csi-plugin-alicloud-init" }}
+        securityContext:
+          privileged: true
+          allowPrivilegeEscalation: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 1024Mi
       containers:
       - name: driver-registrar
         image: {{ index .Values.images "csi-node-driver-registrar" }}
