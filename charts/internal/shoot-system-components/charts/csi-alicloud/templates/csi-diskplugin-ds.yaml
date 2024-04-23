@@ -36,8 +36,6 @@ spec:
       initContainers:
       - name: init
         image: {{ index .Values.images "csi-plugin-alicloud-init" }}
-        # args:
-        #   - --driver=disk
         securityContext:
           privileged: true
           allowPrivilegeEscalation: true
