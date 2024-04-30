@@ -23,6 +23,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
+	extensionsv1alpha1helper "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1/helper"
 )
 
 // MachineClassKind yields the name of the machine class kind used by Alicloud provider.
@@ -140,17 +141,18 @@ func (w *workerDelegate) generateMachineConfig() error {
 			)
 
 			machineDeployments = append(machineDeployments, worker.MachineDeployment{
-				Name:                 deploymentName,
-				ClassName:            className,
-				SecretName:           className,
-				Minimum:              worker.DistributeOverZones(zoneIdx, pool.Minimum, zoneLen),
-				Maximum:              worker.DistributeOverZones(zoneIdx, pool.Maximum, zoneLen),
-				MaxSurge:             worker.DistributePositiveIntOrPercent(zoneIdx, pool.MaxSurge, zoneLen, pool.Maximum),
-				MaxUnavailable:       worker.DistributePositiveIntOrPercent(zoneIdx, pool.MaxUnavailable, zoneLen, pool.Minimum),
-				Labels:               addTopologyLabel(pool.Labels, zone),
-				Annotations:          pool.Annotations,
-				Taints:               pool.Taints,
-				MachineConfiguration: genericworkeractuator.ReadMachineConfiguration(pool),
+				Name:                         deploymentName,
+				ClassName:                    className,
+				SecretName:                   className,
+				Minimum:                      worker.DistributeOverZones(zoneIdx, pool.Minimum, zoneLen),
+				Maximum:                      worker.DistributeOverZones(zoneIdx, pool.Maximum, zoneLen),
+				MaxSurge:                     worker.DistributePositiveIntOrPercent(zoneIdx, pool.MaxSurge, zoneLen, pool.Maximum),
+				MaxUnavailable:               worker.DistributePositiveIntOrPercent(zoneIdx, pool.MaxUnavailable, zoneLen, pool.Minimum),
+				Labels:                       addTopologyLabel(pool.Labels, zone),
+				Annotations:                  pool.Annotations,
+				Taints:                       pool.Taints,
+				MachineConfiguration:         genericworkeractuator.ReadMachineConfiguration(pool),
+				ClusterAutoscalerAnnotations: extensionsv1alpha1helper.GetMachineDeploymentClusterAutoscalerAnnotations(pool.ClusterAutoscaler),
 			})
 
 			if pool.NodeTemplate != nil {
