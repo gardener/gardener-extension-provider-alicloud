@@ -25,7 +25,6 @@ import (
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -130,7 +129,6 @@ var controlPlaneChart = &chart.Chart{
 				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-plugin-controller-vpa"},
 				{Type: &appsv1.Deployment{}, Name: "csi-snapshot-controller"},
 				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-controller-vpa"},
-				{Type: &corev1.ConfigMap{}, Name: "csi-plugin-controller-observability-config"},
 				// csi-snapshot-validation-webhook
 				{Type: &appsv1.Deployment{}, Name: alicloud.CSISnapshotValidationName},
 				{Type: &corev1.Service{}, Name: alicloud.CSISnapshotValidationName},
@@ -265,9 +263,9 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	// TODO(scheererj): Delete this in a future release.
-	if err := kutil.DeleteObject(ctx, vp.client, &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "allow-kube-apiserver-to-csi-snapshot-validation", Namespace: cp.Namespace}}); err != nil {
-		return nil, fmt.Errorf("failed deleting legacy csi-snapshot-validation network policy: %w", err)
+	// TODO(rfranzke): Delete this in a future release.
+	if err := kutil.DeleteObject(ctx, vp.client, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "csi-plugin-controller-observability-config", Namespace: cp.Namespace}}); err != nil {
+		return nil, fmt.Errorf("failed deleting legacy csi-plugin-controller-observability-config ConfigMap: %w", err)
 	}
 
 	// Get control plane chart values
