@@ -21,6 +21,7 @@ spec:
         origin: gardener
         node.gardener.cloud/critical-component: "true"
     spec:
+      hostNetwork: true
       priorityClassName: system-node-critical
       serviceAccount: csi-disk-plugin-alicloud
       tolerations:
