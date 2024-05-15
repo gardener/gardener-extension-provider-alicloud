@@ -9,8 +9,6 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -38,9 +36,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 		Kind:     controlplane.KindSeed,
 		Provider: alicloud.Type,
 		Types: []extensionswebhook.Type{
-			{Obj: &appsv1.Deployment{}},
 			{Obj: &druidv1alpha1.Etcd{}},
-			{Obj: &corev1.Service{}},
 		},
 		Mutator: genericmutator.NewMutator(mgr, NewEnsurer(&opts.ETCDStorage, logger), nil, nil, nil, logger),
 	})
