@@ -5,7 +5,6 @@ podAnnotations: {}
 podLabels: {}
 featureGates: {}
 ccmNetworkFalg: public
-  # RotateKubeletServerCertificate: false
 images:
   alicloud-controller-manager: image-repository
 resources:

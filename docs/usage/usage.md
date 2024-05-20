@@ -159,9 +159,9 @@ apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
 kind: ControlPlaneConfig
 csi:
   enableADController: true
-cloudControllerManager:
-  featureGates:
-    RotateKubeletServerCertificate: true
+# cloudControllerManager:
+#   featureGates:
+#     SomeKubernetesFeature: true
 ```
 The `csi.enableADController` is used as the value of environment [DISK_AD_CONTROLLER](https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver/blob/cd0788a0a440926d504d8f8fb7f6e738fe96f3ae/pkg/disk/nodeserver.go#L80), which is used for AliCloud csi-disk-plugin. This field is optional. When a new shoot is creatd, this field is automatically set true. For an existing shoot created in previous versions, it remains unchanged. If there are persistent volumes created before year 2021, please be cautious to set this field _true_ because they may fail to mount to nodes.
 

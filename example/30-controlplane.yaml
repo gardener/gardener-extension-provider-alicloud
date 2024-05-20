@@ -57,9 +57,9 @@ spec:
   providerConfig:
     apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
     kind: ControlPlaneConfig
-    cloudControllerManager:
-      featureGates:
-        RotateKubeletServerCertificate: true
+  # cloudControllerManager:
+  #   featureGates:
+  #     SomeKubernetesFeature: true
   infrastructureProviderStatus:
     apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
     kind: InfrastructureStatus
