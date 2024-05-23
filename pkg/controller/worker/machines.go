@@ -44,7 +44,7 @@ func (w *workerDelegate) MachineClassList() client.ObjectList {
 // DeployMachineClasses generates and creates the Alicloud specific machine classes.
 func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 	if w.machineClasses == nil {
-		if err := w.generateMachineConfig(); err != nil {
+		if err := w.generateMachineConfig(ctx); err != nil {
 			return err
 		}
 	}
@@ -53,16 +53,16 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 }
 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.
-func (w *workerDelegate) GenerateMachineDeployments(_ context.Context) (worker.MachineDeployments, error) {
+func (w *workerDelegate) GenerateMachineDeployments(ctx context.Context) (worker.MachineDeployments, error) {
 	if w.machineDeployments == nil {
-		if err := w.generateMachineConfig(); err != nil {
+		if err := w.generateMachineConfig(ctx); err != nil {
 			return nil, err
 		}
 	}
 	return w.machineDeployments, nil
 }
 
-func (w *workerDelegate) generateMachineConfig() error {
+func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	var (
 		machineDeployments = worker.MachineDeployments{}
 		machineClasses     []map[string]interface{}
@@ -100,6 +100,11 @@ func (w *workerDelegate) generateMachineConfig() error {
 			return err
 		}
 
+		userData, err := worker.FetchUserData(ctx, w.client, w.worker.Namespace, pool)
+		if err != nil {
+			return err
+		}
+
 		for zoneIndex, zone := range pool.Zones {
 			zoneIdx := int32(zoneIndex)
 			nodesVSwitch, err := helper.FindVSwitchForPurposeAndZone(infrastructureStatus.VPC.VSwitches, apisalicloud.PurposeNodes, zone)
@@ -127,7 +132,7 @@ func (w *workerDelegate) generateMachineConfig() error {
 					getLabelsWithValue(pool.Labels),
 				),
 				"secret": map[string]interface{}{
-					"userData": string(pool.UserData),
+					"userData": string(userData),
 				},
 				"credentialsSecretRef": map[string]interface{}{
 					"name":      w.worker.Spec.SecretRef.Name,
