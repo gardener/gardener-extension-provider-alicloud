@@ -280,6 +280,11 @@ func (in *Networks) DeepCopyInto(out *Networks) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Bandwidth != nil {
+		in, out := &in.Bandwidth, &out.Bandwidth
+		*out = new(int)
+		**out = **in
+	}
 	return
 }
 
