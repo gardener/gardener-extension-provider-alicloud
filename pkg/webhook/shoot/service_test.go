@@ -20,7 +20,6 @@ var _ = Describe("Mutator", func() {
 	var (
 		mutator         webhook.Mutator
 		serviceConfig   = &config.Service{BackendLoadBalancerSpec: "slb.s1.small"}
-		vpnSvc          *corev1.Service
 		nginxIngressSvc *corev1.Service
 		otherSvc        *corev1.Service
 	)
@@ -28,16 +27,6 @@ var _ = Describe("Mutator", func() {
 	BeforeEach(func() {
 		mutator = NewMutator(serviceConfig)
 
-		vpnSvc = &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "vpn-shoot",
-				Namespace: metav1.NamespaceSystem,
-			},
-			Spec: corev1.ServiceSpec{
-				Type:                  corev1.ServiceTypeLoadBalancer,
-				ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster,
-			},
-		}
 		nginxIngressSvc = &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "addons-nginx-ingress-controller",
@@ -58,25 +47,6 @@ var _ = Describe("Mutator", func() {
 	})
 
 	Describe("#MutateLBService", func() {
-		It("should set ExternalTrafficPolicy to Local for vpn-shoot service", func() {
-			err := mutator.Mutate(context.TODO(), vpnSvc, nil)
-
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(vpnSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
-		})
-
-		It("should not overwrite .spec.healthCheckNodePort for vpn-shoot service", func() {
-			oldVpnSvc := vpnSvc.DeepCopy()
-			oldVpnSvc.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
-			oldVpnSvc.Spec.HealthCheckNodePort = 31279
-
-			err := mutator.Mutate(context.TODO(), vpnSvc, oldVpnSvc)
-
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(vpnSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
-			Expect(vpnSvc.Spec.HealthCheckNodePort).To(Equal(int32(31279)))
-		})
-
 		It("should set ExternalTrafficPolicy to Local for addons-nginx-ingress-controller service", func() {
 			err := mutator.Mutate(context.TODO(), nginxIngressSvc, nil)
 

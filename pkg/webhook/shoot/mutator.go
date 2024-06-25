@@ -46,7 +46,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 
 	switch x := new.(type) {
 	case *corev1.Service:
-		if x.Name == "vpn-shoot" || x.Name == "addons-nginx-ingress-controller" {
+		if x.Name == "addons-nginx-ingress-controller" {
 			var oldSvc *corev1.Service
 			if old != nil {
 				var ok bool
