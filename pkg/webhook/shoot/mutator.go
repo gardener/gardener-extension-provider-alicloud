@@ -42,20 +42,18 @@ func (m *mutator) Mutate(_ context.Context, new, old client.Object) error {
 		return nil
 	}
 
-	if svc.GetName() == "addons-nginx-ingress-controller" {
-		var oldSvc *corev1.Service
-		if old != nil {
-			var ok bool
-			oldSvc, ok = old.(*corev1.Service)
-			if !ok {
-				return fmt.Errorf("wrong object type %T", old)
-			}
+	var oldSvc *corev1.Service
+	if old != nil {
+		var ok bool
+		oldSvc, ok = old.(*corev1.Service)
+		if !ok {
+			return fmt.Errorf("wrong object type %T", old)
 		}
-
-		extensionswebhook.LogMutation(logger, svc.Kind, svc.Namespace, svc.Name)
-		webhookutils.MutateAnnotation(svc, oldSvc, m.service.BackendLoadBalancerSpec)
-		webhookutils.MutateExternalTrafficPolicy(svc, oldSvc)
 	}
+
+	extensionswebhook.LogMutation(logger, svc.Kind, svc.Namespace, svc.Name)
+	webhookutils.MutateAnnotation(svc, oldSvc, m.service.BackendLoadBalancerSpec)
+	webhookutils.MutateExternalTrafficPolicy(svc, oldSvc)
 
 	return nil
 }
