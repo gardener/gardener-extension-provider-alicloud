@@ -18,6 +18,7 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -243,7 +244,7 @@ func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1
 		return false, fmt.Errorf("secretBindingName can't be nil")
 	}
 
-	secretBindingKey := kutil.Key(shoot.Namespace, *shoot.Spec.SecretBindingName)
+	secretBindingKey := client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.SecretBindingName}
 	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
 		return false, err
 	}
@@ -251,7 +252,7 @@ func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1
 	var (
 		secret    = &corev1.Secret{}
 		secretRef = secretBinding.SecretRef.Name
-		secretKey = kutil.Key(secretBinding.SecretRef.Namespace, secretRef)
+		secretKey = client.ObjectKey{Namespace: secretBinding.SecretRef.Namespace, Name: secretRef}
 	)
 	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
 		return false, err
@@ -278,10 +279,13 @@ func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1
 
 func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVersion *string, imageRegion string, cloudProfileName string) (string, error) {
 	var (
-		cloudProfile    = &corev1beta1.CloudProfile{}
-		cloudProfileKey = kutil.Key(cloudProfileName)
+		cloudProfile = &corev1beta1.CloudProfile{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: cloudProfileName,
+			},
+		}
 	)
-	if err := kutil.LookupObject(ctx, s.client, s.apiReader, cloudProfileKey, cloudProfile); err != nil {
+	if err := kutil.LookupObject(ctx, s.client, s.apiReader, client.ObjectKeyFromObject(cloudProfile), cloudProfile); err != nil {
 		return "", err
 	}
 	cloudProfileConfig, err := s.getCloudProfileConfig(cloudProfile)

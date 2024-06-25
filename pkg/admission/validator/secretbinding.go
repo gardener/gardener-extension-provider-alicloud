@@ -10,9 +10,9 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -50,12 +50,16 @@ func (sb *secretBinding) Validate(ctx context.Context, newObj, oldObj client.Obj
 	}
 
 	var (
-		secret    = &corev1.Secret{}
-		secretKey = kutil.Key(secretBinding.SecretRef.Namespace, secretBinding.SecretRef.Name)
+		secret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretBinding.SecretRef.Name,
+				Namespace: secretBinding.SecretRef.Namespace,
+			},
+		}
 	)
 	// Explicitly use the client.Reader to prevent controller-runtime to start Informer for Secrets
 	// under the hood. The latter increases the memory usage of the component.
-	if err := sb.apiReader.Get(ctx, secretKey, secret); err != nil {
+	if err := sb.apiReader.Get(ctx, client.ObjectKeyFromObject(secret), secret); err != nil {
 		return err
 	}
 
