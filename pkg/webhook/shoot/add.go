@@ -7,7 +7,6 @@ package shoot
 import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/extensions/pkg/webhook/shoot"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -34,7 +33,6 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 	return shoot.New(mgr, shoot.Args{
 		Types: []extensionswebhook.Type{
 			{Obj: &corev1.Service{}},
-			{Obj: &appsv1.Deployment{}},
 		},
 		Mutator: NewMutator(&opts.Service),
 	})
