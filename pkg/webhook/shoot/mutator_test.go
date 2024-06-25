@@ -21,7 +21,6 @@ var _ = Describe("Mutator", func() {
 		mutator         webhook.Mutator
 		serviceConfig   = &config.Service{BackendLoadBalancerSpec: "slb.s1.small"}
 		nginxIngressSvc *corev1.Service
-		otherSvc        *corev1.Service
 	)
 
 	BeforeEach(func() {
@@ -37,24 +36,17 @@ var _ = Describe("Mutator", func() {
 				ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster,
 			},
 		}
-		otherSvc = &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "other",
-				Namespace: metav1.NamespaceSystem,
-			},
-			Spec: corev1.ServiceSpec{ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster},
-		}
 	})
 
 	Describe("#Mutate", func() {
-		It("should set ExternalTrafficPolicy to Local for addons-nginx-ingress-controller service", func() {
+		It("should set ExternalTrafficPolicy to Local", func() {
 			err := mutator.Mutate(context.TODO(), nginxIngressSvc, nil)
 
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(nginxIngressSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
 		})
 
-		It("should not overwrite .spec.healthCheckNodePort for addons-nginx-ingress-controller service", func() {
+		It("should not overwrite .spec.healthCheckNodePort", func() {
 			oldNginxIngressSvc := nginxIngressSvc.DeepCopy()
 			oldNginxIngressSvc.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
 			oldNginxIngressSvc.Spec.HealthCheckNodePort = 31280
@@ -64,13 +56,6 @@ var _ = Describe("Mutator", func() {
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(oldNginxIngressSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
 			Expect(oldNginxIngressSvc.Spec.HealthCheckNodePort).To(Equal(int32(31280)))
-		})
-
-		It("should not set ExternalTrafficPolicy to Local for other service", func() {
-			err := mutator.Mutate(context.TODO(), otherSvc, nil)
-
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(otherSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeCluster))
 		})
 	})
 })
