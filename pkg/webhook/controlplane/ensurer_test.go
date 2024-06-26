@@ -308,8 +308,7 @@ var _ = Describe("Ensurer", func() {
 				Name:            "machine-controller-manager-provider-alicloud",
 				Image:           "foo:bar",
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Command: []string{
-					"./machine-controller",
+				Args: []string{
 					"--control-kubeconfig=inClusterConfig",
 					"--machine-creation-timeout=20m",
 					"--machine-drain-timeout=2h",
