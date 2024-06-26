@@ -14,7 +14,6 @@ import (
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/controllerutils"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
 	mockmanager "github.com/gardener/gardener/third_party/mock/controller-runtime/manager"
@@ -228,19 +227,19 @@ var _ = Describe("Mutating Shoot", func() {
 	Context("#ControlPlaneConfig", func() {
 		It("should default EnableADController true if EnableADController is not set when creating a shoot ", func() {
 			gomock.InOrder(
-				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Name: "alicloud"}, gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
 						*obj = *cloudProfile
 						return nil
 					},
 				),
-				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
 						*obj = *secretBinding
 						return nil
 					},
 				),
-				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 						*obj = *secret
 						return nil
@@ -273,19 +272,19 @@ var _ = Describe("Mutating Shoot", func() {
 	Context("#Encrypted System Disk", func() {
 		It("should set encrypted flag as true for new shoot ", func() {
 			gomock.InOrder(
-				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Name: "alicloud"}, gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
 						*obj = *cloudProfile
 						return nil
 					},
 				),
-				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
 						*obj = *secretBinding
 						return nil
 					},
 				),
-				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 						*obj = *secret
 						return nil
@@ -304,19 +303,19 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 		It("should set encrypted flag as false for system disk if image is owned by alicloud", func() {
 			gomock.InOrder(
-				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Name: "alicloud"}, gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
 						*obj = *cloudProfile
 						return nil
 					},
 				),
-				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
 						*obj = *secretBinding
 						return nil
 					},
 				),
-				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 						*obj = *secret
 						return nil
@@ -351,19 +350,19 @@ var _ = Describe("Mutating Shoot", func() {
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 
 			gomock.InOrder(
-				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Name: "alicloud"}, gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
 						*obj = *cloudProfile
 						return nil
 					},
 				),
-				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
 						*obj = *secretBinding
 						return nil
 					},
 				),
-				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 						*obj = *secret
 						return nil
@@ -537,19 +536,19 @@ var _ = Describe("Mutating Shoot", func() {
 
 		It("should disable overlay for a new shoot", func() {
 			gomock.InOrder(
-				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Name: "alicloud"}, gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
 						*obj = *cloudProfile
 						return nil
 					},
 				),
-				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
 						*obj = *secretBinding
 						return nil
 					},
 				),
-				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 						*obj = *secret
 						return nil
@@ -583,19 +582,19 @@ var _ = Describe("Mutating Shoot", func() {
 
 		It("should disable overlay for a new shoot with non empty network config", func() {
 			gomock.InOrder(
-				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Name: "alicloud"}, gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
 						*obj = *cloudProfile
 						return nil
 					},
 				),
-				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
 						*obj = *secretBinding
 						return nil
 					},
 				),
-				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 						*obj = *secret
 						return nil
@@ -683,19 +682,19 @@ var _ = Describe("Mutating Shoot", func() {
 
 		It("should disable overlay for a new shoot", func() {
 			gomock.InOrder(
-				c.EXPECT().Get(ctx, kutil.Key("alicloud"), gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Name: "alicloud"}, gomock.AssignableToTypeOf(&corev1beta1.CloudProfile{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.CloudProfile, _ ...client.GetOption) error {
 						*obj = *cloudProfile
 						return nil
 					},
 				),
-				c.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
+				c.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1beta1.SecretBinding{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1beta1.SecretBinding, _ ...client.GetOption) error {
 						*obj = *secretBinding
 						return nil
 					},
 				),
-				apiReader.EXPECT().Get(ctx, kutil.Key(namespace, name), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
 					func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 						*obj = *secret
 						return nil
