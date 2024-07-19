@@ -1,4 +1,25 @@
 gardener-extension-provider-alicloud:
+  templates: 
+    helmcharts:
+    - &provider-alicloud
+      name: provider-alicloud
+      dir: charts/gardener-extension-provider-alicloud
+      registry: europe-docker.pkg.dev/gardener-project/snapshots/charts/gardener/extensions
+      mappings:
+      - ref: ocm-resource:gardener-extension-provider-alicloud.repository
+        attribute: image.repository
+      - ref: ocm-resource:gardener-extension-provider-alicloud.tag
+        attribute: image.tag
+    - &admission-alicloud
+      name: admission-alicloud
+      dir: charts/gardener-extension-admission-alicloud
+      registry: europe-docker.pkg.dev/gardener-project/snapshots/charts/gardener/extensions
+      mappings:
+      - ref: ocm-resource:gardener-extension-admission-alicloud.repository
+        attribute: global.image.repository
+      - ref: ocm-resource:gardener-extension-admission-alicloud.tag
+        attribute: global.image.tag
+
   base_definition:
     traits:
       version:
@@ -39,11 +60,19 @@ gardener-extension-provider-alicloud:
         draft_release: ~
         options:
           public_build_logs: true
+        publish:
+          helmcharts:
+          - *provider-alicloud
+          - *admission-alicloud
     pull-request:
       traits:
         pull-request: ~
         options:
           public_build_logs: true
+        publish:
+          helmcharts:
+          - *provider-alicloud
+          - *admission-alicloud
     release:
       steps:
         test-integration:
@@ -76,3 +105,8 @@ gardener-extension-provider-alicloud:
             gardener-extension-admission-alicloud:
               image: europe-docker.pkg.dev/gardener-project/releases/gardener/extensions/admission-alicloud
               tag_as_latest: true
+          helmcharts:
+          - <<: *provider-alicloud
+            registry: europe-docker.pkg.dev/gardener-project/releases/charts/gardener/extensions
+          - <<: *admission-alicloud
+            registry: europe-docker.pkg.dev/gardener-project/releases/charts/gardener/extensions
