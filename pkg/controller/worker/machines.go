@@ -83,7 +83,9 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		zoneLen := int32(len(pool.Zones))
 
-		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, computeAdditionalHashData(pool)...)
+		// TODO(duciwuci): Add ProviderConfig for V2
+		additionalHashData := computeAdditionalHashData(pool)
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, additionalHashData, additionalHashData)
 		if err != nil {
 			return err
 		}
