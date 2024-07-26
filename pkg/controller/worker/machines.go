@@ -7,7 +7,6 @@ package worker
 import (
 	"context"
 	"fmt"
-	"k8s.io/utils/ptr"
 	"path/filepath"
 	"strconv"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/charts"
