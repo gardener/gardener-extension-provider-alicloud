@@ -7,6 +7,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/ptr"
 	"path/filepath"
 	"strconv"
 
@@ -161,11 +162,13 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			})
 
 			if pool.NodeTemplate != nil {
+				arch := ptr.Deref(pool.Architecture, v1beta1constants.ArchitectureAMD64)
 				machineClassSpec["nodeTemplate"] = machinev1alpha1.NodeTemplate{
 					Capacity:     pool.NodeTemplate.Capacity,
 					InstanceType: pool.MachineType,
 					Region:       w.worker.Spec.Region,
 					Zone:         zone,
+					Architecture: ptr.To(arch),
 				}
 			}
 

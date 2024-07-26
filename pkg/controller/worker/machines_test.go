@@ -83,6 +83,9 @@ var _ = Describe("Machines", func() {
 				internetMaxBandwidthOut int
 				spotStrategy            string
 
+				archAMD string
+				archARM string
+
 				machineType           string
 				userData              []byte
 				userDataSecretName    string
@@ -118,9 +121,11 @@ var _ = Describe("Machines", func() {
 				zone1        string
 				zone2        string
 
-				nodeCapacity      corev1.ResourceList
-				nodeTemplateZone1 machinev1alpha1.NodeTemplate
-				nodeTemplateZone2 machinev1alpha1.NodeTemplate
+				nodeCapacity           corev1.ResourceList
+				nodeTemplatePool1Zone1 machinev1alpha1.NodeTemplate
+				nodeTemplatePool1Zone2 machinev1alpha1.NodeTemplate
+				nodeTemplatePool2Zone1 machinev1alpha1.NodeTemplate
+				nodeTemplatePool2Zone2 machinev1alpha1.NodeTemplate
 
 				machineConfiguration *machinev1alpha1.MachineConfiguration
 
@@ -152,6 +157,8 @@ var _ = Describe("Machines", func() {
 				internetMaxBandwidthOut = 5
 				spotStrategy = "NoSpot"
 
+				archAMD = "amd64"
+				archARM = "arm64"
 				machineType = "large"
 				userData = []byte("some-user-data")
 				userDataSecretName = "userdata-secret-name"
@@ -192,20 +199,36 @@ var _ = Describe("Machines", func() {
 					"gpu":    resource.MustParse("1"),
 					"memory": resource.MustParse("128Gi"),
 				}
-				nodeTemplateZone1 = machinev1alpha1.NodeTemplate{
+				nodeTemplatePool1Zone1 = machinev1alpha1.NodeTemplate{
 					Capacity:     nodeCapacity,
 					InstanceType: machineType,
 					Region:       region,
 					Zone:         zone1,
+					Architecture: ptr.To(archAMD),
 				}
 
-				nodeTemplateZone2 = machinev1alpha1.NodeTemplate{
+				nodeTemplatePool1Zone2 = machinev1alpha1.NodeTemplate{
 					Capacity:     nodeCapacity,
 					InstanceType: machineType,
 					Region:       region,
 					Zone:         zone2,
+					Architecture: ptr.To(archAMD),
+				}
+				nodeTemplatePool2Zone1 = machinev1alpha1.NodeTemplate{
+					Capacity:     nodeCapacity,
+					InstanceType: machineType,
+					Region:       region,
+					Zone:         zone1,
+					Architecture: ptr.To(archARM),
 				}
 
+				nodeTemplatePool2Zone2 = machinev1alpha1.NodeTemplate{
+					Capacity:     nodeCapacity,
+					InstanceType: machineType,
+					Region:       region,
+					Zone:         zone2,
+					Architecture: ptr.To(archARM),
+				}
 				machineConfiguration = &machinev1alpha1.MachineConfiguration{}
 
 				shootVersionMajorMinor = "1.2"
@@ -306,6 +329,7 @@ var _ = Describe("Machines", func() {
 								Minimum:        minPool1,
 								Maximum:        maxPool1,
 								MaxSurge:       maxSurgePool1,
+								Architecture:   ptr.To(archAMD),
 								MaxUnavailable: maxUnavailablePool1,
 								MachineType:    machineType,
 								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
@@ -348,6 +372,7 @@ var _ = Describe("Machines", func() {
 								Maximum:        maxPool2,
 								MaxSurge:       maxSurgePool2,
 								MaxUnavailable: maxUnavailablePool2,
+								Architecture:   ptr.To(archARM),
 								MachineType:    machineType,
 								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
 									Capacity: nodeCapacity,
@@ -489,10 +514,10 @@ var _ = Describe("Machines", func() {
 					addNameAndSecretToMachineClass(machineClassPool2Zone1, machineClassWithHashPool2Zone1, w.Spec.SecretRef)
 					addNameAndSecretToMachineClass(machineClassPool2Zone2, machineClassWithHashPool2Zone2, w.Spec.SecretRef)
 
-					addNodeTemplateToMachineClass(machineClassPool1Zone1, nodeTemplateZone1)
-					addNodeTemplateToMachineClass(machineClassPool1Zone2, nodeTemplateZone2)
-					addNodeTemplateToMachineClass(machineClassPool2Zone1, nodeTemplateZone1)
-					addNodeTemplateToMachineClass(machineClassPool2Zone2, nodeTemplateZone2)
+					addNodeTemplateToMachineClass(machineClassPool1Zone1, nodeTemplatePool1Zone1)
+					addNodeTemplateToMachineClass(machineClassPool1Zone2, nodeTemplatePool1Zone2)
+					addNodeTemplateToMachineClass(machineClassPool2Zone1, nodeTemplatePool2Zone1)
+					addNodeTemplateToMachineClass(machineClassPool2Zone2, nodeTemplatePool2Zone2)
 
 					machineClasses = map[string]interface{}{"machineClasses": []map[string]interface{}{
 						machineClassPool1Zone1,
