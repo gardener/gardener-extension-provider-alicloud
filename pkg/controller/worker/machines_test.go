@@ -378,7 +378,6 @@ var _ = Describe("Machines", func() {
 				_ = apiv1alpha1.AddToScheme(scheme)
 				decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 
-				// TODO(duciwuci): is this correct?
 				additionalHashData := []string{fmt.Sprintf("%dGi", dataVolume1Size), dataVolume1Type, strconv.FormatBool(dataVolume1Encrypted), fmt.Sprintf("%dGi", dataVolume2Size), dataVolume2Type, strconv.FormatBool(dataVolume2Encrypted)}
 				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster, additionalHashData, additionalHashData)
 
