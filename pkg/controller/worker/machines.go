@@ -18,6 +18,7 @@ import (
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/charts"
@@ -161,11 +162,13 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			})
 
 			if pool.NodeTemplate != nil {
+				arch := ptr.Deref(pool.Architecture, v1beta1constants.ArchitectureAMD64)
 				machineClassSpec["nodeTemplate"] = machinev1alpha1.NodeTemplate{
 					Capacity:     pool.NodeTemplate.Capacity,
 					InstanceType: pool.MachineType,
 					Region:       w.worker.Spec.Region,
 					Zone:         zone,
+					Architecture: ptr.To(arch),
 				}
 			}
 
