@@ -25,6 +25,9 @@ type Networks struct {
 
 	// Zones are the network zones for an infrastructure.
 	Zones []Zone
+	// Bandwidth is the bandwidth of the EIP associated with NATGateway if need, which is an integer between 1 and 200.
+	// +optional
+	Bandwidth *int
 }
 
 // VPC contains information about whether to create a new or use an existing VPC.
