@@ -10,9 +10,18 @@ gardener-extension-provider-alicloud:
         attribute: image.repository
       - ref: ocm-resource:gardener-extension-provider-alicloud.tag
         attribute: image.tag
-    - &admission-alicloud
-      name: admission-alicloud
-      dir: charts/gardener-extension-admission-alicloud
+    - &admission-alicloud-application
+      name: admission-alicloud-application
+      dir: charts/gardener-extension-admission-alicloud/charts/application
+      registry: europe-docker.pkg.dev/gardener-project/snapshots/charts/gardener/extensions
+      mappings:
+      - ref: ocm-resource:gardener-extension-admission-alicloud.repository
+        attribute: global.image.repository
+      - ref: ocm-resource:gardener-extension-admission-alicloud.tag
+        attribute: global.image.tag
+    - &admission-alicloud-runtime
+      name: admission-alicloud-runtime
+      dir: charts/gardener-extension-admission-alicloud/charts/runtime
       registry: europe-docker.pkg.dev/gardener-project/snapshots/charts/gardener/extensions
       mappings:
       - ref: ocm-resource:gardener-extension-admission-alicloud.repository
@@ -63,7 +72,8 @@ gardener-extension-provider-alicloud:
         publish:
           helmcharts:
           - *provider-alicloud
-          - *admission-alicloud
+          - *admission-alicloud-application
+          - *admission-alicloud-runtime
     pull-request:
       traits:
         pull-request: ~
@@ -72,7 +82,8 @@ gardener-extension-provider-alicloud:
         publish:
           helmcharts:
           - *provider-alicloud
-          - *admission-alicloud
+          - *admission-alicloud-application
+          - *admission-alicloud-runtime
     release:
       steps:
         test-integration:
@@ -108,5 +119,7 @@ gardener-extension-provider-alicloud:
           helmcharts:
           - <<: *provider-alicloud
             registry: europe-docker.pkg.dev/gardener-project/releases/charts/gardener/extensions
-          - <<: *admission-alicloud
+          - <<: *admission-alicloud-application
+            registry: europe-docker.pkg.dev/gardener-project/releases/charts/gardener/extensions
+          - <<: *admission-alicloud-runtime
             registry: europe-docker.pkg.dev/gardener-project/releases/charts/gardener/extensions
