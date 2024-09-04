@@ -308,8 +308,7 @@ var _ = Describe("Ensurer", func() {
 				Name:            "machine-controller-manager-provider-alicloud",
 				Image:           "foo:bar",
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Command: []string{
-					"./machine-controller",
+				Args: []string{
 					"--control-kubeconfig=inClusterConfig",
 					"--machine-creation-timeout=20m",
 					"--machine-drain-timeout=2h",
@@ -321,6 +320,15 @@ var _ = Describe("Ensurer", func() {
 					"--port=10259",
 					"--target-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig",
 					"--v=3",
+				},
+				Ports: []corev1.ContainerPort{
+					{
+						Name:          "providermetrics",
+						HostPort:      0,
+						ContainerPort: 10259,
+						Protocol:      "TCP",
+						HostIP:        "",
+					},
 				},
 				LivenessProbe: &corev1.Probe{
 					ProbeHandler: corev1.ProbeHandler{
