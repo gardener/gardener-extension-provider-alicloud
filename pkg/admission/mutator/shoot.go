@@ -14,6 +14,7 @@ import (
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
+	securityv1alpha1 "github.com/gardener/gardener/pkg/apis/security/v1alpha1"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	corev1 "k8s.io/api/core/v1"
@@ -235,34 +236,38 @@ func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1
 }
 
 func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1.Shoot, imageId string, region string) (bool, error) {
-	var (
-		secretBinding = &corev1beta1.SecretBinding{}
-	)
-
-	if shoot.Spec.SecretBindingName == nil {
-		return false, fmt.Errorf("secretBindingName can't be nil")
+	if shoot.Spec.SecretBindingName == nil && shoot.Spec.CredentialsBindingName == nil {
+		return false, fmt.Errorf("secretBindingName and credentialsBindingName cannot be both nil")
 	}
 
-	secretBindingKey := client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.SecretBindingName}
-	if err := kutil.LookupObject(ctx, s.client, s.apiReader, secretBindingKey, secretBinding); err != nil {
-		return false, err
+	var secretKey client.ObjectKey
+	if shoot.Spec.SecretBindingName != nil {
+		bindingKey := client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.SecretBindingName}
+		secretBinding := &corev1beta1.SecretBinding{}
+		if err := kutil.LookupObject(ctx, s.client, s.apiReader, bindingKey, secretBinding); err != nil {
+			return false, err
+		}
+		secretKey = client.ObjectKey{Namespace: secretBinding.SecretRef.Namespace, Name: secretBinding.SecretRef.Name}
+	} else {
+		bindingKey := client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.CredentialsBindingName}
+		credentialsBinding := &securityv1alpha1.CredentialsBinding{}
+		if err := kutil.LookupObject(ctx, s.client, s.apiReader, bindingKey, credentialsBinding); err != nil {
+			return false, err
+		}
+		secretKey = client.ObjectKey{Namespace: credentialsBinding.CredentialsRef.Namespace, Name: credentialsBinding.CredentialsRef.Name}
 	}
 
-	var (
-		secret    = &corev1.Secret{}
-		secretRef = secretBinding.SecretRef.Name
-		secretKey = client.ObjectKey{Namespace: secretBinding.SecretRef.Namespace, Name: secretRef}
-	)
+	secret := &corev1.Secret{}
 	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
 		return false, err
 	}
 	accessKeyID, ok := secret.Data[alicloud.AccessKeyID]
 	if !ok {
-		return false, fmt.Errorf("missing %q field in secret %s", alicloud.AccessKeyID, secretRef)
+		return false, fmt.Errorf("missing %q field in secret %s", alicloud.AccessKeyID, secret.Name)
 	}
 	accessKeySecret, ok := secret.Data[alicloud.AccessKeySecret]
 	if !ok {
-		return false, fmt.Errorf("missing %q field in secret %s", alicloud.AccessKeySecret, secretRef)
+		return false, fmt.Errorf("missing %q field in secret %s", alicloud.AccessKeySecret, secret.Name)
 	}
 	shootECSClient, err := s.alicloudClientFactory.NewECSClient(region, string(accessKeyID), string(accessKeySecret))
 	if err != nil {
