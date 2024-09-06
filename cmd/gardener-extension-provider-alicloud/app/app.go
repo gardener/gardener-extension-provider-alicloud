@@ -119,8 +119,9 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			Namespace: os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
 		}
 
+		gardenerVersion    = new(string)
 		controllerSwitches = alicloudcmd.ControllerSwitchOptions()
-		webhookSwitches    = alicloudcmd.WebhookSwitchOptions()
+		webhookSwitches    = alicloudcmd.WebhookSwitchOptions(gardenerVersion)
 		webhookOptions     = webhookcmd.NewAddToManagerOptions(
 			alicloud.Name,
 			genericactuator.ShootWebhooksResourceName,
@@ -215,6 +216,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			}
 
 			log.Info("Adding controllers to manager")
+			*gardenerVersion = generalOpts.Completed().GardenerVersion
+
 			configFileOpts.Completed().ApplyMachineImageOwnerSecretRef(&alicloudinfrastructure.DefaultAddOptions.MachineImageOwnerSecretRef)
 			configFileOpts.Completed().ApplyToBeSharedImageIDs(&alicloudinfrastructure.DefaultAddOptions.ToBeSharedImageIDs)
 			configFileOpts.Completed().ApplyETCDStorage(&alicloudcontrolplaneexposure.DefaultAddOptions.ETCDStorage)
