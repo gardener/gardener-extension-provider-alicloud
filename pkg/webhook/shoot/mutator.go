@@ -10,9 +10,7 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -34,44 +32,28 @@ func NewMutator(service *config.Service) extensionswebhook.Mutator {
 }
 
 // Mutate mutates resources.
-func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
-	acc, err := meta.Accessor(new)
-	if err != nil {
-		return fmt.Errorf("could not create accessor during webhook: %w", err)
+func (m *mutator) Mutate(_ context.Context, new, old client.Object) error {
+	svc, ok := new.(*corev1.Service)
+	if !ok {
+		return fmt.Errorf("wrong object type %T", new)
 	}
-	// If the object does have a deletion timestamp then we don't want to mutate anything.
-	if acc.GetDeletionTimestamp() != nil {
+
+	if svc.GetDeletionTimestamp() != nil {
 		return nil
 	}
 
-	switch x := new.(type) {
-	case *corev1.Service:
-		if x.Name == "vpn-shoot" || x.Name == "addons-nginx-ingress-controller" {
-			var oldSvc *corev1.Service
-			if old != nil {
-				var ok bool
-				oldSvc, ok = old.(*corev1.Service)
-				if !ok {
-					return fmt.Errorf("could not cast old object to corev1.Service: %w", err)
-				}
-			}
-
-			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			webhookutils.MutateAnnotation(x, oldSvc, m.service.BackendLoadBalancerSpec)
-			webhookutils.MutateExternalTrafficPolicy(x, oldSvc)
-		}
-	case *appsv1.Deployment:
-		if x.Name == "metrics-server" {
-			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			m.mutateMetricsServerDeployment(ctx, x)
+	var oldSvc *corev1.Service
+	if old != nil {
+		var ok bool
+		oldSvc, ok = old.(*corev1.Service)
+		if !ok {
+			return fmt.Errorf("wrong object type %T", old)
 		}
 	}
+
+	extensionswebhook.LogMutation(logger, svc.Kind, svc.Namespace, svc.Name)
+	webhookutils.MutateAnnotation(svc, oldSvc, m.service.BackendLoadBalancerSpec)
+	webhookutils.MutateExternalTrafficPolicy(svc, oldSvc)
+
 	return nil
-}
-
-func (m *mutator) mutateMetricsServerDeployment(_ context.Context, dep *appsv1.Deployment) {
-	ps := &dep.Spec.Template.Spec
-	if c := extensionswebhook.ContainerWithName(ps.Containers, "metrics-server"); c != nil {
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--kubelet-preferred-address-types=", "InternalIP")
-	}
 }

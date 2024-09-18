@@ -7,10 +7,9 @@ package shoot
 import (
 	"context"
 
-	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	"github.com/gardener/gardener/extensions/pkg/webhook"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -19,40 +18,44 @@ import (
 
 var _ = Describe("Mutator", func() {
 	var (
-		service = &config.Service{BackendLoadBalancerSpec: "slb.s1.small"}
+		mutator         webhook.Mutator
+		serviceConfig   = &config.Service{BackendLoadBalancerSpec: "slb.s1.small"}
+		nginxIngressSvc *corev1.Service
+	)
 
-		mutator = NewMutator(service)
-		dep     = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "metrics-server"},
-			Spec: appsv1.DeploymentSpec{
-				Template: corev1.PodTemplateSpec{
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{
-								Name: "metrics-server",
-								Command: []string{
-									"--profiling=false",
-									"--cert-dir=/home/certdir",
-									"--secure-port=8443",
-									"--kubelet-insecure-tls",
-									"--tls-cert-file=/srv/metrics-server/tls/tls.crt",
-									"--tls-private-key-file=/srv/metrics-server/tls/tls.key",
-									"--v=2",
-								},
-							},
-						},
-					},
-				},
+	BeforeEach(func() {
+		mutator = NewMutator(serviceConfig)
+
+		nginxIngressSvc = &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "addons-nginx-ingress-controller",
+				Namespace: metav1.NamespaceSystem,
+			},
+			Spec: corev1.ServiceSpec{
+				Type:                  corev1.ServiceTypeLoadBalancer,
+				ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster,
 			},
 		}
-	)
-	Describe("#MutateMetricsServerDeployment", func() {
-		It("should modify existing elements of metrics-server deployment", func() {
-			err := mutator.Mutate(context.TODO(), dep, nil)
-			c := extensionswebhook.ContainerWithName(dep.Spec.Template.Spec.Containers, "metrics-server")
-			Expect(c).To(Not(BeNil()))
-			Expect(c.Command).To(ContainElement("--kubelet-preferred-address-types=InternalIP"))
+	})
+
+	Describe("#Mutate", func() {
+		It("should set ExternalTrafficPolicy to Local", func() {
+			err := mutator.Mutate(context.TODO(), nginxIngressSvc, nil)
+
 			Expect(err).To(Not(HaveOccurred()))
+			Expect(nginxIngressSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
+		})
+
+		It("should not overwrite .spec.healthCheckNodePort", func() {
+			oldNginxIngressSvc := nginxIngressSvc.DeepCopy()
+			oldNginxIngressSvc.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeLocal
+			oldNginxIngressSvc.Spec.HealthCheckNodePort = 31280
+
+			err := mutator.Mutate(context.TODO(), nginxIngressSvc, oldNginxIngressSvc)
+
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(oldNginxIngressSvc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
+			Expect(oldNginxIngressSvc.Spec.HealthCheckNodePort).To(Equal(int32(31280)))
 		})
 	})
 })
