@@ -614,10 +614,17 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 	if err != nil {
 		return err
 	}
+	egressCidrs, err := getEgressCidrs(state)
+	if err != nil {
+		return err
+	}
 
 	patch := client.MergeFrom(infra.DeepCopy())
 	infra.Status.ProviderStatus = &runtime.RawExtension{Object: status}
 	infra.Status.State = &runtime.RawExtension{Raw: stateByte}
+	if egressCidrs != nil {
+		infra.Status.EgressCIDRs = egressCidrs
+	}
 	return a.client.Status().Patch(ctx, infra, patch)
 }
 

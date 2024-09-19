@@ -90,3 +90,24 @@ func getTerraformerRawState(state *runtime.RawExtension) (*terraformer.RawState,
 	}
 	return tfRawState, nil
 }
+
+func getEgressCidrs(terraformState *terraformer.RawState) ([]string, error) {
+	tfState, err := shared.UnmarshalTerraformStateFromTerraformer(terraformState)
+	if err != nil {
+		return nil, err
+	}
+	resources := tfState.FindManagedResourcesByType("alicloud_eip")
+
+	egressCidrs := []string{}
+	for _, resource := range resources {
+		for _, instance := range resource.Instances {
+			rawIpAddress := instance.Attributes["ip_address"]
+			ipAddress, ok := rawIpAddress.(string)
+			if !ok {
+				return nil, fmt.Errorf("error parsing '%v' as IP-address from Terraform state", rawIpAddress)
+			}
+			egressCidrs = append(egressCidrs, ipAddress+"/32")
+		}
+	}
+	return egressCidrs, nil
+}
