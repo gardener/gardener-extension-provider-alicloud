@@ -125,7 +125,7 @@ func (a *actuator) updateStatusProvider(ctx context.Context, infra *extensionsv1
 
 	patch := client.MergeFrom(infra.DeepCopy())
 	infra.Status.ProviderStatus = &runtime.RawExtension{Object: infrastructureStatus}
-	egressCidrs := GetEgressIpCidrs(state)
+	egressCidrs := getEgressIpCidrs(state)
 	if egressCidrs != nil {
 		infra.Status.EgressCIDRs = egressCidrs
 	}
@@ -133,7 +133,7 @@ func (a *actuator) updateStatusProvider(ctx context.Context, infra *extensionsv1
 
 }
 
-func GetEgressIpCidrs(state *infraflow.PersistentState) []string {
+func getEgressIpCidrs(state *infraflow.PersistentState) []string {
 	if len(state.Data) == 0 {
 		return nil
 	}
