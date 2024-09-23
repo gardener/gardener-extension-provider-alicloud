@@ -6,7 +6,6 @@ package infrastructure
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -95,9 +94,6 @@ func getTerraformerRawState(state *runtime.RawExtension) (*terraformer.RawState,
 func getEgressCidrs(terraformState *terraformer.RawState) ([]string, error) {
 	tfState, err := shared.UnmarshalTerraformStateFromTerraformer(terraformState)
 	if err != nil {
-		if strings.Contains(err.Error(), "could not decode terraform state") {
-			return nil, nil
-		}
 		return nil, err
 	}
 	resources := tfState.FindManagedResourcesByType("alicloud_eip")
