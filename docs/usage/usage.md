@@ -208,7 +208,8 @@ metadata:
   name: johndoe-alicloud
   namespace: garden-dev
 spec:
-  cloudProfileName: alicloud
+  cloudProfile:
+    name: alicloud
   region: eu-central-1
   secretBindingName: core-alicloud
   provider:
@@ -263,7 +264,8 @@ metadata:
   name: johndoe-alicloud
   namespace: garden-dev
 spec:
-  cloudProfileName: alicloud
+  cloudProfile:
+    name: alicloud
   region: eu-central-1
   secretBindingName: core-alicloud
   provider:
