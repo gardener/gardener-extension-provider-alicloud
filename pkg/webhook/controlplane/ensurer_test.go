@@ -19,6 +19,7 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	testutils "github.com/gardener/gardener/pkg/utils/test"
+	"github.com/gardener/gardener/pkg/utils/version"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -62,6 +63,17 @@ var _ = Describe("Ensurer", func() {
 				},
 			},
 		)
+		eContext31 = gcontext.NewInternalGardenContext(
+			&extensionscontroller.Cluster{
+				Shoot: &gardencorev1beta1.Shoot{
+					Spec: gardencorev1beta1.ShootSpec{
+						Kubernetes: gardencorev1beta1.Kubernetes{
+							Version: "1.31.0",
+						},
+					},
+				},
+			},
+		)
 	)
 
 	BeforeEach(func() {
@@ -73,69 +85,54 @@ var _ = Describe("Ensurer", func() {
 	})
 
 	Describe("#EnsureKubeAPIServerDeployment", func() {
-		It("should add missing elements to kube-apiserver deployment", func() {
-			var (
-				apidep = func() *appsv1.Deployment {
-					return &appsv1.Deployment{
-						ObjectMeta: metav1.ObjectMeta{Name: v1beta1constants.DeploymentNameKubeAPIServer},
-						Spec: appsv1.DeploymentSpec{
-							Template: corev1.PodTemplateSpec{
-								Spec: corev1.PodSpec{
-									Containers: []corev1.Container{
-										{
-											Name: "kube-apiserver",
-										},
-									},
+		var (
+			dep     *appsv1.Deployment
+			ensurer genericmutator.Ensurer
+		)
+
+		BeforeEach(func() {
+			dep = &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{Name: v1beta1constants.DeploymentNameKubeAPIServer},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name: "kube-apiserver",
 								},
 							},
 						},
-					}
-				}
-			)
+					},
+				},
+			}
 
-			// Create ensurer
-			ensurer := NewEnsurer(logger)
+			ensurer = NewEnsurer(logger)
+		})
 
-			// Call EnsureKubeAPIServerDeployment method and check the result
-			dep := apidep()
+		It("should add missing elements to kube-apiserver deployment (k8s < 1.31)", func() {
 			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext26, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
-			checkKubeAPIServerDeployment(dep, []string{})
+
+			checkKubeAPIServerDeployment(dep, "1.26.0", []string{})
+		})
+
+		It("should add missing elements to kube-apiserver deployment (k8s >= 1.31)", func() {
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext31, dep, nil)
+			Expect(err).To(Not(HaveOccurred()))
+
+			checkKubeAPIServerDeployment(dep, "1.31.0", []string{})
 		})
 
 		It("should modify existing elements of kube-apiserver deployment", func() {
-			var (
-				apidep = func() *appsv1.Deployment {
-					return &appsv1.Deployment{
-						ObjectMeta: metav1.ObjectMeta{Name: v1beta1constants.DeploymentNameKubeAPIServer},
-						Spec: appsv1.DeploymentSpec{
-							Template: corev1.PodTemplateSpec{
-								Spec: corev1.PodSpec{
-									Containers: []corev1.Container{
-										{
-											Name: "kube-apiserver",
-											Command: []string{
-												"--enable-admission-plugins=Priority,PersistentVolumeLabel",
-												"--disable-admission-plugins=",
-												"--feature-gates=Foo=true",
-											},
-										},
-									},
-								},
-							},
-						},
-					}
-				}
-			)
+			dep.Spec.Template.Spec.Containers[0].Command = []string{
+				"--enable-admission-plugins=Priority,PersistentVolumeLabel",
+				"--feature-gates=Foo=true,ExpandInUsePersistentVolumes=false,ExpandCSIVolumes=false",
+			}
 
-			// Create ensurer
-			ensurer := NewEnsurer(logger)
-
-			// Call EnsureKubeAPIServerDeployment method and check the result
-			dep := apidep()
 			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext26, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
-			checkKubeAPIServerDeployment(dep, []string{})
+
+			checkKubeAPIServerDeployment(dep, "1.26.0", []string{"Foo=true"})
 		})
 	})
 
@@ -384,13 +381,18 @@ var _ = Describe("Ensurer", func() {
 	})
 })
 
-func checkKubeAPIServerDeployment(dep *appsv1.Deployment, featureGates []string) {
+func checkKubeAPIServerDeployment(dep *appsv1.Deployment, k8sVersion string, featureGates []string) {
+	k8sVersionAtLeast131, _ := version.CompareVersions(k8sVersion, ">=", "1.31")
+
 	// Check that the kube-apiserver container still exists and contains all needed command line args,
 	// env vars, and volume mounts
 	c := extensionswebhook.ContainerWithName(dep.Spec.Template.Spec.Containers, "kube-apiserver")
 	Expect(c).To(Not(BeNil()))
-	Expect(c.Command).To(Not(test.ContainElementWithPrefixContaining("--enable-admission-plugins=", "PersistentVolumeLabel", ",")))
-	Expect(c.Command).To(test.ContainElementWithPrefixContaining("--disable-admission-plugins=", "PersistentVolumeLabel", ","))
+
+	if !k8sVersionAtLeast131 {
+		Expect(c.Command).To(Not(test.ContainElementWithPrefixContaining("--enable-admission-plugins=", "PersistentVolumeLabel", ",")))
+		Expect(c.Command).To(test.ContainElementWithPrefixContaining("--disable-admission-plugins=", "PersistentVolumeLabel", ","))
+	}
 	for _, fg := range featureGates {
 		Expect(c.Command).To(test.ContainElementWithPrefixContaining("--feature-gates=", fg, ","))
 	}
