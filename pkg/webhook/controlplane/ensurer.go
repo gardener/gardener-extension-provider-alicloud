@@ -109,15 +109,13 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
 	c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--disable-admission-plugins=",
 		"PersistentVolumeLabel", ",")
 
-	// Ensure CSI-related feature gates
+	// TODO: Remove the below lines when K8s < 1.27 is no longer supported.
+	// The ExpandCSIVolumes and ExpandInUsePersistentVolumes feature gates are GA since 1.24,
+	// however they are not locked to default (true). They are removed in K8s 1.27.
 	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--feature-gates=",
 		"ExpandInUsePersistentVolumes=false", ",")
 	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--feature-gates=",
 		"ExpandCSIVolumes=false", ",")
-	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--feature-gates=",
-		"CSINodeInfo=false", ",")
-	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--feature-gates=",
-		"CSIDriverRegistry=false", ",")
 }
 
 func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
