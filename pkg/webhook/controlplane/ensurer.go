@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	vpaautoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/utils/ptr"
@@ -27,6 +28,20 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/imagevector"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 )
+
+var (
+	// constraintK8sLess131 is a version constraint for versions < 1.31.
+	//
+	// TODO(ialidzhikov): Replace with versionutils.ConstraintK8sLess131 when vendoring a gardener/gardener version
+	// that contains https://github.com/gardener/gardener/pull/10472.
+	constraintK8sLess131 *semver.Constraints
+)
+
+func init() {
+	var err error
+	constraintK8sLess131, err = semver.NewConstraint("< 1.31-0")
+	utilruntime.Must(err)
+}
 
 // NewEnsurer creates a new controlplane ensurer.
 func NewEnsurer(logger logr.Logger) genericmutator.Ensurer {
@@ -81,14 +96,24 @@ func (e *ensurer) EnsureMachineControllerManagerVPA(_ context.Context, _ gcontex
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerDeployment(_ context.Context, _ gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
+func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
 	ps := &newObj.Spec.Template.Spec
 
 	// TODO: This label approach is deprecated and no longer needed in the future. Remove it as soon as gardener/gardener@v1.75 has been released.
 	metav1.SetMetaDataLabel(&newObj.Spec.Template.ObjectMeta, gutil.NetworkPolicyLabel(alicloud.CSISnapshotValidationName, 443), v1beta1constants.LabelNetworkPolicyAllowed)
 
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	k8sVersion, err := semver.NewVersion(cluster.Shoot.Spec.Kubernetes.Version)
+	if err != nil {
+		return err
+	}
+
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c)
+		ensureKubeAPIServerCommandLineArgs(c, k8sVersion)
 	}
 	return nil
 }
@@ -102,12 +127,14 @@ func (e *ensurer) EnsureKubeControllerManagerDeployment(_ context.Context, _ gco
 	return nil
 }
 
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, k8sVersion *semver.Version) {
 	// Ensure CSI-related admission plugins
-	c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--enable-admission-plugins=",
-		"PersistentVolumeLabel", ",")
-	c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--disable-admission-plugins=",
-		"PersistentVolumeLabel", ",")
+	if constraintK8sLess131.Check(k8sVersion) {
+		c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--enable-admission-plugins=",
+			"PersistentVolumeLabel", ",")
+		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--disable-admission-plugins=",
+			"PersistentVolumeLabel", ",")
+	}
 
 	// TODO: Remove the below lines when K8s < 1.27 is no longer supported.
 	// The ExpandCSIVolumes and ExpandInUsePersistentVolumes feature gates are GA since 1.24,
