@@ -40,17 +40,6 @@ func TestController(t *testing.T) {
 var _ = Describe("Ensurer", func() {
 	var (
 		ctrl       *gomock.Controller
-		eContext26 = gcontext.NewInternalGardenContext(
-			&extensionscontroller.Cluster{
-				Shoot: &gardencorev1beta1.Shoot{
-					Spec: gardencorev1beta1.ShootSpec{
-						Kubernetes: gardencorev1beta1.Kubernetes{
-							Version: "1.26.0",
-						},
-					},
-				},
-			},
-		)
 		eContext27 = gcontext.NewInternalGardenContext(
 			&extensionscontroller.Cluster{
 				Shoot: &gardencorev1beta1.Shoot{
@@ -98,7 +87,7 @@ var _ = Describe("Ensurer", func() {
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext26, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext27, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{})
 		})
@@ -133,7 +122,7 @@ var _ = Describe("Ensurer", func() {
 
 			// Call EnsureKubeAPIServerDeployment method and check the result
 			dep := apidep()
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext26, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext27, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeAPIServerDeployment(dep, []string{})
 		})
@@ -162,7 +151,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext26, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext27, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -192,7 +181,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext26, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext27, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -243,7 +232,6 @@ var _ = Describe("Ensurer", func() {
 				Expect(opts).To(Equal(newUnitOptions))
 			},
 
-			Entry("kubelet version < 1.27", eContext26, semver.MustParse("1.26.0"), "external"),
 			Entry("kubelet version >= 1.27", eContext27, semver.MustParse("1.27.0"), "external"),
 		)
 	})
@@ -280,7 +268,6 @@ var _ = Describe("Ensurer", func() {
 				Expect(&kubeletConfig).To(Equal(newKubeletConfig))
 			},
 
-			Entry("kubelet < 1.27", eContext26, semver.MustParse("1.26.0")),
 			Entry("kubelet >= 1.27", eContext27, semver.MustParse("1.27.0")),
 		)
 	})
