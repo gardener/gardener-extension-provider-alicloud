@@ -125,7 +125,40 @@ func (a *actuator) updateStatusProvider(ctx context.Context, infra *extensionsv1
 
 	patch := client.MergeFrom(infra.DeepCopy())
 	infra.Status.ProviderStatus = &runtime.RawExtension{Object: infrastructureStatus}
+	egressCidrs := getEgressIpCidrs(state)
+	if egressCidrs != nil {
+		infra.Status.EgressCIDRs = egressCidrs
+	}
 	return a.client.Status().Patch(ctx, infra, patch)
+
+}
+
+func getEgressIpCidrs(state *infraflow.PersistentState) []string {
+	if len(state.Data) == 0 {
+		return nil
+	}
+
+	cidrs := []string{}
+	prefix := infraflow.ChildIdZones + shared.Separator
+	for k, v := range state.Data {
+		if !shared.IsValidValue(v) {
+			continue
+		}
+		if strings.HasPrefix(k, prefix) {
+			parts := strings.Split(k, shared.Separator)
+			if len(parts) != 3 {
+				continue
+			}
+			if parts[2] == infraflow.ZoneNATGWElasticIPAddress {
+				cidrs = append(cidrs, v+"/32")
+			}
+		}
+	}
+	if len(cidrs) == 0 {
+		return nil
+	}
+
+	return cidrs
 
 }
 
