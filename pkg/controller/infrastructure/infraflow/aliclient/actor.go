@@ -1360,7 +1360,7 @@ func page_call[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) 
 	} else if contains(type2_req_type_name_list, reqTypeName) {
 		return page_call_type_2(call, req)
 	}
-	return nil, fmt.Errorf(fmt.Sprintf("can not found suitable describe function for %s", reqTypeName))
+	return nil, fmt.Errorf("can not found suitable describe function for %s", reqTypeName)
 }
 
 func page_call_type_1[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) ([]RESP, error) {

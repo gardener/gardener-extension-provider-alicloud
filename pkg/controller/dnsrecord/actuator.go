@@ -17,7 +17,6 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	extensionsv1alpha1helper "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1/helper"
 	reconcilerutils "github.com/gardener/gardener/pkg/controllerutils/reconciler"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -67,7 +66,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, dns *extensio
 
 	// Create or update DNS records
 	ttl := extensionsv1alpha1helper.GetDNSRecordTTL(dns.Spec.TTL)
-	log.Info("Creating or updating DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "values", dns.Spec.Values, "dnsrecord", kutil.ObjectName(dns))
+	log.Info("Creating or updating DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "values", dns.Spec.Values, "dnsrecord", client.ObjectKeyFromObject(dns))
 	if err := dnsClient.CreateOrUpdateDomainRecords(ctx, domainName, dns.Spec.Name, string(dns.Spec.RecordType), dns.Spec.Values, ttl); err != nil {
 		return wrapAliClientError(err, fmt.Sprintf("could not create or update DNS records in domain %s with name %s, type %s, and values %v", domainName, dns.Spec.Name, dns.Spec.RecordType, dns.Spec.Values))
 	}
@@ -75,7 +74,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, dns *extensio
 	// Delete meta DNS records if any exist
 	if dns.Status.LastOperation == nil || dns.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeCreate {
 		name, recordType := dnsrecord.GetMetaRecordName(dns.Spec.Name), "TXT"
-		log.Info("Deleting meta DNS records", "domainName", domainName, "name", name, "type", recordType, "dnsrecord", kutil.ObjectName(dns))
+		log.Info("Deleting meta DNS records", "domainName", domainName, "name", name, "type", recordType, "dnsrecord", client.ObjectKeyFromObject(dns))
 		if err := dnsClient.DeleteDomainRecords(ctx, domainName, name, recordType); err != nil {
 			return wrapAliClientError(err, fmt.Sprintf("could not delete meta DNS records in domain %s with name %s and type %s", domainName, name, recordType))
 		}
@@ -106,7 +105,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, dns *extensionsv
 	}
 
 	// Delete DNS records
-	log.Info("Deleting DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "dnsrecord", kutil.ObjectName(dns))
+	log.Info("Deleting DNS records", "domainName", domainName, "name", dns.Spec.Name, "type", dns.Spec.RecordType, "dnsrecord", client.ObjectKeyFromObject(dns))
 	if err := dnsClient.DeleteDomainRecords(ctx, domainName, dns.Spec.Name, string(dns.Spec.RecordType)); err != nil {
 		return wrapAliClientError(err, fmt.Sprintf("could not delete DNS records in domain %s with name %s and type %s", domainName, dns.Spec.Name, dns.Spec.RecordType))
 	}
@@ -141,7 +140,7 @@ func (a *actuator) getDomainName(ctx context.Context, log logr.Logger, dns *exte
 		if err != nil {
 			return "", wrapAliClientError(err, fmt.Sprintf("could not get DNS domain name for domain id %s", *dns.Spec.Zone))
 		}
-		log.Info("Got DNS domain name", "domainName", domainName, "dnsrecord", kutil.ObjectName(dns))
+		log.Info("Got DNS domain name", "domainName", domainName, "dnsrecord", client.ObjectKeyFromObject(dns))
 		return domainName, nil
 	case dns.Status.Zone != nil && *dns.Status.Zone != "":
 		return *dns.Status.Zone, nil
@@ -152,7 +151,7 @@ func (a *actuator) getDomainName(ctx context.Context, log logr.Logger, dns *exte
 		if err != nil {
 			return "", wrapAliClientError(err, "could not get DNS domain names")
 		}
-		log.Info("Got DNS domain names", "domainNames", domainNames, "dnsrecord", kutil.ObjectName(dns))
+		log.Info("Got DNS domain names", "domainNames", domainNames, "dnsrecord", client.ObjectKeyFromObject(dns))
 		domainName := dnsrecord.FindZoneForName(domainNames, dns.Spec.Name)
 		if domainName == "" {
 			return "", fmt.Errorf("could not find DNS domain name for name %s", dns.Spec.Name)
