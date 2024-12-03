@@ -233,10 +233,13 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			dnsRecordCtrlOpts.Completed().Apply(&aliclouddnsrecord.DefaultAddOptions.Controller)
 			dnsRecordCtrlOpts.Completed().ApplyRateLimiter(&aliclouddnsrecord.DefaultAddOptions.RateLimiter)
 			infraCtrlOpts.Completed().Apply(&alicloudinfrastructure.DefaultAddOptions.Controller)
-			reconcileOpts.Completed().Apply(&alicloudinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation)
-			reconcileOpts.Completed().Apply(&alicloudcontrolplane.DefaultAddOptions.IgnoreOperationAnnotation)
-			reconcileOpts.Completed().Apply(&alicloudworker.DefaultAddOptions.IgnoreOperationAnnotation)
-			reconcileOpts.Completed().Apply(&alicloudbastion.DefaultAddOptions.IgnoreOperationAnnotation)
+			reconcileOpts.Completed().Apply(&alicloudinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation, &alicloudinfrastructure.DefaultAddOptions.ExtensionClass)
+			reconcileOpts.Completed().Apply(&alicloudcontrolplane.DefaultAddOptions.IgnoreOperationAnnotation, &alicloudcontrolplane.DefaultAddOptions.ExtensionClass)
+			reconcileOpts.Completed().Apply(&alicloudworker.DefaultAddOptions.IgnoreOperationAnnotation, &alicloudworker.DefaultAddOptions.ExtensionClass)
+			reconcileOpts.Completed().Apply(&alicloudbastion.DefaultAddOptions.IgnoreOperationAnnotation, &alicloudbastion.DefaultAddOptions.ExtensionClass)
+			reconcileOpts.Completed().Apply(&alicloudbackupbucket.DefaultAddOptions.IgnoreOperationAnnotation, &alicloudbackupbucket.DefaultAddOptions.ExtensionClass)
+			reconcileOpts.Completed().Apply(&alicloudbackupentry.DefaultAddOptions.IgnoreOperationAnnotation, &alicloudbackupentry.DefaultAddOptions.ExtensionClass)
+			reconcileOpts.Completed().Apply(&aliclouddnsrecord.DefaultAddOptions.IgnoreOperationAnnotation, &aliclouddnsrecord.DefaultAddOptions.ExtensionClass)
 			workerCtrlOpts.Completed().Apply(&alicloudworker.DefaultAddOptions.Controller)
 
 			alicloudworker.DefaultAddOptions.GardenCluster = gardenCluster

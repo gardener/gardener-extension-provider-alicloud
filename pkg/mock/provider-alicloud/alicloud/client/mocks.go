@@ -28,6 +28,7 @@ import (
 type MockClientFactory struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientFactoryMockRecorder
+	isgomock struct{}
 }
 
 // MockClientFactoryMockRecorder is the mock recorder for MockClientFactory.
@@ -48,144 +49,145 @@ func (m *MockClientFactory) EXPECT() *MockClientFactoryMockRecorder {
 }
 
 // NewDNSClient mocks base method.
-func (m *MockClientFactory) NewDNSClient(arg0, arg1, arg2 string) (client.DNS, error) {
+func (m *MockClientFactory) NewDNSClient(region, accessKeyID, accessKeySecret string) (client.DNS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewDNSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewDNSClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.DNS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewDNSClient indicates an expected call of NewDNSClient.
-func (mr *MockClientFactoryMockRecorder) NewDNSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewDNSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDNSClient", reflect.TypeOf((*MockClientFactory)(nil).NewDNSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDNSClient", reflect.TypeOf((*MockClientFactory)(nil).NewDNSClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewECSClient mocks base method.
-func (m *MockClientFactory) NewECSClient(arg0, arg1, arg2 string) (client.ECS, error) {
+func (m *MockClientFactory) NewECSClient(region, accessKeyID, accessKeySecret string) (client.ECS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewECSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewECSClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.ECS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewECSClient indicates an expected call of NewECSClient.
-func (mr *MockClientFactoryMockRecorder) NewECSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewECSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewECSClient", reflect.TypeOf((*MockClientFactory)(nil).NewECSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewECSClient", reflect.TypeOf((*MockClientFactory)(nil).NewECSClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewOSSClient mocks base method.
-func (m *MockClientFactory) NewOSSClient(arg0, arg1, arg2 string) (client.OSS, error) {
+func (m *MockClientFactory) NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (client.OSS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewOSSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewOSSClient", endpoint, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.OSS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewOSSClient indicates an expected call of NewOSSClient.
-func (mr *MockClientFactoryMockRecorder) NewOSSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewOSSClient(endpoint, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClient", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClient", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClient), endpoint, accessKeyID, accessKeySecret)
 }
 
 // NewOSSClientFromSecretRef mocks base method.
-func (m *MockClientFactory) NewOSSClientFromSecretRef(arg0 context.Context, arg1 client0.Client, arg2 *v1.SecretReference, arg3 string) (client.OSS, error) {
+func (m *MockClientFactory) NewOSSClientFromSecretRef(ctx context.Context, c client0.Client, secretRef *v1.SecretReference, region string) (client.OSS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewOSSClientFromSecretRef", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "NewOSSClientFromSecretRef", ctx, c, secretRef, region)
 	ret0, _ := ret[0].(client.OSS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewOSSClientFromSecretRef indicates an expected call of NewOSSClientFromSecretRef.
-func (mr *MockClientFactoryMockRecorder) NewOSSClientFromSecretRef(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewOSSClientFromSecretRef(ctx, c, secretRef, region any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClientFromSecretRef", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClientFromSecretRef), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClientFromSecretRef", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClientFromSecretRef), ctx, c, secretRef, region)
 }
 
 // NewRAMClient mocks base method.
-func (m *MockClientFactory) NewRAMClient(arg0, arg1, arg2 string) (client.RAM, error) {
+func (m *MockClientFactory) NewRAMClient(region, accessKeyID, accessKeySecret string) (client.RAM, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewRAMClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewRAMClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.RAM)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewRAMClient indicates an expected call of NewRAMClient.
-func (mr *MockClientFactoryMockRecorder) NewRAMClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewRAMClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewRAMClient", reflect.TypeOf((*MockClientFactory)(nil).NewRAMClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewRAMClient", reflect.TypeOf((*MockClientFactory)(nil).NewRAMClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewROSClient mocks base method.
-func (m *MockClientFactory) NewROSClient(arg0, arg1, arg2 string) (client.ROS, error) {
+func (m *MockClientFactory) NewROSClient(region, accessKeyID, accessKeySecret string) (client.ROS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewROSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewROSClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.ROS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewROSClient indicates an expected call of NewROSClient.
-func (mr *MockClientFactoryMockRecorder) NewROSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewROSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewROSClient", reflect.TypeOf((*MockClientFactory)(nil).NewROSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewROSClient", reflect.TypeOf((*MockClientFactory)(nil).NewROSClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewSLBClient mocks base method.
-func (m *MockClientFactory) NewSLBClient(arg0, arg1, arg2 string) (client.SLB, error) {
+func (m *MockClientFactory) NewSLBClient(region, accessKeyID, accessKeySecret string) (client.SLB, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewSLBClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewSLBClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.SLB)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewSLBClient indicates an expected call of NewSLBClient.
-func (mr *MockClientFactoryMockRecorder) NewSLBClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewSLBClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSLBClient", reflect.TypeOf((*MockClientFactory)(nil).NewSLBClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSLBClient", reflect.TypeOf((*MockClientFactory)(nil).NewSLBClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewSTSClient mocks base method.
-func (m *MockClientFactory) NewSTSClient(arg0, arg1, arg2 string) (client.STS, error) {
+func (m *MockClientFactory) NewSTSClient(region, accessKeyID, accessKeySecret string) (client.STS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewSTSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewSTSClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.STS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewSTSClient indicates an expected call of NewSTSClient.
-func (mr *MockClientFactoryMockRecorder) NewSTSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewSTSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSTSClient", reflect.TypeOf((*MockClientFactory)(nil).NewSTSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSTSClient", reflect.TypeOf((*MockClientFactory)(nil).NewSTSClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewVPCClient mocks base method.
-func (m *MockClientFactory) NewVPCClient(arg0, arg1, arg2 string) (client.VPC, error) {
+func (m *MockClientFactory) NewVPCClient(region, accessKeyID, accessKeySecret string) (client.VPC, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewVPCClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewVPCClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.VPC)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewVPCClient indicates an expected call of NewVPCClient.
-func (mr *MockClientFactoryMockRecorder) NewVPCClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewVPCClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewVPCClient", reflect.TypeOf((*MockClientFactory)(nil).NewVPCClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewVPCClient", reflect.TypeOf((*MockClientFactory)(nil).NewVPCClient), region, accessKeyID, accessKeySecret)
 }
 
 // MockECS is a mock of ECS interface.
 type MockECS struct {
 	ctrl     *gomock.Controller
 	recorder *MockECSMockRecorder
+	isgomock struct{}
 }
 
 // MockECSMockRecorder is the mock recorder for MockECS.
@@ -206,436 +208,437 @@ func (m *MockECS) EXPECT() *MockECSMockRecorder {
 }
 
 // AllocatePublicIp mocks base method.
-func (m *MockECS) AllocatePublicIp(arg0 string) (*ecs.AllocatePublicIpAddressResponse, error) {
+func (m *MockECS) AllocatePublicIp(id string) (*ecs.AllocatePublicIpAddressResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AllocatePublicIp", arg0)
+	ret := m.ctrl.Call(m, "AllocatePublicIp", id)
 	ret0, _ := ret[0].(*ecs.AllocatePublicIpAddressResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AllocatePublicIp indicates an expected call of AllocatePublicIp.
-func (mr *MockECSMockRecorder) AllocatePublicIp(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) AllocatePublicIp(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocatePublicIp", reflect.TypeOf((*MockECS)(nil).AllocatePublicIp), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocatePublicIp", reflect.TypeOf((*MockECS)(nil).AllocatePublicIp), id)
 }
 
 // AuthorizeSecurityGroup mocks base method.
-func (m *MockECS) AuthorizeSecurityGroup(arg0 *ecs.AuthorizeSecurityGroupRequest) (*ecs.AuthorizeSecurityGroupResponse, error) {
+func (m *MockECS) AuthorizeSecurityGroup(request *ecs.AuthorizeSecurityGroupRequest) (*ecs.AuthorizeSecurityGroupResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AuthorizeSecurityGroup", arg0)
+	ret := m.ctrl.Call(m, "AuthorizeSecurityGroup", request)
 	ret0, _ := ret[0].(*ecs.AuthorizeSecurityGroupResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AuthorizeSecurityGroup indicates an expected call of AuthorizeSecurityGroup.
-func (mr *MockECSMockRecorder) AuthorizeSecurityGroup(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) AuthorizeSecurityGroup(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthorizeSecurityGroup", reflect.TypeOf((*MockECS)(nil).AuthorizeSecurityGroup), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthorizeSecurityGroup", reflect.TypeOf((*MockECS)(nil).AuthorizeSecurityGroup), request)
 }
 
 // AuthorizeSecurityGroupEgress mocks base method.
-func (m *MockECS) AuthorizeSecurityGroupEgress(arg0 *ecs.AuthorizeSecurityGroupEgressRequest) (*ecs.AuthorizeSecurityGroupEgressResponse, error) {
+func (m *MockECS) AuthorizeSecurityGroupEgress(request *ecs.AuthorizeSecurityGroupEgressRequest) (*ecs.AuthorizeSecurityGroupEgressResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AuthorizeSecurityGroupEgress", arg0)
+	ret := m.ctrl.Call(m, "AuthorizeSecurityGroupEgress", request)
 	ret0, _ := ret[0].(*ecs.AuthorizeSecurityGroupEgressResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AuthorizeSecurityGroupEgress indicates an expected call of AuthorizeSecurityGroupEgress.
-func (mr *MockECSMockRecorder) AuthorizeSecurityGroupEgress(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) AuthorizeSecurityGroupEgress(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthorizeSecurityGroupEgress", reflect.TypeOf((*MockECS)(nil).AuthorizeSecurityGroupEgress), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthorizeSecurityGroupEgress", reflect.TypeOf((*MockECS)(nil).AuthorizeSecurityGroupEgress), request)
 }
 
 // CheckIfImageExists mocks base method.
-func (m *MockECS) CheckIfImageExists(arg0 string) (bool, error) {
+func (m *MockECS) CheckIfImageExists(imageID string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckIfImageExists", arg0)
+	ret := m.ctrl.Call(m, "CheckIfImageExists", imageID)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CheckIfImageExists indicates an expected call of CheckIfImageExists.
-func (mr *MockECSMockRecorder) CheckIfImageExists(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) CheckIfImageExists(imageID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfImageExists", reflect.TypeOf((*MockECS)(nil).CheckIfImageExists), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfImageExists", reflect.TypeOf((*MockECS)(nil).CheckIfImageExists), imageID)
 }
 
 // CheckIfImageOwnedByAliCloud mocks base method.
-func (m *MockECS) CheckIfImageOwnedByAliCloud(arg0 string) (bool, error) {
+func (m *MockECS) CheckIfImageOwnedByAliCloud(imageID string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckIfImageOwnedByAliCloud", arg0)
+	ret := m.ctrl.Call(m, "CheckIfImageOwnedByAliCloud", imageID)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CheckIfImageOwnedByAliCloud indicates an expected call of CheckIfImageOwnedByAliCloud.
-func (mr *MockECSMockRecorder) CheckIfImageOwnedByAliCloud(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) CheckIfImageOwnedByAliCloud(imageID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfImageOwnedByAliCloud", reflect.TypeOf((*MockECS)(nil).CheckIfImageOwnedByAliCloud), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfImageOwnedByAliCloud", reflect.TypeOf((*MockECS)(nil).CheckIfImageOwnedByAliCloud), imageID)
 }
 
 // CreateEgressRule mocks base method.
-func (m *MockECS) CreateEgressRule(arg0 *ecs.AuthorizeSecurityGroupEgressRequest) error {
+func (m *MockECS) CreateEgressRule(request *ecs.AuthorizeSecurityGroupEgressRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateEgressRule", arg0)
+	ret := m.ctrl.Call(m, "CreateEgressRule", request)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateEgressRule indicates an expected call of CreateEgressRule.
-func (mr *MockECSMockRecorder) CreateEgressRule(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) CreateEgressRule(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEgressRule", reflect.TypeOf((*MockECS)(nil).CreateEgressRule), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEgressRule", reflect.TypeOf((*MockECS)(nil).CreateEgressRule), request)
 }
 
 // CreateIngressRule mocks base method.
-func (m *MockECS) CreateIngressRule(arg0 *ecs.AuthorizeSecurityGroupRequest) error {
+func (m *MockECS) CreateIngressRule(request *ecs.AuthorizeSecurityGroupRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateIngressRule", arg0)
+	ret := m.ctrl.Call(m, "CreateIngressRule", request)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateIngressRule indicates an expected call of CreateIngressRule.
-func (mr *MockECSMockRecorder) CreateIngressRule(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) CreateIngressRule(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIngressRule", reflect.TypeOf((*MockECS)(nil).CreateIngressRule), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIngressRule", reflect.TypeOf((*MockECS)(nil).CreateIngressRule), request)
 }
 
 // CreateInstances mocks base method.
-func (m *MockECS) CreateInstances(arg0, arg1, arg2, arg3, arg4, arg5, arg6 string) (*ecs.RunInstancesResponse, error) {
+func (m *MockECS) CreateInstances(instanceName, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID, userData string) (*ecs.RunInstancesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateInstances", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret := m.ctrl.Call(m, "CreateInstances", instanceName, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID, userData)
 	ret0, _ := ret[0].(*ecs.RunInstancesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateInstances indicates an expected call of CreateInstances.
-func (mr *MockECSMockRecorder) CreateInstances(arg0, arg1, arg2, arg3, arg4, arg5, arg6 any) *gomock.Call {
+func (mr *MockECSMockRecorder) CreateInstances(instanceName, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID, userData any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstances", reflect.TypeOf((*MockECS)(nil).CreateInstances), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstances", reflect.TypeOf((*MockECS)(nil).CreateInstances), instanceName, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID, userData)
 }
 
 // CreateSecurityGroup mocks base method.
-func (m *MockECS) CreateSecurityGroup(arg0 *ecs.CreateSecurityGroupRequest) (*ecs.CreateSecurityGroupResponse, error) {
+func (m *MockECS) CreateSecurityGroup(request *ecs.CreateSecurityGroupRequest) (*ecs.CreateSecurityGroupResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSecurityGroup", arg0)
+	ret := m.ctrl.Call(m, "CreateSecurityGroup", request)
 	ret0, _ := ret[0].(*ecs.CreateSecurityGroupResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateSecurityGroup indicates an expected call of CreateSecurityGroup.
-func (mr *MockECSMockRecorder) CreateSecurityGroup(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) CreateSecurityGroup(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecurityGroup", reflect.TypeOf((*MockECS)(nil).CreateSecurityGroup), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecurityGroup", reflect.TypeOf((*MockECS)(nil).CreateSecurityGroup), request)
 }
 
 // CreateSecurityGroups mocks base method.
-func (m *MockECS) CreateSecurityGroups(arg0, arg1 string) (*ecs.CreateSecurityGroupResponse, error) {
+func (m *MockECS) CreateSecurityGroups(vpcId, name string) (*ecs.CreateSecurityGroupResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSecurityGroups", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreateSecurityGroups", vpcId, name)
 	ret0, _ := ret[0].(*ecs.CreateSecurityGroupResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateSecurityGroups indicates an expected call of CreateSecurityGroups.
-func (mr *MockECSMockRecorder) CreateSecurityGroups(arg0, arg1 any) *gomock.Call {
+func (mr *MockECSMockRecorder) CreateSecurityGroups(vpcId, name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecurityGroups", reflect.TypeOf((*MockECS)(nil).CreateSecurityGroups), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecurityGroups", reflect.TypeOf((*MockECS)(nil).CreateSecurityGroups), vpcId, name)
 }
 
 // DeleteInstances mocks base method.
-func (m *MockECS) DeleteInstances(arg0 string, arg1 bool) error {
+func (m *MockECS) DeleteInstances(id string, force bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteInstances", arg0, arg1)
+	ret := m.ctrl.Call(m, "DeleteInstances", id, force)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteInstances indicates an expected call of DeleteInstances.
-func (mr *MockECSMockRecorder) DeleteInstances(arg0, arg1 any) *gomock.Call {
+func (mr *MockECSMockRecorder) DeleteInstances(id, force any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstances", reflect.TypeOf((*MockECS)(nil).DeleteInstances), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstances", reflect.TypeOf((*MockECS)(nil).DeleteInstances), id, force)
 }
 
 // DeleteSecurityGroup mocks base method.
-func (m *MockECS) DeleteSecurityGroup(arg0 *ecs.DeleteSecurityGroupRequest) (*ecs.DeleteSecurityGroupResponse, error) {
+func (m *MockECS) DeleteSecurityGroup(request *ecs.DeleteSecurityGroupRequest) (*ecs.DeleteSecurityGroupResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteSecurityGroup", arg0)
+	ret := m.ctrl.Call(m, "DeleteSecurityGroup", request)
 	ret0, _ := ret[0].(*ecs.DeleteSecurityGroupResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteSecurityGroup indicates an expected call of DeleteSecurityGroup.
-func (mr *MockECSMockRecorder) DeleteSecurityGroup(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) DeleteSecurityGroup(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecurityGroup", reflect.TypeOf((*MockECS)(nil).DeleteSecurityGroup), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecurityGroup", reflect.TypeOf((*MockECS)(nil).DeleteSecurityGroup), request)
 }
 
 // DeleteSecurityGroups mocks base method.
-func (m *MockECS) DeleteSecurityGroups(arg0 string) error {
+func (m *MockECS) DeleteSecurityGroups(id string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteSecurityGroups", arg0)
+	ret := m.ctrl.Call(m, "DeleteSecurityGroups", id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteSecurityGroups indicates an expected call of DeleteSecurityGroups.
-func (mr *MockECSMockRecorder) DeleteSecurityGroups(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) DeleteSecurityGroups(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecurityGroups", reflect.TypeOf((*MockECS)(nil).DeleteSecurityGroups), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecurityGroups", reflect.TypeOf((*MockECS)(nil).DeleteSecurityGroups), id)
 }
 
 // DescribeKeyPairs mocks base method.
-func (m *MockECS) DescribeKeyPairs(arg0 *ecs.DescribeKeyPairsRequest) (*ecs.DescribeKeyPairsResponse, error) {
+func (m *MockECS) DescribeKeyPairs(request *ecs.DescribeKeyPairsRequest) (*ecs.DescribeKeyPairsResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeKeyPairs", arg0)
+	ret := m.ctrl.Call(m, "DescribeKeyPairs", request)
 	ret0, _ := ret[0].(*ecs.DescribeKeyPairsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeKeyPairs indicates an expected call of DescribeKeyPairs.
-func (mr *MockECSMockRecorder) DescribeKeyPairs(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) DescribeKeyPairs(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeKeyPairs", reflect.TypeOf((*MockECS)(nil).DescribeKeyPairs), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeKeyPairs", reflect.TypeOf((*MockECS)(nil).DescribeKeyPairs), request)
 }
 
 // DescribeSecurityGroupAttribute mocks base method.
-func (m *MockECS) DescribeSecurityGroupAttribute(arg0 *ecs.DescribeSecurityGroupAttributeRequest) (*ecs.DescribeSecurityGroupAttributeResponse, error) {
+func (m *MockECS) DescribeSecurityGroupAttribute(request *ecs.DescribeSecurityGroupAttributeRequest) (*ecs.DescribeSecurityGroupAttributeResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeSecurityGroupAttribute", arg0)
+	ret := m.ctrl.Call(m, "DescribeSecurityGroupAttribute", request)
 	ret0, _ := ret[0].(*ecs.DescribeSecurityGroupAttributeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeSecurityGroupAttribute indicates an expected call of DescribeSecurityGroupAttribute.
-func (mr *MockECSMockRecorder) DescribeSecurityGroupAttribute(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) DescribeSecurityGroupAttribute(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroupAttribute", reflect.TypeOf((*MockECS)(nil).DescribeSecurityGroupAttribute), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroupAttribute", reflect.TypeOf((*MockECS)(nil).DescribeSecurityGroupAttribute), request)
 }
 
 // DescribeSecurityGroups mocks base method.
-func (m *MockECS) DescribeSecurityGroups(arg0 *ecs.DescribeSecurityGroupsRequest) (*ecs.DescribeSecurityGroupsResponse, error) {
+func (m *MockECS) DescribeSecurityGroups(request *ecs.DescribeSecurityGroupsRequest) (*ecs.DescribeSecurityGroupsResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeSecurityGroups", arg0)
+	ret := m.ctrl.Call(m, "DescribeSecurityGroups", request)
 	ret0, _ := ret[0].(*ecs.DescribeSecurityGroupsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeSecurityGroups indicates an expected call of DescribeSecurityGroups.
-func (mr *MockECSMockRecorder) DescribeSecurityGroups(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) DescribeSecurityGroups(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroups", reflect.TypeOf((*MockECS)(nil).DescribeSecurityGroups), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroups", reflect.TypeOf((*MockECS)(nil).DescribeSecurityGroups), request)
 }
 
 // DetachECSInstancesFromSSHKeyPair mocks base method.
-func (m *MockECS) DetachECSInstancesFromSSHKeyPair(arg0 string) error {
+func (m *MockECS) DetachECSInstancesFromSSHKeyPair(keyName string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DetachECSInstancesFromSSHKeyPair", arg0)
+	ret := m.ctrl.Call(m, "DetachECSInstancesFromSSHKeyPair", keyName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DetachECSInstancesFromSSHKeyPair indicates an expected call of DetachECSInstancesFromSSHKeyPair.
-func (mr *MockECSMockRecorder) DetachECSInstancesFromSSHKeyPair(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) DetachECSInstancesFromSSHKeyPair(keyName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachECSInstancesFromSSHKeyPair", reflect.TypeOf((*MockECS)(nil).DetachECSInstancesFromSSHKeyPair), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachECSInstancesFromSSHKeyPair", reflect.TypeOf((*MockECS)(nil).DetachECSInstancesFromSSHKeyPair), keyName)
 }
 
 // GetInstanceType mocks base method.
-func (m *MockECS) GetInstanceType(arg0 int, arg1 string) (*ecs.DescribeAvailableResourceResponse, error) {
+func (m *MockECS) GetInstanceType(core int, zoneID string) (*ecs.DescribeAvailableResourceResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstanceType", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetInstanceType", core, zoneID)
 	ret0, _ := ret[0].(*ecs.DescribeAvailableResourceResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetInstanceType indicates an expected call of GetInstanceType.
-func (mr *MockECSMockRecorder) GetInstanceType(arg0, arg1 any) *gomock.Call {
+func (mr *MockECSMockRecorder) GetInstanceType(core, zoneID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceType", reflect.TypeOf((*MockECS)(nil).GetInstanceType), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceType", reflect.TypeOf((*MockECS)(nil).GetInstanceType), core, zoneID)
 }
 
 // GetInstances mocks base method.
-func (m *MockECS) GetInstances(arg0 string) (*ecs.DescribeInstancesResponse, error) {
+func (m *MockECS) GetInstances(name string) (*ecs.DescribeInstancesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstances", arg0)
+	ret := m.ctrl.Call(m, "GetInstances", name)
 	ret0, _ := ret[0].(*ecs.DescribeInstancesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetInstances indicates an expected call of GetInstances.
-func (mr *MockECSMockRecorder) GetInstances(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) GetInstances(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstances", reflect.TypeOf((*MockECS)(nil).GetInstances), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstances", reflect.TypeOf((*MockECS)(nil).GetInstances), name)
 }
 
 // GetSecurityGroup mocks base method.
-func (m *MockECS) GetSecurityGroup(arg0 string) (*ecs.DescribeSecurityGroupsResponse, error) {
+func (m *MockECS) GetSecurityGroup(name string) (*ecs.DescribeSecurityGroupsResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecurityGroup", arg0)
+	ret := m.ctrl.Call(m, "GetSecurityGroup", name)
 	ret0, _ := ret[0].(*ecs.DescribeSecurityGroupsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecurityGroup indicates an expected call of GetSecurityGroup.
-func (mr *MockECSMockRecorder) GetSecurityGroup(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) GetSecurityGroup(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecurityGroup", reflect.TypeOf((*MockECS)(nil).GetSecurityGroup), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecurityGroup", reflect.TypeOf((*MockECS)(nil).GetSecurityGroup), name)
 }
 
 // GetSecurityGroupWithID mocks base method.
-func (m *MockECS) GetSecurityGroupWithID(arg0 string) (*ecs.DescribeSecurityGroupsResponse, error) {
+func (m *MockECS) GetSecurityGroupWithID(id string) (*ecs.DescribeSecurityGroupsResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecurityGroupWithID", arg0)
+	ret := m.ctrl.Call(m, "GetSecurityGroupWithID", id)
 	ret0, _ := ret[0].(*ecs.DescribeSecurityGroupsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecurityGroupWithID indicates an expected call of GetSecurityGroupWithID.
-func (mr *MockECSMockRecorder) GetSecurityGroupWithID(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) GetSecurityGroupWithID(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecurityGroupWithID", reflect.TypeOf((*MockECS)(nil).GetSecurityGroupWithID), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecurityGroupWithID", reflect.TypeOf((*MockECS)(nil).GetSecurityGroupWithID), id)
 }
 
 // ListTagResources mocks base method.
-func (m *MockECS) ListTagResources(arg0 *ecs.ListTagResourcesRequest) (*ecs.ListTagResourcesResponse, error) {
+func (m *MockECS) ListTagResources(request *ecs.ListTagResourcesRequest) (*ecs.ListTagResourcesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTagResources", arg0)
+	ret := m.ctrl.Call(m, "ListTagResources", request)
 	ret0, _ := ret[0].(*ecs.ListTagResourcesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListTagResources indicates an expected call of ListTagResources.
-func (mr *MockECSMockRecorder) ListTagResources(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) ListTagResources(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagResources", reflect.TypeOf((*MockECS)(nil).ListTagResources), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagResources", reflect.TypeOf((*MockECS)(nil).ListTagResources), request)
 }
 
 // RevokeEgressRule mocks base method.
-func (m *MockECS) RevokeEgressRule(arg0 *ecs.RevokeSecurityGroupEgressRequest) error {
+func (m *MockECS) RevokeEgressRule(request *ecs.RevokeSecurityGroupEgressRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RevokeEgressRule", arg0)
+	ret := m.ctrl.Call(m, "RevokeEgressRule", request)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RevokeEgressRule indicates an expected call of RevokeEgressRule.
-func (mr *MockECSMockRecorder) RevokeEgressRule(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) RevokeEgressRule(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeEgressRule", reflect.TypeOf((*MockECS)(nil).RevokeEgressRule), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeEgressRule", reflect.TypeOf((*MockECS)(nil).RevokeEgressRule), request)
 }
 
 // RevokeIngressRule mocks base method.
-func (m *MockECS) RevokeIngressRule(arg0 *ecs.RevokeSecurityGroupRequest) error {
+func (m *MockECS) RevokeIngressRule(request *ecs.RevokeSecurityGroupRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RevokeIngressRule", arg0)
+	ret := m.ctrl.Call(m, "RevokeIngressRule", request)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RevokeIngressRule indicates an expected call of RevokeIngressRule.
-func (mr *MockECSMockRecorder) RevokeIngressRule(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) RevokeIngressRule(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeIngressRule", reflect.TypeOf((*MockECS)(nil).RevokeIngressRule), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeIngressRule", reflect.TypeOf((*MockECS)(nil).RevokeIngressRule), request)
 }
 
 // RevokeSecurityGroup mocks base method.
-func (m *MockECS) RevokeSecurityGroup(arg0 *ecs.RevokeSecurityGroupRequest) (*ecs.RevokeSecurityGroupResponse, error) {
+func (m *MockECS) RevokeSecurityGroup(request *ecs.RevokeSecurityGroupRequest) (*ecs.RevokeSecurityGroupResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RevokeSecurityGroup", arg0)
+	ret := m.ctrl.Call(m, "RevokeSecurityGroup", request)
 	ret0, _ := ret[0].(*ecs.RevokeSecurityGroupResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RevokeSecurityGroup indicates an expected call of RevokeSecurityGroup.
-func (mr *MockECSMockRecorder) RevokeSecurityGroup(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) RevokeSecurityGroup(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSecurityGroup", reflect.TypeOf((*MockECS)(nil).RevokeSecurityGroup), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSecurityGroup", reflect.TypeOf((*MockECS)(nil).RevokeSecurityGroup), request)
 }
 
 // RevokeSecurityGroupEgress mocks base method.
-func (m *MockECS) RevokeSecurityGroupEgress(arg0 *ecs.RevokeSecurityGroupEgressRequest) (*ecs.RevokeSecurityGroupEgressResponse, error) {
+func (m *MockECS) RevokeSecurityGroupEgress(request *ecs.RevokeSecurityGroupEgressRequest) (*ecs.RevokeSecurityGroupEgressResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RevokeSecurityGroupEgress", arg0)
+	ret := m.ctrl.Call(m, "RevokeSecurityGroupEgress", request)
 	ret0, _ := ret[0].(*ecs.RevokeSecurityGroupEgressResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RevokeSecurityGroupEgress indicates an expected call of RevokeSecurityGroupEgress.
-func (mr *MockECSMockRecorder) RevokeSecurityGroupEgress(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) RevokeSecurityGroupEgress(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSecurityGroupEgress", reflect.TypeOf((*MockECS)(nil).RevokeSecurityGroupEgress), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSecurityGroupEgress", reflect.TypeOf((*MockECS)(nil).RevokeSecurityGroupEgress), request)
 }
 
 // ShareImageToAccount mocks base method.
-func (m *MockECS) ShareImageToAccount(arg0 context.Context, arg1, arg2, arg3 string) error {
+func (m *MockECS) ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ShareImageToAccount", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "ShareImageToAccount", ctx, regionID, imageID, accountID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ShareImageToAccount indicates an expected call of ShareImageToAccount.
-func (mr *MockECSMockRecorder) ShareImageToAccount(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockECSMockRecorder) ShareImageToAccount(ctx, regionID, imageID, accountID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShareImageToAccount", reflect.TypeOf((*MockECS)(nil).ShareImageToAccount), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShareImageToAccount", reflect.TypeOf((*MockECS)(nil).ShareImageToAccount), ctx, regionID, imageID, accountID)
 }
 
 // TagResources mocks base method.
-func (m *MockECS) TagResources(arg0 *ecs.TagResourcesRequest) (*ecs.TagResourcesResponse, error) {
+func (m *MockECS) TagResources(request *ecs.TagResourcesRequest) (*ecs.TagResourcesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TagResources", arg0)
+	ret := m.ctrl.Call(m, "TagResources", request)
 	ret0, _ := ret[0].(*ecs.TagResourcesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TagResources indicates an expected call of TagResources.
-func (mr *MockECSMockRecorder) TagResources(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) TagResources(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResources", reflect.TypeOf((*MockECS)(nil).TagResources), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResources", reflect.TypeOf((*MockECS)(nil).TagResources), request)
 }
 
 // UntagResources mocks base method.
-func (m *MockECS) UntagResources(arg0 *ecs.UntagResourcesRequest) (*ecs.UntagResourcesResponse, error) {
+func (m *MockECS) UntagResources(request *ecs.UntagResourcesRequest) (*ecs.UntagResourcesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UntagResources", arg0)
+	ret := m.ctrl.Call(m, "UntagResources", request)
 	ret0, _ := ret[0].(*ecs.UntagResourcesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UntagResources indicates an expected call of UntagResources.
-func (mr *MockECSMockRecorder) UntagResources(arg0 any) *gomock.Call {
+func (mr *MockECSMockRecorder) UntagResources(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagResources", reflect.TypeOf((*MockECS)(nil).UntagResources), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagResources", reflect.TypeOf((*MockECS)(nil).UntagResources), request)
 }
 
 // MockSTS is a mock of STS interface.
 type MockSTS struct {
 	ctrl     *gomock.Controller
 	recorder *MockSTSMockRecorder
+	isgomock struct{}
 }
 
 // MockSTSMockRecorder is the mock recorder for MockSTS.
@@ -656,24 +659,25 @@ func (m *MockSTS) EXPECT() *MockSTSMockRecorder {
 }
 
 // GetAccountIDFromCallerIdentity mocks base method.
-func (m *MockSTS) GetAccountIDFromCallerIdentity(arg0 context.Context) (string, error) {
+func (m *MockSTS) GetAccountIDFromCallerIdentity(ctx context.Context) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccountIDFromCallerIdentity", arg0)
+	ret := m.ctrl.Call(m, "GetAccountIDFromCallerIdentity", ctx)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAccountIDFromCallerIdentity indicates an expected call of GetAccountIDFromCallerIdentity.
-func (mr *MockSTSMockRecorder) GetAccountIDFromCallerIdentity(arg0 any) *gomock.Call {
+func (mr *MockSTSMockRecorder) GetAccountIDFromCallerIdentity(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountIDFromCallerIdentity", reflect.TypeOf((*MockSTS)(nil).GetAccountIDFromCallerIdentity), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountIDFromCallerIdentity", reflect.TypeOf((*MockSTS)(nil).GetAccountIDFromCallerIdentity), ctx)
 }
 
 // MockSLB is a mock of SLB interface.
 type MockSLB struct {
 	ctrl     *gomock.Controller
 	recorder *MockSLBMockRecorder
+	isgomock struct{}
 }
 
 // MockSLBMockRecorder is the mock recorder for MockSLB.
@@ -694,67 +698,68 @@ func (m *MockSLB) EXPECT() *MockSLBMockRecorder {
 }
 
 // DeleteLoadBalancer mocks base method.
-func (m *MockSLB) DeleteLoadBalancer(arg0 context.Context, arg1, arg2 string) error {
+func (m *MockSLB) DeleteLoadBalancer(ctx context.Context, region, loadBalancerID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteLoadBalancer", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "DeleteLoadBalancer", ctx, region, loadBalancerID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteLoadBalancer indicates an expected call of DeleteLoadBalancer.
-func (mr *MockSLBMockRecorder) DeleteLoadBalancer(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockSLBMockRecorder) DeleteLoadBalancer(ctx, region, loadBalancerID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancer", reflect.TypeOf((*MockSLB)(nil).DeleteLoadBalancer), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancer", reflect.TypeOf((*MockSLB)(nil).DeleteLoadBalancer), ctx, region, loadBalancerID)
 }
 
 // GetFirstVServerGroupName mocks base method.
-func (m *MockSLB) GetFirstVServerGroupName(arg0 context.Context, arg1, arg2 string) (string, error) {
+func (m *MockSLB) GetFirstVServerGroupName(ctx context.Context, region, loadBalancerID string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFirstVServerGroupName", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetFirstVServerGroupName", ctx, region, loadBalancerID)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFirstVServerGroupName indicates an expected call of GetFirstVServerGroupName.
-func (mr *MockSLBMockRecorder) GetFirstVServerGroupName(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockSLBMockRecorder) GetFirstVServerGroupName(ctx, region, loadBalancerID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirstVServerGroupName", reflect.TypeOf((*MockSLB)(nil).GetFirstVServerGroupName), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirstVServerGroupName", reflect.TypeOf((*MockSLB)(nil).GetFirstVServerGroupName), ctx, region, loadBalancerID)
 }
 
 // GetLoadBalancerIDs mocks base method.
-func (m *MockSLB) GetLoadBalancerIDs(arg0 context.Context, arg1 string) ([]string, error) {
+func (m *MockSLB) GetLoadBalancerIDs(ctx context.Context, region string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLoadBalancerIDs", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetLoadBalancerIDs", ctx, region)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetLoadBalancerIDs indicates an expected call of GetLoadBalancerIDs.
-func (mr *MockSLBMockRecorder) GetLoadBalancerIDs(arg0, arg1 any) *gomock.Call {
+func (mr *MockSLBMockRecorder) GetLoadBalancerIDs(ctx, region any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLoadBalancerIDs", reflect.TypeOf((*MockSLB)(nil).GetLoadBalancerIDs), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLoadBalancerIDs", reflect.TypeOf((*MockSLB)(nil).GetLoadBalancerIDs), ctx, region)
 }
 
 // SetLoadBalancerDeleteProtection mocks base method.
-func (m *MockSLB) SetLoadBalancerDeleteProtection(arg0 context.Context, arg1, arg2 string, arg3 bool) error {
+func (m *MockSLB) SetLoadBalancerDeleteProtection(ctx context.Context, region, loadBalancerID string, protection bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetLoadBalancerDeleteProtection", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "SetLoadBalancerDeleteProtection", ctx, region, loadBalancerID, protection)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetLoadBalancerDeleteProtection indicates an expected call of SetLoadBalancerDeleteProtection.
-func (mr *MockSLBMockRecorder) SetLoadBalancerDeleteProtection(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockSLBMockRecorder) SetLoadBalancerDeleteProtection(ctx, region, loadBalancerID, protection any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerDeleteProtection", reflect.TypeOf((*MockSLB)(nil).SetLoadBalancerDeleteProtection), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerDeleteProtection", reflect.TypeOf((*MockSLB)(nil).SetLoadBalancerDeleteProtection), ctx, region, loadBalancerID, protection)
 }
 
 // MockVPC is a mock of VPC interface.
 type MockVPC struct {
 	ctrl     *gomock.Controller
 	recorder *MockVPCMockRecorder
+	isgomock struct{}
 }
 
 // MockVPCMockRecorder is the mock recorder for MockVPC.
@@ -775,459 +780,460 @@ func (m *MockVPC) EXPECT() *MockVPCMockRecorder {
 }
 
 // AllocateEipAddress mocks base method.
-func (m *MockVPC) AllocateEipAddress(arg0 *vpc.AllocateEipAddressRequest) (*vpc.AllocateEipAddressResponse, error) {
+func (m *MockVPC) AllocateEipAddress(request *vpc.AllocateEipAddressRequest) (*vpc.AllocateEipAddressResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AllocateEipAddress", arg0)
+	ret := m.ctrl.Call(m, "AllocateEipAddress", request)
 	ret0, _ := ret[0].(*vpc.AllocateEipAddressResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AllocateEipAddress indicates an expected call of AllocateEipAddress.
-func (mr *MockVPCMockRecorder) AllocateEipAddress(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) AllocateEipAddress(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocateEipAddress", reflect.TypeOf((*MockVPC)(nil).AllocateEipAddress), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocateEipAddress", reflect.TypeOf((*MockVPC)(nil).AllocateEipAddress), request)
 }
 
 // AssociateEipAddress mocks base method.
-func (m *MockVPC) AssociateEipAddress(arg0 *vpc.AssociateEipAddressRequest) (*vpc.AssociateEipAddressResponse, error) {
+func (m *MockVPC) AssociateEipAddress(request *vpc.AssociateEipAddressRequest) (*vpc.AssociateEipAddressResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AssociateEipAddress", arg0)
+	ret := m.ctrl.Call(m, "AssociateEipAddress", request)
 	ret0, _ := ret[0].(*vpc.AssociateEipAddressResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AssociateEipAddress indicates an expected call of AssociateEipAddress.
-func (mr *MockVPCMockRecorder) AssociateEipAddress(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) AssociateEipAddress(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEipAddress", reflect.TypeOf((*MockVPC)(nil).AssociateEipAddress), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEipAddress", reflect.TypeOf((*MockVPC)(nil).AssociateEipAddress), request)
 }
 
 // CreateNatGateway mocks base method.
-func (m *MockVPC) CreateNatGateway(arg0 *vpc.CreateNatGatewayRequest) (*vpc.CreateNatGatewayResponse, error) {
+func (m *MockVPC) CreateNatGateway(request *vpc.CreateNatGatewayRequest) (*vpc.CreateNatGatewayResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateNatGateway", arg0)
+	ret := m.ctrl.Call(m, "CreateNatGateway", request)
 	ret0, _ := ret[0].(*vpc.CreateNatGatewayResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateNatGateway indicates an expected call of CreateNatGateway.
-func (mr *MockVPCMockRecorder) CreateNatGateway(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) CreateNatGateway(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNatGateway", reflect.TypeOf((*MockVPC)(nil).CreateNatGateway), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNatGateway", reflect.TypeOf((*MockVPC)(nil).CreateNatGateway), request)
 }
 
 // CreateSnatEntry mocks base method.
-func (m *MockVPC) CreateSnatEntry(arg0 *vpc.CreateSnatEntryRequest) (*vpc.CreateSnatEntryResponse, error) {
+func (m *MockVPC) CreateSnatEntry(request *vpc.CreateSnatEntryRequest) (*vpc.CreateSnatEntryResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSnatEntry", arg0)
+	ret := m.ctrl.Call(m, "CreateSnatEntry", request)
 	ret0, _ := ret[0].(*vpc.CreateSnatEntryResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateSnatEntry indicates an expected call of CreateSnatEntry.
-func (mr *MockVPCMockRecorder) CreateSnatEntry(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) CreateSnatEntry(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSnatEntry", reflect.TypeOf((*MockVPC)(nil).CreateSnatEntry), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSnatEntry", reflect.TypeOf((*MockVPC)(nil).CreateSnatEntry), request)
 }
 
 // CreateVSwitch mocks base method.
-func (m *MockVPC) CreateVSwitch(arg0 *vpc.CreateVSwitchRequest) (*vpc.CreateVSwitchResponse, error) {
+func (m *MockVPC) CreateVSwitch(request *vpc.CreateVSwitchRequest) (*vpc.CreateVSwitchResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateVSwitch", arg0)
+	ret := m.ctrl.Call(m, "CreateVSwitch", request)
 	ret0, _ := ret[0].(*vpc.CreateVSwitchResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateVSwitch indicates an expected call of CreateVSwitch.
-func (mr *MockVPCMockRecorder) CreateVSwitch(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) CreateVSwitch(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVSwitch", reflect.TypeOf((*MockVPC)(nil).CreateVSwitch), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVSwitch", reflect.TypeOf((*MockVPC)(nil).CreateVSwitch), request)
 }
 
 // CreateVpc mocks base method.
-func (m *MockVPC) CreateVpc(arg0 *vpc.CreateVpcRequest) (*vpc.CreateVpcResponse, error) {
+func (m *MockVPC) CreateVpc(request *vpc.CreateVpcRequest) (*vpc.CreateVpcResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateVpc", arg0)
+	ret := m.ctrl.Call(m, "CreateVpc", request)
 	ret0, _ := ret[0].(*vpc.CreateVpcResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateVpc indicates an expected call of CreateVpc.
-func (mr *MockVPCMockRecorder) CreateVpc(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) CreateVpc(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVpc", reflect.TypeOf((*MockVPC)(nil).CreateVpc), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVpc", reflect.TypeOf((*MockVPC)(nil).CreateVpc), request)
 }
 
 // DeleteNatGateway mocks base method.
-func (m *MockVPC) DeleteNatGateway(arg0 *vpc.DeleteNatGatewayRequest) (*vpc.DeleteNatGatewayResponse, error) {
+func (m *MockVPC) DeleteNatGateway(request *vpc.DeleteNatGatewayRequest) (*vpc.DeleteNatGatewayResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteNatGateway", arg0)
+	ret := m.ctrl.Call(m, "DeleteNatGateway", request)
 	ret0, _ := ret[0].(*vpc.DeleteNatGatewayResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteNatGateway indicates an expected call of DeleteNatGateway.
-func (mr *MockVPCMockRecorder) DeleteNatGateway(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) DeleteNatGateway(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNatGateway", reflect.TypeOf((*MockVPC)(nil).DeleteNatGateway), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNatGateway", reflect.TypeOf((*MockVPC)(nil).DeleteNatGateway), request)
 }
 
 // DeleteSnatEntry mocks base method.
-func (m *MockVPC) DeleteSnatEntry(arg0 *vpc.DeleteSnatEntryRequest) (*vpc.DeleteSnatEntryResponse, error) {
+func (m *MockVPC) DeleteSnatEntry(request *vpc.DeleteSnatEntryRequest) (*vpc.DeleteSnatEntryResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteSnatEntry", arg0)
+	ret := m.ctrl.Call(m, "DeleteSnatEntry", request)
 	ret0, _ := ret[0].(*vpc.DeleteSnatEntryResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteSnatEntry indicates an expected call of DeleteSnatEntry.
-func (mr *MockVPCMockRecorder) DeleteSnatEntry(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) DeleteSnatEntry(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSnatEntry", reflect.TypeOf((*MockVPC)(nil).DeleteSnatEntry), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSnatEntry", reflect.TypeOf((*MockVPC)(nil).DeleteSnatEntry), request)
 }
 
 // DeleteVSwitch mocks base method.
-func (m *MockVPC) DeleteVSwitch(arg0 *vpc.DeleteVSwitchRequest) (*vpc.DeleteVSwitchResponse, error) {
+func (m *MockVPC) DeleteVSwitch(request *vpc.DeleteVSwitchRequest) (*vpc.DeleteVSwitchResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteVSwitch", arg0)
+	ret := m.ctrl.Call(m, "DeleteVSwitch", request)
 	ret0, _ := ret[0].(*vpc.DeleteVSwitchResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteVSwitch indicates an expected call of DeleteVSwitch.
-func (mr *MockVPCMockRecorder) DeleteVSwitch(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) DeleteVSwitch(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteVSwitch", reflect.TypeOf((*MockVPC)(nil).DeleteVSwitch), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteVSwitch", reflect.TypeOf((*MockVPC)(nil).DeleteVSwitch), request)
 }
 
 // DeleteVpc mocks base method.
-func (m *MockVPC) DeleteVpc(arg0 *vpc.DeleteVpcRequest) (*vpc.DeleteVpcResponse, error) {
+func (m *MockVPC) DeleteVpc(request *vpc.DeleteVpcRequest) (*vpc.DeleteVpcResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteVpc", arg0)
+	ret := m.ctrl.Call(m, "DeleteVpc", request)
 	ret0, _ := ret[0].(*vpc.DeleteVpcResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteVpc indicates an expected call of DeleteVpc.
-func (mr *MockVPCMockRecorder) DeleteVpc(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) DeleteVpc(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteVpc", reflect.TypeOf((*MockVPC)(nil).DeleteVpc), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteVpc", reflect.TypeOf((*MockVPC)(nil).DeleteVpc), request)
 }
 
 // DescribeEipAddresses mocks base method.
-func (m *MockVPC) DescribeEipAddresses(arg0 *vpc.DescribeEipAddressesRequest) (*vpc.DescribeEipAddressesResponse, error) {
+func (m *MockVPC) DescribeEipAddresses(request *vpc.DescribeEipAddressesRequest) (*vpc.DescribeEipAddressesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeEipAddresses", arg0)
+	ret := m.ctrl.Call(m, "DescribeEipAddresses", request)
 	ret0, _ := ret[0].(*vpc.DescribeEipAddressesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeEipAddresses indicates an expected call of DescribeEipAddresses.
-func (mr *MockVPCMockRecorder) DescribeEipAddresses(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) DescribeEipAddresses(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEipAddresses", reflect.TypeOf((*MockVPC)(nil).DescribeEipAddresses), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEipAddresses", reflect.TypeOf((*MockVPC)(nil).DescribeEipAddresses), request)
 }
 
 // DescribeNatGateways mocks base method.
-func (m *MockVPC) DescribeNatGateways(arg0 *vpc.DescribeNatGatewaysRequest) (*vpc.DescribeNatGatewaysResponse, error) {
+func (m *MockVPC) DescribeNatGateways(request *vpc.DescribeNatGatewaysRequest) (*vpc.DescribeNatGatewaysResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeNatGateways", arg0)
+	ret := m.ctrl.Call(m, "DescribeNatGateways", request)
 	ret0, _ := ret[0].(*vpc.DescribeNatGatewaysResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeNatGateways indicates an expected call of DescribeNatGateways.
-func (mr *MockVPCMockRecorder) DescribeNatGateways(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) DescribeNatGateways(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeNatGateways", reflect.TypeOf((*MockVPC)(nil).DescribeNatGateways), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeNatGateways", reflect.TypeOf((*MockVPC)(nil).DescribeNatGateways), request)
 }
 
 // DescribeSnatTableEntries mocks base method.
-func (m *MockVPC) DescribeSnatTableEntries(arg0 *vpc.DescribeSnatTableEntriesRequest) (*vpc.DescribeSnatTableEntriesResponse, error) {
+func (m *MockVPC) DescribeSnatTableEntries(request *vpc.DescribeSnatTableEntriesRequest) (*vpc.DescribeSnatTableEntriesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeSnatTableEntries", arg0)
+	ret := m.ctrl.Call(m, "DescribeSnatTableEntries", request)
 	ret0, _ := ret[0].(*vpc.DescribeSnatTableEntriesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeSnatTableEntries indicates an expected call of DescribeSnatTableEntries.
-func (mr *MockVPCMockRecorder) DescribeSnatTableEntries(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) DescribeSnatTableEntries(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSnatTableEntries", reflect.TypeOf((*MockVPC)(nil).DescribeSnatTableEntries), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSnatTableEntries", reflect.TypeOf((*MockVPC)(nil).DescribeSnatTableEntries), request)
 }
 
 // DescribeVSwitches mocks base method.
-func (m *MockVPC) DescribeVSwitches(arg0 *vpc.DescribeVSwitchesRequest) (*vpc.DescribeVSwitchesResponse, error) {
+func (m *MockVPC) DescribeVSwitches(request *vpc.DescribeVSwitchesRequest) (*vpc.DescribeVSwitchesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeVSwitches", arg0)
+	ret := m.ctrl.Call(m, "DescribeVSwitches", request)
 	ret0, _ := ret[0].(*vpc.DescribeVSwitchesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeVSwitches indicates an expected call of DescribeVSwitches.
-func (mr *MockVPCMockRecorder) DescribeVSwitches(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) DescribeVSwitches(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVSwitches", reflect.TypeOf((*MockVPC)(nil).DescribeVSwitches), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVSwitches", reflect.TypeOf((*MockVPC)(nil).DescribeVSwitches), request)
 }
 
 // DescribeVpcs mocks base method.
-func (m *MockVPC) DescribeVpcs(arg0 *vpc.DescribeVpcsRequest) (*vpc.DescribeVpcsResponse, error) {
+func (m *MockVPC) DescribeVpcs(request *vpc.DescribeVpcsRequest) (*vpc.DescribeVpcsResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeVpcs", arg0)
+	ret := m.ctrl.Call(m, "DescribeVpcs", request)
 	ret0, _ := ret[0].(*vpc.DescribeVpcsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeVpcs indicates an expected call of DescribeVpcs.
-func (mr *MockVPCMockRecorder) DescribeVpcs(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) DescribeVpcs(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVpcs", reflect.TypeOf((*MockVPC)(nil).DescribeVpcs), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVpcs", reflect.TypeOf((*MockVPC)(nil).DescribeVpcs), request)
 }
 
 // FetchEIPInternetChargeType mocks base method.
-func (m *MockVPC) FetchEIPInternetChargeType(arg0 context.Context, arg1 *vpc.NatGateway, arg2 string) (string, error) {
+func (m *MockVPC) FetchEIPInternetChargeType(ctx context.Context, natGateway *vpc.NatGateway, vpcID string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchEIPInternetChargeType", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "FetchEIPInternetChargeType", ctx, natGateway, vpcID)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FetchEIPInternetChargeType indicates an expected call of FetchEIPInternetChargeType.
-func (mr *MockVPCMockRecorder) FetchEIPInternetChargeType(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) FetchEIPInternetChargeType(ctx, natGateway, vpcID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchEIPInternetChargeType", reflect.TypeOf((*MockVPC)(nil).FetchEIPInternetChargeType), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchEIPInternetChargeType", reflect.TypeOf((*MockVPC)(nil).FetchEIPInternetChargeType), ctx, natGateway, vpcID)
 }
 
 // GetEIPWithID mocks base method.
-func (m *MockVPC) GetEIPWithID(arg0 context.Context, arg1 string) ([]vpc.EipAddress, error) {
+func (m *MockVPC) GetEIPWithID(ctx context.Context, eipID string) ([]vpc.EipAddress, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEIPWithID", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetEIPWithID", ctx, eipID)
 	ret0, _ := ret[0].([]vpc.EipAddress)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetEIPWithID indicates an expected call of GetEIPWithID.
-func (mr *MockVPCMockRecorder) GetEIPWithID(arg0, arg1 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) GetEIPWithID(ctx, eipID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIPWithID", reflect.TypeOf((*MockVPC)(nil).GetEIPWithID), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIPWithID", reflect.TypeOf((*MockVPC)(nil).GetEIPWithID), ctx, eipID)
 }
 
 // GetEnhanhcedNatGatewayAvailableZones mocks base method.
-func (m *MockVPC) GetEnhanhcedNatGatewayAvailableZones(arg0 context.Context, arg1 string) ([]string, error) {
+func (m *MockVPC) GetEnhanhcedNatGatewayAvailableZones(ctx context.Context, region string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEnhanhcedNatGatewayAvailableZones", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetEnhanhcedNatGatewayAvailableZones", ctx, region)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetEnhanhcedNatGatewayAvailableZones indicates an expected call of GetEnhanhcedNatGatewayAvailableZones.
-func (mr *MockVPCMockRecorder) GetEnhanhcedNatGatewayAvailableZones(arg0, arg1 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) GetEnhanhcedNatGatewayAvailableZones(ctx, region any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnhanhcedNatGatewayAvailableZones", reflect.TypeOf((*MockVPC)(nil).GetEnhanhcedNatGatewayAvailableZones), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnhanhcedNatGatewayAvailableZones", reflect.TypeOf((*MockVPC)(nil).GetEnhanhcedNatGatewayAvailableZones), ctx, region)
 }
 
 // GetNatGatewaysWithVPCID mocks base method.
-func (m *MockVPC) GetNatGatewaysWithVPCID(arg0 context.Context, arg1 string) ([]vpc.NatGateway, error) {
+func (m *MockVPC) GetNatGatewaysWithVPCID(ctx context.Context, vpcID string) ([]vpc.NatGateway, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNatGatewaysWithVPCID", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetNatGatewaysWithVPCID", ctx, vpcID)
 	ret0, _ := ret[0].([]vpc.NatGateway)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetNatGatewaysWithVPCID indicates an expected call of GetNatGatewaysWithVPCID.
-func (mr *MockVPCMockRecorder) GetNatGatewaysWithVPCID(arg0, arg1 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) GetNatGatewaysWithVPCID(ctx, vpcID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNatGatewaysWithVPCID", reflect.TypeOf((*MockVPC)(nil).GetNatGatewaysWithVPCID), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNatGatewaysWithVPCID", reflect.TypeOf((*MockVPC)(nil).GetNatGatewaysWithVPCID), ctx, vpcID)
 }
 
 // GetVPCInfo mocks base method.
-func (m *MockVPC) GetVPCInfo(arg0 context.Context, arg1 string) (*client.VPCInfo, error) {
+func (m *MockVPC) GetVPCInfo(ctx context.Context, vpcID string) (*client.VPCInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVPCInfo", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetVPCInfo", ctx, vpcID)
 	ret0, _ := ret[0].(*client.VPCInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetVPCInfo indicates an expected call of GetVPCInfo.
-func (mr *MockVPCMockRecorder) GetVPCInfo(arg0, arg1 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) GetVPCInfo(ctx, vpcID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVPCInfo", reflect.TypeOf((*MockVPC)(nil).GetVPCInfo), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVPCInfo", reflect.TypeOf((*MockVPC)(nil).GetVPCInfo), ctx, vpcID)
 }
 
 // GetVPCInfoByName mocks base method.
-func (m *MockVPC) GetVPCInfoByName(arg0 string) (*client.VPCInfo, error) {
+func (m *MockVPC) GetVPCInfoByName(name string) (*client.VPCInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVPCInfoByName", arg0)
+	ret := m.ctrl.Call(m, "GetVPCInfoByName", name)
 	ret0, _ := ret[0].(*client.VPCInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetVPCInfoByName indicates an expected call of GetVPCInfoByName.
-func (mr *MockVPCMockRecorder) GetVPCInfoByName(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) GetVPCInfoByName(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVPCInfoByName", reflect.TypeOf((*MockVPC)(nil).GetVPCInfoByName), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVPCInfoByName", reflect.TypeOf((*MockVPC)(nil).GetVPCInfoByName), name)
 }
 
 // GetVPCWithID mocks base method.
-func (m *MockVPC) GetVPCWithID(arg0 context.Context, arg1 string) ([]vpc.Vpc, error) {
+func (m *MockVPC) GetVPCWithID(ctx context.Context, vpcID string) ([]vpc.Vpc, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVPCWithID", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetVPCWithID", ctx, vpcID)
 	ret0, _ := ret[0].([]vpc.Vpc)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetVPCWithID indicates an expected call of GetVPCWithID.
-func (mr *MockVPCMockRecorder) GetVPCWithID(arg0, arg1 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) GetVPCWithID(ctx, vpcID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVPCWithID", reflect.TypeOf((*MockVPC)(nil).GetVPCWithID), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVPCWithID", reflect.TypeOf((*MockVPC)(nil).GetVPCWithID), ctx, vpcID)
 }
 
 // GetVSwitchesInfoByID mocks base method.
-func (m *MockVPC) GetVSwitchesInfoByID(arg0 string) (*client.VSwitchInfo, error) {
+func (m *MockVPC) GetVSwitchesInfoByID(name string) (*client.VSwitchInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVSwitchesInfoByID", arg0)
+	ret := m.ctrl.Call(m, "GetVSwitchesInfoByID", name)
 	ret0, _ := ret[0].(*client.VSwitchInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetVSwitchesInfoByID indicates an expected call of GetVSwitchesInfoByID.
-func (mr *MockVPCMockRecorder) GetVSwitchesInfoByID(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) GetVSwitchesInfoByID(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVSwitchesInfoByID", reflect.TypeOf((*MockVPC)(nil).GetVSwitchesInfoByID), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVSwitchesInfoByID", reflect.TypeOf((*MockVPC)(nil).GetVSwitchesInfoByID), name)
 }
 
 // ListEnhanhcedNatGatewayAvailableZones mocks base method.
-func (m *MockVPC) ListEnhanhcedNatGatewayAvailableZones(arg0 *vpc.ListEnhanhcedNatGatewayAvailableZonesRequest) (*vpc.ListEnhanhcedNatGatewayAvailableZonesResponse, error) {
+func (m *MockVPC) ListEnhanhcedNatGatewayAvailableZones(request *vpc.ListEnhanhcedNatGatewayAvailableZonesRequest) (*vpc.ListEnhanhcedNatGatewayAvailableZonesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListEnhanhcedNatGatewayAvailableZones", arg0)
+	ret := m.ctrl.Call(m, "ListEnhanhcedNatGatewayAvailableZones", request)
 	ret0, _ := ret[0].(*vpc.ListEnhanhcedNatGatewayAvailableZonesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListEnhanhcedNatGatewayAvailableZones indicates an expected call of ListEnhanhcedNatGatewayAvailableZones.
-func (mr *MockVPCMockRecorder) ListEnhanhcedNatGatewayAvailableZones(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) ListEnhanhcedNatGatewayAvailableZones(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEnhanhcedNatGatewayAvailableZones", reflect.TypeOf((*MockVPC)(nil).ListEnhanhcedNatGatewayAvailableZones), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEnhanhcedNatGatewayAvailableZones", reflect.TypeOf((*MockVPC)(nil).ListEnhanhcedNatGatewayAvailableZones), request)
 }
 
 // ListTagResources mocks base method.
-func (m *MockVPC) ListTagResources(arg0 *vpc.ListTagResourcesRequest) (*vpc.ListTagResourcesResponse, error) {
+func (m *MockVPC) ListTagResources(request *vpc.ListTagResourcesRequest) (*vpc.ListTagResourcesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTagResources", arg0)
+	ret := m.ctrl.Call(m, "ListTagResources", request)
 	ret0, _ := ret[0].(*vpc.ListTagResourcesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListTagResources indicates an expected call of ListTagResources.
-func (mr *MockVPCMockRecorder) ListTagResources(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) ListTagResources(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagResources", reflect.TypeOf((*MockVPC)(nil).ListTagResources), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagResources", reflect.TypeOf((*MockVPC)(nil).ListTagResources), request)
 }
 
 // ModifyEipAddressAttribute mocks base method.
-func (m *MockVPC) ModifyEipAddressAttribute(arg0 *vpc.ModifyEipAddressAttributeRequest) (*vpc.ModifyEipAddressAttributeResponse, error) {
+func (m *MockVPC) ModifyEipAddressAttribute(request *vpc.ModifyEipAddressAttributeRequest) (*vpc.ModifyEipAddressAttributeResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ModifyEipAddressAttribute", arg0)
+	ret := m.ctrl.Call(m, "ModifyEipAddressAttribute", request)
 	ret0, _ := ret[0].(*vpc.ModifyEipAddressAttributeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ModifyEipAddressAttribute indicates an expected call of ModifyEipAddressAttribute.
-func (mr *MockVPCMockRecorder) ModifyEipAddressAttribute(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) ModifyEipAddressAttribute(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyEipAddressAttribute", reflect.TypeOf((*MockVPC)(nil).ModifyEipAddressAttribute), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyEipAddressAttribute", reflect.TypeOf((*MockVPC)(nil).ModifyEipAddressAttribute), request)
 }
 
 // ReleaseEipAddress mocks base method.
-func (m *MockVPC) ReleaseEipAddress(arg0 *vpc.ReleaseEipAddressRequest) (*vpc.ReleaseEipAddressResponse, error) {
+func (m *MockVPC) ReleaseEipAddress(request *vpc.ReleaseEipAddressRequest) (*vpc.ReleaseEipAddressResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReleaseEipAddress", arg0)
+	ret := m.ctrl.Call(m, "ReleaseEipAddress", request)
 	ret0, _ := ret[0].(*vpc.ReleaseEipAddressResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ReleaseEipAddress indicates an expected call of ReleaseEipAddress.
-func (mr *MockVPCMockRecorder) ReleaseEipAddress(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) ReleaseEipAddress(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseEipAddress", reflect.TypeOf((*MockVPC)(nil).ReleaseEipAddress), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseEipAddress", reflect.TypeOf((*MockVPC)(nil).ReleaseEipAddress), request)
 }
 
 // TagResources mocks base method.
-func (m *MockVPC) TagResources(arg0 *vpc.TagResourcesRequest) (*vpc.TagResourcesResponse, error) {
+func (m *MockVPC) TagResources(request *vpc.TagResourcesRequest) (*vpc.TagResourcesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TagResources", arg0)
+	ret := m.ctrl.Call(m, "TagResources", request)
 	ret0, _ := ret[0].(*vpc.TagResourcesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TagResources indicates an expected call of TagResources.
-func (mr *MockVPCMockRecorder) TagResources(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) TagResources(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResources", reflect.TypeOf((*MockVPC)(nil).TagResources), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResources", reflect.TypeOf((*MockVPC)(nil).TagResources), request)
 }
 
 // UnTagResources mocks base method.
-func (m *MockVPC) UnTagResources(arg0 *vpc.UnTagResourcesRequest) (*vpc.UnTagResourcesResponse, error) {
+func (m *MockVPC) UnTagResources(request *vpc.UnTagResourcesRequest) (*vpc.UnTagResourcesResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnTagResources", arg0)
+	ret := m.ctrl.Call(m, "UnTagResources", request)
 	ret0, _ := ret[0].(*vpc.UnTagResourcesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UnTagResources indicates an expected call of UnTagResources.
-func (mr *MockVPCMockRecorder) UnTagResources(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) UnTagResources(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnTagResources", reflect.TypeOf((*MockVPC)(nil).UnTagResources), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnTagResources", reflect.TypeOf((*MockVPC)(nil).UnTagResources), request)
 }
 
 // UnassociateEipAddress mocks base method.
-func (m *MockVPC) UnassociateEipAddress(arg0 *vpc.UnassociateEipAddressRequest) (*vpc.UnassociateEipAddressResponse, error) {
+func (m *MockVPC) UnassociateEipAddress(request *vpc.UnassociateEipAddressRequest) (*vpc.UnassociateEipAddressResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnassociateEipAddress", arg0)
+	ret := m.ctrl.Call(m, "UnassociateEipAddress", request)
 	ret0, _ := ret[0].(*vpc.UnassociateEipAddressResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UnassociateEipAddress indicates an expected call of UnassociateEipAddress.
-func (mr *MockVPCMockRecorder) UnassociateEipAddress(arg0 any) *gomock.Call {
+func (mr *MockVPCMockRecorder) UnassociateEipAddress(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnassociateEipAddress", reflect.TypeOf((*MockVPC)(nil).UnassociateEipAddress), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnassociateEipAddress", reflect.TypeOf((*MockVPC)(nil).UnassociateEipAddress), request)
 }
 
 // MockOSS is a mock of OSS interface.
 type MockOSS struct {
 	ctrl     *gomock.Controller
 	recorder *MockOSSMockRecorder
+	isgomock struct{}
 }
 
 // MockOSSMockRecorder is the mock recorder for MockOSS.
@@ -1248,66 +1254,67 @@ func (m *MockOSS) EXPECT() *MockOSSMockRecorder {
 }
 
 // CreateBucketIfNotExists mocks base method.
-func (m *MockOSS) CreateBucketIfNotExists(arg0 context.Context, arg1 string) error {
+func (m *MockOSS) CreateBucketIfNotExists(ctx context.Context, bucketName string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateBucketIfNotExists", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreateBucketIfNotExists", ctx, bucketName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateBucketIfNotExists indicates an expected call of CreateBucketIfNotExists.
-func (mr *MockOSSMockRecorder) CreateBucketIfNotExists(arg0, arg1 any) *gomock.Call {
+func (mr *MockOSSMockRecorder) CreateBucketIfNotExists(ctx, bucketName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBucketIfNotExists", reflect.TypeOf((*MockOSS)(nil).CreateBucketIfNotExists), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBucketIfNotExists", reflect.TypeOf((*MockOSS)(nil).CreateBucketIfNotExists), ctx, bucketName)
 }
 
 // DeleteBucketIfExists mocks base method.
-func (m *MockOSS) DeleteBucketIfExists(arg0 context.Context, arg1 string) error {
+func (m *MockOSS) DeleteBucketIfExists(ctx context.Context, bucketName string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteBucketIfExists", arg0, arg1)
+	ret := m.ctrl.Call(m, "DeleteBucketIfExists", ctx, bucketName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteBucketIfExists indicates an expected call of DeleteBucketIfExists.
-func (mr *MockOSSMockRecorder) DeleteBucketIfExists(arg0, arg1 any) *gomock.Call {
+func (mr *MockOSSMockRecorder) DeleteBucketIfExists(ctx, bucketName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBucketIfExists", reflect.TypeOf((*MockOSS)(nil).DeleteBucketIfExists), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBucketIfExists", reflect.TypeOf((*MockOSS)(nil).DeleteBucketIfExists), ctx, bucketName)
 }
 
 // DeleteObjectsWithPrefix mocks base method.
-func (m *MockOSS) DeleteObjectsWithPrefix(arg0 context.Context, arg1, arg2 string) error {
+func (m *MockOSS) DeleteObjectsWithPrefix(ctx context.Context, bucketName, prefix string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteObjectsWithPrefix", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "DeleteObjectsWithPrefix", ctx, bucketName, prefix)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteObjectsWithPrefix indicates an expected call of DeleteObjectsWithPrefix.
-func (mr *MockOSSMockRecorder) DeleteObjectsWithPrefix(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockOSSMockRecorder) DeleteObjectsWithPrefix(ctx, bucketName, prefix any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObjectsWithPrefix", reflect.TypeOf((*MockOSS)(nil).DeleteObjectsWithPrefix), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObjectsWithPrefix", reflect.TypeOf((*MockOSS)(nil).DeleteObjectsWithPrefix), ctx, bucketName, prefix)
 }
 
 // GetBucketInfo mocks base method.
-func (m *MockOSS) GetBucketInfo(arg0 context.Context, arg1 string) (*oss.BucketInfo, error) {
+func (m *MockOSS) GetBucketInfo(ctx context.Context, bucketName string) (*oss.BucketInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBucketInfo", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetBucketInfo", ctx, bucketName)
 	ret0, _ := ret[0].(*oss.BucketInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBucketInfo indicates an expected call of GetBucketInfo.
-func (mr *MockOSSMockRecorder) GetBucketInfo(arg0, arg1 any) *gomock.Call {
+func (mr *MockOSSMockRecorder) GetBucketInfo(ctx, bucketName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketInfo", reflect.TypeOf((*MockOSS)(nil).GetBucketInfo), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketInfo", reflect.TypeOf((*MockOSS)(nil).GetBucketInfo), ctx, bucketName)
 }
 
 // MockRAM is a mock of RAM interface.
 type MockRAM struct {
 	ctrl     *gomock.Controller
 	recorder *MockRAMMockRecorder
+	isgomock struct{}
 }
 
 // MockRAMMockRecorder is the mock recorder for MockRAM.
@@ -1328,38 +1335,39 @@ func (m *MockRAM) EXPECT() *MockRAMMockRecorder {
 }
 
 // CreateServiceLinkedRole mocks base method.
-func (m *MockRAM) CreateServiceLinkedRole(arg0, arg1 string) error {
+func (m *MockRAM) CreateServiceLinkedRole(regionID, serviceName string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateServiceLinkedRole", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreateServiceLinkedRole", regionID, serviceName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateServiceLinkedRole indicates an expected call of CreateServiceLinkedRole.
-func (mr *MockRAMMockRecorder) CreateServiceLinkedRole(arg0, arg1 any) *gomock.Call {
+func (mr *MockRAMMockRecorder) CreateServiceLinkedRole(regionID, serviceName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServiceLinkedRole", reflect.TypeOf((*MockRAM)(nil).CreateServiceLinkedRole), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServiceLinkedRole", reflect.TypeOf((*MockRAM)(nil).CreateServiceLinkedRole), regionID, serviceName)
 }
 
 // GetServiceLinkedRole mocks base method.
-func (m *MockRAM) GetServiceLinkedRole(arg0 string) (*resourcemanager.Role, error) {
+func (m *MockRAM) GetServiceLinkedRole(roleName string) (*resourcemanager.Role, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServiceLinkedRole", arg0)
+	ret := m.ctrl.Call(m, "GetServiceLinkedRole", roleName)
 	ret0, _ := ret[0].(*resourcemanager.Role)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetServiceLinkedRole indicates an expected call of GetServiceLinkedRole.
-func (mr *MockRAMMockRecorder) GetServiceLinkedRole(arg0 any) *gomock.Call {
+func (mr *MockRAMMockRecorder) GetServiceLinkedRole(roleName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceLinkedRole", reflect.TypeOf((*MockRAM)(nil).GetServiceLinkedRole), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceLinkedRole", reflect.TypeOf((*MockRAM)(nil).GetServiceLinkedRole), roleName)
 }
 
 // MockROS is a mock of ROS interface.
 type MockROS struct {
 	ctrl     *gomock.Controller
 	recorder *MockROSMockRecorder
+	isgomock struct{}
 }
 
 // MockROSMockRecorder is the mock recorder for MockROS.
@@ -1380,61 +1388,61 @@ func (m *MockROS) EXPECT() *MockROSMockRecorder {
 }
 
 // CreateStack mocks base method.
-func (m *MockROS) CreateStack(arg0 *ros.CreateStackRequest) (*ros.CreateStackResponse, error) {
+func (m *MockROS) CreateStack(request *ros.CreateStackRequest) (*ros.CreateStackResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateStack", arg0)
+	ret := m.ctrl.Call(m, "CreateStack", request)
 	ret0, _ := ret[0].(*ros.CreateStackResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateStack indicates an expected call of CreateStack.
-func (mr *MockROSMockRecorder) CreateStack(arg0 any) *gomock.Call {
+func (mr *MockROSMockRecorder) CreateStack(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateStack", reflect.TypeOf((*MockROS)(nil).CreateStack), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateStack", reflect.TypeOf((*MockROS)(nil).CreateStack), request)
 }
 
 // DeleteStack mocks base method.
-func (m *MockROS) DeleteStack(arg0 *ros.DeleteStackRequest) (*ros.DeleteStackResponse, error) {
+func (m *MockROS) DeleteStack(request *ros.DeleteStackRequest) (*ros.DeleteStackResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteStack", arg0)
+	ret := m.ctrl.Call(m, "DeleteStack", request)
 	ret0, _ := ret[0].(*ros.DeleteStackResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteStack indicates an expected call of DeleteStack.
-func (mr *MockROSMockRecorder) DeleteStack(arg0 any) *gomock.Call {
+func (mr *MockROSMockRecorder) DeleteStack(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStack", reflect.TypeOf((*MockROS)(nil).DeleteStack), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStack", reflect.TypeOf((*MockROS)(nil).DeleteStack), request)
 }
 
 // GetStack mocks base method.
-func (m *MockROS) GetStack(arg0 *ros.GetStackRequest) (*ros.GetStackResponse, error) {
+func (m *MockROS) GetStack(request *ros.GetStackRequest) (*ros.GetStackResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStack", arg0)
+	ret := m.ctrl.Call(m, "GetStack", request)
 	ret0, _ := ret[0].(*ros.GetStackResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStack indicates an expected call of GetStack.
-func (mr *MockROSMockRecorder) GetStack(arg0 any) *gomock.Call {
+func (mr *MockROSMockRecorder) GetStack(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStack", reflect.TypeOf((*MockROS)(nil).GetStack), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStack", reflect.TypeOf((*MockROS)(nil).GetStack), request)
 }
 
 // ListStacks mocks base method.
-func (m *MockROS) ListStacks(arg0 *ros.ListStacksRequest) (*ros.ListStacksResponse, error) {
+func (m *MockROS) ListStacks(request *ros.ListStacksRequest) (*ros.ListStacksResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListStacks", arg0)
+	ret := m.ctrl.Call(m, "ListStacks", request)
 	ret0, _ := ret[0].(*ros.ListStacksResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListStacks indicates an expected call of ListStacks.
-func (mr *MockROSMockRecorder) ListStacks(arg0 any) *gomock.Call {
+func (mr *MockROSMockRecorder) ListStacks(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStacks", reflect.TypeOf((*MockROS)(nil).ListStacks), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStacks", reflect.TypeOf((*MockROS)(nil).ListStacks), request)
 }

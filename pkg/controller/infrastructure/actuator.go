@@ -19,7 +19,6 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/flow"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -409,7 +408,7 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 	if infra.Status.ProviderStatus != nil {
 		if _, _, err := a.decoder.Decode(infra.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
-			return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", kutil.ObjectName(infra), err)
+			return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", client.ObjectKeyFromObject(infra), err)
 		}
 	}
 
@@ -467,7 +466,7 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 		if providerStatus := infra.Status.ProviderStatus; providerStatus != nil {
 			infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 			if _, _, err := a.decoder.Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
-				return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", kutil.ObjectName(infra), err)
+				return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", client.ObjectKeyFromObject(infra), err)
 			}
 			if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
 				return nil, err
