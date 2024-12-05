@@ -105,3 +105,6 @@ gardener:
       settings:
         topologyAwareRouting:
           enabled: false
+  runtimeCluster:
+    enabled: false
+  # priorityClassName: gardener-garden-system-200

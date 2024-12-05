@@ -223,7 +223,7 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 }
 
 func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1.Shoot, imageName string, imageVersion *string) (bool, error) {
-	cloudProfile := shoot.Spec.CloudProfileName
+	cloudProfile := ptr.Deref(shoot.Spec.CloudProfileName, "")
 	region := shoot.Spec.Region
 	logger.Info("Checking in cloudProfie", "CloudProfile", cloudProfile, "Region", region)
 	imageId, err := s.getImageId(ctx, imageName, imageVersion, region, cloudProfile)
@@ -299,7 +299,7 @@ func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVe
 func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
 	var cloudProfileConfig = &api.CloudProfileConfig{}
 	if _, _, err := s.codec.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
-		return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", kutil.ObjectName(cloudProfile), err)
+		return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", client.ObjectKeyFromObject(cloudProfile), err)
 	}
 
 	return cloudProfileConfig, nil

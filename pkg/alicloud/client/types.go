@@ -37,7 +37,7 @@ type ClientFactory interface {
 	NewRAMClient(region, accessKeyID, accessKeySecret string) (RAM, error)
 	NewROSClient(region, accessKeyID, accessKeySecret string) (ROS, error)
 	NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (OSS, error)
-	NewOSSClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (OSS, error)
+	NewOSSClientFromSecretRef(ctx context.Context, c client.Client, secretRef *corev1.SecretReference, region string) (OSS, error)
 	NewDNSClient(region, accessKeyID, accessKeySecret string) (DNS, error)
 }
 

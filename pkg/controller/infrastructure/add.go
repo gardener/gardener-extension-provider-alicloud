@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,6 +37,8 @@ type AddOptions struct {
 	// DisableProjectedTokenMount specifies whether the projected token mount shall be disabled for the terraformer.
 	// Used for testing only.
 	DisableProjectedTokenMount bool
+	// ExtensionClass defines the extension class this extension is responsible for.
+	ExtensionClass extensionsv1alpha1.ExtensionClass
 }
 
 // AddToManagerWithOptions adds a controller with the given AddOptions to the given manager.
@@ -53,6 +56,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, options A
 		Predicates:        infrastructure.DefaultPredicates(ctx, mgr, options.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,
 		KnownCodes:        helper.KnownCodes,
+		ExtensionClass:    options.ExtensionClass,
 	})
 }
 

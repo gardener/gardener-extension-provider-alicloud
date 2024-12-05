@@ -339,7 +339,7 @@ var _ = Describe("Machines", func() {
 									Name:    machineImageName,
 									Version: machineImageVersion,
 								},
-								UserDataSecretRef: &corev1.SecretKeySelector{
+								UserDataSecretRef: corev1.SecretKeySelector{
 									LocalObjectReference: corev1.LocalObjectReference{Name: userDataSecretName},
 									Key:                  userDataSecretDataKey,
 								},
@@ -381,9 +381,10 @@ var _ = Describe("Machines", func() {
 									Name:    machineImageName,
 									Version: machineImageVersion,
 								},
-								// TODO: Use UserDataSecretRef like in first pool once this field got removed from the
-								//  API.
-								UserData: userData,
+								UserDataSecretRef: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{Name: userDataSecretName},
+									Key:                  userDataSecretDataKey,
+								},
 								Volume: &extensionsv1alpha1.Volume{
 									Type:      &volumeType,
 									Size:      fmt.Sprintf("%dGi", volumeSize),
@@ -584,6 +585,7 @@ var _ = Describe("Machines", func() {
 					workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
 
 					expectedUserDataSecretRefRead()
+					expectedUserDataSecretRefRead()
 
 					chartApplier.EXPECT().
 						ApplyFromEmbeddedFS(
@@ -746,6 +748,7 @@ var _ = Describe("Machines", func() {
 				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
 
 				expectedUserDataSecretRefRead()
+				expectedUserDataSecretRefRead()
 
 				result, err := workerDelegate.GenerateMachineDeployments(ctx)
 				resultSettings := result[0].MachineConfiguration
@@ -770,6 +773,7 @@ var _ = Describe("Machines", func() {
 				w.Spec.Pools[1].ClusterAutoscaler = nil
 				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
 
+				expectedUserDataSecretRefRead()
 				expectedUserDataSecretRefRead()
 
 				result, err := workerDelegate.GenerateMachineDeployments(ctx)
