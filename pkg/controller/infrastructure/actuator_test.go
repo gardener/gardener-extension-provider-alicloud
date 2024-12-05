@@ -105,6 +105,7 @@ var _ = Describe("Actuator", func() {
 			vpcCIDRString   string
 			securityGroupID string
 			rawState        *realterraformer.RawState
+			fakeTfState     *realterraformer.RawState
 
 			serviceForNatGw           string
 			serviceLinkedRoleForNatGw string
@@ -229,13 +230,28 @@ var _ = Describe("Actuator", func() {
 				serviceLinkedRoleForNatGw = "AliyunServiceRoleForNatgw"
 				serviceForNatGw = "nat.aliyuncs.com"
 
+				fakeTfState = &realterraformer.RawState{
+					Data: `
+					{
+						"resources": [
+							{
+							"mode": "managed",
+							"type": "alicloud_eip",
+							"instances": [
+								{
+									"attributes": {"ip_address": "139.196.40.2"}
+								}
+							]
+							}
+						]
+					}
+					`,
+					Encoding: "none",
+				}
+
 			})
 
 			It("should correctly reconcile the infrastructure", func() {
-				rawState = &realterraformer.RawState{
-					Data:     "",
-					Encoding: "none",
-				}
 				describeNATGatewaysReq := vpc.CreateDescribeNatGatewaysRequest()
 				describeNATGatewaysReq.VpcId = vpcID
 
@@ -300,7 +316,7 @@ var _ = Describe("Actuator", func() {
 							TerraformerOutputKeyVPCCIDR:         vpcCIDRString,
 							TerraformerOutputKeySecurityGroupID: securityGroupID,
 						}, nil),
-					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
+					terraformer.EXPECT().GetRawState(ctx).Return(fakeTfState, nil),
 					c.EXPECT().Status().Return(sw),
 					sw.EXPECT().Patch(ctx, &infra, gomock.Any()),
 				)
@@ -316,6 +332,9 @@ var _ = Describe("Actuator", func() {
 							},
 						},
 					},
+				}))
+				Expect(infra.Status.EgressCIDRs).To(Equal([]string{
+					"139.196.40.2/32",
 				}))
 			})
 
@@ -390,7 +409,7 @@ var _ = Describe("Actuator", func() {
 							TerraformerOutputKeyVPCCIDR:         vpcCIDRString,
 							TerraformerOutputKeySecurityGroupID: securityGroupID,
 						}, nil),
-					terraformer.EXPECT().GetRawState(ctx).Return(rawState, nil),
+					terraformer.EXPECT().GetRawState(ctx).Return(fakeTfState, nil),
 					c.EXPECT().Status().Return(sw),
 					sw.EXPECT().Patch(ctx, &infra, gomock.Any()),
 				)
@@ -407,6 +426,9 @@ var _ = Describe("Actuator", func() {
 							},
 						},
 					},
+				}))
+				Expect(infra.Status.EgressCIDRs).To(Equal([]string{
+					"139.196.40.2/32",
 				}))
 			})
 		})
