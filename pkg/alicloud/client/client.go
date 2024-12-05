@@ -16,6 +16,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/nlb"
 	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
@@ -195,6 +196,18 @@ func (c *ossClient) DeleteBucketIfExists(ctx context.Context, bucketName string)
 		}
 	}
 	return nil
+}
+
+// NewNLBClient creates a new NLB client with given region, accessKeyID, and accessKeySecret.
+func (f *clientFactory) NewNLBClient(region, accessKeyID, accessKeySecret string) (NLB, error) {
+	client, err := nlb.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &nlbClient{
+		*client,
+	}, nil
 }
 
 // NewECSClient creates a new ECS client with given region, accessKeyID, and accessKeySecret.
@@ -748,6 +761,23 @@ func (c *ramClient) CreateServiceLinkedRole(regionID, serviceName string) error 
 	}
 
 	return nil
+}
+
+// GetNLBAvailableZones list availableZone for special region.
+func (c *nlbClient) GetNLBAvailableZones(region string) ([]string, error) {
+	request := nlb.CreateDescribeZonesRequest()
+	request.ServiceCode = "nlb"
+	request.RegionId = region
+
+	response, err := c.DescribeZones(request)
+	if err != nil {
+		return nil, err
+	}
+	zoneIDs := make([]string, 0, len(response.Zones))
+	for _, zone := range response.Zones {
+		zoneIDs = append(zoneIDs, zone.ZoneId)
+	}
+	return zoneIDs, nil
 }
 
 func isNoPermissionError(err error) bool {
