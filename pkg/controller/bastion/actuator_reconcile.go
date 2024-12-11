@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
@@ -62,6 +63,29 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 	}
 
 	imageID := infrastructureStatus.MachineImages[0].ID
+
+	imageInfo, err := aliCloudECSClient.GetImageInfo(imageID)
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+
+	if len(imageInfo.Images.Image) == 0 {
+		return errors.New("image not found")
+	}
+
+	// image architecture is returned as "X86" instead of "X86_64"
+	imageArchitecture := strings.ToUpper((strings.Split(imageInfo.Images.Image[0].Architecture, "_")[0]))
+
+	instanceType, err := aliCloudECSClient.ListAllInstanceType()
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+
+	instanceTypeMap := make(map[string]string)
+	for _, t := range instanceType.InstanceTypes.InstanceType {
+		instanceTypeMap[t.InstanceTypeId] = t.CpuArchitecture
+	}
+
 	vSwitchesZoneID := infrastructureStatus.VPC.VSwitches[0].Zone
 	vSwitchesID := infrastructureStatus.VPC.VSwitches[0].ID
 	vpcId := infrastructureStatus.VPC.ID
@@ -69,7 +93,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 
 	var instanceTypeId string
 	for cores := 1; cores <= 2; cores++ {
-		instanceType, err := aliCloudECSClient.GetInstanceType(cores, vSwitchesZoneID)
+		instanceType, err := aliCloudECSClient.GetAvailableInstanceType(cores, vSwitchesZoneID)
 		if err != nil {
 			return util.DetermineError(err, helper.KnownCodes)
 		}
@@ -79,6 +103,14 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 			len(instanceType.AvailableZones.AvailableZone[0].AvailableResources.AvailableResource) == 0 ||
 			len(instanceType.AvailableZones.AvailableZone[0].AvailableResources.AvailableResource[0].SupportedResources.SupportedResource) == 0 ||
 			instanceType.AvailableZones.AvailableZone[0].AvailableResources.AvailableResource[0].SupportedResources.SupportedResource[0].Status != "Available" {
+			continue
+		}
+
+		if _, ok := instanceTypeMap[instanceType.AvailableZones.AvailableZone[0].AvailableResources.AvailableResource[0].SupportedResources.SupportedResource[0].Value]; !ok {
+			continue
+		}
+
+		if instanceTypeMap[instanceType.AvailableZones.AvailableZone[0].AvailableResources.AvailableResource[0].SupportedResources.SupportedResource[0].Value] != imageArchitecture {
 			continue
 		}
 

@@ -457,19 +457,34 @@ func (mr *MockECSMockRecorder) DetachECSInstancesFromSSHKeyPair(keyName any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachECSInstancesFromSSHKeyPair", reflect.TypeOf((*MockECS)(nil).DetachECSInstancesFromSSHKeyPair), keyName)
 }
 
-// GetInstanceType mocks base method.
-func (m *MockECS) GetInstanceType(core int, zoneID string) (*ecs.DescribeAvailableResourceResponse, error) {
+// GetAvailableInstanceType mocks base method.
+func (m *MockECS) GetAvailableInstanceType(core int, zoneID string) (*ecs.DescribeAvailableResourceResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstanceType", core, zoneID)
+	ret := m.ctrl.Call(m, "GetAvailableInstanceType", core, zoneID)
 	ret0, _ := ret[0].(*ecs.DescribeAvailableResourceResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetInstanceType indicates an expected call of GetInstanceType.
-func (mr *MockECSMockRecorder) GetInstanceType(core, zoneID any) *gomock.Call {
+// GetAvailableInstanceType indicates an expected call of GetAvailableInstanceType.
+func (mr *MockECSMockRecorder) GetAvailableInstanceType(core, zoneID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceType", reflect.TypeOf((*MockECS)(nil).GetInstanceType), core, zoneID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAvailableInstanceType", reflect.TypeOf((*MockECS)(nil).GetAvailableInstanceType), core, zoneID)
+}
+
+// GetImageInfo mocks base method.
+func (m *MockECS) GetImageInfo(imageID string) (*ecs.DescribeImagesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetImageInfo", imageID)
+	ret0, _ := ret[0].(*ecs.DescribeImagesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetImageInfo indicates an expected call of GetImageInfo.
+func (mr *MockECSMockRecorder) GetImageInfo(imageID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageInfo", reflect.TypeOf((*MockECS)(nil).GetImageInfo), imageID)
 }
 
 // GetInstances mocks base method.
@@ -515,6 +530,21 @@ func (m *MockECS) GetSecurityGroupWithID(id string) (*ecs.DescribeSecurityGroups
 func (mr *MockECSMockRecorder) GetSecurityGroupWithID(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecurityGroupWithID", reflect.TypeOf((*MockECS)(nil).GetSecurityGroupWithID), id)
+}
+
+// ListAllInstanceType mocks base method.
+func (m *MockECS) ListAllInstanceType() (*ecs.DescribeInstanceTypesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAllInstanceType")
+	ret0, _ := ret[0].(*ecs.DescribeInstanceTypesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAllInstanceType indicates an expected call of ListAllInstanceType.
+func (mr *MockECSMockRecorder) ListAllInstanceType() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllInstanceType", reflect.TypeOf((*MockECS)(nil).ListAllInstanceType))
 }
 
 // ListTagResources mocks base method.

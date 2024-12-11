@@ -221,6 +221,18 @@ func (c *ecsClient) CheckIfImageExists(imageID string) (bool, error) {
 	return response.TotalCount > 0, nil
 }
 
+// GetImageInfo returns image metadata by imageID
+func (c *ecsClient) GetImageInfo(imageID string) (*ecs.DescribeImagesResponse, error) {
+	request := ecs.CreateDescribeImagesRequest()
+	request.ImageId = imageID
+	request.SetScheme("HTTPS")
+	response, err := c.DescribeImages(request)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
 // GetSecurityGroup return security group metadata by security group name
 func (c *ecsClient) GetSecurityGroup(name string) (*ecs.DescribeSecurityGroupsResponse, error) {
 	request := ecs.CreateDescribeSecurityGroupsRequest()
@@ -245,8 +257,8 @@ func (c *ecsClient) GetInstances(name string) (*ecs.DescribeInstancesResponse, e
 	return c.DescribeInstances(request)
 }
 
-// GetInstanceType return metadata of instance type
-func (c *ecsClient) GetInstanceType(cores int, zoneID string) (*ecs.DescribeAvailableResourceResponse, error) {
+// GetAvailableInstanceType return metadata of instance type
+func (c *ecsClient) GetAvailableInstanceType(cores int, zoneID string) (*ecs.DescribeAvailableResourceResponse, error) {
 	request := ecs.CreateDescribeAvailableResourceRequest()
 	request.SetScheme("HTTPS")
 	request.DestinationResource = "InstanceType"
@@ -255,6 +267,13 @@ func (c *ecsClient) GetInstanceType(cores int, zoneID string) (*ecs.DescribeAvai
 	request.Cores = requests.NewInteger(cores)
 	request.ZoneId = zoneID
 	return c.DescribeAvailableResource(request)
+}
+
+// ListAllInstanceType return metadata of instance type
+func (c *ecsClient) ListAllInstanceType() (*ecs.DescribeInstanceTypesResponse, error) {
+	request := ecs.CreateDescribeInstanceTypesRequest()
+	request.SetScheme("HTTPS")
+	return c.DescribeInstanceTypes(request)
 }
 
 // CreateInstance create a instance

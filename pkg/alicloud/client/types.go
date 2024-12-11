@@ -50,6 +50,7 @@ type ecsClient struct {
 type ECS interface {
 	CheckIfImageExists(imageID string) (bool, error)
 	CheckIfImageOwnedByAliCloud(imageID string) (bool, error)
+	GetImageInfo(imageID string) (*ecs.DescribeImagesResponse, error)
 	ShareImageToAccount(ctx context.Context, regionID, imageID, accountID string) error
 	GetSecurityGroup(name string) (*ecs.DescribeSecurityGroupsResponse, error)
 	GetSecurityGroupWithID(id string) (*ecs.DescribeSecurityGroupsResponse, error)
@@ -58,7 +59,8 @@ type ECS interface {
 	DescribeKeyPairs(request *ecs.DescribeKeyPairsRequest) (*ecs.DescribeKeyPairsResponse, error)
 	DetachECSInstancesFromSSHKeyPair(keyName string) error
 	GetInstances(name string) (*ecs.DescribeInstancesResponse, error)
-	GetInstanceType(core int, zoneID string) (*ecs.DescribeAvailableResourceResponse, error)
+	GetAvailableInstanceType(core int, zoneID string) (*ecs.DescribeAvailableResourceResponse, error)
+	ListAllInstanceType() (*ecs.DescribeInstanceTypesResponse, error)
 	CreateInstances(instanceName, securityGroupID, imageID, vSwitchId, zoneID, instanceTypeID, userData string) (*ecs.RunInstancesResponse, error)
 	DeleteInstances(id string, force bool) error
 	CreateSecurityGroups(vpcId, name string) (*ecs.CreateSecurityGroupResponse, error)
