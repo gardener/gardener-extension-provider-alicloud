@@ -1,5 +1,5 @@
 ############# builder
-FROM golang:1.22.1 AS builder
+FROM golang:1.23.3 AS builder
 
 WORKDIR /go/src/github.com/gardener/gardener-extension-provider-alicloud
 
@@ -25,7 +25,7 @@ COPY --from=builder /go/bin/gardener-extension-provider-alicloud /gardener-exten
 ENTRYPOINT ["/gardener-extension-provider-alicloud"]
 
 ############# gardener-extension-admission-alicloud
-FROM base as gardener-extension-admission-alicloud
+FROM base AS gardener-extension-admission-alicloud
 WORKDIR /
 
 COPY --from=builder /go/bin/gardener-extension-admission-alicloud /gardener-extension-admission-alicloud

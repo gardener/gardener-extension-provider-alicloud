@@ -216,7 +216,7 @@ var _ = Describe("Mutating Shoot", func() {
 						},
 					},
 				},
-				CloudProfileName: "alicloud",
+				CloudProfileName: ptr.To("alicloud"),
 				Region:           regionId,
 			},
 		}

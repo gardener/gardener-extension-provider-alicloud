@@ -294,7 +294,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	// Get credentials from the referenced secret
 	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
-		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", kutil.ObjectName(cp), err)
+		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
 
 	cpConfig, err := vp.decodeControlPlaneConfig(cp)
@@ -334,7 +334,7 @@ func (vp *valuesProvider) decodeControlPlaneConfig(cp *extensionsv1alpha1.Contro
 	decoder := serializer.NewCodecFactory(vp.scheme).UniversalDecoder()
 	if cp.Spec.ProviderConfig != nil {
 		if _, _, err := decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
-			return nil, fmt.Errorf("could not decode providerConfig of controlplane '%s': %w", kutil.ObjectName(cp), err)
+			return nil, fmt.Errorf("could not decode providerConfig of controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 		}
 	}
 	return cpConfig, nil
@@ -347,19 +347,19 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 	// Decode infrastructureProviderStatus
 	infraStatus := &apisalicloud.InfrastructureStatus{}
 	if _, _, err := vp.decoder.Decode(cp.Spec.InfrastructureProviderStatus.Raw, nil, infraStatus); err != nil {
-		return "", fmt.Errorf("could not decode infrastructureProviderStatus of controlplane '%s': %w", kutil.ObjectName(cp), err)
+		return "", fmt.Errorf("could not decode infrastructureProviderStatus of controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
 
 	// Get credentials from the referenced secret
 	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
-		return "", fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", kutil.ObjectName(cp), err)
+		return "", fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
 
 	// Find first vswitch with purpose "nodes"
 	vswitch, err := helper.FindVSwitchForPurpose(infraStatus.VPC.VSwitches, apisalicloud.PurposeNodes)
 	if err != nil {
-		return "", fmt.Errorf("could not determine vswitch from infrastructureProviderStatus of controlplane '%s': %w", kutil.ObjectName(cp), err)
+		return "", fmt.Errorf("could not determine vswitch from infrastructureProviderStatus of controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
 
 	// Initialize cloud config
@@ -375,7 +375,7 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {
-		return "", fmt.Errorf("could not marshal cloud config to JSON for controlplane '%s': %w", kutil.ObjectName(cp), err)
+		return "", fmt.Errorf("could not marshal cloud config to JSON for controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
 
 	return string(cfgJSON), nil
@@ -394,7 +394,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 ) (map[string]interface{}, error) {
 	ccmConfig, err := vp.getCloudControllerManagerConfigFileContent(ctx, cp)
 	if err != nil {
-		return nil, fmt.Errorf("could not build cloud controller config file content for controlplane '%s': %w", kutil.ObjectName(cp), err)
+		return nil, fmt.Errorf("could not build cloud controller config file content for controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
 
 	serverSecret, found := secretsReader.Get(csiSnapshotValidationServerName)

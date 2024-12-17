@@ -23,6 +23,7 @@ import (
 type MockDNS struct {
 	ctrl     *gomock.Controller
 	recorder *MockDNSMockRecorder
+	isgomock struct{}
 }
 
 // MockDNSMockRecorder is the mock recorder for MockDNS.
@@ -104,6 +105,7 @@ func (mr *MockDNSMockRecorder) GetDomainNames(arg0 any) *gomock.Call {
 type MockClientFactory struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientFactoryMockRecorder
+	isgomock struct{}
 }
 
 // MockClientFactoryMockRecorder is the mock recorder for MockClientFactory.
@@ -124,136 +126,136 @@ func (m *MockClientFactory) EXPECT() *MockClientFactoryMockRecorder {
 }
 
 // NewDNSClient mocks base method.
-func (m *MockClientFactory) NewDNSClient(arg0, arg1, arg2 string) (client.DNS, error) {
+func (m *MockClientFactory) NewDNSClient(region, accessKeyID, accessKeySecret string) (client.DNS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewDNSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewDNSClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.DNS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewDNSClient indicates an expected call of NewDNSClient.
-func (mr *MockClientFactoryMockRecorder) NewDNSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewDNSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDNSClient", reflect.TypeOf((*MockClientFactory)(nil).NewDNSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDNSClient", reflect.TypeOf((*MockClientFactory)(nil).NewDNSClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewECSClient mocks base method.
-func (m *MockClientFactory) NewECSClient(arg0, arg1, arg2 string) (client.ECS, error) {
+func (m *MockClientFactory) NewECSClient(region, accessKeyID, accessKeySecret string) (client.ECS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewECSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewECSClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.ECS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewECSClient indicates an expected call of NewECSClient.
-func (mr *MockClientFactoryMockRecorder) NewECSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewECSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewECSClient", reflect.TypeOf((*MockClientFactory)(nil).NewECSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewECSClient", reflect.TypeOf((*MockClientFactory)(nil).NewECSClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewOSSClient mocks base method.
-func (m *MockClientFactory) NewOSSClient(arg0, arg1, arg2 string) (client.OSS, error) {
+func (m *MockClientFactory) NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (client.OSS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewOSSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewOSSClient", endpoint, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.OSS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewOSSClient indicates an expected call of NewOSSClient.
-func (mr *MockClientFactoryMockRecorder) NewOSSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewOSSClient(endpoint, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClient", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClient", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClient), endpoint, accessKeyID, accessKeySecret)
 }
 
 // NewOSSClientFromSecretRef mocks base method.
-func (m *MockClientFactory) NewOSSClientFromSecretRef(arg0 context.Context, arg1 client0.Client, arg2 *v1.SecretReference, arg3 string) (client.OSS, error) {
+func (m *MockClientFactory) NewOSSClientFromSecretRef(ctx context.Context, c client0.Client, secretRef *v1.SecretReference, region string) (client.OSS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewOSSClientFromSecretRef", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "NewOSSClientFromSecretRef", ctx, c, secretRef, region)
 	ret0, _ := ret[0].(client.OSS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewOSSClientFromSecretRef indicates an expected call of NewOSSClientFromSecretRef.
-func (mr *MockClientFactoryMockRecorder) NewOSSClientFromSecretRef(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewOSSClientFromSecretRef(ctx, c, secretRef, region any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClientFromSecretRef", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClientFromSecretRef), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClientFromSecretRef", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClientFromSecretRef), ctx, c, secretRef, region)
 }
 
 // NewRAMClient mocks base method.
-func (m *MockClientFactory) NewRAMClient(arg0, arg1, arg2 string) (client.RAM, error) {
+func (m *MockClientFactory) NewRAMClient(region, accessKeyID, accessKeySecret string) (client.RAM, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewRAMClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewRAMClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.RAM)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewRAMClient indicates an expected call of NewRAMClient.
-func (mr *MockClientFactoryMockRecorder) NewRAMClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewRAMClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewRAMClient", reflect.TypeOf((*MockClientFactory)(nil).NewRAMClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewRAMClient", reflect.TypeOf((*MockClientFactory)(nil).NewRAMClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewROSClient mocks base method.
-func (m *MockClientFactory) NewROSClient(arg0, arg1, arg2 string) (client.ROS, error) {
+func (m *MockClientFactory) NewROSClient(region, accessKeyID, accessKeySecret string) (client.ROS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewROSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewROSClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.ROS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewROSClient indicates an expected call of NewROSClient.
-func (mr *MockClientFactoryMockRecorder) NewROSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewROSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewROSClient", reflect.TypeOf((*MockClientFactory)(nil).NewROSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewROSClient", reflect.TypeOf((*MockClientFactory)(nil).NewROSClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewSLBClient mocks base method.
-func (m *MockClientFactory) NewSLBClient(arg0, arg1, arg2 string) (client.SLB, error) {
+func (m *MockClientFactory) NewSLBClient(region, accessKeyID, accessKeySecret string) (client.SLB, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewSLBClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewSLBClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.SLB)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewSLBClient indicates an expected call of NewSLBClient.
-func (mr *MockClientFactoryMockRecorder) NewSLBClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewSLBClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSLBClient", reflect.TypeOf((*MockClientFactory)(nil).NewSLBClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSLBClient", reflect.TypeOf((*MockClientFactory)(nil).NewSLBClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewSTSClient mocks base method.
-func (m *MockClientFactory) NewSTSClient(arg0, arg1, arg2 string) (client.STS, error) {
+func (m *MockClientFactory) NewSTSClient(region, accessKeyID, accessKeySecret string) (client.STS, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewSTSClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewSTSClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.STS)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewSTSClient indicates an expected call of NewSTSClient.
-func (mr *MockClientFactoryMockRecorder) NewSTSClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewSTSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSTSClient", reflect.TypeOf((*MockClientFactory)(nil).NewSTSClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSTSClient", reflect.TypeOf((*MockClientFactory)(nil).NewSTSClient), region, accessKeyID, accessKeySecret)
 }
 
 // NewVPCClient mocks base method.
-func (m *MockClientFactory) NewVPCClient(arg0, arg1, arg2 string) (client.VPC, error) {
+func (m *MockClientFactory) NewVPCClient(region, accessKeyID, accessKeySecret string) (client.VPC, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewVPCClient", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewVPCClient", region, accessKeyID, accessKeySecret)
 	ret0, _ := ret[0].(client.VPC)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewVPCClient indicates an expected call of NewVPCClient.
-func (mr *MockClientFactoryMockRecorder) NewVPCClient(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) NewVPCClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewVPCClient", reflect.TypeOf((*MockClientFactory)(nil).NewVPCClient), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewVPCClient", reflect.TypeOf((*MockClientFactory)(nil).NewVPCClient), region, accessKeyID, accessKeySecret)
 }
