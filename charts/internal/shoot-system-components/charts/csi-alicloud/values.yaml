@@ -22,17 +22,11 @@ resources:
     requests:
       cpu: 12m
       memory: 40Mi
-    limits:
-      memory: 256Mi
   nodeDriverRegistrar:
     requests:
       cpu: 11m
       memory: 32Mi
-    limits:
-      memory: 1Gi
   livenessProbe:
     requests:
       cpu: 11m
       memory: 32Mi
-    limits:
-      memory: 300Mi
