@@ -165,7 +165,6 @@ var _ = Describe("ValuesProvider", func() {
 					"accessKeySecret": "YmFy",
 				},
 				"enableADController": true,
-				"vpaEnabled":         true,
 				"webhookConfig": map[string]interface{}{
 					"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 					"caBundle": "",
@@ -205,9 +204,6 @@ var _ = Describe("ValuesProvider", func() {
 					},
 					Kubernetes: gardencorev1beta1.Kubernetes{
 						Version: "1.28.0",
-						VerticalPodAutoscaler: &gardencorev1beta1.VerticalPodAutoscaler{
-							Enabled: true,
-						},
 					},
 				},
 			},
