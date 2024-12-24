@@ -7,7 +7,6 @@ images:
 credential:
   accessKeyID: keyID
   accessKeySecret: secret
-vpaEnabled: false
 
 enableADController: true
 
@@ -23,32 +22,11 @@ resources:
     requests:
       cpu: 12m
       memory: 40Mi
-    limits:
-      memory: 256Mi
   nodeDriverRegistrar:
     requests:
       cpu: 11m
       memory: 32Mi
-    limits:
-      memory: 1Gi
   livenessProbe:
     requests:
       cpu: 11m
       memory: 32Mi
-    limits:
-      memory: 300Mi
-
-vpa:
-  resourcePolicy:
-    driver:
-      maxAllowed:
-        cpu: 2
-        memory: 4G
-    nodeDriverRegistrar:
-      maxAllowed:
-        cpu: 1
-        memory: 3G
-    livenessProbe:
-      maxAllowed:
-        cpu: 1
-        memory: 3G

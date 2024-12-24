@@ -166,7 +166,6 @@ var controlPlaneShootChart = &chart.Chart{
 				{Type: &appsv1.DaemonSet{}, Name: "csi-disk-plugin-alicloud"},
 				{Type: &corev1.Secret{}, Name: "csi-diskplugin-alicloud"},
 				{Type: &corev1.ServiceAccount{}, Name: "csi-disk-plugin-alicloud"},
-				{Type: extensionscontroller.GetVerticalPodAutoscalerObject(), Name: "csi-diskplugin-alicloud"},
 				// csi-controller-ali-plugin
 				{Type: &corev1.ServiceAccount{}, Name: "csi-controller-ali-plugin"},
 				{Type: &rbacv1.ClusterRole{}, Name: extensionsv1alpha1.SchemeGroupVersion.Group + ":kube-system:csi-controller-ali-plugin"},
@@ -287,7 +286,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
-	cluster *extensionscontroller.Cluster,
+	_ *extensionscontroller.Cluster,
 	secretsReader secretsmanager.Reader,
 	_ map[string]string,
 ) (map[string]interface{}, error) {
@@ -303,7 +302,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cpConfig, cluster, cp, credentials, secretsReader)
+	return vp.getControlPlaneShootChartValues(cpConfig, cp, credentials, secretsReader)
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.
@@ -457,7 +456,6 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
 func (vp *valuesProvider) getControlPlaneShootChartValues(
 	cpConfig *apisalicloud.ControlPlaneConfig,
-	cluster *extensionscontroller.Cluster,
 	cp *extensionsv1alpha1.ControlPlane,
 	credentials *alicloud.Credentials,
 	secretsReader secretsmanager.Reader,
@@ -476,7 +474,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 				"accessKeySecret": base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret)),
 			},
 			"enableADController": vp.enableCSIADController(cpConfig),
-			"vpaEnabled":         gardencorev1beta1helper.ShootWantsVerticalPodAutoscaler(cluster.Shoot),
 			"webhookConfig": map[string]interface{}{
 				"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 				"caBundle": string(caSecret.Data[secretutils.DataKeyCertificateBundle]),
