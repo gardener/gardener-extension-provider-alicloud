@@ -41,7 +41,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/healthcheck"
 	alicloudinfrastructure "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure"
 	alicloudworker "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
-	alicloudcontrolplaneexposure "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplaneexposure"
+	alicloudseedprovider "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/seedprovider"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/shoot"
 )
 
@@ -217,7 +217,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			log.Info("Adding controllers to manager")
 			configFileOpts.Completed().ApplyMachineImageOwnerSecretRef(&alicloudinfrastructure.DefaultAddOptions.MachineImageOwnerSecretRef)
 			configFileOpts.Completed().ApplyToBeSharedImageIDs(&alicloudinfrastructure.DefaultAddOptions.ToBeSharedImageIDs)
-			configFileOpts.Completed().ApplyETCDStorage(&alicloudcontrolplaneexposure.DefaultAddOptions.ETCDStorage)
+			configFileOpts.Completed().ApplyETCDStorage(&alicloudseedprovider.DefaultAddOptions.ETCDStorage)
 			configFileOpts.Completed().ApplyService(&shoot.DefaultAddOptions.Service)
 			configFileOpts.Completed().ApplyHealthCheckConfig(&healthcheck.DefaultAddOptions.HealthCheckConfig)
 			configFileOpts.Completed().ApplyCSI(&alicloudcontrolplane.DefaultAddOptions.CSI)

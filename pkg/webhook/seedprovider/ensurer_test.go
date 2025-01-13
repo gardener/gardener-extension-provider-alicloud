@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package controlplaneexposure
+package seedprovider
 
 import (
 	"context"
@@ -27,7 +27,7 @@ const (
 
 func TestController(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Controlplane Exposure Webhook Suite")
+	RunSpecs(t, "Seedprovider Webhook Suite")
 }
 
 var _ = Describe("Ensurer", func() {
