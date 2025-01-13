@@ -35,8 +35,6 @@ import (
 )
 
 const (
-	// ShootMutatorName is the shoots mutator webhook name.
-	ShootMutatorName = "shoots.mutator"
 	// MutatorPath is the mutator webhook path.
 	MutatorPath = "/webhooks/mutate"
 
@@ -288,7 +286,7 @@ func (s *shootMutator) isOwnedByAliCloud(ctx context.Context, shoot *corev1beta1
 	return false, nil
 }
 
-func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVersion *string, imageRegion string, cloudProfileSpec *corev1beta1.CloudProfile) (string, error) {
+func (s *shootMutator) getImageId(_ context.Context, imageName string, imageVersion *string, imageRegion string, cloudProfileSpec *corev1beta1.CloudProfile) (string, error) {
 	cloudProfileConfig, err := s.getCloudProfileConfig(cloudProfileSpec)
 	if err != nil {
 		return "", err
