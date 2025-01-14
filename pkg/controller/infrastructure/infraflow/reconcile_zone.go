@@ -86,9 +86,18 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 		if err != nil {
 			return err
 		}
+		if eip == nil {
+			return fmt.Errorf("not find the recorded EIP %s", *eipId)
+		}
+		if ngwId == nil {
+			return fmt.Errorf("vpcId is nil")
+		}
 		ngw, err := c.actor.GetNatGateway(ctx, *ngwId)
 		if err != nil {
 			return err
+		}
+		if ngw == nil {
+			return fmt.Errorf("not find the recorded NATGATEWAY %s", *ngwId)
 		}
 
 		zoneSuffix := c.getZoneSuffix(zone.Name)
@@ -224,6 +233,9 @@ func (c *FlowContext) ensureEipAssociation(zoneName string) flow.TaskFn {
 		eip, err := c.actor.GetEIP(ctx, *eipId)
 		if err != nil {
 			return err
+		}
+		if eip == nil {
+			return fmt.Errorf("not find the recorded EIP %s", *eipId)
 		}
 		switch *eip.Status {
 		case "Available":
@@ -448,6 +460,9 @@ func (c *FlowContext) deleteEipAssociation(zoneName string) flow.TaskFn {
 		eip, err := c.actor.GetEIP(ctx, *eipId)
 		if err != nil {
 			return err
+		}
+		if eip == nil {
+			return fmt.Errorf("not find the recorded EIP %s", *eipId)
 		}
 		if *eip.Status == "InUse" {
 			if err := c.actor.UnAssociateEIP(ctx, eip); err != nil {

@@ -57,9 +57,16 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 }
 
 func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
-	vpc, err := c.actor.GetVpc(ctx, *c.state.Get(IdentifierVPC))
+	vpcId := c.state.Get(IdentifierVPC)
+	if vpcId == nil {
+		return fmt.Errorf("vpcId is nil")
+	}
+	vpc, err := c.actor.GetVpc(ctx, *vpcId)
 	if err != nil {
 		return err
+	}
+	if vpc == nil {
+		return fmt.Errorf("not find the recorded VPC %s", *vpcId)
 	}
 	log := c.LogFromContext(ctx)
 	groupName := fmt.Sprintf("%s-sg", c.namespace)
