@@ -126,7 +126,7 @@ var _ = Describe("Bastion", func() {
 	})
 
 	Describe("check ingressRulesSymmetricDifference", func() {
-		validator := func(wantedIngressRules ecs.AuthorizeSecurityGroupRequest, currentRules ecs.Permission, add, delete int) {
+		validator := func(wantedIngressRules ecs.AuthorizeSecurityGroupRequest, currentRules ecs.Permission, addCount, deleteCount int) {
 			rulesToAdd, rulesToDelete := ingressRulesSymmetricDifference(
 				[]*ecs.AuthorizeSecurityGroupRequest{
 					&wantedIngressRules,
@@ -135,8 +135,8 @@ var _ = Describe("Bastion", func() {
 				[]ecs.Permission{
 					currentRules,
 				})
-			Expect(len(rulesToAdd)).To(Equal(add))
-			Expect(len(rulesToDelete)).To(Equal(delete))
+			Expect(len(rulesToAdd)).To(Equal(addCount))
+			Expect(len(rulesToDelete)).To(Equal(deleteCount))
 		}
 
 		DescribeTable("ingressRulesSymmetricDifference", validator,
@@ -183,7 +183,7 @@ var _ = Describe("Bastion", func() {
 	})
 
 	Describe("check egressRulesSymmetricDifference", func() {
-		validator := func(wantedegressRules ecs.AuthorizeSecurityGroupEgressRequest, currentRules ecs.Permission, add, delete int) {
+		validator := func(wantedegressRules ecs.AuthorizeSecurityGroupEgressRequest, currentRules ecs.Permission, addCount, deleteCount int) {
 			rulesToAdd, rulesToDelete := egressRulesSymmetricDifference(
 				[]*ecs.AuthorizeSecurityGroupEgressRequest{
 					&wantedegressRules,
@@ -192,8 +192,8 @@ var _ = Describe("Bastion", func() {
 				[]ecs.Permission{
 					currentRules,
 				})
-			Expect(len(rulesToAdd)).To(Equal(add))
-			Expect(len(rulesToDelete)).To(Equal(delete))
+			Expect(len(rulesToAdd)).To(Equal(addCount))
+			Expect(len(rulesToDelete)).To(Equal(deleteCount))
 		}
 
 		DescribeTable("egressRulesSymmetricDifference", validator,

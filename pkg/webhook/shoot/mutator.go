@@ -32,10 +32,10 @@ func NewMutator(service *config.Service) extensionswebhook.Mutator {
 }
 
 // Mutate mutates resources.
-func (m *mutator) Mutate(_ context.Context, new, old client.Object) error {
-	svc, ok := new.(*corev1.Service)
+func (m *mutator) Mutate(_ context.Context, newObject, oldObject client.Object) error {
+	svc, ok := newObject.(*corev1.Service)
 	if !ok {
-		return fmt.Errorf("wrong object type %T", new)
+		return fmt.Errorf("wrong object type %T", newObject)
 	}
 
 	if svc.GetDeletionTimestamp() != nil {
@@ -43,11 +43,11 @@ func (m *mutator) Mutate(_ context.Context, new, old client.Object) error {
 	}
 
 	var oldSvc *corev1.Service
-	if old != nil {
+	if oldObject != nil {
 		var ok bool
-		oldSvc, ok = old.(*corev1.Service)
+		oldSvc, ok = oldObject.(*corev1.Service)
 		if !ok {
-			return fmt.Errorf("wrong object type %T", old)
+			return fmt.Errorf("wrong object type %T", oldObject)
 		}
 	}
 
