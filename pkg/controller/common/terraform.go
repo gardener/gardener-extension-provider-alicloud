@@ -23,7 +23,7 @@ import (
 
 const (
 	terraformVarAccessKeyID     = "TF_VAR_ACCESS_KEY_ID"
-	terraformVarAccessKeySecret = "TF_VAR_ACCESS_KEY_SECRET"
+	terraformVarAccessKeySecret = "TF_VAR_ACCESS_KEY_SECRET" // #nosec: G101
 	terraformProvider           = "provider[\"registry.terraform.io/hashicorp/alicloud\"]"
 	terraformProviderOld        = "provider.alicloud"
 )
