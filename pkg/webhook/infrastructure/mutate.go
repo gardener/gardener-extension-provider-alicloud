@@ -33,17 +33,17 @@ func New(mgr manager.Manager, logger logr.Logger) extensionswebhook.Mutator {
 
 // Mutate mutates the given object on creation and adds the annotation `alicloud.provider.extensions.gardener.cloud/use-flow=true`
 // if the seed has the label `alicloud.provider.extensions.gardener.cloud/use-flow` == `new`.
-func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
-	if old != nil || new.GetDeletionTimestamp() != nil {
+func (m *mutator) Mutate(ctx context.Context, newObject, oldObject client.Object) error {
+	if oldObject != nil || newObject.GetDeletionTimestamp() != nil {
 		return nil
 	}
 
-	newInfra, ok := new.(*extensionsv1alpha1.Infrastructure)
+	newInfra, ok := newObject.(*extensionsv1alpha1.Infrastructure)
 	if !ok {
 		return fmt.Errorf("could not mutate: object is not of type Infrastructure")
 	}
 
-	gctx := extensionscontextwebhook.NewGardenContext(m.client, new)
+	gctx := extensionscontextwebhook.NewGardenContext(m.client, newObject)
 	cluster, err := gctx.GetCluster(ctx)
 	if err != nil {
 		return err

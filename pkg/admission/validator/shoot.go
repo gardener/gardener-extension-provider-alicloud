@@ -53,10 +53,10 @@ type shoot struct {
 }
 
 // Validate validates the given shoot object.
-func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
-	shoot, ok := new.(*core.Shoot)
+func (s *shoot) Validate(ctx context.Context, newObject, oldObject client.Object) error {
+	shoot, ok := newObject.(*core.Shoot)
 	if !ok {
-		return fmt.Errorf("wrong object type %T", new)
+		return fmt.Errorf("wrong object type %T", newObject)
 	}
 
 	// skip validation if it's a workerless Shoot
@@ -64,10 +64,10 @@ func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
 		return nil
 	}
 
-	if old != nil {
-		oldShoot, ok := old.(*core.Shoot)
+	if oldObject != nil {
+		oldShoot, ok := oldObject.(*core.Shoot)
 		if !ok {
-			return fmt.Errorf("wrong object type %T for old object", old)
+			return fmt.Errorf("wrong object type %T for old object", oldObject)
 		}
 		return s.validateShootUpdate(ctx, oldShoot, shoot)
 	}
