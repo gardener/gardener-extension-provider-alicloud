@@ -82,7 +82,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 	for _, pool := range w.worker.Spec.Pools {
 
-		zoneLen := int32(len(pool.Zones))
+		zoneLen := int32(len(pool.Zones)) // #nosec: G115
 
 		additionalHashData := computeAdditionalHashData(pool)
 		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, additionalHashData, additionalHashData)
@@ -108,7 +108,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		}
 
 		for zoneIndex, zone := range pool.Zones {
-			zoneIdx := int32(zoneIndex)
+			zoneIdx := int32(zoneIndex) // #nosec: G115
 			nodesVSwitch, err := helper.FindVSwitchForPurposeAndZone(infrastructureStatus.VPC.VSwitches, apisalicloud.PurposeNodes, zone)
 			if err != nil {
 				return err

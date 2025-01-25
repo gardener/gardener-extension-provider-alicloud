@@ -29,7 +29,7 @@ const (
 	// dnsAccessKeyID is the data field in a DNS secret where the access key id is stored at.
 	dnsAccessKeyID = "ACCESS_KEY_ID"
 	// DNSAccessKeySecret is the data field in a DNS secret where the access key secret is stored at.
-	dnsAccessKeySecret = "ACCESS_KEY_SECRET"
+	dnsAccessKeySecret = "ACCESS_KEY_SECRET" // #nosec: G101
 )
 
 // ReadSecretCredentials reads the Credentials from the given secret.
