@@ -6,6 +6,7 @@ package validation
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"regexp"
 
@@ -128,6 +129,9 @@ func validateZones(zones []string, allowedZones sets.Set[string], fldPath *field
 		if !allowedZones.Has(workerZone) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Index(i), workerZone, fmt.Sprintf("supported values %v", allowedZones.UnsortedList())))
 		}
+	}
+	if len(zones) > math.MaxInt32 {
+		allErrs = append(allErrs, field.Invalid(fldPath, len(zones), "too many zones"))
 	}
 	return allErrs
 }
