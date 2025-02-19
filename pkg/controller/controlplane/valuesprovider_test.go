@@ -124,7 +124,7 @@ var _ = Describe("ValuesProvider", func() {
 			"alicloud-cloud-controller-manager": map[string]interface{}{
 				"replicas":    1,
 				"clusterName": namespace,
-				"podNetwork":  []string{cidr},
+				"podNetwork":  cidr,
 				"podLabels": map[string]interface{}{
 					"maintenance.gardener.cloud/restart": "true",
 				},

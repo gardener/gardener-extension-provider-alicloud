@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -412,7 +413,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 		"alicloud-cloud-controller-manager": map[string]interface{}{
 			"replicas":    extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"clusterName": cp.Namespace,
-			"podNetwork":  extensionscontroller.GetPodNetwork(cluster),
+			"podNetwork":  strings.Join(extensionscontroller.GetPodNetwork(cluster), ","),
 			"podLabels": map[string]interface{}{
 				v1beta1constants.LabelPodMaintenanceRestart: "true",
 			},
