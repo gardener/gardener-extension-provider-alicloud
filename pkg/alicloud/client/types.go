@@ -11,6 +11,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/nlb"
 	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
@@ -34,11 +35,23 @@ type ClientFactory interface {
 	NewSTSClient(region, accessKeyID, accessKeySecret string) (STS, error)
 	NewSLBClient(region, accessKeyID, accessKeySecret string) (SLB, error)
 	NewVPCClient(region, accessKeyID, accessKeySecret string) (VPC, error)
+	NewNLBClient(region, accessKeyID, accessKeySecret string) (NLB, error)
 	NewRAMClient(region, accessKeyID, accessKeySecret string) (RAM, error)
 	NewROSClient(region, accessKeyID, accessKeySecret string) (ROS, error)
 	NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (OSS, error)
 	NewOSSClientFromSecretRef(ctx context.Context, c client.Client, secretRef *corev1.SecretReference, region string) (OSS, error)
 	NewDNSClient(region, accessKeyID, accessKeySecret string) (DNS, error)
+}
+
+// nlbClient implements the NLB interface.
+type nlbClient struct {
+	nlb.Client
+}
+
+// NLB is an interface which declares NLB related methods.
+type NLB interface {
+	DescribeZones(request *nlb.DescribeZonesRequest) (response *nlb.DescribeZonesResponse, err error)
+	GetNLBAvailableZones(region string) ([]string, error)
 }
 
 // ecsClient implements the ECS interface.
@@ -146,6 +159,11 @@ type VPC interface {
 	UnassociateEipAddress(request *vpc.UnassociateEipAddressRequest) (response *vpc.UnassociateEipAddressResponse, err error)
 	CreateSnatEntry(request *vpc.CreateSnatEntryRequest) (response *vpc.CreateSnatEntryResponse, err error)
 	DeleteSnatEntry(request *vpc.DeleteSnatEntryRequest) (response *vpc.DeleteSnatEntryResponse, err error)
+
+	CreateIpv6Gateway(request *vpc.CreateIpv6GatewayRequest) (response *vpc.CreateIpv6GatewayResponse, err error)
+	DeleteIpv6Gateway(request *vpc.DeleteIpv6GatewayRequest) (response *vpc.DeleteIpv6GatewayResponse, err error)
+	DescribeIpv6Gateways(request *vpc.DescribeIpv6GatewaysRequest) (response *vpc.DescribeIpv6GatewaysResponse, err error)
+	ModifyVpcAttribute(request *vpc.ModifyVpcAttributeRequest) (response *vpc.ModifyVpcAttributeResponse, err error)
 }
 
 // ramClient implements the RAM interface.
