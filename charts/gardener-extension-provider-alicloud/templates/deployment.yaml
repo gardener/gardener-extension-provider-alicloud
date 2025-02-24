@@ -113,6 +113,8 @@ spec:
         resources:
 {{ toYaml .Values.resources | nindent 10 }}
 {{- end }}
+        securityContext:
+          allowPrivilegeEscalation: false        
         volumeMounts:
         - name: config
           mountPath: /etc/{{ include "name" . }}/config

@@ -74,6 +74,8 @@ spec:
         resources:
 {{ toYaml .Values.resources | indent 10 }}
 {{- end }}
+        securityContext:
+          allowPrivilegeEscalation: false
         volumeMounts:
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig
