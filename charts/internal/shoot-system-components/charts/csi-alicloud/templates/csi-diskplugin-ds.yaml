@@ -104,8 +104,6 @@ spec:
         resources:
 {{ toYaml .Values.resources.driver | indent 10 }}
 {{- end }}
-        securityContext:
-          allowPrivilegeEscalation: false
         imagePullPolicy: IfNotPresent
         ports:
         - name: healthz
