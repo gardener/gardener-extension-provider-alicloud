@@ -98,13 +98,13 @@ gardener:
   version: ""
   gardenlet:
     featureGates: {}
-  seed:
-    provider: alicloud
-    volumeProvider: csi
-    spec:
-      settings:
-        topologyAwareRouting:
-          enabled: false
-  runtimeCluster:
-    enabled: false
-  # priorityClassName: gardener-garden-system-200
+# seed:
+#   provider: alicloud
+#   volumeProvider: csi
+#   spec:
+#     settings:
+#       topologyAwareRouting:
+#         enabled: false
+# runtimeCluster:
+#   enabled: false
+#   priorityClassName: gardener-garden-system-200

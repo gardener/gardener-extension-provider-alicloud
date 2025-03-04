@@ -1,4 +1,4 @@
-{{- if and (eq .Values.gardener.seed.provider "alicloud") (not .Values.gardener.runtimeCluster.enabled) }}
+{{- if eq (include "seed.provider" . ) "alicloud" }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
