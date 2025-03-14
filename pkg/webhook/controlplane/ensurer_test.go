@@ -40,17 +40,6 @@ func TestController(t *testing.T) {
 var _ = Describe("Ensurer", func() {
 	var (
 		ctrl       *gomock.Controller
-		eContext26 = gcontext.NewInternalGardenContext(
-			&extensionscontroller.Cluster{
-				Shoot: &gardencorev1beta1.Shoot{
-					Spec: gardencorev1beta1.ShootSpec{
-						Kubernetes: gardencorev1beta1.Kubernetes{
-							Version: "1.26.0",
-						},
-					},
-				},
-			},
-		)
 		eContext27 = gcontext.NewInternalGardenContext(
 			&extensionscontroller.Cluster{
 				Shoot: &gardencorev1beta1.Shoot{
@@ -109,10 +98,10 @@ var _ = Describe("Ensurer", func() {
 		})
 
 		It("should add missing elements to kube-apiserver deployment (k8s < 1.31)", func() {
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext26, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext27, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 
-			checkKubeAPIServerDeployment(dep, "1.26.0", []string{})
+			checkKubeAPIServerDeployment(dep, "1.27.0", []string{})
 		})
 
 		It("should add missing elements to kube-apiserver deployment (k8s >= 1.31)", func() {
@@ -128,10 +117,10 @@ var _ = Describe("Ensurer", func() {
 				"--feature-gates=Foo=true,ExpandInUsePersistentVolumes=false,ExpandCSIVolumes=false",
 			}
 
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext26, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext27, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 
-			checkKubeAPIServerDeployment(dep, "1.26.0", []string{"Foo=true"})
+			checkKubeAPIServerDeployment(dep, "1.27.0", []string{"Foo=true"})
 		})
 	})
 
@@ -158,7 +147,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext26, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext27, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -188,7 +177,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext26, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext27, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -196,31 +185,31 @@ var _ = Describe("Ensurer", func() {
 
 	Describe("#EnsureKubeletServiceUnitOptions", func() {
 		var (
-			ensurer        genericmutator.Ensurer
-			oldUnitOptions []*unit.UnitOption
+			ensurer genericmutator.Ensurer
 		)
 
 		BeforeEach(func() {
 			ensurer = NewEnsurer(logger)
-			oldUnitOptions = []*unit.UnitOption{
-				{
-					Section: "Service",
-					Name:    "ExecStart",
-					Value: `/opt/bin/hyperkube kubelet \
-    --config=/var/lib/kubelet/config/kubelet`,
-				},
-			}
 		})
 
-		DescribeTable("should modify existing elements of kubelet.service unit options",
-			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version, cloudProvider string) {
-				valueofPreStart := `/bin/sh -c "echo IyBzZXQgcHJvdmlkZXJpZCBpbiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CmdyZXAgLXNxIHBsYWNlX2hvbGRlcl9vZl9wcm92aWRlcmlkIC92YXIvbGliL2t1YmVsZXQvY29uZmlnL2t1YmVsZXQKaWYgWyAkPyAtZXEgMCBdOyB0aGVuCiAgICBNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQogICAgUFJPVklERVJfSUQ9YHdnZXQgLXFPLSAkTUVUQV9FUC9yZWdpb24taWRgLmB3Z2V0IC1xTy0gJE1FVEFfRVAvaW5zdGFuY2UtaWRgCiAgICBzdWRvIHNlZCAgLWkgInMvcGxhY2VfaG9sZGVyX29mX3Byb3ZpZGVyaWQvJHtQUk9WSURFUl9JRH0vZyIgL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldAogICAgZWNobyAicHJvdmlkZXJJRD0gJFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldCIKZmkK| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
-				newUnitOptions := []*unit.UnitOption{
+		It("should modify existing elements of kubelet.service unit options", func() {
+			var (
+				valueofPreStart = `/bin/sh -c "echo IyBzZXQgcHJvdmlkZXJpZCBpbiAvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy9rdWJlbGV0CmdyZXAgLXNxIHBsYWNlX2hvbGRlcl9vZl9wcm92aWRlcmlkIC92YXIvbGliL2t1YmVsZXQvY29uZmlnL2t1YmVsZXQKaWYgWyAkPyAtZXEgMCBdOyB0aGVuCiAgICBNRVRBX0VQPWh0dHA6Ly8xMDAuMTAwLjEwMC4yMDAvbGF0ZXN0L21ldGEtZGF0YQogICAgUFJPVklERVJfSUQ9YHdnZXQgLXFPLSAkTUVUQV9FUC9yZWdpb24taWRgLmB3Z2V0IC1xTy0gJE1FVEFfRVAvaW5zdGFuY2UtaWRgCiAgICBzdWRvIHNlZCAgLWkgInMvcGxhY2VfaG9sZGVyX29mX3Byb3ZpZGVyaWQvJHtQUk9WSURFUl9JRH0vZyIgL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldAogICAgZWNobyAicHJvdmlkZXJJRD0gJFBST1ZJREVSX0lEIGhhcyBiZWVuIHdyaXR0ZW4gdG8gL3Zhci9saWIva3ViZWxldC9jb25maWcva3ViZWxldCIKZmkK| base64 -d > /var/lib/kubelet/gardener-set-provider-id && chmod +x /var/lib/kubelet/gardener-set-provider-id && /var/lib/kubelet/gardener-set-provider-id"`
+				oldUnitOptions  = []*unit.UnitOption{
 					{
 						Section: "Service",
 						Name:    "ExecStart",
 						Value: `/opt/bin/hyperkube kubelet \
     --config=/var/lib/kubelet/config/kubelet`,
+					},
+				}
+				expected = []*unit.UnitOption{
+					{
+						Section: "Service",
+						Name:    "ExecStart",
+						Value: `/opt/bin/hyperkube kubelet \
+    --config=/var/lib/kubelet/config/kubelet \
+    --cloud-provider=external`,
 					},
 					{
 						Section: "Service",
@@ -228,20 +217,12 @@ var _ = Describe("Ensurer", func() {
 						Value:   valueofPreStart,
 					},
 				}
+			)
 
-				if cloudProvider != "" {
-					newUnitOptions[0].Value += ` \
-    --cloud-provider=` + cloudProvider
-				}
-
-				opts, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), gctx, kubeletVersion, oldUnitOptions, nil)
-				Expect(err).To(Not(HaveOccurred()))
-				Expect(opts).To(Equal(newUnitOptions))
-			},
-
-			Entry("kubelet version < 1.27", eContext26, semver.MustParse("1.26.0"), "external"),
-			Entry("kubelet version >= 1.27", eContext27, semver.MustParse("1.27.0"), "external"),
-		)
+			actual, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), eContext27, semver.MustParse("1.27.0"), oldUnitOptions, nil)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(actual).To(Equal(expected))
+		})
 	})
 
 	Describe("#EnsureKubeletConfiguration", func() {
@@ -259,26 +240,21 @@ var _ = Describe("Ensurer", func() {
 			}
 		})
 
-		DescribeTable("should modify existing elements of kubelet configuration",
-			func(gctx gcontext.GardenContext, kubeletVersion *semver.Version) {
-				newKubeletConfig := &kubeletconfigv1beta1.KubeletConfiguration{
-					FeatureGates: map[string]bool{
-						"Foo": true,
-					},
-					EnableControllerAttachDetach: ptr.To(true),
-					ProviderID:                   "place_holder_of_providerid",
-				}
+		It("should modify existing elements of kubelet configuration", func() {
+			newKubeletConfig := &kubeletconfigv1beta1.KubeletConfiguration{
+				FeatureGates: map[string]bool{
+					"Foo": true,
+				},
+				EnableControllerAttachDetach: ptr.To(true),
+				ProviderID:                   "place_holder_of_providerid",
+			}
 
-				kubeletConfig := *oldKubeletConfig
+			kubeletConfig := *oldKubeletConfig
 
-				err := ensurer.EnsureKubeletConfiguration(context.TODO(), gctx, kubeletVersion, &kubeletConfig, nil)
-				Expect(err).To(Not(HaveOccurred()))
-				Expect(&kubeletConfig).To(Equal(newKubeletConfig))
-			},
-
-			Entry("kubelet < 1.27", eContext26, semver.MustParse("1.26.0")),
-			Entry("kubelet >= 1.27", eContext27, semver.MustParse("1.27.0")),
-		)
+			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext27, semver.MustParse("1.27.0"), &kubeletConfig, nil)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(&kubeletConfig).To(Equal(newKubeletConfig))
+		})
 	})
 
 	Describe("#EnsureMachineControllerManagerDeployment", func() {
