@@ -156,6 +156,9 @@ func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if current == nil {
+			return fmt.Errorf("failed to create security group")
+		}
 	}
 	c.state.Set(IdentifierNodesSecurityGroup, current.SecurityGroupId)
 	if _, err := c.updater.UpdateSecurityGroup(ctx, desired, current); err != nil {
@@ -232,6 +235,9 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 		created, err := c.actor.CreateVpc(ctx, desired)
 		if err != nil {
 			return fmt.Errorf("create VPC failed %w", err)
+		}
+		if created == nil {
+			return fmt.Errorf("failed to create VPC")
 		}
 
 		c.state.Set(IdentifierVPC, created.VpcId)
@@ -332,6 +338,9 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		waiter.Done(err)
 		if err != nil {
 			return fmt.Errorf("create NatGateway failed %w", err)
+		}
+		if created == nil {
+			return fmt.Errorf("create NatGateway failed")
 		}
 
 		c.state.Set(IdentifierNatGateway, created.NatGatewayId)

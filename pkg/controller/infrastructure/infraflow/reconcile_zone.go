@@ -90,7 +90,7 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 			return fmt.Errorf("not find the recorded EIP %s", *eipId)
 		}
 		if ngwId == nil {
-			return fmt.Errorf("vpcId is nil")
+			return fmt.Errorf("ngwId is nil")
 		}
 		ngw, err := c.actor.GetNatGateway(ctx, *ngwId)
 		if err != nil {
@@ -130,6 +130,9 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 			if err != nil {
 				return err
 			}
+			if created == nil {
+				return fmt.Errorf("failed to create SNAT entry")
+			}
 			_, _ = c.updater.UpdateSNATEntry(ctx, desired, created)
 		}
 		toUnAssociateEIPs := sets.New[string]()
@@ -147,6 +150,9 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 				created, err := c.actor.CreateSNatEntry(ctx, item.desired)
 				if err != nil {
 					return err
+				}
+				if created == nil {
+					return fmt.Errorf("failed to create SNAT entry")
 				}
 
 				_, _ = c.updater.UpdateSNATEntry(ctx, item.desired, created)
@@ -271,7 +277,7 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 				return err
 			}
 			if current == nil {
-				return fmt.Errorf("EIP %s has not been found", eipId)
+				return fmt.Errorf("configured EIP %s has not been found", eipId)
 			}
 			child.Set(ZoneNATGWElasticIPAddress, current.IpAddress)
 			return c.PersistState(ctx, true)
@@ -302,6 +308,9 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 			created, err := c.actor.CreateEIP(ctx, desired)
 			if err != nil {
 				return err
+			}
+			if created == nil {
+				return fmt.Errorf("failed to create EIP")
 			}
 			child.Set(IdentifierZoneNATGWElasticIP, created.EipId)
 			child.Set(ZoneNATGWElasticIPAddress, created.IpAddress)
@@ -347,6 +356,9 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 		created, err := c.actor.CreateVSwitch(ctx, desired)
 		if err != nil {
 			return err
+		}
+		if created == nil {
+			return fmt.Errorf("failed to create vswitch")
 		}
 		c.state.GetChild(ChildIdZones).GetChild(desired.ZoneId).Set(IdentifierZoneVSwitch, created.VSwitchId)
 		_, err = c.updater.UpdateVSwitch(ctx, desired, created)
@@ -462,7 +474,7 @@ func (c *FlowContext) deleteEipAssociation(zoneName string) flow.TaskFn {
 			return err
 		}
 		if eip == nil {
-			return fmt.Errorf("not find the recorded EIP %s", *eipId)
+			return nil
 		}
 		if *eip.Status == "InUse" {
 			if err := c.actor.UnAssociateEIP(ctx, eip); err != nil {
