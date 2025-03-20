@@ -59,7 +59,7 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
 	vpcId := c.state.Get(IdentifierVPC)
 	if vpcId == nil {
-		return fmt.Errorf("vpcId is nil")
+		return fmt.Errorf("IdentifierVPC is nil")
 	}
 	vpc, err := c.actor.GetVpc(ctx, *vpcId)
 	if err != nil {
@@ -292,9 +292,15 @@ func (c *FlowContext) ensureNatGateway(ctx context.Context) error {
 }
 func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
 	vpcID := c.state.Get(IdentifierVPC)
+	if vpcID == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
 	gw, err := c.actor.FindNatGatewayByVPC(ctx, *vpcID)
 	if err != nil {
 		return fmt.Errorf("find NatGateway failed %w", err)
+	}
+	if gw == nil {
+		return fmt.Errorf("ExistingNatGateway not found")
 	}
 	c.state.Set(IdentifierNatGateway, gw.NatGatewayId)
 	return c.PersistState(ctx, true)
@@ -308,11 +314,14 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 	if len(availableVSwitches) == 0 {
 		return fmt.Errorf("no available VSwitch can found for natgateway")
 	}
-
+	vpcId := c.state.Get(IdentifierVPC)
+	if vpcId == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
 	desired := &aliclient.NatGateway{
 		Tags:               c.commonTagsWithSuffix("natgw"),
 		Name:               c.namespace + "-natgw",
-		VpcId:              c.state.Get(IdentifierVPC),
+		VpcId:              vpcId,
 		AvailableVSwitches: availableVSwitches,
 	}
 

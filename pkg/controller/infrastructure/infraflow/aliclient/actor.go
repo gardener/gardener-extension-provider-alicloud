@@ -36,6 +36,7 @@ type Actor interface {
 	GetVSwitch(ctx context.Context, id string) (*VSwitch, error)
 	ListVSwitches(ctx context.Context, ids []string) ([]*VSwitch, error)
 	FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch, error)
+	FindVSwitchesByVPC(ctx context.Context, vpcId string) ([]*VSwitch, error)
 	DeleteVSwitch(ctx context.Context, id string) error
 
 	CreateNatGateway(ctx context.Context, ngw *NatGateway) (*NatGateway, error)
@@ -400,6 +401,12 @@ func (c *actor) FindSNatEntriesByNatGateway(_ context.Context, ngwId string) ([]
 
 	resp, err := c.describeSNATEntry(req)
 	if err != nil {
+		if serverErr, ok := err.(*alierrors.ServerError); ok {
+			if serverErr.ErrorCode() == "InvalidSnatTableId.NotFound" {
+				var entryList []*SNATEntry
+				return entryList, nil
+			}
+		}
 		return nil, err
 	}
 	return resp, nil
@@ -636,9 +643,16 @@ func (c *actor) FindEIPsByTags(ctx context.Context, tags Tags) ([]*EIP, error) {
 }
 
 func (c *actor) DeleteEIP(ctx context.Context, id string) error {
+	current, err := c.GetEIP(ctx, id)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return nil
+	}
 	req := vpc.CreateReleaseEipAddressRequest()
 	req.AllocationId = id
-	_, err := callApi(c.vpcClient.ReleaseEipAddress, req)
+	_, err = callApi(c.vpcClient.ReleaseEipAddress, req)
 	if err != nil {
 		return err
 	}
@@ -873,6 +887,17 @@ func (c *actor) FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch,
 		return nil, err
 	}
 	return c.ListVSwitches(ctx, idList)
+}
+
+func (c *actor) FindVSwitchesByVPC(ctx context.Context, vpcId string) ([]*VSwitch, error) {
+	req := vpc.CreateDescribeVSwitchesRequest()
+	req.VpcId = vpcId
+
+	resp, err := c.describeVSwitches(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (c *actor) ListVpcs(_ context.Context, ids []string) ([]*VPC, error) {

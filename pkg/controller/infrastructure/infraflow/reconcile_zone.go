@@ -75,6 +75,9 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 		managed_eipId := child.Get(IdentifierZoneNATGWElasticIP)
 		ngwId := c.state.Get(IdentifierNatGateway)
 		vswitchId := child.Get(IdentifierZoneVSwitch)
+		if vswitchId == nil {
+			return fmt.Errorf("IdentifierZoneVSwitch is nil")
+		}
 		eipId := managed_eipId
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
 			eipId = zone.NatGateway.EIPAllocationID
@@ -90,7 +93,7 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 			return fmt.Errorf("not find the recorded EIP %s", *eipId)
 		}
 		if ngwId == nil {
-			return fmt.Errorf("ngwId is nil")
+			return fmt.Errorf("IdentifierNatGateway is nil")
 		}
 		ngw, err := c.actor.GetNatGateway(ctx, *ngwId)
 		if err != nil {
@@ -204,7 +207,7 @@ func (c *FlowContext) getCurrentSnatEntryForZone(ctx context.Context, zoneName s
 	vswitchId := child.Get(IdentifierZoneVSwitch)
 	ngwId := c.state.Get(IdentifierNatGateway)
 	entryList := []*aliclient.SNATEntry{}
-	if ngwId == nil {
+	if ngwId == nil || vswitchId == nil {
 		return entryList, nil
 	}
 	entries, err := c.actor.FindSNatEntriesByNatGateway(ctx, *ngwId)
@@ -228,6 +231,9 @@ func (c *FlowContext) ensureEipAssociation(zoneName string) flow.TaskFn {
 		child := c.getZoneChild(zoneName)
 		eipId := child.Get(IdentifierZoneNATGWElasticIP)
 		ngwId := c.state.Get(IdentifierNatGateway)
+		if ngwId == nil {
+			return fmt.Errorf("IdentifierNatGateway is nil")
+		}
 
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
 			eipId = zone.NatGateway.EIPAllocationID
@@ -285,14 +291,13 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 		zoneSuffix := c.getZoneSuffix(zone.Name)
 		eipSuffix := fmt.Sprintf("eip-natgw-%s", zoneSuffix)
 
-		id := child.Get(IdentifierZoneNATGWElasticIP)
 		desired := &aliclient.EIP{
 			Name:               c.namespace + "-" + eipSuffix,
 			Tags:               c.commonTagsWithSuffix(eipSuffix),
 			Bandwidth:          "100",
 			InternetChargeType: eipIntenetChargeType,
 		}
-		current, err := findExisting(ctx, id, desired.Tags, c.actor.GetEIP, c.actor.FindEIPsByTags)
+		current, err := findExisting(ctx, child.Get(IdentifierZoneNATGWElasticIP), desired.Tags, c.actor.GetEIP, c.actor.FindEIPsByTags)
 		if err != nil {
 			return err
 		}
@@ -323,6 +328,10 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 }
 
 func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
+	vpcId := c.state.Get(IdentifierVPC)
+	if vpcId == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
 	log := c.LogFromContext(ctx)
 	var desired []*aliclient.VSwitch
 	for _, zone := range c.config.Networks.Zones {
@@ -332,7 +341,7 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 			&aliclient.VSwitch{
 				Name:      c.namespace + "-" + zone.Name + "-vsw",
 				CidrBlock: zone.Workers,
-				VpcId:     c.state.Get(IdentifierVPC),
+				VpcId:     vpcId,
 				Tags:      c.commonTagsWithSuffix(workerSuffix),
 				ZoneId:    zone.Name,
 			})
@@ -342,8 +351,12 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	vpc_vsw, err := c.actor.FindVSwitchesByVPC(ctx, *vpcId)
+	if err != nil {
+		return err
+	}
 
-	toBeDeleted, toBeCreated, toBeChecked := diffByID(desired, current, func(item *aliclient.VSwitch) string {
+	toBeDeleted, toBeCreated, toBeChecked := diffByID_Ex(desired, current, vpc_vsw, func(item *aliclient.VSwitch) string {
 		return item.ZoneId + "-" + item.CidrBlock
 	})
 
