@@ -49,7 +49,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, options A
 		return err
 	}
 
-	return infrastructure.Add(ctx, mgr, infrastructure.AddArgs{
+	return infrastructure.Add(mgr, infrastructure.AddArgs{
 		Actuator:          actuator,
 		ConfigValidator:   NewConfigValidator(mgr, log.Log, aliclient.FactoryFunc(aliclient.NewActor)),
 		ControllerOptions: options.Controller,
