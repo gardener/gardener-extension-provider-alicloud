@@ -103,6 +103,8 @@ An example `InfrastructureConfig` for the Alicloud extension looks as follows:
 ```yaml
 apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
 kind: InfrastructureConfig
+# dualStack:
+#   enabled: true
 networks:
   vpc: # specify either 'id' or 'cidr'
   # id: my-vpc
@@ -114,6 +116,8 @@ networks:
   # natGateway:
     # eipAllocationID: eip-ufxsdg122elmszcg
 ```
+The `dualStack.enabled` flag specifies whether dual-stack or IPv4-only should be supported by the infrastructure.
+When the flag is set to `true` an Alicloud provided IPv6 CIDR block will be attached to the VPC. And two extra vswitches with IPv6 CIDR and one ipv6Gateway will be created in the VPC.
 
 The `networks.vpc` section describes whether you want to create the shoot cluster in an already existing VPC or whether to create a new one:
 
@@ -122,6 +126,7 @@ The `networks.vpc` section describes whether you want to create the shoot cluste
 You can freely choose a private CIDR range.
 * Either `networks.vpc.id` or `networks.vpc.cidr` must be present, but not both at the same time.
 * When `networks.vpc.id` is present, in addition, you can also choose to set `networks.vpc.gardenerManagedNATGateway`. It is by default `false`. When it is set to `true`,
+* When `networks.vpc.id` is present, in addition,  the `dualStack.enabled` flag can not be set `true`,
 Gardener will create an Enhanced NATGateway in the VPC and associate it with a VSwitch created in the first zone in the `networks.zones`.
 * Please note that when `networks.vpc.id` is present, and `networks.vpc.gardenerManagedNATGateway` is `false` or not set, you have to **manually** create an Enhance NATGateway
 and associate it with a VSwitch that you **manually** created. In this case, make sure the worker CIDRs in `networks.zones` do not overlap with the one you created.
