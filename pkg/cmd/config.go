@@ -7,7 +7,7 @@ package cmd
 import (
 	"fmt"
 
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
+	apisconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 
@@ -102,7 +102,7 @@ func (c *Config) Options() config.ControllerConfiguration {
 }
 
 // ApplyHealthCheckConfig applies the HealthCheckConfig to the config
-func (c *Config) ApplyHealthCheckConfig(config *healthcheckconfig.HealthCheckConfig) {
+func (c *Config) ApplyHealthCheckConfig(config *apisconfigv1alpha1.HealthCheckConfig) {
 	if c.Config.HealthCheckConfig != nil {
 		*config = *c.Config.HealthCheckConfig
 	}
