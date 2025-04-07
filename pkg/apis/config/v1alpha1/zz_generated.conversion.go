@@ -13,13 +13,11 @@ import (
 	unsafe "unsafe"
 
 	config "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
-	apisconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	apisconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	componentbaseconfig "k8s.io/component-base/config"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
 
@@ -114,7 +112,7 @@ func Convert_config_CSI_To_v1alpha1_CSI(in *config.CSI, out *CSI, s conversion.S
 }
 
 func autoConvert_v1alpha1_ControllerConfiguration_To_config_ControllerConfiguration(in *ControllerConfiguration, out *config.ControllerConfiguration, s conversion.Scope) error {
-	out.ClientConnection = (*componentbaseconfig.ClientConnectionConfiguration)(unsafe.Pointer(in.ClientConnection))
+	out.ClientConnection = (*configv1alpha1.ClientConnectionConfiguration)(unsafe.Pointer(in.ClientConnection))
 	out.MachineImageOwnerSecretRef = (*v1.SecretReference)(unsafe.Pointer(in.MachineImageOwnerSecretRef))
 	out.ToBeSharedImageIDs = *(*[]string)(unsafe.Pointer(&in.ToBeSharedImageIDs))
 	if err := Convert_v1alpha1_Service_To_config_Service(&in.Service, &out.Service, s); err != nil {
@@ -123,7 +121,7 @@ func autoConvert_v1alpha1_ControllerConfiguration_To_config_ControllerConfigurat
 	if err := Convert_v1alpha1_ETCD_To_config_ETCD(&in.ETCD, &out.ETCD, s); err != nil {
 		return err
 	}
-	out.HealthCheckConfig = (*apisconfig.HealthCheckConfig)(unsafe.Pointer(in.HealthCheckConfig))
+	out.HealthCheckConfig = (*apisconfigv1alpha1.HealthCheckConfig)(unsafe.Pointer(in.HealthCheckConfig))
 	out.CSI = (*config.CSI)(unsafe.Pointer(in.CSI))
 	return nil
 }
