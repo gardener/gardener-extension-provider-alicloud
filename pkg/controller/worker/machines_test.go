@@ -113,6 +113,7 @@ var _ = Describe("Machines", func() {
 				namePool2           string
 				minPool2            int32
 				maxPool2            int32
+				priorityPool2       int32
 				maxSurgePool2       intstr.IntOrString
 				maxUnavailablePool2 intstr.IntOrString
 
@@ -186,6 +187,7 @@ var _ = Describe("Machines", func() {
 				namePool2 = "pool-2"
 				minPool2 = 30
 				maxPool2 = 45
+				priorityPool2 = 100
 				maxSurgePool2 = intstr.FromInt(10)
 				maxUnavailablePool2 = intstr.FromInt(15)
 
@@ -370,6 +372,7 @@ var _ = Describe("Machines", func() {
 								Name:           namePool2,
 								Minimum:        minPool2,
 								Maximum:        maxPool2,
+								Priority:       ptr.To(priorityPool2),
 								MaxSurge:       maxSurgePool2,
 								MaxUnavailable: maxUnavailablePool2,
 								Architecture:   ptr.To(archARM),
@@ -561,6 +564,7 @@ var _ = Describe("Machines", func() {
 							SecretName:           machineClassWithHashPool2Zone1,
 							Minimum:              worker.DistributeOverZones(0, minPool2, 2),
 							Maximum:              worker.DistributeOverZones(0, maxPool2, 2),
+							Priority:             ptr.To(priorityPool2),
 							MaxSurge:             worker.DistributePositiveIntOrPercent(0, maxSurgePool2, 2, maxPool2),
 							MaxUnavailable:       worker.DistributePositiveIntOrPercent(0, maxUnavailablePool2, 2, minPool2),
 							Labels:               labelsZone1,
@@ -572,6 +576,7 @@ var _ = Describe("Machines", func() {
 							SecretName:           machineClassWithHashPool2Zone2,
 							Minimum:              worker.DistributeOverZones(1, minPool2, 2),
 							Maximum:              worker.DistributeOverZones(1, maxPool2, 2),
+							Priority:             ptr.To(priorityPool2),
 							MaxSurge:             worker.DistributePositiveIntOrPercent(1, maxSurgePool2, 2, maxPool2),
 							MaxUnavailable:       worker.DistributePositiveIntOrPercent(1, maxUnavailablePool2, 2, minPool2),
 							Labels:               labelsZone2,
