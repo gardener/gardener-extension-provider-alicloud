@@ -36,6 +36,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/dualstack"
 )
 
 // StatusTypeMeta is the TypeMeta of InfrastructureStatus.
@@ -565,6 +566,11 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 		return err
 	}
 
+	enableDualStack := config.DualStack != nil && config.DualStack.Enabled
+	if enableDualStack && config.Networks.VPC.CIDR == nil {
+		return fmt.Errorf("vpc cidr must be set when enable dualstack")
+	}
+
 	if err := a.ensureServiceLinkedRole(ctx, infra, credentials); err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
@@ -582,6 +588,12 @@ func (a *actuator) reconcile(ctx context.Context, log logr.Logger, infra *extens
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
+
+	dualStackValues, err := dualstack.CreateDualStackValues(enableDualStack, infra.Spec.Region, config.Networks.VPC.CIDR, credentials, alicloudclient.NewClientFactory())
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+	initializerValues.DualStack = *dualStackValues
 
 	initializer, err := a.newInitializer(infra, config, cluster.Shoot.Spec.Networking.Pods, initializerValues, stateInitializer)
 	if err != nil {
