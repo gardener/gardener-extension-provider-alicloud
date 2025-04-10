@@ -436,6 +436,7 @@ func autoConvert_v1alpha1_Networks_To_alicloud_Networks(in *Networks, out *alicl
 		return err
 	}
 	out.Zones = *(*[]alicloud.Zone)(unsafe.Pointer(&in.Zones))
+	out.Bandwidth = (*int)(unsafe.Pointer(in.Bandwidth))
 	return nil
 }
 
@@ -449,6 +450,7 @@ func autoConvert_alicloud_Networks_To_v1alpha1_Networks(in *alicloud.Networks, o
 		return err
 	}
 	out.Zones = *(*[]Zone)(unsafe.Pointer(&in.Zones))
+	out.Bandwidth = (*int)(unsafe.Pointer(in.Bandwidth))
 	return nil
 }
 
