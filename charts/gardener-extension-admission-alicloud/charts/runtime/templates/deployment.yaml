@@ -86,7 +86,7 @@ spec:
 {{ toYaml .Values.resources | nindent 10 }}
 {{- end }}
         securityContext:
-          allowPrivilegeEscalations: false
+          allowPrivilegeEscalation: false
         volumeMounts:
         {{- if .Values.kubeconfig }}
         - name: gardener-extension-admission-alicloud-kubeconfig
