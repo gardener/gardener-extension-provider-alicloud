@@ -18,6 +18,7 @@ import (
 type Credentials struct {
 	AccessKeyID     string
 	AccessKeySecret string
+	CredentialsFile string
 }
 
 const (
@@ -25,6 +26,8 @@ const (
 	AccessKeyID = "accessKeyID"
 	// AccessKeySecret is the data field in a secret where the access key secret is stored at.
 	AccessKeySecret = "accessKeySecret"
+	// CredentialsFile is a constant for the key in cloud provider secret that holds the Alibaba Cloud credentials file.
+	CredentialsFile = "credentialsFile"
 
 	// dnsAccessKeyID is the data field in a DNS secret where the access key id is stored at.
 	dnsAccessKeyID = "ACCESS_KEY_ID"
