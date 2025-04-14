@@ -56,15 +56,22 @@ func ReadSecretCredentials(secret *corev1.Secret, allowDNSKeys bool) (*Credentia
 		return nil, fmt.Errorf("secret %s/%s has no access key secret", secret.Namespace, secret.Name)
 	}
 
-	credentialsFile, ok := getSecretDataValue(secret, CredentialsFile, nil)
-	if !ok {
-		return nil, fmt.Errorf("secret %s/%s has no credentials file", secret.Namespace, secret.Name)
+	if !allowDNSKeys {
+		credentialsFile, ok := getSecretDataValue(secret, CredentialsFile, nil)
+		if !ok {
+			return nil, fmt.Errorf("secret %s/%s has no credentials file", secret.Namespace, secret.Name)
+		}
+
+		return &Credentials{
+			AccessKeyID:     string(accessKeyID),
+			AccessKeySecret: string(accessKeySecret),
+			CredentialsFile: string(credentialsFile),
+		}, nil
 	}
 
 	return &Credentials{
 		AccessKeyID:     string(accessKeyID),
 		AccessKeySecret: string(accessKeySecret),
-		CredentialsFile: string(credentialsFile),
 	}, nil
 }
 
