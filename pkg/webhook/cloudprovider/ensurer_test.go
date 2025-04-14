@@ -74,7 +74,6 @@ var _ = Describe("Ensurer", func() {
 				alicloud.AccessKeyID:     []byte("access-key-id"),
 				alicloud.AccessKeySecret: []byte("access-key-secret"),
 				alicloud.CredentialsFile: []byte(`[default]
-enable = true
 type = access_key
 access_key_id = access-key-id
 access_key_secret = access-key-secret`),
@@ -88,7 +87,6 @@ access_key_secret = access-key-secret`),
 				alicloud.AccessKeyID:     []byte("access-key-id"),
 				alicloud.AccessKeySecret: []byte("access-key-secret"),
 				alicloud.CredentialsFile: []byte(`[default]
-enable = true
 type = access_key
 access_key_id = access-key-id
 access_key_secret = access-key-secret`),

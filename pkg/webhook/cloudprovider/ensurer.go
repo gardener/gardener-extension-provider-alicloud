@@ -39,19 +39,19 @@ type ensurer struct {
 
 // EnsureCloudProviderSecret ensures that cloudprovider secret contains
 // the shared credentials file.
-func (e *ensurer) EnsureCloudProviderSecret(_ context.Context, _ gcontext.GardenContext, new, _ *corev1.Secret) error {
-	if _, ok := new.Data[alicloud.AccessKeyID]; !ok {
+func (e *ensurer) EnsureCloudProviderSecret(_ context.Context, _ gcontext.GardenContext, newSecret, _ *corev1.Secret) error {
+	if _, ok := newSecret.Data[alicloud.AccessKeyID]; !ok {
 		return fmt.Errorf("could not mutate cloudprovider secret as %q field is missing", alicloud.AccessKeyID)
 	}
-	if _, ok := new.Data[alicloud.AccessKeySecret]; !ok {
+	if _, ok := newSecret.Data[alicloud.AccessKeySecret]; !ok {
 		return fmt.Errorf("could not mutate cloudprovider secret as %q field is missing", alicloud.AccessKeySecret)
 	}
 
-	e.logger.V(5).Info("mutate cloudprovider secret", "namespace", new.Namespace, "name", new.Name)
-	new.Data[alicloud.CredentialsFile] = []byte("[default]\n" +
+	e.logger.V(5).Info("mutate cloudprovider secret", "namespace", newSecret.Namespace, "name", newSecret.Name)
+	newSecret.Data[alicloud.CredentialsFile] = []byte("[default]\n" +
 		"type = access_key\n" +
-		fmt.Sprintf("access_key_id = %s\n", string(new.Data[alicloud.AccessKeyID])) +
-		fmt.Sprintf("access_key_secret = %s", string(new.Data[alicloud.AccessKeySecret])),
+		fmt.Sprintf("access_key_id = %s\n", string(newSecret.Data[alicloud.AccessKeyID])) +
+		fmt.Sprintf("access_key_secret = %s", string(newSecret.Data[alicloud.AccessKeySecret])),
 	)
 
 	return nil
