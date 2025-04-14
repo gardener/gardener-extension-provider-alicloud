@@ -39,7 +39,7 @@ type ensurer struct {
 
 // EnsureCloudProviderSecret ensures that cloudprovider secret contains
 // the shared credentials file.
-func (e *ensurer) EnsureCloudProviderSecret(ctx context.Context, _ gcontext.GardenContext, new, _ *corev1.Secret) error {
+func (e *ensurer) EnsureCloudProviderSecret(_ context.Context, _ gcontext.GardenContext, new, _ *corev1.Secret) error {
 	if _, ok := new.Data[alicloud.AccessKeyID]; !ok {
 		return fmt.Errorf("could not mutate cloudprovider secret as %q field is missing", alicloud.AccessKeyID)
 	}
