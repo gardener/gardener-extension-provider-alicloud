@@ -46,19 +46,22 @@ func ReadSecretCredentials(secret *corev1.Secret, allowDNSKeys bool) (*Credentia
 		altAccessKeyIDKey, altAccessKeySecretKey = ptr.To(dnsAccessKeyID), ptr.To(dnsAccessKeySecret)
 	}
 
-	accessKeyID, ok := getSecretDataValue(secret, AccessKeyID, altAccessKeyIDKey)
+	accessKeyID, ok := getSecretDataValue(secret, AccessKeyID, altAccessKeyIDKey, true)
 	if !ok {
 		return nil, fmt.Errorf("secret %s/%s has no access key id", secret.Namespace, secret.Name)
 	}
 
-	accessKeySecret, ok := getSecretDataValue(secret, AccessKeySecret, altAccessKeySecretKey)
+	accessKeySecret, ok := getSecretDataValue(secret, AccessKeySecret, altAccessKeySecretKey, true)
 	if !ok {
 		return nil, fmt.Errorf("secret %s/%s has no access key secret", secret.Namespace, secret.Name)
 	}
 
+	credentialsFile, _ := getSecretDataValue(secret, CredentialsFile, nil, false)
+
 	return &Credentials{
 		AccessKeyID:     string(accessKeyID),
 		AccessKeySecret: string(accessKeySecret),
+		CredentialsFile: string(credentialsFile),
 	}, nil
 }
 
@@ -82,7 +85,7 @@ func ReadDNSCredentialsFromSecretRef(ctx context.Context, client client.Client, 
 	return ReadSecretCredentials(secret, true)
 }
 
-func getSecretDataValue(secret *corev1.Secret, key string, altKey *string) ([]byte, bool) {
+func getSecretDataValue(secret *corev1.Secret, key string, altKey *string, required bool) ([]byte, bool) {
 	if value, ok := secret.Data[key]; ok {
 		return value, true
 	}
@@ -91,5 +94,8 @@ func getSecretDataValue(secret *corev1.Secret, key string, altKey *string) ([]by
 			return value, true
 		}
 	}
-	return nil, false
+	if required {
+		return nil, false
+	}
+	return nil, true
 }
