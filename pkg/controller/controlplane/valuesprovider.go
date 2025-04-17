@@ -29,7 +29,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
@@ -110,7 +109,6 @@ var controlPlaneChart = &chart.Chart{
 				{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 				{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 				{Type: &corev1.Secret{}, Name: "cloud-provider-config"},
-				{Type: &corev1.ConfigMap{}, Name: "cloud-controller-manager-observability-config"},
 				{Type: &monitoringv1.ServiceMonitor{}, Name: "shoot-cloud-controller-manager"},
 				{Type: &monitoringv1.PrometheusRule{}, Name: "shoot-cloud-controller-manager"},
 				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "cloud-controller-manager-vpa"},
@@ -264,11 +262,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	cpConfig, err := vp.decodeControlPlaneConfig(cp)
 	if err != nil {
 		return nil, err
-	}
-
-	// TODO(rfranzke): Delete this in a future release.
-	if err := kutil.DeleteObject(ctx, vp.client, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "csi-plugin-controller-observability-config", Namespace: cp.Namespace}}); err != nil {
-		return nil, fmt.Errorf("failed deleting legacy csi-plugin-controller-observability-config ConfigMap: %w", err)
 	}
 
 	// Get control plane chart values
