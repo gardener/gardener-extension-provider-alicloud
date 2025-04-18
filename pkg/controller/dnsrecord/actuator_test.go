@@ -37,6 +37,7 @@ const (
 
 	accessKeyID     = "accessKeyID"
 	accessKeySecret = "accessKeySecret"
+	credentialsFile = "credentialsFile"
 )
 
 var _ = Describe("Actuator", func() {
@@ -101,6 +102,7 @@ var _ = Describe("Actuator", func() {
 			Data: map[string][]byte{
 				alicloud.AccessKeyID:     []byte(accessKeyID),
 				alicloud.AccessKeySecret: []byte(accessKeySecret),
+				alicloud.CredentialsFile: []byte(credentialsFile),
 			},
 		}
 

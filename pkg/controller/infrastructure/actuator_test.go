@@ -96,6 +96,7 @@ var _ = Describe("Actuator", func() {
 			owner           *metav1.OwnerReference
 			accessKeyID     string
 			accessKeySecret string
+			credentialsFile string
 			cluster         controller.Cluster
 
 			initializerValues InitializerValues
@@ -174,8 +175,11 @@ var _ = Describe("Actuator", func() {
 					},
 				}
 				owner = metav1.NewControllerRef(&infra, extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.InfrastructureResource))
+
 				accessKeyID = "accessKeyID"
 				accessKeySecret = "accessKeySecret"
+				credentialsFile = "credentialsFile"
+
 				podCIDR = "100.96.0.0/11"
 				cluster = controller.Cluster{
 					Shoot: &gardencorev1beta1.Shoot{
@@ -261,6 +265,7 @@ var _ = Describe("Actuator", func() {
 							Data: map[string][]byte{
 								alicloud.AccessKeyID:     []byte(accessKeyID),
 								alicloud.AccessKeySecret: []byte(accessKeySecret),
+								alicloud.CredentialsFile: []byte(credentialsFile),
 							},
 						}),
 
@@ -303,6 +308,7 @@ var _ = Describe("Actuator", func() {
 							Data: map[string][]byte{
 								alicloud.AccessKeyID:     []byte(accessKeyID),
 								alicloud.AccessKeySecret: []byte(accessKeySecret),
+								alicloud.CredentialsFile: []byte(credentialsFile),
 							},
 						}),
 					alicloudClientFactory.EXPECT().NewECSClient(region, accessKeyID, accessKeySecret).Return(shootECSClient, nil),
@@ -355,6 +361,7 @@ var _ = Describe("Actuator", func() {
 							Data: map[string][]byte{
 								alicloud.AccessKeyID:     []byte(accessKeyID),
 								alicloud.AccessKeySecret: []byte(accessKeySecret),
+								alicloud.CredentialsFile: []byte(credentialsFile),
 							},
 						}),
 
@@ -396,6 +403,7 @@ var _ = Describe("Actuator", func() {
 							Data: map[string][]byte{
 								alicloud.AccessKeyID:     []byte(accessKeyID),
 								alicloud.AccessKeySecret: []byte(accessKeySecret),
+								alicloud.CredentialsFile: []byte(credentialsFile),
 							},
 						}),
 					alicloudClientFactory.EXPECT().NewECSClient(region, accessKeyID, accessKeySecret).Return(shootECSClient, nil),

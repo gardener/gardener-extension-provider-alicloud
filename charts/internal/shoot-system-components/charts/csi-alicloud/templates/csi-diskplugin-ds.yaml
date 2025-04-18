@@ -85,16 +85,8 @@ spec:
 {{- end }}
         - name: CSI_ENDPOINT
           value: unix://var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock
-        - name: ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: csi-diskplugin-alicloud
-              key: accessKeyID
-        - name: ACCESS_KEY_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: csi-diskplugin-alicloud
-              key: accessKeySecret
+        - name: ALIBABA_CLOUD_CREDENTIALS_FILE
+          value: /srv/cloudprovider/credentialsFile
         - name: KUBE_NODE_NAME
           valueFrom:
             fieldRef:
@@ -124,6 +116,8 @@ spec:
         - mountPath: /dev
           name: host-dev
           mountPropagation: "HostToContainer"
+        - name: cloudprovider
+          mountPath: /srv/cloudprovider
       - name: csi-liveness-probe
         image: {{ index .Values.images "csi-liveness-probe" }}
         args:
@@ -138,6 +132,9 @@ spec:
         - name: plugin-dir
           mountPath: /csi
       volumes:
+      - name: cloudprovider
+        secret:
+          secretName: csi-diskplugin-alicloud
       - name: registration-dir
         hostPath:
           path: /var/lib/kubelet/plugins_registry

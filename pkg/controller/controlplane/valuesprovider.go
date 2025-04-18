@@ -473,6 +473,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 			"credential": map[string]interface{}{
 				"accessKeyID":     base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeyID)),
 				"accessKeySecret": base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret)),
+				"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
 			},
 			"enableADController": vp.enableCSIADController(cpConfig),
 			"webhookConfig": map[string]interface{}{

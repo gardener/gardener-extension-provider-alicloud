@@ -53,16 +53,8 @@ spec:
           value: "false"
         - name: REGION_ID
           value: {{ .Values.regionID }}
-        - name: ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: cloudprovider
-              key: accessKeyID
-        - name: ACCESS_KEY_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: cloudprovider
-              key: accessKeySecret
+        - name: ALIBABA_CLOUD_CREDENTIALS_FILE
+          value: /srv/cloudprovider/credentialsFile
         imagePullPolicy: IfNotPresent
 {{- if .Values.csiPluginController.podResources.diskPlugin }}
         resources:
@@ -89,6 +81,8 @@ spec:
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig-csi-controller-ali-plugin
           readOnly: true
+        - name: cloudprovider
+          mountPath: /srv/cloudprovider
       - name: alicloud-csi-attacher
         image: {{ index .Values.images "csi-attacher" }}
         args:
@@ -204,6 +198,9 @@ spec:
         - name: socket-dir
           mountPath: /var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com
       volumes:
+      - name: cloudprovider
+        secret:
+          secretName: cloudprovider
       - name: socket-dir
         emptyDir: {}
       - name: kubeconfig-csi-controller-ali-plugin

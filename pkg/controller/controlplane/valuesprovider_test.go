@@ -109,6 +109,7 @@ var _ = Describe("ValuesProvider", func() {
 			Data: map[string][]byte{
 				alicloud.AccessKeyID:     []byte("foo"),
 				alicloud.AccessKeySecret: []byte("bar"),
+				alicloud.CredentialsFile: []byte("baz"),
 			},
 		}
 
@@ -163,6 +164,7 @@ var _ = Describe("ValuesProvider", func() {
 				"credential": map[string]interface{}{
 					"accessKeyID":     "Zm9v",
 					"accessKeySecret": "YmFy",
+					"credentialsFile": "YmF6",
 				},
 				"enableADController": true,
 				"webhookConfig": map[string]interface{}{
