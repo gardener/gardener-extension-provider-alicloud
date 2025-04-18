@@ -84,6 +84,21 @@ func (mr *MockActorMockRecorder) CreateEIP(ctx, eip any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEIP", reflect.TypeOf((*MockActor)(nil).CreateEIP), ctx, eip)
 }
 
+// CreateIpv6Gateway mocks base method.
+func (m *MockActor) CreateIpv6Gateway(arg0 context.Context, arg1 *aliclient.IPV6Gateway) (*aliclient.IPV6Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateIpv6Gateway", arg0, arg1)
+	ret0, _ := ret[0].(*aliclient.IPV6Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateIpv6Gateway indicates an expected call of CreateIpv6Gateway.
+func (mr *MockActorMockRecorder) CreateIpv6Gateway(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIpv6Gateway", reflect.TypeOf((*MockActor)(nil).CreateIpv6Gateway), arg0, arg1)
+}
+
 // CreateNatGateway mocks base method.
 func (m *MockActor) CreateNatGateway(ctx context.Context, ngw *aliclient.NatGateway) (*aliclient.NatGateway, error) {
 	m.ctrl.T.Helper()
@@ -187,6 +202,20 @@ func (mr *MockActorMockRecorder) DeleteEIP(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEIP", reflect.TypeOf((*MockActor)(nil).DeleteEIP), ctx, id)
 }
 
+// DeleteIpv6Gateway mocks base method.
+func (m *MockActor) DeleteIpv6Gateway(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteIpv6Gateway", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteIpv6Gateway indicates an expected call of DeleteIpv6Gateway.
+func (mr *MockActorMockRecorder) DeleteIpv6Gateway(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteIpv6Gateway", reflect.TypeOf((*MockActor)(nil).DeleteIpv6Gateway), arg0, arg1)
+}
+
 // DeleteNatGateway mocks base method.
 func (m *MockActor) DeleteNatGateway(ctx context.Context, id string) error {
 	m.ctrl.T.Helper()
@@ -284,6 +313,21 @@ func (m *MockActor) FindEIPsByTags(ctx context.Context, tags aliclient.Tags) ([]
 func (mr *MockActorMockRecorder) FindEIPsByTags(ctx, tags any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindEIPsByTags", reflect.TypeOf((*MockActor)(nil).FindEIPsByTags), ctx, tags)
+}
+
+// FindIpv6GatewaysByTags mocks base method.
+func (m *MockActor) FindIpv6GatewaysByTags(arg0 context.Context, arg1 aliclient.Tags) ([]*aliclient.IPV6Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindIpv6GatewaysByTags", arg0, arg1)
+	ret0, _ := ret[0].([]*aliclient.IPV6Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindIpv6GatewaysByTags indicates an expected call of FindIpv6GatewaysByTags.
+func (mr *MockActorMockRecorder) FindIpv6GatewaysByTags(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindIpv6GatewaysByTags", reflect.TypeOf((*MockActor)(nil).FindIpv6GatewaysByTags), arg0, arg1)
 }
 
 // FindNatGatewayByTags mocks base method.
@@ -406,6 +450,21 @@ func (mr *MockActorMockRecorder) GetEIPByAddress(ctx, ipAddress any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIPByAddress", reflect.TypeOf((*MockActor)(nil).GetEIPByAddress), ctx, ipAddress)
 }
 
+// GetIpv6Gateway mocks base method.
+func (m *MockActor) GetIpv6Gateway(arg0 context.Context, arg1 string) (*aliclient.IPV6Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIpv6Gateway", arg0, arg1)
+	ret0, _ := ret[0].(*aliclient.IPV6Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIpv6Gateway indicates an expected call of GetIpv6Gateway.
+func (mr *MockActorMockRecorder) GetIpv6Gateway(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIpv6Gateway", reflect.TypeOf((*MockActor)(nil).GetIpv6Gateway), arg0, arg1)
+}
+
 // GetNatGateway mocks base method.
 func (m *MockActor) GetNatGateway(ctx context.Context, id string) (*aliclient.NatGateway, error) {
 	m.ctrl.T.Helper()
@@ -479,6 +538,21 @@ func (m *MockActor) GetVpc(ctx context.Context, id string) (*aliclient.VPC, erro
 func (mr *MockActorMockRecorder) GetVpc(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpc", reflect.TypeOf((*MockActor)(nil).GetVpc), ctx, id)
+}
+
+// LisIpv6Gateways mocks base method.
+func (m *MockActor) LisIpv6Gateways(arg0 context.Context, arg1 []string) ([]*aliclient.IPV6Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LisIpv6Gateways", arg0, arg1)
+	ret0, _ := ret[0].([]*aliclient.IPV6Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LisIpv6Gateways indicates an expected call of LisIpv6Gateways.
+func (mr *MockActorMockRecorder) LisIpv6Gateways(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LisIpv6Gateways", reflect.TypeOf((*MockActor)(nil).LisIpv6Gateways), arg0, arg1)
 }
 
 // ListEIPs mocks base method.
@@ -583,6 +657,20 @@ func (m *MockActor) ModifyEIP(ctx context.Context, id string, eip *aliclient.EIP
 func (mr *MockActorMockRecorder) ModifyEIP(ctx, id, eip any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyEIP", reflect.TypeOf((*MockActor)(nil).ModifyEIP), ctx, id, eip)
+}
+
+// ModifyVpc mocks base method.
+func (m *MockActor) ModifyVpc(arg0 context.Context, arg1 string, arg2 *aliclient.VPC) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyVpc", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ModifyVpc indicates an expected call of ModifyVpc.
+func (mr *MockActorMockRecorder) ModifyVpc(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyVpc", reflect.TypeOf((*MockActor)(nil).ModifyVpc), arg0, arg1, arg2)
 }
 
 // RevokeSecurityGroupRule mocks base method.
