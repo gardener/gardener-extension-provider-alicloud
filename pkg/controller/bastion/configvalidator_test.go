@@ -35,6 +35,7 @@ const (
 	namespace       = "shoot--foobar--alicloud"
 	accessKeyID     = "accessKeyID"
 	accessKeySecret = "accessKeySecret"
+	credentialsFile = "credentialsFile"
 	region          = "region"
 	id              = "id"
 )
@@ -90,6 +91,7 @@ var _ = Describe("ConfigValidator", func() {
 			Data: map[string][]byte{
 				alicloud.AccessKeyID:     []byte(accessKeyID),
 				alicloud.AccessKeySecret: []byte(accessKeySecret),
+				alicloud.CredentialsFile: []byte(credentialsFile),
 			},
 		}
 

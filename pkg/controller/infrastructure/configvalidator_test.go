@@ -43,6 +43,7 @@ const (
 
 	accessKeyID     = "accessKeyID"
 	secretAccessKey = "secretAccessKey"
+	credentialsFile = "credentialsFile"
 )
 
 var _ = Describe("ConfigValidator", func() {
@@ -105,6 +106,7 @@ var _ = Describe("ConfigValidator", func() {
 			Data: map[string][]byte{
 				alicloud.AccessKeyID:     []byte(accessKeyID),
 				alicloud.AccessKeySecret: []byte(secretAccessKey),
+				alicloud.CredentialsFile: []byte(credentialsFile),
 			},
 		}
 

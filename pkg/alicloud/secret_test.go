@@ -13,6 +13,7 @@ import (
 const (
 	accessKeyID     = "accessKeyID"
 	accessKeySecret = "accessKeySecret"
+	credentialsFile = "credentialsFile"
 )
 
 var _ = Describe("Alicloud Suite", func() {
@@ -23,6 +24,7 @@ var _ = Describe("Alicloud Suite", func() {
 					Data: map[string][]byte{
 						AccessKeyID:     []byte(accessKeyID),
 						AccessKeySecret: []byte(accessKeySecret),
+						CredentialsFile: []byte(credentialsFile),
 					},
 				}, false)
 
@@ -30,6 +32,7 @@ var _ = Describe("Alicloud Suite", func() {
 				Expect(creds).To(Equal(&Credentials{
 					AccessKeyID:     accessKeyID,
 					AccessKeySecret: accessKeySecret,
+					CredentialsFile: credentialsFile,
 				}))
 			})
 
@@ -38,6 +41,7 @@ var _ = Describe("Alicloud Suite", func() {
 					Data: map[string][]byte{
 						dnsAccessKeyID:     []byte(accessKeyID),
 						dnsAccessKeySecret: []byte(accessKeySecret),
+						CredentialsFile:    []byte(credentialsFile),
 					},
 				}, false)
 
@@ -51,6 +55,7 @@ var _ = Describe("Alicloud Suite", func() {
 					Data: map[string][]byte{
 						AccessKeyID:     []byte(accessKeyID),
 						AccessKeySecret: []byte(accessKeySecret),
+						CredentialsFile: []byte(credentialsFile),
 					},
 				}, true)
 
@@ -73,6 +78,7 @@ var _ = Describe("Alicloud Suite", func() {
 				Expect(creds).To(Equal(&Credentials{
 					AccessKeyID:     accessKeyID,
 					AccessKeySecret: accessKeySecret,
+					CredentialsFile: "",
 				}))
 			})
 		})
@@ -95,7 +101,19 @@ var _ = Describe("Alicloud Suite", func() {
 		It("should fail if access key secret is missing", func() {
 			_, err := ReadSecretCredentials(&corev1.Secret{
 				Data: map[string][]byte{
-					AccessKeyID: []byte(accessKeyID),
+					AccessKeyID:     []byte(accessKeyID),
+					credentialsFile: []byte(credentialsFile),
+				},
+			}, false)
+
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail if credentials file is missing", func() {
+			_, err := ReadSecretCredentials(&corev1.Secret{
+				Data: map[string][]byte{
+					AccessKeyID:     []byte(accessKeyID),
+					AccessKeySecret: []byte(accessKeySecret),
 				},
 			}, false)
 

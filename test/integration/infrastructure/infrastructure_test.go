@@ -275,6 +275,7 @@ var _ = Describe("Infrastructure tests", func() {
 				Data: map[string][]byte{
 					alicloud.AccessKeyID:     []byte("invalid"),
 					alicloud.AccessKeySecret: []byte("fake"),
+					alicloud.CredentialsFile: []byte("foo"),
 				},
 			}
 			Expect(c.Create(ctx, secret)).To(Succeed())
@@ -360,6 +361,7 @@ var _ = Describe("Infrastructure tests", func() {
 				Data: map[string][]byte{
 					alicloud.AccessKeyID:     []byte("invalid"),
 					alicloud.AccessKeySecret: []byte("fake"),
+					alicloud.CredentialsFile: []byte("foo"),
 				},
 			}
 			Expect(c.Create(ctx, secret)).To(Succeed())
@@ -449,6 +451,11 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 		Data: map[string][]byte{
 			alicloud.AccessKeyID:     []byte(*accessKeyID),
 			alicloud.AccessKeySecret: []byte(*accessKeySecret),
+			alicloud.CredentialsFile: []byte("[default]\n" +
+				"type = access_key\n" +
+				fmt.Sprintf("access_key_id = %s\n", *accessKeyID) +
+				fmt.Sprintf("access_key_secret = %s", *accessKeySecret),
+			),
 		},
 	}
 	if err := c.Create(ctx, secret); err != nil {
