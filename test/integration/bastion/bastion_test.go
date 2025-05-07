@@ -177,6 +177,11 @@ var _ = BeforeSuite(func() {
 		Data: map[string][]byte{
 			alicloud.AccessKeyID:     []byte(*accessKeyID),
 			alicloud.AccessKeySecret: []byte(*accessKeySecret),
+			alicloud.CredentialsFile: []byte("[default]\n" +
+				"type = access_key\n" +
+				fmt.Sprintf("access_key_id = %s\n", *accessKeyID) +
+				fmt.Sprintf("access_key_secret = %s", *accessKeySecret),
+			),
 		},
 	}
 
