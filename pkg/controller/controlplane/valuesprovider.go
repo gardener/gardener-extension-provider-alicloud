@@ -14,7 +14,7 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
-	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
+	extensionssecretmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -31,7 +31,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
+	vpaautoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -49,8 +49,8 @@ const (
 	csiSnapshotValidationServerName  = alicloud.CSISnapshotValidationName + "-server"
 )
 
-func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
-	return []extensionssecretsmanager.SecretConfigWithOptions{
+func secretConfigsFunc(namespace string) []extensionssecretmanager.SecretConfigWithOptions {
+	return []extensionssecretmanager.SecretConfigWithOptions{
 		{
 			Config: &secretutils.CertificateSecretConfig{
 				Name:       caNameControlPlane,
@@ -111,7 +111,7 @@ var controlPlaneChart = &chart.Chart{
 				{Type: &corev1.Secret{}, Name: "cloud-provider-config"},
 				{Type: &monitoringv1.ServiceMonitor{}, Name: "shoot-cloud-controller-manager"},
 				{Type: &monitoringv1.PrometheusRule{}, Name: "shoot-cloud-controller-manager"},
-				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "cloud-controller-manager-vpa"},
+				{Type: &vpaautoscalingv1.VerticalPodAutoscaler{}, Name: "cloud-controller-manager-vpa"},
 			},
 		},
 		{
@@ -128,13 +128,13 @@ var controlPlaneChart = &chart.Chart{
 			},
 			Objects: []*chart.Object{
 				{Type: &appsv1.Deployment{}, Name: "csi-plugin-controller"},
-				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-plugin-controller-vpa"},
+				{Type: &vpaautoscalingv1.VerticalPodAutoscaler{}, Name: "csi-plugin-controller-vpa"},
 				{Type: &appsv1.Deployment{}, Name: "csi-snapshot-controller"},
-				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-controller-vpa"},
+				{Type: &vpaautoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-controller-vpa"},
 				// csi-snapshot-validation-webhook
 				{Type: &appsv1.Deployment{}, Name: alicloud.CSISnapshotValidationName},
 				{Type: &corev1.Service{}, Name: alicloud.CSISnapshotValidationName},
-				{Type: &autoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-webhook-vpa"},
+				{Type: &vpaautoscalingv1.VerticalPodAutoscaler{}, Name: "csi-snapshot-webhook-vpa"},
 			},
 		},
 	},
