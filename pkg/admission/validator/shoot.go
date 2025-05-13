@@ -76,7 +76,6 @@ func (s *shoot) Validate(ctx context.Context, newObject, oldObject client.Object
 }
 
 func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
-
 	if infraConfig != nil {
 		// Provider validation
 		if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking); len(errList) != 0 {

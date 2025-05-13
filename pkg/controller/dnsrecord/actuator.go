@@ -53,7 +53,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, dns *extensio
 	if err != nil {
 		return fmt.Errorf("could not get Alicloud credentials: %+v", err)
 	}
-	dnsClient, err := a.alicloudClientFactory.NewDNSClient(getRegion(dns), string(credentials.AccessKeyID), string(credentials.AccessKeySecret))
+	dnsClient, err := a.alicloudClientFactory.NewDNSClient(getRegion(dns), credentials.AccessKeyID, credentials.AccessKeySecret)
 	if err != nil {
 		return util.DetermineError(fmt.Errorf("could not create Alicloud DNS client: %+v", err), helper.KnownCodes)
 	}
@@ -93,7 +93,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, dns *extensionsv
 	if err != nil {
 		return fmt.Errorf("could not get Alicloud credentials: %+v", err)
 	}
-	dnsClient, err := a.alicloudClientFactory.NewDNSClient(getRegion(dns), string(credentials.AccessKeyID), string(credentials.AccessKeySecret))
+	dnsClient, err := a.alicloudClientFactory.NewDNSClient(getRegion(dns), credentials.AccessKeyID, credentials.AccessKeySecret)
 	if err != nil {
 		return util.DetermineError(fmt.Errorf("could not create Alicloud DNS client: %+v", err), helper.KnownCodes)
 	}

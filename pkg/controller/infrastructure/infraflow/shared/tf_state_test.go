@@ -28,7 +28,7 @@ var _ = Describe("TerraformState", func() {
 		Expect(tf.Outputs["vpc_id"]).To(Equal(shared.TFOutput{Type: "string", Value: "vpc-0123456"}))
 
 		tables := tf.FindManagedResourcesByType("fake_routetable")
-		Expect(len(tables)).To(Equal(2))
+		Expect(tables).To(HaveLen(2))
 
 		Expect(tf.GetManagedResourceInstanceID("fake_routetable", "routetable_private_utility_z0")).
 			To(Equal(ptr.To("rtb-77777")))

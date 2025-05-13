@@ -6,8 +6,6 @@ package aliclient
 
 import (
 	"context"
-	"encoding/json"
-	"reflect"
 )
 
 // Updater is used for reconcile based with flow
@@ -34,7 +32,6 @@ func NewUpdater(actor Actor) Updater {
 }
 
 func (u *updater) UpdateSecurityGroup(ctx context.Context, desired, current *SecurityGroup) (modified bool, err error) {
-
 	modified, err = u.updateTags(ctx, current.SecurityGroupId, desired.Tags, current.Tags, "securitygroup")
 	return
 }
@@ -61,7 +58,6 @@ func (u *updater) UpdateEIP(ctx context.Context, desired, current *EIP) (modifie
 }
 
 func (u *updater) UpdateNatgateway(ctx context.Context, desired, current *NatGateway) (modified bool, err error) {
-
 	modified, err = u.updateTags(ctx, current.NatGatewayId, desired.Tags, current.Tags, "NATGATEWAY")
 	return
 }
@@ -69,24 +65,11 @@ func (u *updater) UpdateNatgateway(ctx context.Context, desired, current *NatGat
 func (u *updater) UpdateVSwitch(ctx context.Context, desired, current *VSwitch) (modified bool, err error) {
 	modified, err = u.updateTags(ctx, current.VSwitchId, desired.Tags, current.Tags, "VSWITCH")
 	return
-
 }
 
 func (u *updater) UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error) {
 	modified, err = u.updateTags(ctx, current.VpcId, desired.Tags, current.Tags, "VPC")
 	return
-}
-
-func (u *updater) equalJSON(a, b string) (bool, error) {
-	ma := map[string]any{}
-	mb := map[string]any{}
-	if err := json.Unmarshal([]byte(a), &ma); err != nil {
-		return false, err
-	}
-	if err := json.Unmarshal([]byte(b), &mb); err != nil {
-		return false, err
-	}
-	return reflect.DeepEqual(ma, mb), nil
 }
 
 func (u *updater) updateTags(ctx context.Context, id string, desired, current Tags, resourceType string) (bool, error) {
@@ -129,6 +112,5 @@ func (u *updater) updateTags(ctx context.Context, id string, desired, current Ta
 }
 
 func (u *updater) ignoreTag(_ string) bool {
-
 	return false
 }

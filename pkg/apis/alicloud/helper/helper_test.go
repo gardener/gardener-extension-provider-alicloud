@@ -81,8 +81,8 @@ var _ = Describe("Helper", func() {
 				existingImages := []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: ptr.To(true)}}
 				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.4", ID: "id123"}
 				existingImages = AppendMachineImage(existingImages, imageToInsert)
-				Expect(len(existingImages)).To(Equal(2))
-				Expect(existingImages, ContainElement(imageToInsert))
+				Expect(existingImages).To(HaveLen(2))
+				Expect(existingImages).To(ContainElement(imageToInsert))
 			})
 
 			It("should not append the image", func() {
@@ -90,7 +90,7 @@ var _ = Describe("Helper", func() {
 				imageExisting := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123"}
 				existingImages := []api.MachineImage{imageExisting}
 				existingImages = AppendMachineImage(existingImages, imageToInsert)
-				Expect(len(existingImages)).To(Equal(1))
+				Expect(existingImages).To(HaveLen(1))
 				Expect(existingImages[0]).To(Equal(imageExisting))
 			})
 		})

@@ -120,12 +120,10 @@ func main() {
 	mgrContext, mgrCancel = context.WithCancel(ctx)
 
 	go func() {
-
 		err := mgr.Start(mgrContext)
 		if err != nil {
 			runtimelog.Log.Error(err, "error when mgr Start")
 		}
-
 	}()
 
 	c = mgr.GetClient()
@@ -198,7 +196,6 @@ func main() {
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
 	<-ch
-
 }
 
 func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
