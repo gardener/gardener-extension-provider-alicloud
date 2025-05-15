@@ -36,6 +36,22 @@ var _ = Describe("Alicloud Suite", func() {
 				}))
 			})
 
+			It("should correctly read the credentials if credentials file is missing", func() {
+				creds, err := ReadSecretCredentials(&corev1.Secret{
+					Data: map[string][]byte{
+						AccessKeyID:     []byte(accessKeyID),
+						AccessKeySecret: []byte(accessKeySecret),
+					},
+				}, false)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creds).To(Equal(&Credentials{
+					AccessKeyID:     accessKeyID,
+					AccessKeySecret: accessKeySecret,
+					CredentialsFile: "",
+				}))
+			})
+
 			It("should fail if DNS keys are used", func() {
 				_, err := ReadSecretCredentials(&corev1.Secret{
 					Data: map[string][]byte{
@@ -63,6 +79,7 @@ var _ = Describe("Alicloud Suite", func() {
 				Expect(creds).To(Equal(&Credentials{
 					AccessKeyID:     accessKeyID,
 					AccessKeySecret: accessKeySecret,
+					CredentialsFile: credentialsFile,
 				}))
 			})
 
@@ -103,17 +120,6 @@ var _ = Describe("Alicloud Suite", func() {
 				Data: map[string][]byte{
 					AccessKeyID:     []byte(accessKeyID),
 					credentialsFile: []byte(credentialsFile),
-				},
-			}, false)
-
-			Expect(err).To(HaveOccurred())
-		})
-
-		It("should fail if credentials file is missing", func() {
-			_, err := ReadSecretCredentials(&corev1.Secret{
-				Data: map[string][]byte{
-					AccessKeyID:     []byte(accessKeyID),
-					AccessKeySecret: []byte(accessKeySecret),
 				},
 			}, false)
 
