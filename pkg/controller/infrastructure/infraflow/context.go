@@ -70,7 +70,6 @@ type FlowContext struct {
 func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 	infra *extensionsv1alpha1.Infrastructure, config *aliapi.InfrastructureConfig,
 	oldState shared.FlatMap, persistor shared.FlowStatePersistor, cluster *extensioncontroller.Cluster) (*FlowContext, error) {
-
 	actor, err := aliclient.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
 	if err != nil {
 		return nil, err
@@ -151,7 +150,6 @@ func (c *FlowContext) getAllVSwitchids() []string {
 		}
 	}
 	return ids
-
 }
 
 func (c *FlowContext) clusterTags() aliclient.Tags {

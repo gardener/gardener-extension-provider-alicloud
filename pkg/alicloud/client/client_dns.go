@@ -190,12 +190,11 @@ func (d *dnsClient) getDomains(ctx context.Context) (map[string]alidns.Domain, e
 	req.PageSize = requests.NewInteger(pageSize)
 	for {
 		req.PageNumber = requests.NewInteger(pageNumber)
-		resp, err := d.Client.DescribeDomains(req)
+		resp, err := d.DescribeDomains(req)
 		if err != nil {
 			return nil, err
 		}
 		for _, domain := range resp.Domains.Domain {
-
 			domains[domain.DomainId] = getDomainFromResponse(domain)
 		}
 		if resp.PageNumber*int64(pageSize) >= resp.TotalCount {
@@ -237,7 +236,6 @@ func getDomainFromResponse(domainFromResp alidns.DomainInDescribeDomains) alidns
 		Tags: domainFromResp.Tags,
 		//		SourceDnsServers: domainFromResp.SourceDnsServers,
 	}
-
 }
 
 // getDomainRecords returns the domain records with the given domain name, rr, and record type.
@@ -255,7 +253,7 @@ func (d *dnsClient) getDomainRecords(ctx context.Context, domainName, rr, record
 		req.DomainName = domainName
 		req.RRKeyWord = rr
 		req.TypeKeyWord = recordType
-		resp, err := d.Client.DescribeDomainRecords(req)
+		resp, err := d.DescribeDomainRecords(req)
 		if err != nil {
 			return nil, err
 		}
@@ -281,7 +279,7 @@ func (d *dnsClient) createDomainRecord(ctx context.Context, domainName, rr, reco
 	req.Type = recordType
 	req.Value = value
 	req.TTL = requests.NewInteger(int(ttl))
-	_, err := d.Client.AddDomainRecord(req)
+	_, err := d.AddDomainRecord(req)
 	return err
 }
 
@@ -296,7 +294,7 @@ func (d *dnsClient) updateDomainRecord(ctx context.Context, id, rr, recordType, 
 	req.Type = recordType
 	req.Value = value
 	req.TTL = requests.NewInteger(int(ttl))
-	_, err := d.Client.UpdateDomainRecord(req)
+	_, err := d.UpdateDomainRecord(req)
 	return err
 }
 
@@ -307,7 +305,7 @@ func (d *dnsClient) deleteDomainRecord(ctx context.Context, id string) error {
 
 	req := alidns.CreateDeleteDomainRecordRequest()
 	req.RecordId = id
-	if _, err := d.Client.DeleteDomainRecord(req); err != nil && !isDomainRecordDoesNotExistError(err) {
+	if _, err := d.DeleteDomainRecord(req); err != nil && !isDomainRecordDoesNotExistError(err) {
 		return err
 	}
 	return nil

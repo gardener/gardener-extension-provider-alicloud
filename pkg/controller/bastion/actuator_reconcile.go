@@ -375,7 +375,6 @@ func ingressRulesSymmetricDifference(wantedIngressRules []*ecs.AuthorizeSecurity
 		if !found {
 			rulesToDelete = append(rulesToDelete, currentRule)
 		}
-
 	}
 
 	var rulesToAdd []ecs.AuthorizeSecurityGroupRequest
@@ -433,7 +432,6 @@ func egressRulesSymmetricDifference(wantedIngressRules []*ecs.AuthorizeSecurityG
 		if !found {
 			rulesToDelete = append(rulesToDelete, currentRule)
 		}
-
 	}
 
 	var rulesToAdd []ecs.AuthorizeSecurityGroupEgressRequest

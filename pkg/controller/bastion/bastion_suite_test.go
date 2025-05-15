@@ -135,8 +135,8 @@ var _ = Describe("Bastion", func() {
 				[]ecs.Permission{
 					currentRules,
 				})
-			Expect(len(rulesToAdd)).To(Equal(addCount))
-			Expect(len(rulesToDelete)).To(Equal(deleteCount))
+			Expect(rulesToAdd).To(HaveLen(addCount))
+			Expect(rulesToDelete).To(HaveLen(deleteCount))
 		}
 
 		DescribeTable("ingressRulesSymmetricDifference", validator,
@@ -192,8 +192,8 @@ var _ = Describe("Bastion", func() {
 				[]ecs.Permission{
 					currentRules,
 				})
-			Expect(len(rulesToAdd)).To(Equal(addCount))
-			Expect(len(rulesToDelete)).To(Equal(deleteCount))
+			Expect(rulesToAdd).To(HaveLen(addCount))
+			Expect(rulesToDelete).To(HaveLen(deleteCount))
 		}
 
 		DescribeTable("egressRulesSymmetricDifference", validator,

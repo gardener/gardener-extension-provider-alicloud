@@ -104,9 +104,8 @@ var (
 	mgrCancel context.CancelFunc
 	c         client.Client
 
-	internalChartsPath string
-	name               string
-	vpcName            string
+	name    string
+	vpcName string
 )
 
 var _ = BeforeSuite(func() {
@@ -280,11 +279,10 @@ func getMyPublicIPWithMask() (string, error) {
 
 	ip := net.ParseIP(string(body))
 	var mask net.IPMask
-	if ip.To4() != nil {
-		mask = net.CIDRMask(24, 32) // use a /24 net for IPv4
-	} else {
+	if ip.To4() == nil {
 		return "", fmt.Errorf("not valid IPv4 address")
 	}
+	mask = net.CIDRMask(24, 32) // use a /24 net for IPv4
 
 	cidr := net.IPNet{
 		IP:   ip,
@@ -685,12 +683,12 @@ func verifyDeletion(clientFactory alicloudclient.ClientFactory, options *bastion
 	By("bastion instance should be gone")
 	response, err := ecsClient.GetInstances(options.BastionInstanceName)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(response.Instances.Instance).To(HaveLen(0))
+	Expect(response.Instances.Instance).To(BeEmpty())
 
 	By("bastion security group should be gone")
 	sgResponse, err := ecsClient.GetSecurityGroup(options.SecurityGroupName)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(sgResponse.SecurityGroups.SecurityGroup).To(HaveLen(0))
+	Expect(sgResponse.SecurityGroups.SecurityGroup).To(BeEmpty())
 }
 
 func verifyCreation(clientFactory alicloudclient.ClientFactory, options *bastionctrl.Options) {

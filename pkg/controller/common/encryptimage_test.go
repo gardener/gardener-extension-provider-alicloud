@@ -54,7 +54,7 @@ var _ = Describe("Encrypt Image tools", func() {
 				imageVersion,
 				sourceImageID,
 			).(*imageEncryptor)
-			Expect(ok).To(Equal(true))
+			Expect(ok).To(BeTrue())
 		})
 		AfterEach(func() {
 			ctrl.Finish()

@@ -105,8 +105,8 @@ var _ = Describe("Mutate", func() {
 
 				err := mutator.Mutate(ctx, newInfra, nil)
 
-				Expect(err).To(BeNil())
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(newInfra.Annotations[aliapi.AnnotationKeyUseFlow]).To(Equal("true"))
 			})
 
@@ -119,7 +119,7 @@ var _ = Describe("Mutate", func() {
 					},
 				}
 				err := mutator.Mutate(ctx, newInfra, nil)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(newInfra.Annotations[aliapi.AnnotationKeyUseFlow]).To(Equal(""))
 			})
 		})
@@ -142,7 +142,7 @@ var _ = Describe("Mutate", func() {
 					},
 				}
 				err := mutator.Mutate(ctx, newInfra, newInfra)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(newInfra.Annotations[aliapi.AnnotationKeyUseFlow]).To(Equal(""))
 			})
 		})

@@ -82,5 +82,4 @@ func removeBastionInstance(c aliclient.ECS, opt *Options) error {
 	}
 
 	return c.DeleteInstances(response.Instances.Instance[0].InstanceId, true)
-
 }

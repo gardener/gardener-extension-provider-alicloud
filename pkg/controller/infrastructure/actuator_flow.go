@@ -103,7 +103,6 @@ func (a *actuator) updateStatusState(ctx context.Context, infra *extensionsv1alp
 }
 
 func (a *actuator) updateStatusProvider(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, machineImages []aliapi.MachineImage, flatState shared.FlatMap) error {
-
 	infrastructureConfig, err := a.decodeInfrastructureConfig(infra)
 	if err != nil {
 		return err
@@ -130,7 +129,6 @@ func (a *actuator) updateStatusProvider(ctx context.Context, infra *extensionsv1
 		infra.Status.EgressCIDRs = egressCidrs
 	}
 	return a.client.Status().Patch(ctx, infra, patch)
-
 }
 
 func getEgressIpCidrs(state *infraflow.PersistentState) []string {
@@ -159,7 +157,6 @@ func getEgressIpCidrs(state *infraflow.PersistentState) []string {
 	}
 
 	return cidrs
-
 }
 
 func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, state *infraflow.PersistentState) (*aliv1alpha1.InfrastructureStatus, error) {
@@ -213,11 +210,9 @@ func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, sta
 				},
 			}
 		}
-
 	}
 
 	return status, nil
-
 }
 
 func (a *actuator) decodeInfrastructureConfig(infrastructure *extensionsv1alpha1.Infrastructure) (*aliapi.InfrastructureConfig, error) {
@@ -275,7 +270,6 @@ func (a *actuator) createFlowContext(ctx context.Context, log logr.Logger,
 }
 
 func (a *actuator) cleanupTerraformerResources(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) error {
-
 	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.restConfig, TerraformerPurpose, infrastructure, a.disableProjectedTokenMount)
 	if err != nil {
 		return fmt.Errorf("could not create terraformer object: %w", err)
@@ -306,5 +300,4 @@ func (a *actuator) deleteWithFlow(ctx context.Context, log logr.Logger, infrastr
 		return err
 	}
 	return flowContext.PersistState(ctx, true)
-
 }

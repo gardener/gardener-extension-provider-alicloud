@@ -118,11 +118,10 @@ func (c *ossClient) DeleteObjectsWithPrefix(ctx context.Context, bucketName, pre
 			}
 		}
 
-		if lsRes.IsTruncated {
-			marker = lsRes.NextMarker
-		} else {
+		if !lsRes.IsTruncated {
 			return nil
 		}
+		marker = lsRes.NextMarker
 	}
 }
 

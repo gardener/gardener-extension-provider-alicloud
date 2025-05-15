@@ -19,13 +19,13 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	runtimelog "sigs.k8s.io/controller-runtime/pkg/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -55,7 +55,7 @@ var (
 )
 
 func main() {
-	runtimelog.SetLogger(zap.New(zap.UseDevMode(true)))
+	logf.SetLogger(zap.New(zap.UseDevMode(true)))
 	repoRoot := filepath.Join("..", "..", "..")
 	var ctx = context.Background()
 
@@ -78,11 +78,11 @@ func main() {
 
 	cfg, err := testEnv.Start()
 	if err != nil {
-		runtimelog.Log.Error(err, "error when testEnv Start")
+		logf.Log.Error(err, "error when testEnv Start")
 		panic("env start fail")
 	}
 	if cfg == nil {
-		runtimelog.Log.Info("cfg is nil")
+		logf.Log.Info("cfg is nil")
 		panic("can not get env cfg")
 	}
 
@@ -94,15 +94,15 @@ func main() {
 	})
 
 	if err != nil {
-		runtimelog.Log.Error(err, "error when manager New")
+		logf.Log.Error(err, "error when manager New")
 		panic("new manager failed")
 	}
 	if err := extensionsv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
-		runtimelog.Log.Error(err, "error when extensionsv1alpha1.AddToScheme(mgr.GetScheme())")
+		logf.Log.Error(err, "error when extensionsv1alpha1.AddToScheme(mgr.GetScheme())")
 		panic("extensionsv1alpha1.AddToScheme(mgr.GetScheme()) failed")
 	}
 	if err := alicloudinstall.AddToScheme(mgr.GetScheme()); err != nil {
-		runtimelog.Log.Error(err, "error when alicloudinstall.AddToScheme(mgr.GetScheme())")
+		logf.Log.Error(err, "error when alicloudinstall.AddToScheme(mgr.GetScheme())")
 		panic("alicloudinstall.AddToScheme(mgr.GetScheme()) failed")
 	}
 	if err := infrastructure.AddToManagerWithOptions(ctx, mgr, infrastructure.AddOptions{
@@ -111,7 +111,7 @@ func main() {
 		DisableProjectedTokenMount: true,
 		IgnoreOperationAnnotation:  false,
 	}); err != nil {
-		runtimelog.Log.Error(err, "error when infrastructure.AddToManagerWithOptions")
+		logf.Log.Error(err, "error when infrastructure.AddToManagerWithOptions")
 		panic("infrastructure.AddToManagerWithOptions failed")
 	}
 
@@ -120,17 +120,15 @@ func main() {
 	mgrContext, mgrCancel = context.WithCancel(ctx)
 
 	go func() {
-
 		err := mgr.Start(mgrContext)
 		if err != nil {
-			runtimelog.Log.Error(err, "error when mgr Start")
+			logf.Log.Error(err, "error when mgr Start")
 		}
-
 	}()
 
 	c = mgr.GetClient()
 	if c == nil {
-		runtimelog.Log.Info("mgr.GetClient is nil")
+		logf.Log.Info("mgr.GetClient is nil")
 		panic("mgr.GetClient is nil")
 	}
 
@@ -147,8 +145,8 @@ func main() {
 	}
 
 	if err := c.Create(ctx, priorityClass); err != nil {
-		if !apiErrors.IsAlreadyExists(err) {
-			runtimelog.Log.Error(err, "error when create priorityClass")
+		if !apierrors.IsAlreadyExists(err) {
+			logf.Log.Error(err, "error when create priorityClass")
 			panic("create priorityClass failed")
 		}
 	}
@@ -160,8 +158,8 @@ func main() {
 	}
 
 	if err := c.Create(ctx, namespace); err != nil {
-		if !apiErrors.IsAlreadyExists(err) {
-			runtimelog.Log.Error(err, "error when create namespace")
+		if !apierrors.IsAlreadyExists(err) {
+			logf.Log.Error(err, "error when create namespace")
 			panic("create namespace failed")
 		}
 	}
@@ -177,8 +175,8 @@ func main() {
 		},
 	}
 	if err := c.Create(ctx, secret); err != nil {
-		if !apiErrors.IsAlreadyExists(err) {
-			runtimelog.Log.Error(err, "error when create secret")
+		if !apierrors.IsAlreadyExists(err) {
+			logf.Log.Error(err, "error when create secret")
 			panic("create secret failed")
 		}
 	}
@@ -186,8 +184,8 @@ func main() {
 	cluster, _ = newCluster(space_name)
 	if cluster != nil {
 		if err := c.Create(ctx, cluster); err != nil {
-			if !apiErrors.IsAlreadyExists(err) {
-				runtimelog.Log.Error(err, "error when create cluster")
+			if !apierrors.IsAlreadyExists(err) {
+				logf.Log.Error(err, "error when create cluster")
 				panic("create cluster failed")
 			}
 		}
@@ -198,7 +196,6 @@ func main() {
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
 	<-ch
-
 }
 
 func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {

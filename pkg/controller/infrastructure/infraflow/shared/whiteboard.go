@@ -124,7 +124,6 @@ func (w *whiteboard) CleanChild(key string) {
 }
 
 func (w *whiteboard) Clean() {
-
 	w.Lock()
 	defer w.Unlock()
 

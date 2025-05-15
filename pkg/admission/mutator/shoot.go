@@ -92,7 +92,6 @@ func (s *shootMutator) Mutate(ctx context.Context, newObj, oldObj client.Object)
 	} else {
 		return s.mutateShootCreation(ctx, shoot)
 	}
-
 }
 
 func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1beta1.Shoot) error {
@@ -347,16 +346,13 @@ func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(ctx context.C
 			if dataVolume.Encrypted == nil && oldDataVolume.Encrypted != nil {
 				logger.Info("Encrypted disk flag for data disk is not set, keep old value")
 				dataVolume.Encrypted = oldDataVolume.Encrypted
-
 			}
 		}
-
 	}
 	return nil
 }
 
 func getWorkerByName(shoot *corev1beta1.Shoot, workerName string) *corev1beta1.Worker {
-
 	for _, worker := range shoot.Spec.Provider.Workers {
 		if worker.Name == workerName {
 			return &worker
@@ -446,7 +442,6 @@ func (s *shootMutator) convertToRawExtension(obj runtime.Object) (*runtime.RawEx
 	return &runtime.RawExtension{
 		Raw: data,
 	}, nil
-
 }
 
 func (s *shootMutator) mutateControlPlaneConfigForCreate(shoot *corev1beta1.Shoot) error {

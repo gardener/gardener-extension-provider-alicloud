@@ -123,7 +123,7 @@ func (terraformOps) ComputeChartValues(
 		zoneConfig := map[string]interface{}{
 			"name": zone.Name,
 			"cidr": map[string]interface{}{
-				"workers": string(workersCIDR),
+				"workers": workersCIDR,
 			},
 		}
 

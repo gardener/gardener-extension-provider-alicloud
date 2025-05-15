@@ -31,7 +31,6 @@ func (c *FlowContext) Reconcile(ctx context.Context) error {
 }
 
 func (c *FlowContext) buildReconcileGraph() *flow.Graph {
-
 	g := flow.NewGraph("Alicloud infrastructure reconcilation")
 
 	ensureVpc := c.AddTask(g, "ensure VPC",
@@ -58,7 +57,6 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 }
 
 func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
-
 	vpc, err := c.actor.GetVpc(ctx, *c.state.Get(IdentifierVPC))
 	if err != nil {
 		return err
@@ -193,7 +191,6 @@ func (c *FlowContext) ensureExistingVpc(ctx context.Context) error {
 	}
 	c.state.Set(IdentifierVPC, vpcID)
 	return c.PersistState(ctx, true)
-
 }
 
 func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
@@ -235,7 +232,6 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-
 	}
 	return c.PersistState(ctx, true)
 }
@@ -274,7 +270,6 @@ outer:
 }
 
 func (c *FlowContext) ensureNatGateway(ctx context.Context) error {
-
 	createNatGateway := c.config.Networks.VPC.ID == nil || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
 
 	if !createNatGateway {
@@ -293,7 +288,6 @@ func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
 }
 
 func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
-
 	log := c.LogFromContext(ctx)
 	log.Info("using managed NatGateway")
 
@@ -338,10 +332,8 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-
 	}
 	return c.PersistState(ctx, true)
-
 }
 
 func getZoneName(item *aliclient.VSwitch) string {
