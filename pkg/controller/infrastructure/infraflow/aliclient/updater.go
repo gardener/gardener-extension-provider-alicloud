@@ -6,6 +6,8 @@ package aliclient
 
 import (
 	"context"
+	"encoding/json"
+	"reflect"
 )
 
 // Updater is used for reconcile based with flow
@@ -70,6 +72,18 @@ func (u *updater) UpdateVSwitch(ctx context.Context, desired, current *VSwitch) 
 func (u *updater) UpdateVpc(ctx context.Context, desired, current *VPC) (modified bool, err error) {
 	modified, err = u.updateTags(ctx, current.VpcId, desired.Tags, current.Tags, "VPC")
 	return
+}
+
+func (u *updater) equalJSON(a, b string) (bool, error) {
+	ma := map[string]any{}
+	mb := map[string]any{}
+	if err := json.Unmarshal([]byte(a), &ma); err != nil {
+		return false, err
+	}
+	if err := json.Unmarshal([]byte(b), &mb); err != nil {
+		return false, err
+	}
+	return reflect.DeepEqual(ma, mb), nil
 }
 
 func (u *updater) updateTags(ctx context.Context, id string, desired, current Tags, resourceType string) (bool, error) {

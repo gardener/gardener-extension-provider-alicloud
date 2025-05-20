@@ -9,11 +9,31 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gardener/gardener/pkg/utils/flow"
 	"github.com/go-logr/logr"
 	"go.uber.org/atomic"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 )
+
+type zoneDependencies map[string][]flow.TaskIDer
+
+func newZoneDependencies() zoneDependencies {
+	return zoneDependencies{}
+}
+
+func (d zoneDependencies) Append(zoneName string, taskIDers ...flow.TaskIDer) {
+	taskIDs := d[zoneName]
+	if taskIDs == nil {
+		taskIDs = []flow.TaskIDer{}
+		d[zoneName] = taskIDs
+	}
+	d[zoneName] = append(d[zoneName], taskIDers...)
+}
+
+func (d zoneDependencies) Get(zoneName string) []flow.TaskIDer {
+	return d[zoneName]
+}
 
 func diffByID[T any](desired, current []T, unique func(item T) string) (toBeDeleted, toBeCreated []T, toBeChecked []struct{ desired, current T }) {
 outerDelete:

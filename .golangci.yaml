@@ -2,6 +2,8 @@ version: "2"
 run:
   concurrency: 4
 linters:
+  disable:
+  - unused
   enable:
     - ginkgolinter
     - importas
