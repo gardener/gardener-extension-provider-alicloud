@@ -67,7 +67,6 @@ func findExisting[T any](ctx context.Context, id *string, tags aliclient.Tags,
 	getter func(ctx context.Context, id string) (*T, error),
 	finder func(ctx context.Context, tags aliclient.Tags) ([]*T, error),
 	selector ...func(item *T) bool) (*T, error) {
-
 	if id != nil {
 		found, err := getter(ctx, *id)
 		if err != nil {

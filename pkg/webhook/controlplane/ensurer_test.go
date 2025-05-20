@@ -275,7 +275,7 @@ var _ = Describe("Ensurer", func() {
 
 		It("should inject the sidecar container", func() {
 			Expect(deployment.Spec.Template.Spec.Containers).To(BeEmpty())
-			Expect(ensurer.EnsureMachineControllerManagerDeployment(context.TODO(), nil, deployment, nil)).To(BeNil())
+			Expect(ensurer.EnsureMachineControllerManagerDeployment(context.TODO(), nil, deployment, nil)).To(Succeed())
 			expectedContainer := machinecontrollermanager.ProviderSidecarContainer(deployment.Namespace, "provider-alicloud", "foo:bar")
 			Expect(deployment.Spec.Template.Spec.Containers).To(ConsistOf(expectedContainer))
 		})
@@ -294,7 +294,7 @@ var _ = Describe("Ensurer", func() {
 
 		It("should inject the sidecar container policy", func() {
 			Expect(vpa.Spec.ResourcePolicy).To(BeNil())
-			Expect(ensurer.EnsureMachineControllerManagerVPA(context.TODO(), nil, vpa, nil)).To(BeNil())
+			Expect(ensurer.EnsureMachineControllerManagerVPA(context.TODO(), nil, vpa, nil)).To(Succeed())
 
 			ccv := vpaautoscalingv1.ContainerControlledValuesRequestsOnly
 			Expect(vpa.Spec.ResourcePolicy.ContainerPolicies).To(ConsistOf(vpaautoscalingv1.ContainerResourcePolicy{

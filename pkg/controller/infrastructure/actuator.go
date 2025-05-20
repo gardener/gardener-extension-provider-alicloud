@@ -463,18 +463,18 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, log logr.Logger, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootECSClient alicloudclient.ECS, shootCloudProviderAccountID string) (*apisalicloud.MachineImage, error) {
 	imageID, err := helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
 	if err != nil {
-		if providerStatus := infra.Status.ProviderStatus; providerStatus != nil {
-			infrastructureStatus := &apisalicloud.InfrastructureStatus{}
-			if _, _, err := a.decoder.Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
-				return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", client.ObjectKeyFromObject(infra), err)
-			}
-			if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
-				return nil, err
-			} else {
-				imageID = machineImage.ID
-			}
-		} else {
+		providerStatus := infra.Status.ProviderStatus
+		if providerStatus == nil {
 			return nil, err
+		}
+		infrastructureStatus := &apisalicloud.InfrastructureStatus{}
+		if _, _, err := a.decoder.Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
+			return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", client.ObjectKeyFromObject(infra), err)
+		}
+		if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
+			return nil, err
+		} else {
+			imageID = machineImage.ID
 		}
 	}
 

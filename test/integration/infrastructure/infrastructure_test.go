@@ -144,7 +144,7 @@ var _ = BeforeSuite(func() {
 		GlobalDefault: false,
 		Value:         999998300,
 	}
-	Expect(client.IgnoreAlreadyExists(c.Create(ctx, priorityClass))).To(BeNil())
+	Expect(client.IgnoreAlreadyExists(c.Create(ctx, priorityClass))).To(Succeed())
 })
 
 var _ = AfterSuite(func() {
@@ -898,7 +898,6 @@ func verifyDeletion(clientFactory alicloudclient.ClientFactory, infrastructureId
 			Expect(describeSecurityGroupOutput.SecurityGroups.SecurityGroup).To(BeEmpty())
 		}
 	}
-
 }
 
 func prepareVPC(ctx context.Context, clientFactory alicloudclient.ClientFactory, region, vpcCIDR, natGatewayCIDR string) infrastructureIdentifiers {

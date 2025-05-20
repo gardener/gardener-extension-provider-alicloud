@@ -328,7 +328,7 @@ var _ = Describe("Mutating Shoot", func() {
 			)
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(newShoot.Spec.Provider.Workers[0].Volume.Encrypted == nil).To(BeTrue())
+			Expect(newShoot.Spec.Provider.Workers[0].Volume.Encrypted).To(BeNil())
 			Expect(*newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted).To(BeTrue())
 		})
 		It("should set encrypted flag as true for newly added worker or datavolume", func() {
@@ -392,8 +392,8 @@ var _ = Describe("Mutating Shoot", func() {
 
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(newShoot.Spec.Provider.Workers[0].Volume.Encrypted == nil).To(BeTrue())
-			Expect(newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted == nil).To(BeTrue())
+			Expect(newShoot.Spec.Provider.Workers[0].Volume.Encrypted).To(BeNil())
+			Expect(newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted).To(BeNil())
 
 		})
 		It("Should keep default encrypted flag unchanged if shoot is created in new version and this flag is not set explicitly", func() {
@@ -530,7 +530,7 @@ var _ = Describe("Mutating Shoot", func() {
 			shootExpected := shootWithAnnotations.DeepCopy()
 
 			err := mutator.Mutate(ctx, shootWithAnnotations, newShoot)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(shootWithAnnotations).To(DeepEqual(shootExpected))
 		})
 
@@ -676,7 +676,7 @@ var _ = Describe("Mutating Shoot", func() {
 			shootExpected := shootWithAnnotations.DeepCopy()
 
 			err := mutator.Mutate(ctx, shootWithAnnotations, newShoot)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(shootWithAnnotations).To(DeepEqual(shootExpected))
 		})
 

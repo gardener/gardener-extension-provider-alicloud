@@ -149,7 +149,7 @@ var _ = Describe("BasicFlowContext", func() {
 			forceTask3Error = false
 			c.state.Set("task1", "")
 			err = f.Run(ctx, flow.Opts{Log: log})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
