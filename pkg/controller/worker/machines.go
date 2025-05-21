@@ -13,6 +13,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	extensionsv1alpha1helper "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1/helper"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
@@ -158,10 +159,25 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				},
 			}
 
+			if gardencorev1beta1helper.IsUpdateStrategyInPlace(pool.UpdateStrategy) {
+				machineDeploymentStrategy = machinev1alpha1.MachineDeploymentStrategy{
+					Type: machinev1alpha1.InPlaceUpdateMachineDeploymentStrategyType,
+					InPlaceUpdate: &machinev1alpha1.InPlaceUpdateMachineDeployment{
+						UpdateConfiguration: updateConfiguration,
+						OrchestrationType:   machinev1alpha1.OrchestrationTypeAuto,
+					},
+				}
+
+				if gardencorev1beta1helper.IsUpdateStrategyManualInPlace(pool.UpdateStrategy) {
+					machineDeploymentStrategy.InPlaceUpdate.OrchestrationType = machinev1alpha1.OrchestrationTypeManual
+				}
+			}
+
 			machineDeployments = append(machineDeployments, worker.MachineDeployment{
 				Name:                         deploymentName,
 				ClassName:                    className,
 				SecretName:                   className,
+				PoolName:                     pool.Name,
 				Minimum:                      worker.DistributeOverZones(zoneIdx, pool.Minimum, zoneLen),
 				Maximum:                      worker.DistributeOverZones(zoneIdx, pool.Maximum, zoneLen),
 				Strategy:                     machineDeploymentStrategy,
@@ -261,6 +277,10 @@ func computeDisks(namespace string, pool extensionsv1alpha1.WorkerPool) (map[str
 
 func computeAdditionalHashData(pool extensionsv1alpha1.WorkerPool) []string {
 	var additionalData []string
+
+	if gardencorev1beta1helper.IsUpdateStrategyInPlace(pool.UpdateStrategy) {
+		return additionalData
+	}
 
 	// Volume.Encrypted needs to be included when calculating the hash
 	if pool.Volume.Encrypted != nil {
