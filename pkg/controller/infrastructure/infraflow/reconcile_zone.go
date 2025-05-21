@@ -192,6 +192,11 @@ func (c *FlowContext) getCurrentSnatEntryForZone(ctx context.Context, zoneName s
 	if ngwId == nil {
 		return entryList, nil
 	}
+	ngw, _ := c.actor.GetNatGateway(ctx, *ngwId)
+	if ngw == nil {
+		return entryList, nil
+	}
+
 	entries, err := c.actor.FindSNatEntriesByNatGateway(ctx, *ngwId)
 	if err != nil {
 		return nil, err
@@ -266,12 +271,15 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 		}
 		zoneSuffix := c.getZoneSuffix(zone.Name)
 		eipSuffix := fmt.Sprintf("eip-natgw-%s", zoneSuffix)
-
+		eipBandwidth := 100
+		if c.config.Networks.Bandwidth != nil {
+			eipBandwidth = *c.config.Networks.Bandwidth
+		}
 		id := child.Get(IdentifierZoneNATGWElasticIP)
 		desired := &aliclient.EIP{
 			Name:               c.namespace + "-" + eipSuffix,
 			Tags:               c.commonTagsWithSuffix(eipSuffix),
-			Bandwidth:          "100",
+			Bandwidth:          fmt.Sprintf("%d", eipBandwidth),
 			InternetChargeType: eipIntenetChargeType,
 		}
 		current, err := findExisting(ctx, id, desired.Tags, c.actor.GetEIP, c.actor.FindEIPsByTags)

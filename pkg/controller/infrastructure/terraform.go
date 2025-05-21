@@ -133,6 +133,13 @@ func (terraformOps) ComputeChartValues(
 
 		zones = append(zones, zoneConfig)
 	}
+	eipConfig := map[string]interface{}{
+		"internetChargeType": values.EIP.InternetChargeType,
+	}
+
+	if config.Networks.Bandwidth != nil {
+		eipConfig["bandwidth"] = *config.Networks.Bandwidth
+	}
 
 	return map[string]interface{}{
 		"alicloud": map[string]interface{}{
@@ -148,9 +155,7 @@ func (terraformOps) ComputeChartValues(
 			"id":           values.NATGateway.NATGatewayID,
 			"sNatTableIDs": values.NATGateway.SNATTableIDs,
 		},
-		"eip": map[string]interface{}{
-			"internetChargeType": values.EIP.InternetChargeType,
-		},
+		"eip":         eipConfig,
 		"clusterName": infra.Namespace,
 		"zones":       zones,
 		"podCIDR":     *podCIDR,
