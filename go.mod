@@ -9,7 +9,7 @@ require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.8+incompatible
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/gardener/etcd-druid/api v0.29.0
-	github.com/gardener/gardener v1.117.1
+	github.com/gardener/gardener v1.117.5
 	github.com/gardener/machine-controller-manager v0.57.2
 	github.com/go-logr/logr v1.4.2
 	github.com/onsi/ginkgo/v2 v2.23.3
