@@ -889,7 +889,7 @@ func (c *actor) FindVSwitchesByTags(ctx context.Context, tags Tags) ([]*VSwitch,
 	return c.ListVSwitches(ctx, idList)
 }
 
-func (c *actor) FindVSwitchesByVPC(ctx context.Context, vpcId string) ([]*VSwitch, error) {
+func (c *actor) FindVSwitchesByVPC(_ context.Context, vpcId string) ([]*VSwitch, error) {
 	req := vpc.CreateDescribeVSwitchesRequest()
 	req.VpcId = vpcId
 
