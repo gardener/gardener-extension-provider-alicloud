@@ -63,6 +63,29 @@ outerCreate:
 	return
 }
 
+func diffByID_Ex[T any](desired, current, reused []T, unique func(item T) string) (toBeDeleted, toBeCreated []T, toBeChecked []struct{ desired, current T }) {
+	toBeDeleted, toBeCreated_t, toBeChecked := diffByID(desired, current, unique)
+outerCreate:
+	for _, d := range toBeCreated_t {
+		d_uniq := unique(d)
+		found_reuse := false
+		for _, c := range reused {
+			if d_uniq == unique(c) {
+				found_reuse = true
+				toBeChecked = append(toBeChecked, struct{ desired, current T }{
+					desired: d,
+					current: c,
+				})
+				continue outerCreate
+			}
+		}
+		if !found_reuse {
+			toBeCreated = append(toBeCreated, d)
+		}
+	}
+	return
+}
+
 func findExisting[T any](ctx context.Context, id *string, tags aliclient.Tags,
 	getter func(ctx context.Context, id string) (*T, error),
 	finder func(ctx context.Context, tags aliclient.Tags) ([]*T, error),

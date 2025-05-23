@@ -361,6 +361,21 @@ func (mr *MockActorMockRecorder) FindVSwitchesByTags(ctx, tags any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVSwitchesByTags", reflect.TypeOf((*MockActor)(nil).FindVSwitchesByTags), ctx, tags)
 }
 
+// FindVSwitchesByVPC mocks base method.
+func (m *MockActor) FindVSwitchesByVPC(ctx context.Context, vpcId string) ([]*aliclient.VSwitch, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindVSwitchesByVPC", ctx, vpcId)
+	ret0, _ := ret[0].([]*aliclient.VSwitch)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindVSwitchesByVPC indicates an expected call of FindVSwitchesByVPC.
+func (mr *MockActorMockRecorder) FindVSwitchesByVPC(ctx, vpcId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVSwitchesByVPC", reflect.TypeOf((*MockActor)(nil).FindVSwitchesByVPC), ctx, vpcId)
+}
+
 // FindVpcsByTags mocks base method.
 func (m *MockActor) FindVpcsByTags(ctx context.Context, tags aliclient.Tags) ([]*aliclient.VPC, error) {
 	m.ctrl.T.Helper()
