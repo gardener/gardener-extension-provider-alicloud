@@ -57,9 +57,16 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 }
 
 func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
-	vpc, err := c.actor.GetVpc(ctx, *c.state.Get(IdentifierVPC))
+	vpcId := c.state.Get(IdentifierVPC)
+	if vpcId == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
+	vpc, err := c.actor.GetVpc(ctx, *vpcId)
 	if err != nil {
 		return err
+	}
+	if vpc == nil {
+		return fmt.Errorf("not find the recorded VPC %s", *vpcId)
 	}
 	log := c.LogFromContext(ctx)
 	groupName := fmt.Sprintf("%s-sg", c.namespace)
@@ -149,6 +156,9 @@ func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if current == nil {
+			return fmt.Errorf("failed to create security group")
+		}
 	}
 	c.state.Set(IdentifierNodesSecurityGroup, current.SecurityGroupId)
 	if _, err := c.updater.UpdateSecurityGroup(ctx, desired, current); err != nil {
@@ -226,6 +236,9 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("create VPC failed %w", err)
 		}
+		if created == nil {
+			return fmt.Errorf("failed to create VPC")
+		}
 
 		c.state.Set(IdentifierVPC, created.VpcId)
 		_, err = c.updater.UpdateVpc(ctx, desired, created)
@@ -279,9 +292,15 @@ func (c *FlowContext) ensureNatGateway(ctx context.Context) error {
 }
 func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
 	vpcID := c.state.Get(IdentifierVPC)
+	if vpcID == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
 	gw, err := c.actor.FindNatGatewayByVPC(ctx, *vpcID)
 	if err != nil {
 		return fmt.Errorf("find NatGateway failed %w", err)
+	}
+	if gw == nil {
+		return fmt.Errorf("ExistingNatGateway not found")
 	}
 	c.state.Set(IdentifierNatGateway, gw.NatGatewayId)
 	return c.PersistState(ctx, true)
@@ -295,11 +314,14 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 	if len(availableVSwitches) == 0 {
 		return fmt.Errorf("no available VSwitch can found for natgateway")
 	}
-
+	vpcId := c.state.Get(IdentifierVPC)
+	if vpcId == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
 	desired := &aliclient.NatGateway{
 		Tags:               c.commonTagsWithSuffix("natgw"),
 		Name:               c.namespace + "-natgw",
-		VpcId:              c.state.Get(IdentifierVPC),
+		VpcId:              vpcId,
 		AvailableVSwitches: availableVSwitches,
 	}
 
@@ -325,6 +347,9 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		waiter.Done(err)
 		if err != nil {
 			return fmt.Errorf("create NatGateway failed %w", err)
+		}
+		if created == nil {
+			return fmt.Errorf("create NatGateway failed")
 		}
 
 		c.state.Set(IdentifierNatGateway, created.NatGatewayId)

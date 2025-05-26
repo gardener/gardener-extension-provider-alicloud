@@ -150,7 +150,7 @@ func (c *BasicFlowContext) wrapTaskFn(flowName, taskName string, fn flow.TaskFn)
 			// don't wrap error with '%w', as otherwise the error context get lost
 			err = fmt.Errorf("failed to %s: %s", taskName, err)
 		}
-		if perr := c.PersistState(taskCtx, false); perr != nil {
+		if perr := c.PersistState(taskCtx, true); perr != nil {
 			if err != nil {
 				c.Log.Error(perr, "persisting state failed")
 			} else {
