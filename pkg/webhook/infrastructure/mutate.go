@@ -7,9 +7,13 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	extensionscontextwebhook "github.com/gardener/gardener/extensions/pkg/webhook/context"
+	"github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	v1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,7 +38,7 @@ func New(mgr manager.Manager, logger logr.Logger) extensionswebhook.Mutator {
 // Mutate mutates the given object on creation and adds the annotation `alicloud.provider.extensions.gardener.cloud/use-flow=true`
 // if the seed has the label `alicloud.provider.extensions.gardener.cloud/use-flow` == `new`.
 func (m *mutator) Mutate(ctx context.Context, newObject, oldObject client.Object) error {
-	if oldObject != nil || newObject.GetDeletionTimestamp() != nil {
+	if newObject.GetDeletionTimestamp() != nil {
 		return nil
 	}
 
@@ -43,18 +47,60 @@ func (m *mutator) Mutate(ctx context.Context, newObject, oldObject client.Object
 		return fmt.Errorf("could not mutate: object is not of type Infrastructure")
 	}
 
+	if m.isInMigrationOrRestorePhase(newInfra) {
+		return nil
+	}
 	gctx := extensionscontextwebhook.NewGardenContext(m.client, newObject)
 	cluster, err := gctx.GetCluster(ctx)
 	if err != nil {
 		return err
 	}
 
-	if cluster.Seed.Labels[aliapi.SeedLabelKeyUseFlow] == aliapi.SeedLabelUseFlowValueNew {
-		if newInfra.Annotations == nil {
-			newInfra.Annotations = map[string]string{}
-		}
+	// skip if shoot is being deleted
+	if cluster.Shoot.DeletionTimestamp != nil {
+		return nil
+	}
+
+	if newInfra.Annotations == nil {
+		newInfra.Annotations = map[string]string{}
+	}
+	if cluster.Seed.Annotations == nil {
+		cluster.Seed.Annotations = map[string]string{}
+	}
+	if cluster.Shoot.Annotations == nil {
+		cluster.Shoot.Annotations = map[string]string{}
+	}
+
+	mutated := false
+	if v, ok := cluster.Shoot.Annotations[aliapi.GlobalAnnotationKeyUseFlow]; ok {
+		newInfra.Annotations[aliapi.AnnotationKeyUseFlow] = v
+		mutated = true
+	} else if v, ok := cluster.Shoot.Annotations[aliapi.AnnotationKeyUseFlow]; ok {
+		newInfra.Annotations[aliapi.AnnotationKeyUseFlow] = v
+		mutated = true
+	} else if oldObject == nil && cluster.Seed.Annotations[aliapi.SeedAnnotationKeyUseFlow] == aliapi.SeedAnnotationUseFlowValueNew {
 		newInfra.Annotations[aliapi.AnnotationKeyUseFlow] = "true"
+		mutated = true
+	} else if v := cluster.Seed.Annotations[aliapi.SeedAnnotationKeyUseFlow]; strings.EqualFold(v, "true") {
+		newInfra.Annotations[aliapi.AnnotationKeyUseFlow] = "true"
+		mutated = true
+	}
+
+	if mutated {
+		extensionswebhook.LogMutation(logger, newInfra.Kind, newInfra.Namespace, newInfra.Name)
 	}
 
 	return nil
+}
+
+func (m *mutator) isInMigrationOrRestorePhase(infra *extensionsv1alpha1.Infrastructure) bool {
+	// During the restore phase, the infrastructure object is created without status or state (including the operation type information).
+	// Instead, the object is annotated to indicate that the status and state information will be patched in a subsequent operation.
+	// Therefore, while the GardenerOperationWaitForState  annotation exists, do nothing.
+	if infra.GetAnnotations()[v1beta1constants.GardenerOperation] == v1beta1constants.GardenerOperationWaitForState {
+		return true
+	}
+
+	operationType := v1beta1helper.ComputeOperationType(infra.ObjectMeta, infra.Status.LastOperation)
+	return operationType == v1beta1.LastOperationTypeMigrate || operationType == v1beta1.LastOperationTypeRestore
 }
