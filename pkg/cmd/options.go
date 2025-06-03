@@ -35,6 +35,7 @@ import (
 	workercontroller "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/worker"
 	cloudproviderwebhook "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/cloudprovider"
 	controlplanewebhook "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/controlplane"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/infrastructure"
 	seedproviderwebhook "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/seedprovider"
 	shootwebhook "github.com/gardener/gardener-extension-provider-alicloud/pkg/webhook/shoot"
 )
@@ -70,6 +71,7 @@ func WebhookSwitchOptions() *webhookcmd.SwitchOptions {
 		webhookcmd.Switch(extensioncontrolplanewebhook.SeedProviderWebhookName, seedproviderwebhook.AddToManager),
 		webhookcmd.Switch(extensionshootwebhook.WebhookName, shootwebhook.AddToManager),
 		webhookcmd.Switch(extensionscloudproviderwebhook.WebhookName, cloudproviderwebhook.AddToManager),
+		webhookcmd.Switch(infrastructure.WebhookName, infrastructure.AddToManager),
 	)
 }
 
