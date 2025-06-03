@@ -492,7 +492,8 @@ var _ = Describe("Machines", func() {
 									zone1,
 									zone2,
 								},
-								UpdateStrategy: ptr.To(gardencorev1beta1.AutoInPlaceUpdate),
+								UpdateStrategy:    ptr.To(gardencorev1beta1.AutoInPlaceUpdate),
+								KubernetesVersion: &shootVersion,
 							},
 							{
 								Name:           namePool4,
@@ -523,7 +524,8 @@ var _ = Describe("Machines", func() {
 									zone1,
 									zone2,
 								},
-								UpdateStrategy: ptr.To(gardencorev1beta1.ManualInPlaceUpdate),
+								UpdateStrategy:    ptr.To(gardencorev1beta1.ManualInPlaceUpdate),
+								KubernetesVersion: &shootVersion,
 							},
 						},
 					},
@@ -535,13 +537,13 @@ var _ = Describe("Machines", func() {
 				decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 
 				additionalHashData := []string{fmt.Sprintf("%dGi", dataVolume1Size), dataVolume1Type, strconv.FormatBool(dataVolume1Encrypted), fmt.Sprintf("%dGi", dataVolume2Size), dataVolume2Type, strconv.FormatBool(dataVolume2Encrypted)}
-				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster, additionalHashData, additionalHashData)
+				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster, additionalHashData, additionalHashData, nil)
 
 				additionalHashDataV2 := []string{"true"}
-				workerPoolHash2, _ = worker.WorkerPoolHash(w.Spec.Pools[1], cluster, additionalHashDataV2, additionalHashDataV2)
+				workerPoolHash2, _ = worker.WorkerPoolHash(w.Spec.Pools[1], cluster, additionalHashDataV2, additionalHashDataV2, nil)
 
-				workerPoolHash3, _ = worker.WorkerPoolHash(w.Spec.Pools[2], cluster, nil, nil)
-				workerPoolHash4, _ = worker.WorkerPoolHash(w.Spec.Pools[3], cluster, nil, nil)
+				workerPoolHash3, _ = worker.WorkerPoolHash(w.Spec.Pools[2], cluster, nil, nil, nil)
+				workerPoolHash4, _ = worker.WorkerPoolHash(w.Spec.Pools[3], cluster, nil, nil, nil)
 
 				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, clusterWithoutImages)
 			})

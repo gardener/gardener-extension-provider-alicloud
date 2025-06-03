@@ -85,7 +85,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		zoneLen := int32(len(pool.Zones)) // #nosec: G115
 
 		additionalHashData := computeAdditionalHashData(pool)
-		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, additionalHashData, additionalHashData)
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, additionalHashData, additionalHashData, nil)
 		if err != nil {
 			return err
 		}
@@ -277,10 +277,6 @@ func computeDisks(namespace string, pool extensionsv1alpha1.WorkerPool) (map[str
 
 func computeAdditionalHashData(pool extensionsv1alpha1.WorkerPool) []string {
 	var additionalData []string
-
-	if gardencorev1beta1helper.IsUpdateStrategyInPlace(pool.UpdateStrategy) {
-		return additionalData
-	}
 
 	// Volume.Encrypted needs to be included when calculating the hash
 	if pool.Volume.Encrypted != nil {
