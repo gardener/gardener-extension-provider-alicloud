@@ -158,8 +158,6 @@ var _ = Describe("ValuesProvider", func() {
 		controlPlaneShootChartValues = map[string]interface{}{
 			"csi-alicloud": map[string]interface{}{
 				"credential": map[string]interface{}{
-					"accessKeyID":     "Zm9v",
-					"accessKeySecret": "YmFy",
 					"credentialsFile": "YmF6",
 				},
 				"enableADController": true,

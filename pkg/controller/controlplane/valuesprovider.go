@@ -454,8 +454,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 	values := map[string]interface{}{
 		"csi-alicloud": map[string]interface{}{
 			"credential": map[string]interface{}{
-				"accessKeyID":     base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeyID)),
-				"accessKeySecret": base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret)),
 				"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
 			},
 			"enableADController": vp.enableCSIADController(cpConfig),
