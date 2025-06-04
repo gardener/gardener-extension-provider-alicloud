@@ -117,6 +117,20 @@ var _ = Describe("Machines", func() {
 				maxSurgePool2       intstr.IntOrString
 				maxUnavailablePool2 intstr.IntOrString
 
+				namePool3           string
+				minPool3            int32
+				maxPool3            int32
+				priorityPool3       int32
+				maxSurgePool3       intstr.IntOrString
+				maxUnavailablePool3 intstr.IntOrString
+
+				namePool4           string
+				minPool4            int32
+				maxPool4            int32
+				priorityPool4       int32
+				maxSurgePool4       intstr.IntOrString
+				maxUnavailablePool4 intstr.IntOrString
+
 				vswitchZone1 string
 				vswitchZone2 string
 				zone1        string
@@ -127,11 +141,17 @@ var _ = Describe("Machines", func() {
 				nodeTemplatePool1Zone2 machinev1alpha1.NodeTemplate
 				nodeTemplatePool2Zone1 machinev1alpha1.NodeTemplate
 				nodeTemplatePool2Zone2 machinev1alpha1.NodeTemplate
+				nodeTemplatePool3Zone1 machinev1alpha1.NodeTemplate
+				nodeTemplatePool3Zone2 machinev1alpha1.NodeTemplate
+				nodeTemplatePool4Zone1 machinev1alpha1.NodeTemplate
+				nodeTemplatePool4Zone2 machinev1alpha1.NodeTemplate
 
 				machineConfiguration *machinev1alpha1.MachineConfiguration
 
 				workerPoolHash1 string
 				workerPoolHash2 string
+				workerPoolHash3 string
+				workerPoolHash4 string
 
 				shootVersionMajorMinor string
 				shootVersion           string
@@ -191,6 +211,20 @@ var _ = Describe("Machines", func() {
 				maxSurgePool2 = intstr.FromInt(10)
 				maxUnavailablePool2 = intstr.FromInt(15)
 
+				namePool3 = "pool-3"
+				minPool3 = 15
+				maxPool3 = 25
+				priorityPool3 = 20
+				maxSurgePool3 = intstr.FromInt(8)
+				maxUnavailablePool3 = intstr.FromInt(5)
+
+				namePool4 = "pool-4"
+				minPool4 = 20
+				maxPool4 = 30
+				priorityPool4 = 50
+				maxSurgePool4 = intstr.FromInt(10)
+				maxUnavailablePool4 = intstr.FromInt(5)
+
 				vswitchZone1 = "vswitch-acbd1234"
 				vswitchZone2 = "vswitch-4321dbca"
 				zone1 = region + "a"
@@ -231,6 +265,37 @@ var _ = Describe("Machines", func() {
 					Zone:         zone2,
 					Architecture: ptr.To(archARM),
 				}
+
+				nodeTemplatePool3Zone1 = machinev1alpha1.NodeTemplate{
+					Capacity:     nodeCapacity,
+					InstanceType: machineType,
+					Region:       region,
+					Zone:         zone1,
+					Architecture: ptr.To(archARM),
+				}
+				nodeTemplatePool3Zone2 = machinev1alpha1.NodeTemplate{
+					Capacity:     nodeCapacity,
+					InstanceType: machineType,
+					Region:       region,
+					Zone:         zone2,
+					Architecture: ptr.To(archARM),
+				}
+
+				nodeTemplatePool4Zone1 = machinev1alpha1.NodeTemplate{
+					Capacity:     nodeCapacity,
+					InstanceType: machineType,
+					Region:       region,
+					Zone:         zone1,
+					Architecture: ptr.To(archARM),
+				}
+				nodeTemplatePool4Zone2 = machinev1alpha1.NodeTemplate{
+					Capacity:     nodeCapacity,
+					InstanceType: machineType,
+					Region:       region,
+					Zone:         zone2,
+					Architecture: ptr.To(archARM),
+				}
+
 				machineConfiguration = &machinev1alpha1.MachineConfiguration{}
 
 				shootVersionMajorMinor = "1.2"
@@ -398,6 +463,70 @@ var _ = Describe("Machines", func() {
 									zone2,
 								},
 							},
+							{
+								Name:           namePool3,
+								Minimum:        minPool3,
+								Maximum:        maxPool3,
+								Priority:       ptr.To(priorityPool3),
+								MaxSurge:       maxSurgePool3,
+								MaxUnavailable: maxUnavailablePool3,
+								Architecture:   ptr.To(archARM),
+								MachineType:    machineType,
+								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
+									Capacity: nodeCapacity,
+								},
+								MachineImage: extensionsv1alpha1.MachineImage{
+									Name:    machineImageName,
+									Version: machineImageVersion,
+								},
+								UserDataSecretRef: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{Name: userDataSecretName},
+									Key:                  userDataSecretDataKey,
+								},
+								Volume: &extensionsv1alpha1.Volume{
+									Type:      &volumeType,
+									Size:      fmt.Sprintf("%dGi", volumeSize),
+									Encrypted: &volume2Encrypted,
+								},
+								Zones: []string{
+									zone1,
+									zone2,
+								},
+								UpdateStrategy:    ptr.To(gardencorev1beta1.AutoInPlaceUpdate),
+								KubernetesVersion: &shootVersion,
+							},
+							{
+								Name:           namePool4,
+								Minimum:        minPool4,
+								Maximum:        maxPool4,
+								Priority:       ptr.To(priorityPool4),
+								MaxSurge:       maxSurgePool4,
+								MaxUnavailable: maxUnavailablePool4,
+								Architecture:   ptr.To(archARM),
+								MachineType:    machineType,
+								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
+									Capacity: nodeCapacity,
+								},
+								MachineImage: extensionsv1alpha1.MachineImage{
+									Name:    machineImageName,
+									Version: machineImageVersion,
+								},
+								UserDataSecretRef: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{Name: userDataSecretName},
+									Key:                  userDataSecretDataKey,
+								},
+								Volume: &extensionsv1alpha1.Volume{
+									Type:      &volumeType,
+									Size:      fmt.Sprintf("%dGi", volumeSize),
+									Encrypted: &volume2Encrypted,
+								},
+								Zones: []string{
+									zone1,
+									zone2,
+								},
+								UpdateStrategy:    ptr.To(gardencorev1beta1.ManualInPlaceUpdate),
+								KubernetesVersion: &shootVersion,
+							},
 						},
 					},
 				}
@@ -408,10 +537,13 @@ var _ = Describe("Machines", func() {
 				decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 
 				additionalHashData := []string{fmt.Sprintf("%dGi", dataVolume1Size), dataVolume1Type, strconv.FormatBool(dataVolume1Encrypted), fmt.Sprintf("%dGi", dataVolume2Size), dataVolume2Type, strconv.FormatBool(dataVolume2Encrypted)}
-				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster, additionalHashData, additionalHashData)
+				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster, additionalHashData, additionalHashData, nil)
 
 				additionalHashDataV2 := []string{"true"}
-				workerPoolHash2, _ = worker.WorkerPoolHash(w.Spec.Pools[1], cluster, additionalHashDataV2, additionalHashDataV2)
+				workerPoolHash2, _ = worker.WorkerPoolHash(w.Spec.Pools[1], cluster, additionalHashDataV2, additionalHashDataV2, nil)
+
+				workerPoolHash3, _ = worker.WorkerPoolHash(w.Spec.Pools[2], cluster, nil, nil, nil)
+				workerPoolHash4, _ = worker.WorkerPoolHash(w.Spec.Pools[3], cluster, nil, nil, nil)
 
 				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, clusterWithoutImages)
 			})
@@ -504,33 +636,73 @@ var _ = Describe("Machines", func() {
 							"zoneID", zone2,
 							"imageID", encryptedImageID,
 						)
+						machineClassPool3Zone1 = useDefaultMachineClass(defaultMachineClass,
+							"vSwitchID", vswitchZone1,
+							"zoneID", zone1,
+							"imageID", encryptedImageID,
+						)
+						machineClassPool3Zone2 = useDefaultMachineClass(defaultMachineClass,
+							"vSwitchID", vswitchZone2,
+							"zoneID", zone2,
+							"imageID", encryptedImageID,
+						)
+						machineClassPool4Zone1 = useDefaultMachineClass(defaultMachineClass,
+							"vSwitchID", vswitchZone1,
+							"zoneID", zone1,
+							"imageID", encryptedImageID,
+						)
+						machineClassPool4Zone2 = useDefaultMachineClass(defaultMachineClass,
+							"vSwitchID", vswitchZone2,
+							"zoneID", zone2,
+							"imageID", encryptedImageID,
+						)
 
 						machineClassNamePool1Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool1, zone1)
 						machineClassNamePool1Zone2 = fmt.Sprintf("%s-%s-%s", namespace, namePool1, zone2)
 						machineClassNamePool2Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool2, zone1)
 						machineClassNamePool2Zone2 = fmt.Sprintf("%s-%s-%s", namespace, namePool2, zone2)
+						machineClassNamePool3Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool3, zone1)
+						machineClassNamePool3Zone2 = fmt.Sprintf("%s-%s-%s", namespace, namePool3, zone2)
+						machineClassNamePool4Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool4, zone1)
+						machineClassNamePool4Zone2 = fmt.Sprintf("%s-%s-%s", namespace, namePool4, zone2)
 
 						machineClassWithHashPool1Zone1 = fmt.Sprintf("%s-%s", machineClassNamePool1Zone1, workerPoolHash1)
 						machineClassWithHashPool1Zone2 = fmt.Sprintf("%s-%s", machineClassNamePool1Zone2, workerPoolHash1)
 						machineClassWithHashPool2Zone1 = fmt.Sprintf("%s-%s", machineClassNamePool2Zone1, workerPoolHash2)
 						machineClassWithHashPool2Zone2 = fmt.Sprintf("%s-%s", machineClassNamePool2Zone2, workerPoolHash2)
+						machineClassWithHashPool3Zone1 = fmt.Sprintf("%s-%s", machineClassNamePool3Zone1, workerPoolHash3)
+						machineClassWithHashPool3Zone2 = fmt.Sprintf("%s-%s", machineClassNamePool3Zone2, workerPoolHash3)
+						machineClassWithHashPool4Zone1 = fmt.Sprintf("%s-%s", machineClassNamePool4Zone1, workerPoolHash4)
+						machineClassWithHashPool4Zone2 = fmt.Sprintf("%s-%s", machineClassNamePool4Zone2, workerPoolHash4)
 					)
 
 					addNameAndSecretToMachineClass(machineClassPool1Zone1, machineClassWithHashPool1Zone1, w.Spec.SecretRef)
 					addNameAndSecretToMachineClass(machineClassPool1Zone2, machineClassWithHashPool1Zone2, w.Spec.SecretRef)
 					addNameAndSecretToMachineClass(machineClassPool2Zone1, machineClassWithHashPool2Zone1, w.Spec.SecretRef)
 					addNameAndSecretToMachineClass(machineClassPool2Zone2, machineClassWithHashPool2Zone2, w.Spec.SecretRef)
+					addNameAndSecretToMachineClass(machineClassPool3Zone1, machineClassWithHashPool3Zone1, w.Spec.SecretRef)
+					addNameAndSecretToMachineClass(machineClassPool3Zone2, machineClassWithHashPool3Zone2, w.Spec.SecretRef)
+					addNameAndSecretToMachineClass(machineClassPool4Zone1, machineClassWithHashPool4Zone1, w.Spec.SecretRef)
+					addNameAndSecretToMachineClass(machineClassPool4Zone2, machineClassWithHashPool4Zone2, w.Spec.SecretRef)
 
 					addNodeTemplateToMachineClass(machineClassPool1Zone1, nodeTemplatePool1Zone1)
 					addNodeTemplateToMachineClass(machineClassPool1Zone2, nodeTemplatePool1Zone2)
 					addNodeTemplateToMachineClass(machineClassPool2Zone1, nodeTemplatePool2Zone1)
 					addNodeTemplateToMachineClass(machineClassPool2Zone2, nodeTemplatePool2Zone2)
+					addNodeTemplateToMachineClass(machineClassPool3Zone1, nodeTemplatePool3Zone1)
+					addNodeTemplateToMachineClass(machineClassPool3Zone2, nodeTemplatePool3Zone2)
+					addNodeTemplateToMachineClass(machineClassPool4Zone1, nodeTemplatePool4Zone1)
+					addNodeTemplateToMachineClass(machineClassPool4Zone2, nodeTemplatePool4Zone2)
 
 					machineClasses = map[string]interface{}{"machineClasses": []map[string]interface{}{
 						machineClassPool1Zone1,
 						machineClassPool1Zone2,
 						machineClassPool2Zone1,
 						machineClassPool2Zone2,
+						machineClassPool3Zone1,
+						machineClassPool3Zone2,
+						machineClassPool4Zone1,
+						machineClassPool4Zone2,
 					}}
 
 					labelsZone1 := map[string]string{alicloud.CSIDiskTopologyZoneKey: zone1}
@@ -540,6 +712,7 @@ var _ = Describe("Machines", func() {
 							Name:       machineClassNamePool1Zone1,
 							ClassName:  machineClassWithHashPool1Zone1,
 							SecretName: machineClassWithHashPool1Zone1,
+							PoolName:   namePool1,
 							Minimum:    worker.DistributeOverZones(0, minPool1, 2),
 							Maximum:    worker.DistributeOverZones(0, maxPool1, 2),
 							Strategy: machinev1alpha1.MachineDeploymentStrategy{
@@ -558,6 +731,7 @@ var _ = Describe("Machines", func() {
 							Name:       machineClassNamePool1Zone2,
 							ClassName:  machineClassWithHashPool1Zone2,
 							SecretName: machineClassWithHashPool1Zone2,
+							PoolName:   namePool1,
 							Minimum:    worker.DistributeOverZones(1, minPool1, 2),
 							Maximum:    worker.DistributeOverZones(1, maxPool1, 2),
 							Strategy: machinev1alpha1.MachineDeploymentStrategy{
@@ -576,6 +750,7 @@ var _ = Describe("Machines", func() {
 							Name:       machineClassNamePool2Zone1,
 							ClassName:  machineClassWithHashPool2Zone1,
 							SecretName: machineClassWithHashPool2Zone1,
+							PoolName:   namePool2,
 							Minimum:    worker.DistributeOverZones(0, minPool2, 2),
 							Maximum:    worker.DistributeOverZones(0, maxPool2, 2),
 							Priority:   ptr.To(priorityPool2),
@@ -595,6 +770,7 @@ var _ = Describe("Machines", func() {
 							Name:       machineClassNamePool2Zone2,
 							ClassName:  machineClassWithHashPool2Zone2,
 							SecretName: machineClassWithHashPool2Zone2,
+							PoolName:   namePool2,
 							Minimum:    worker.DistributeOverZones(1, minPool2, 2),
 							Maximum:    worker.DistributeOverZones(1, maxPool2, 2),
 							Priority:   ptr.To(priorityPool2),
@@ -610,13 +786,98 @@ var _ = Describe("Machines", func() {
 							Labels:               labelsZone2,
 							MachineConfiguration: machineConfiguration,
 						},
+						{
+							Name:       machineClassNamePool3Zone1,
+							ClassName:  machineClassWithHashPool3Zone1,
+							SecretName: machineClassWithHashPool3Zone1,
+							PoolName:   namePool3,
+							Minimum:    worker.DistributeOverZones(0, minPool3, 2),
+							Maximum:    worker.DistributeOverZones(0, maxPool3, 2),
+							Priority:   ptr.To(priorityPool3),
+							Strategy: machinev1alpha1.MachineDeploymentStrategy{
+								Type: machinev1alpha1.InPlaceUpdateMachineDeploymentStrategyType,
+								InPlaceUpdate: &machinev1alpha1.InPlaceUpdateMachineDeployment{
+									OrchestrationType: machinev1alpha1.OrchestrationTypeAuto,
+									UpdateConfiguration: machinev1alpha1.UpdateConfiguration{
+										MaxUnavailable: ptr.To(worker.DistributePositiveIntOrPercent(0, maxUnavailablePool3, 2, minPool3)),
+										MaxSurge:       ptr.To(worker.DistributePositiveIntOrPercent(0, maxSurgePool3, 2, maxPool3)),
+									},
+								},
+							},
+							Labels:               labelsZone1,
+							MachineConfiguration: machineConfiguration,
+						},
+						{
+							Name:       machineClassNamePool3Zone2,
+							ClassName:  machineClassWithHashPool3Zone2,
+							SecretName: machineClassWithHashPool3Zone2,
+							PoolName:   namePool3,
+							Minimum:    worker.DistributeOverZones(1, minPool3, 2),
+							Maximum:    worker.DistributeOverZones(1, maxPool3, 2),
+							Priority:   ptr.To(priorityPool3),
+							Strategy: machinev1alpha1.MachineDeploymentStrategy{
+								Type: machinev1alpha1.InPlaceUpdateMachineDeploymentStrategyType,
+								InPlaceUpdate: &machinev1alpha1.InPlaceUpdateMachineDeployment{
+									OrchestrationType: machinev1alpha1.OrchestrationTypeAuto,
+									UpdateConfiguration: machinev1alpha1.UpdateConfiguration{
+										MaxUnavailable: ptr.To(worker.DistributePositiveIntOrPercent(1, maxUnavailablePool3, 2, minPool3)),
+										MaxSurge:       ptr.To(worker.DistributePositiveIntOrPercent(1, maxSurgePool3, 2, maxPool3)),
+									},
+								},
+							},
+							Labels:               labelsZone2,
+							MachineConfiguration: machineConfiguration,
+						},
+						{
+							Name:       machineClassNamePool4Zone1,
+							ClassName:  machineClassWithHashPool4Zone1,
+							SecretName: machineClassWithHashPool4Zone1,
+							PoolName:   namePool4,
+							Minimum:    worker.DistributeOverZones(0, minPool4, 2),
+							Maximum:    worker.DistributeOverZones(0, maxPool4, 2),
+							Priority:   ptr.To(priorityPool4),
+							Strategy: machinev1alpha1.MachineDeploymentStrategy{
+								Type: machinev1alpha1.InPlaceUpdateMachineDeploymentStrategyType,
+								InPlaceUpdate: &machinev1alpha1.InPlaceUpdateMachineDeployment{
+									OrchestrationType: machinev1alpha1.OrchestrationTypeManual,
+									UpdateConfiguration: machinev1alpha1.UpdateConfiguration{
+										MaxUnavailable: ptr.To(worker.DistributePositiveIntOrPercent(0, maxUnavailablePool4, 2, minPool4)),
+										MaxSurge:       ptr.To(worker.DistributePositiveIntOrPercent(0, maxSurgePool4, 2, maxPool4)),
+									},
+								},
+							},
+							Labels:               labelsZone1,
+							MachineConfiguration: machineConfiguration,
+						},
+						{
+							Name:       machineClassNamePool4Zone2,
+							ClassName:  machineClassWithHashPool4Zone2,
+							SecretName: machineClassWithHashPool4Zone2,
+							PoolName:   namePool4,
+							Minimum:    worker.DistributeOverZones(1, minPool4, 2),
+							Maximum:    worker.DistributeOverZones(1, maxPool4, 2),
+							Priority:   ptr.To(priorityPool4),
+							Strategy: machinev1alpha1.MachineDeploymentStrategy{
+								Type: machinev1alpha1.InPlaceUpdateMachineDeploymentStrategyType,
+								InPlaceUpdate: &machinev1alpha1.InPlaceUpdateMachineDeployment{
+									OrchestrationType: machinev1alpha1.OrchestrationTypeManual,
+									UpdateConfiguration: machinev1alpha1.UpdateConfiguration{
+										MaxUnavailable: ptr.To(worker.DistributePositiveIntOrPercent(1, maxUnavailablePool4, 2, minPool4)),
+										MaxSurge:       ptr.To(worker.DistributePositiveIntOrPercent(1, maxSurgePool4, 2, maxPool4)),
+									},
+								},
+							},
+							Labels:               labelsZone2,
+							MachineConfiguration: machineConfiguration,
+						},
 					}
-
 				})
 
 				It("should return the expected machine deployments for profile image types", func() {
 					workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
 
+					expectedUserDataSecretRefRead()
+					expectedUserDataSecretRefRead()
 					expectedUserDataSecretRefRead()
 					expectedUserDataSecretRefRead()
 
@@ -782,6 +1043,8 @@ var _ = Describe("Machines", func() {
 
 				expectedUserDataSecretRefRead()
 				expectedUserDataSecretRefRead()
+				expectedUserDataSecretRefRead()
+				expectedUserDataSecretRefRead()
 
 				result, err := workerDelegate.GenerateMachineDeployments(ctx)
 				resultSettings := result[0].MachineConfiguration
@@ -808,6 +1071,8 @@ var _ = Describe("Machines", func() {
 
 				expectedUserDataSecretRefRead()
 				expectedUserDataSecretRefRead()
+				expectedUserDataSecretRefRead()
+				expectedUserDataSecretRefRead()
 
 				result, err := workerDelegate.GenerateMachineDeployments(ctx)
 				Expect(err).NotTo(HaveOccurred())
@@ -817,6 +1082,10 @@ var _ = Describe("Machines", func() {
 				Expect(result[1].ClusterAutoscalerAnnotations).NotTo(BeNil())
 				Expect(result[2].ClusterAutoscalerAnnotations).To(BeNil())
 				Expect(result[3].ClusterAutoscalerAnnotations).To(BeNil())
+				Expect(result[4].ClusterAutoscalerAnnotations).To(BeNil())
+				Expect(result[5].ClusterAutoscalerAnnotations).To(BeNil())
+				Expect(result[6].ClusterAutoscalerAnnotations).To(BeNil())
+				Expect(result[7].ClusterAutoscalerAnnotations).To(BeNil())
 
 				Expect(result[0].ClusterAutoscalerAnnotations[extensionsv1alpha1.MaxNodeProvisionTimeAnnotation]).To(Equal("1m0s"))
 				Expect(result[0].ClusterAutoscalerAnnotations[extensionsv1alpha1.ScaleDownGpuUtilizationThresholdAnnotation]).To(Equal("0.5"))

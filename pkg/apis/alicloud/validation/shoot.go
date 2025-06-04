@@ -11,8 +11,10 @@ import (
 	"regexp"
 
 	"github.com/gardener/gardener/pkg/apis/core"
+	corehelper "github.com/gardener/gardener/pkg/apis/core/helper"
 	validationutils "github.com/gardener/gardener/pkg/utils/validation"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
@@ -116,6 +118,17 @@ func ValidateWorkersUpdate(oldWorkers, newWorkers []core.Worker, fldPath *field.
 				if validationutils.ShouldEnforceImmutability(newWorker.Zones, oldWorker.Zones) {
 					allErrs = append(allErrs, apivalidation.ValidateImmutableField(newWorker.Zones, oldWorker.Zones, fldPath.Index(i).Child("zones"))...)
 				}
+
+				if corehelper.IsUpdateStrategyInPlace(newWorker.UpdateStrategy) {
+					if !apiequality.Semantic.DeepEqual(newWorker.ProviderConfig, oldWorker.ProviderConfig) {
+						allErrs = append(allErrs, field.Invalid(fldPath.Index(i).Child("providerConfig"), newWorker.ProviderConfig, "providerConfig is immutable when update strategy is in-place"))
+					}
+
+					if !apiequality.Semantic.DeepEqual(newWorker.DataVolumes, oldWorker.DataVolumes) {
+						allErrs = append(allErrs, field.Invalid(fldPath.Index(i).Child("dataVolumes"), newWorker.DataVolumes, "dataVolumes is immutable when update strategy is in-place"))
+					}
+				}
+
 				break
 			}
 		}
