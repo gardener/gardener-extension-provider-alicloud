@@ -7,11 +7,13 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -26,10 +28,28 @@ import (
 // - annotation `alicloud.provider.extensions.gardener.cloud/use-flow=true` on infrastructure resource
 // - annotation `alicloud.provider.extensions.gardener.cloud/use-flow=true` on shoot resource
 // - label `alicloud.provider.extensions.gardener.cloud/use-flow=true` on seed resource (label instead of annotation, as only labels are transported from managedseed to seed object)
-func (a *actuator) shouldUseFlow(infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) bool {
-	return strings.EqualFold(infrastructure.Annotations[aliapi.AnnotationKeyUseFlow], "true") ||
-		(cluster.Shoot != nil && strings.EqualFold(cluster.Shoot.Annotations[aliapi.AnnotationKeyUseFlow], "true")) ||
-		(cluster.Seed != nil && strings.EqualFold(cluster.Seed.Labels[aliapi.SeedLabelKeyUseFlow], "true"))
+func (a *actuator) shouldUseFlow(infrastructure *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) bool {
+	return GetFlowAnnotationValue(infrastructure)
+	// return strings.EqualFold(infrastructure.Annotations[aliapi.AnnotationKeyUseFlow], "true") ||
+	// 	(cluster.Shoot != nil && strings.EqualFold(cluster.Shoot.Annotations[aliapi.AnnotationKeyUseFlow], "true")) ||
+	// 	(cluster.Seed != nil && strings.EqualFold(cluster.Seed.Labels[aliapi.SeedLabelKeyUseFlow], "true"))
+}
+
+// GetFlowAnnotationValue returns the boolean value of the expected flow annotation. Returns false if the annotation was not found, if it couldn't be converted to bool,
+// or had a "false" value.
+func GetFlowAnnotationValue(o metav1.Object) bool {
+	if annotations := o.GetAnnotations(); annotations != nil {
+		for _, k := range aliapi.ValidFlowAnnotations {
+			if str, ok := annotations[k]; ok {
+				if v, err := strconv.ParseBool(str); err != nil {
+					return false
+				} else {
+					return v
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (a *actuator) reconcileWithFlow(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, oldState *infraflow.PersistentState) error {
