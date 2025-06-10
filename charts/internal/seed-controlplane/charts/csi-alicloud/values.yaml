@@ -22,65 +22,35 @@ csiPluginController:
       requests:
         cpu: 20m
         memory: 50Mi
-      limits:
-        memory: 256Mi
     attacher:
       requests:
         cpu: 11m
         memory: 36Mi
-      limits:
-        memory: 1.9Gi
     provisioner:
       requests:
         cpu: 11m
         memory: 38Mi
-      limits:
-        memory: 1.9Gi
     snapshotter:
       requests:
         cpu: 11m
         memory: 36Mi
-      limits:
-        memory: 1.3Gi
     resizer:
       requests:
         cpu: 11m
         memory: 32Mi
-      limits:
-        memory: 1.5Gi
     livenessProbe:
       requests:
         cpu: 11m
         memory: 32Mi
-      limits:
-        memory: 1.5Gi
 
 vpa:
   resourcePolicy:
-    diskPlugin:
-      maxAllowed:
-        cpu: 800m
-        memory: 4G
-    provisioner:
-      maxAllowed:
-        cpu: 800m
-        memory: 4G
-    attacher:
-      maxAllowed:
-        cpu: 500m
-        memory: 4G
-    snapshotter:
-      maxAllowed:
-        cpu: 700m
-        memory: 3G
-    resizer:
-      maxAllowed:
-        cpu: 700m
-        memory: 3G
-    livenessProbe:
-      maxAllowed:
-        cpu: 500m
-        memory: 2G
+    diskPlugin: {}
+    provisioner: {}
+    attacher: {}
+    snapshotter: {}
+    resizer: {}
+    livenessProbe: {}
 
 csiSnapshotController:
   podAnnotations: {}
@@ -89,8 +59,6 @@ csiSnapshotController:
       requests:
         cpu: 11m
         memory: 32Mi
-      limits:
-        memory: 2.2Gi
 csiSnapshotValidationWebhook:
   replica: 1
   podAnnotations: {}
@@ -98,8 +66,6 @@ csiSnapshotValidationWebhook:
     requests:
       cpu: 10m
       memory: 32Mi
-    limits:
-      memory: 200Mi
   secrets:
     server: csi-snapshot-validation-server
   topologyAwareRoutingEnabled: false
