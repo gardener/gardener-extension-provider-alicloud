@@ -11,11 +11,5 @@ resources:
   requests:
     cpu: 21m
     memory: 40Mi
-  limits:
-    memory: 1Gi
 cloudConfig: json-values
-vpa:
-  resourcePolicy:
-    maxAllowed:
-      cpu: 4
-      memory: 10G
+vpa: {}

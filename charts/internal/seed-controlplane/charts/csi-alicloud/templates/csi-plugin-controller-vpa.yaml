@@ -8,46 +8,16 @@ spec:
   resourcePolicy:
     containerPolicies:
     - containerName: alicloud-csi-diskplugin
-      minAllowed:
-        memory: {{ .Values.csiPluginController.podResources.diskPlugin.requests.memory }}
-      maxAllowed:
-        cpu: {{ .Values.vpa.resourcePolicy.diskPlugin.maxAllowed.cpu }}
-        memory: {{ .Values.vpa.resourcePolicy.diskPlugin.maxAllowed.memory }}
       controlledValues: RequestsOnly
     - containerName: alicloud-csi-provisioner
-      minAllowed:
-        memory: {{ .Values.csiPluginController.podResources.provisioner.requests.memory }}
-      maxAllowed:
-        cpu: {{ .Values.vpa.resourcePolicy.provisioner.maxAllowed.cpu }}
-        memory: {{ .Values.vpa.resourcePolicy.provisioner.maxAllowed.memory }}
       controlledValues: RequestsOnly
     - containerName: alicloud-csi-attacher
-      minAllowed:
-        memory: {{ .Values.csiPluginController.podResources.attacher.requests.memory }}
-      maxAllowed:
-        cpu: {{ .Values.vpa.resourcePolicy.attacher.maxAllowed.cpu }}
-        memory: {{ .Values.vpa.resourcePolicy.attacher.maxAllowed.memory }}
       controlledValues: RequestsOnly
     - containerName: alicloud-csi-snapshotter
-      minAllowed:
-        memory: {{ .Values.csiPluginController.podResources.snapshotter.requests.memory }}
-      maxAllowed:
-        cpu: {{ .Values.vpa.resourcePolicy.snapshotter.maxAllowed.cpu }}
-        memory: {{ .Values.vpa.resourcePolicy.snapshotter.maxAllowed.memory }}
       controlledValues: RequestsOnly
     - containerName: alicloud-csi-resizer
-      minAllowed:
-        memory: {{ .Values.csiPluginController.podResources.resizer.requests.memory }}
-      maxAllowed:
-        cpu: {{ .Values.vpa.resourcePolicy.resizer.maxAllowed.cpu }}
-        memory: {{ .Values.vpa.resourcePolicy.resizer.maxAllowed.memory }}
       controlledValues: RequestsOnly
     - containerName: alicloud-csi-liveness-probe
-      minAllowed:
-        memory: {{ .Values.csiPluginController.podResources.livenessProbe.requests.memory }}
-      maxAllowed:
-        cpu: {{ .Values.vpa.resourcePolicy.livenessProbe.maxAllowed.cpu }}
-        memory: {{ .Values.vpa.resourcePolicy.livenessProbe.maxAllowed.memory }}
       controlledValues: RequestsOnly
   targetRef:
     apiVersion: apps/v1
