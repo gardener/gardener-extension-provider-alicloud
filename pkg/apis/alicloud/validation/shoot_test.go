@@ -42,16 +42,19 @@ var _ = Describe("Shoot validation", func() {
 
 			Expect(errorList).To(ConsistOf(
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":  Equal(field.ErrorTypeInvalid),
-					"Field": Equal("spec.networking.nodes"),
+					"Type":     Equal(field.ErrorTypeInvalid),
+					"Field":    Equal("spec.networking.nodes"),
+					"BadValue": Equal("100.100.0.0/16"),
 				})),
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":  Equal(field.ErrorTypeInvalid),
-					"Field": Equal("spec.networking.services"),
+					"Type":     Equal(field.ErrorTypeInvalid),
+					"Field":    Equal("spec.networking.pods"),
+					"BadValue": Equal("100.101.0.0/16"),
 				})),
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":  Equal(field.ErrorTypeInvalid),
-					"Field": Equal("spec.networking.pods"),
+					"Type":     Equal(field.ErrorTypeInvalid),
+					"Field":    Equal("spec.networking.services"),
+					"BadValue": Equal("100.102.0.0/16"),
 				})),
 			))
 		})
