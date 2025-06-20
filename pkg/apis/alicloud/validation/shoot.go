@@ -172,7 +172,7 @@ func validateNetworkCIDR(cidr *string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if cidr != nil && cidrvalidation.NetworksIntersect(*cidr, ReservedCIDR) {
-		allErrs = append(allErrs, field.Invalid(fldPath, fldPath, fmt.Sprintf("must not overlap with %s, it is reserved by Alicloud", ReservedCIDR)))
+		allErrs = append(allErrs, field.Invalid(fldPath, *cidr, fmt.Sprintf("must not overlap with %s, it is reserved by Alicloud", ReservedCIDR)))
 	}
 
 	return allErrs
