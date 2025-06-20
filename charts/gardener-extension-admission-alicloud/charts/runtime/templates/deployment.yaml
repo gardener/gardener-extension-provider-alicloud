@@ -72,8 +72,12 @@ spec:
             port: {{ .Values.healthPort }}
             scheme: HTTP
           initialDelaySeconds: 5
-        {{- if .Values.gardener.virtualCluster.enabled }}
         env:
+        - name: LEADER_ELECTION_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{- if .Values.gardener.virtualCluster.enabled }}
         - name: SOURCE_CLUSTER
           value: enabled
         {{- end }}
