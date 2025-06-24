@@ -78,7 +78,7 @@ spec:
 
 ## Enable customized machine images for the Alicloud extension
 
-Customized machine images can be created for an Alicloud account and shared with other Alicloud accounts. 
+Customized machine images can be created for an Alicloud account and shared with other Alicloud accounts.
 The same customized machine image has different image ID in different regions on Alicloud.
 If you need to enable `encrypted system disk`, you must provide customized machine images.
 Administrators/Operators need to explicitly declare them per imageID per region as below:
@@ -182,7 +182,9 @@ spec:
     region: cn-shanghai
   backup:
     provider: alicloud
-    secretRef:
+    credentialsRef:
+      apiVersion: v1
+      kind: Secret
       name: backup-credentials
       namespace: garden
   ...
@@ -191,5 +193,5 @@ An example of the referenced secret containing the credentials for the Alicloud 
 
 #### Permissions for Alicloud Object Storage Service
 
-Please make sure the RAM user associated with the provided AccessKey pair has the following permission. 
+Please make sure the RAM user associated with the provided AccessKey pair has the following permission.
 - AliyunOSSFullAccess
