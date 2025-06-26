@@ -17,7 +17,6 @@ import (
 
 // Reconcile implements infrastructure.Actuator.
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-
 	return util.DetermineError(a.reconcile(ctx, log, OnReconcile, infra, cluster), helper.KnownCodes)
 }
 

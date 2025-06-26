@@ -24,6 +24,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
 )
 
+// FlowReconciler can manage infrastructure resources using Flow.
 type FlowReconciler struct {
 	client                     client.Client
 	restConfig                 *rest.Config
@@ -44,7 +45,7 @@ func NewFlowReconciler(client client.Client, restConfig *rest.Config, log logr.L
 }
 
 // Delete implements Reconciler.
-func (f *FlowReconciler) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+func (f *FlowReconciler) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
 	f.log.Info("cleanupServiceLoadBalancers")
 	err := f.actuator.cleanupServiceLoadBalancers(ctx, infra)
 	if err != nil {
@@ -57,7 +58,6 @@ func (f *FlowReconciler) Delete(ctx context.Context, infra *extensionsv1alpha1.I
 		return util.DetermineError(err, helper.KnownCodes)
 	}
 	return util.DetermineError(f.deleteWithFlow(ctx, infra, flowState), helper.KnownCodes)
-
 }
 
 // Reconcile implements Reconciler.
