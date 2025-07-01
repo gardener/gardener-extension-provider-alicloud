@@ -57,7 +57,11 @@ func (f *FlowReconciler) Delete(ctx context.Context, infra *extensionsv1alpha1.I
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
-	return util.DetermineError(f.deleteWithFlow(ctx, infra, flowState), helper.KnownCodes)
+	err = f.deleteWithFlow(ctx, infra, flowState)
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+	return util.DetermineError(f.actuator.cleanupTerraformerResources(ctx, f.log, infra), helper.KnownCodes)
 }
 
 // Reconcile implements Reconciler.
@@ -281,17 +285,6 @@ func (f *FlowReconciler) decodeInfrastructureConfig(infrastructure *extensionsv1
 }
 
 func (f *FlowReconciler) createFlowContext(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, oldState *infraflow.PersistentState) (*infraflow.FlowContext, error) {
-	if oldState.MigratedFromTerraform() && !oldState.TerraformCleanedUp() {
-		err := f.actuator.cleanupTerraformerResources(ctx, f.log, infrastructure)
-		if err != nil {
-			return nil, fmt.Errorf("cleaning up terraformer resources failed: %w", err)
-		}
-		oldState.SetTerraformCleanedUp()
-		if err := f.updateStatusState(ctx, infrastructure, oldState); err != nil {
-			return nil, fmt.Errorf("updating status state failed: %w", err)
-		}
-	}
-
 	infrastructureConfig, err := f.decodeInfrastructureConfig(infrastructure)
 	if err != nil {
 		return nil, err
