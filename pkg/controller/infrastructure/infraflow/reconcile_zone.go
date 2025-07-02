@@ -392,6 +392,10 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 
 // DeleteZoneByVSwitches is called to delete zone per vswitch
 func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*aliclient.VSwitch) error {
+	// Check if toBeDeleted is empty
+	if len(toBeDeleted) == 0 {
+		return nil // Return immediately if there is nothing to delete
+	}
 	g := flow.NewGraph("Alicloud infrastructure deletion: zones")
 
 	toBeDeletedZones := sets.NewString()
