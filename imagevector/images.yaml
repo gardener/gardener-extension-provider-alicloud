@@ -115,7 +115,7 @@ images:
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
-  tag: v1.30.3-90b225e-aliyun
+  tag: v1.31.4-75f6f4a-aliyun
   labels:
   - name: 'cloud.gardener.cnudie/responsibles'
     value:
@@ -126,7 +126,7 @@ images:
 - name: csi-plugin-alicloud-init
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
-  tag: v1.30.3-90b225e-aliyun-init
+  tag: v1.31.4-75f6f4a-aliyun-init
 - name: csi-liveness-probe
   sourceRepository: github.com/kubernetes-csi/livenessprobe
   repository: registry.k8s.io/sig-storage/livenessprobe
