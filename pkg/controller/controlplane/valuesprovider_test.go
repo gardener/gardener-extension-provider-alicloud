@@ -20,9 +20,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	vpaautoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -145,13 +148,6 @@ var _ = Describe("ValuesProvider", func() {
 				},
 
 				"csiSnapshotController": map[string]interface{}{},
-				"csiSnapshotValidationWebhook": map[string]interface{}{
-					"replicas": 1,
-					"secrets": map[string]interface{}{
-						"server": "csi-snapshot-validation-server",
-					},
-					"topologyAwareRoutingEnabled": false,
-				},
 			},
 		}
 
@@ -161,10 +157,6 @@ var _ = Describe("ValuesProvider", func() {
 					"credentialsFile": "YmF6",
 				},
 				"enableADController": true,
-				"webhookConfig": map[string]interface{}{
-					"url":      "https://" + alicloud.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
-					"caBundle": "",
-				},
 			},
 		}
 
@@ -221,6 +213,10 @@ var _ = Describe("ValuesProvider", func() {
 			c.EXPECT().Get(context.TODO(), cpSecretKey, &corev1.Secret{}).DoAndReturn(clientGet(cpSecret))
 
 			By("creating secrets managed outside of this package for whose secretsmanager.Get() will be called")
+			c.EXPECT().Delete(context.TODO(), &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "csi-snapshot-validation", Namespace: namespace}})
+			c.EXPECT().Delete(context.TODO(), &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "csi-snapshot-validation", Namespace: namespace}})
+			c.EXPECT().Delete(context.TODO(), &vpaautoscalingv1.VerticalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Name: "csi-snapshot-webhook-vpa", Namespace: namespace}})
+			c.EXPECT().Delete(context.TODO(), &policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Name: "csi-snapshot-validation", Namespace: namespace}})
 			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "ca-provider-alicloud-controlplane", Namespace: namespace}})).To(Succeed())
 			Expect(fakeClient.Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "csi-snapshot-validation-server", Namespace: namespace}})).To(Succeed())
 		})
@@ -254,7 +250,7 @@ var _ = Describe("ValuesProvider", func() {
 		})
 
 		DescribeTable("topologyAwareRoutingEnabled value",
-			func(seedSettings *gardencorev1beta1.SeedSettings, shootControlPlane *gardencorev1beta1.ControlPlane, expected bool) {
+			func(seedSettings *gardencorev1beta1.SeedSettings, shootControlPlane *gardencorev1beta1.ControlPlane) {
 				cluster.Seed = &gardencorev1beta1.Seed{
 					Spec: gardencorev1beta1.SeedSpec{
 						Settings: seedSettings,
@@ -265,38 +261,31 @@ var _ = Describe("ValuesProvider", func() {
 				values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(values).To(HaveKey("csi-alicloud"))
-				Expect(values["csi-alicloud"]).To(HaveKeyWithValue("csiSnapshotValidationWebhook", HaveKeyWithValue("topologyAwareRoutingEnabled", expected)))
 			},
 
 			Entry("seed setting is nil, shoot control plane is not HA",
 				nil,
 				&gardencorev1beta1.ControlPlane{HighAvailability: nil},
-				false,
 			),
 			Entry("seed setting is disabled, shoot control plane is not HA",
 				&gardencorev1beta1.SeedSettings{TopologyAwareRouting: &gardencorev1beta1.SeedSettingTopologyAwareRouting{Enabled: false}},
 				&gardencorev1beta1.ControlPlane{HighAvailability: nil},
-				false,
 			),
 			Entry("seed setting is enabled, shoot control plane is not HA",
 				&gardencorev1beta1.SeedSettings{TopologyAwareRouting: &gardencorev1beta1.SeedSettingTopologyAwareRouting{Enabled: true}},
 				&gardencorev1beta1.ControlPlane{HighAvailability: nil},
-				false,
 			),
 			Entry("seed setting is nil, shoot control plane is HA with failure tolerance type 'zone'",
 				nil,
 				&gardencorev1beta1.ControlPlane{HighAvailability: &gardencorev1beta1.HighAvailability{FailureTolerance: gardencorev1beta1.FailureTolerance{Type: gardencorev1beta1.FailureToleranceTypeZone}}},
-				false,
 			),
 			Entry("seed setting is disabled, shoot control plane is HA with failure tolerance type 'zone'",
 				&gardencorev1beta1.SeedSettings{TopologyAwareRouting: &gardencorev1beta1.SeedSettingTopologyAwareRouting{Enabled: false}},
 				&gardencorev1beta1.ControlPlane{HighAvailability: &gardencorev1beta1.HighAvailability{FailureTolerance: gardencorev1beta1.FailureTolerance{Type: gardencorev1beta1.FailureToleranceTypeZone}}},
-				false,
 			),
 			Entry("seed setting is enabled, shoot control plane is HA with failure tolerance type 'zone'",
 				&gardencorev1beta1.SeedSettings{TopologyAwareRouting: &gardencorev1beta1.SeedSettingTopologyAwareRouting{Enabled: true}},
 				&gardencorev1beta1.ControlPlane{HighAvailability: &gardencorev1beta1.HighAvailability{FailureTolerance: gardencorev1beta1.FailureTolerance{Type: gardencorev1beta1.FailureToleranceTypeZone}}},
-				true,
 			),
 		)
 	})

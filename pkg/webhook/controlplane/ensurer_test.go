@@ -328,7 +328,6 @@ func checkKubeAPIServerDeployment(dep *appsv1.Deployment, k8sVersion string, fea
 	for _, fg := range featureGates {
 		Expect(c.Command).To(test.ContainElementWithPrefixContaining("--feature-gates=", fg, ","))
 	}
-	Expect(dep.Spec.Template.Labels).To(HaveKeyWithValue("networking.resources.gardener.cloud/to-csi-snapshot-validation-tcp-443", "allowed"))
 }
 
 func checkKubeControllerManagerDeployment(dep *appsv1.Deployment) {

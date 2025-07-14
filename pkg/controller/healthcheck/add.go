@@ -61,10 +61,6 @@ func RegisterHealthChecks(_ context.Context, mgr manager.Manager, opts healthche
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker(alicloud.CSISnapshotValidationName),
-			},
-			{
-				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
 				HealthCheck:   general.NewSeedDeploymentHealthChecker(alicloud.CloudControllerManagerName),
 			},
 		},

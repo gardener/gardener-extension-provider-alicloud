@@ -41,9 +41,6 @@ const (
 	// CSIPluginInitImageName is the name of the CSI plugin init image.
 	CSIPluginInitImageName = "csi-plugin-alicloud-init"
 
-	// CSISnapshotValidationWebhookImageName is the name of the csi-snapshot-validation-webhook image.
-	CSISnapshotValidationWebhookImageName = "csi-snapshot-validation-webhook"
-
 	// StorageEndpoint is the data field in a secret where the storage endpoint is stored at.
 	StorageEndpoint = "storageEndpoint"
 	// CloudControllerManagerName is the a constant for the name of the CloudController.
