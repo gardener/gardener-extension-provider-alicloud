@@ -16,10 +16,19 @@ images:
       confidentiality_requirement: 'high'
       integrity_requirement: 'high'
       availability_requirement: 'low'
+
 - name: alicloud-controller-manager
   sourceRepository: https://github.com/kubernetes/cloud-provider-alibaba-cloud
   repository: registry-eu-central-1.ack.aliyuncs.com/acs/cloud-controller-manager
   tag: v2.10.0
+  labels:
+  - name: 'cloud.gardener.cnudie/responsibles'
+    value:
+    - type: 'githubUser'
+      username: 'shaoyongfeng'
+    - type: 'emailAddress'
+      email: 'taylor.shao@sap.com'
+
 
 - name: csi-attacher
   sourceRepository: https://github.com/kubernetes-csi/external-attacher
@@ -34,6 +43,13 @@ images:
       confidentiality_requirement: 'low'
       integrity_requirement: 'high'
       availability_requirement: 'low'
+  - name: 'cloud.gardener.cnudie/responsibles'
+    value:
+      - type: 'githubUser'
+        username: 'shaoyongfeng'
+      - type: 'emailAddress'
+        email: 'taylor.shao@sap.com'
+
 - name: csi-node-driver-registrar
   sourceRepository: https://github.com/kubernetes-csi/node-driver-registrar
   repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
@@ -60,6 +76,13 @@ images:
       confidentiality_requirement: 'low'
       integrity_requirement: 'high'
       availability_requirement: 'low'
+  - name: 'cloud.gardener.cnudie/responsibles'
+    value:
+    - type: 'githubUser'
+      username: 'shaoyongfeng'
+    - type: 'emailAddress'
+      email: 'taylor.shao@sap.com'
+
 - name: csi-snapshotter
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
   repository: registry.k8s.io/sig-storage/csi-snapshotter
@@ -73,6 +96,13 @@ images:
       confidentiality_requirement: 'low'
       integrity_requirement: 'high'
       availability_requirement: 'low'
+  - name: 'cloud.gardener.cnudie/responsibles'
+    value:
+    - type: 'githubUser'
+      username: 'shaoyongfeng'
+    - type: 'emailAddress'
+      email: 'taylor.shao@sap.com'
+
 - name: csi-snapshot-validation-webhook
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
   repository: registry.k8s.io/sig-storage/snapshot-validation-webhook
@@ -86,6 +116,13 @@ images:
       confidentiality_requirement: 'low'
       integrity_requirement: 'high'
       availability_requirement: 'low'
+  - name: 'cloud.gardener.cnudie/responsibles'
+    value:
+    - type: 'githubUser'
+      username: 'shaoyongfeng'
+    - type: 'emailAddress'
+      email: 'taylor.shao@sap.com'
+
 - name: csi-snapshot-controller
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
   repository: registry.k8s.io/sig-storage/snapshot-controller
@@ -99,6 +136,13 @@ images:
       confidentiality_requirement: 'low'
       integrity_requirement: 'high'
       availability_requirement: 'low'
+  - name: 'cloud.gardener.cnudie/responsibles'
+    value:
+    - type: 'githubUser'
+      username: 'shaoyongfeng'
+    - type: 'emailAddress'
+      email: 'taylor.shao@sap.com'
+
 - name: csi-resizer
   sourceRepository: https://github.com/kubernetes-csi/external-resizer
   repository: registry.k8s.io/sig-storage/csi-resizer
@@ -112,6 +156,13 @@ images:
       confidentiality_requirement: 'low'
       integrity_requirement: 'high'
       availability_requirement: 'low'
+  - name: 'cloud.gardener.cnudie/responsibles'
+    value:
+    - type: 'githubUser'
+      username: 'shaoyongfeng'
+    - type: 'emailAddress'
+      email: 'taylor.shao@sap.com'
+
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
@@ -127,6 +178,13 @@ images:
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
   tag: v1.31.4-75f6f4a-aliyun-init
+  labels:
+  - name: 'cloud.gardener.cnudie/responsibles'
+    value:
+    - type: 'githubUser'
+      username: 'shaoyongfeng'
+    - type: 'emailAddress'
+      email: 'taylor.shao@sap.com'
 - name: csi-liveness-probe
   sourceRepository: github.com/kubernetes-csi/livenessprobe
   repository: registry.k8s.io/sig-storage/livenessprobe
