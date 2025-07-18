@@ -40,12 +40,12 @@ func TestController(t *testing.T) {
 var _ = Describe("Ensurer", func() {
 	var (
 		ctrl       *gomock.Controller
-		eContext27 = gcontext.NewInternalGardenContext(
+		eContext30 = gcontext.NewInternalGardenContext(
 			&extensionscontroller.Cluster{
 				Shoot: &gardencorev1beta1.Shoot{
 					Spec: gardencorev1beta1.ShootSpec{
 						Kubernetes: gardencorev1beta1.Kubernetes{
-							Version: "1.27.0",
+							Version: "1.30.0",
 						},
 					},
 				},
@@ -98,10 +98,10 @@ var _ = Describe("Ensurer", func() {
 		})
 
 		It("should add missing elements to kube-apiserver deployment (k8s < 1.31)", func() {
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext27, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext30, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 
-			checkKubeAPIServerDeployment(dep, "1.27.0", []string{})
+			checkKubeAPIServerDeployment(dep, "1.30.0", []string{})
 		})
 
 		It("should add missing elements to kube-apiserver deployment (k8s >= 1.31)", func() {
@@ -117,10 +117,10 @@ var _ = Describe("Ensurer", func() {
 				"--feature-gates=Foo=true,ExpandInUsePersistentVolumes=false,ExpandCSIVolumes=false",
 			}
 
-			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext27, dep, nil)
+			err := ensurer.EnsureKubeAPIServerDeployment(context.TODO(), eContext31, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 
-			checkKubeAPIServerDeployment(dep, "1.27.0", []string{"Foo=true"})
+			checkKubeAPIServerDeployment(dep, "1.31.0", []string{"Foo=true"})
 		})
 	})
 
@@ -147,7 +147,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext27, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext31, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -177,7 +177,7 @@ var _ = Describe("Ensurer", func() {
 			ensurer := NewEnsurer(logger)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
-			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext27, dep, nil)
+			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext31, dep, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			checkKubeControllerManagerDeployment(dep)
 		})
@@ -219,7 +219,7 @@ var _ = Describe("Ensurer", func() {
 				}
 			)
 
-			actual, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), eContext27, semver.MustParse("1.27.0"), oldUnitOptions, nil)
+			actual, err := ensurer.EnsureKubeletServiceUnitOptions(context.TODO(), eContext31, semver.MustParse("1.31.0"), oldUnitOptions, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(actual).To(Equal(expected))
 		})
@@ -251,7 +251,7 @@ var _ = Describe("Ensurer", func() {
 
 			kubeletConfig := *oldKubeletConfig
 
-			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext27, semver.MustParse("1.27.0"), &kubeletConfig, nil)
+			err := ensurer.EnsureKubeletConfiguration(context.TODO(), eContext31, semver.MustParse("1.31.0"), &kubeletConfig, nil)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(&kubeletConfig).To(Equal(newKubeletConfig))
 		})
@@ -283,7 +283,7 @@ var _ = Describe("Ensurer", func() {
 
 		It("should inject the sidecar container", func() {
 			Expect(deployment.Spec.Template.Spec.Containers).To(BeEmpty())
-			Expect(ensurer.EnsureMachineControllerManagerDeployment(context.TODO(), eContext27, deployment, nil)).To(Succeed())
+			Expect(ensurer.EnsureMachineControllerManagerDeployment(context.TODO(), eContext31, deployment, nil)).To(Succeed())
 			expectedContainer := machinecontrollermanager.ProviderSidecarContainer(shoot, deployment.Namespace, "provider-alicloud", "foo:bar")
 			Expect(deployment.Spec.Template.Spec.Containers).To(ConsistOf(expectedContainer))
 		})
