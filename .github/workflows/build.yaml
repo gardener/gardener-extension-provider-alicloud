@@ -1,0 +1,102 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        required: true
+        type: string
+        default: snapshot
+        description: |
+          the mode to use. either `snapshot` or `release`. Will affect effective version, as well
+          as target-oci-registry.
+
+jobs:
+  prepare:
+    uses: gardener/cc-utils/.github/workflows/prepare.yaml@master
+    with:
+      mode: ${{ inputs.mode }}
+      version-commit-callback-action-path: .github/actions/prepare-release
+    permissions:
+      contents: read
+
+  oci-images:
+    name: Build OCI-Images
+    needs:
+      - prepare
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    secrets: inherit
+    uses: gardener/cc-utils/.github/workflows/oci-ocm.yaml@master
+    strategy:
+      matrix:
+        args:
+          - name: gardener-extension-provider-alicloud
+            target: gardener-extension-provider-alicloud
+            oci-repository: gardener/extensions/provider-alicloud
+          - name: gardener-extension-admission-alicloud
+            target: gardener-extension-admission-alicloud
+            oci-repository: gardener/extensions/admission-alicloud
+    with:
+      name: ${{ matrix.args.name }}
+      version: ${{ needs.prepare.outputs.version }}
+      target: ${{ matrix.args.target }}
+      oci-registry: ${{ needs.prepare.outputs.oci-registry }}
+      oci-repository: ${{ matrix.args.oci-repository }}
+      oci-platforms: linux/amd64,linux/arm64
+      extra-tags: latest
+
+  helmcharts:
+    name: Build Helmcharts
+    needs:
+      - prepare
+      - oci-images
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: gardener/cc-utils/.github/workflows/helmchart-ocm.yaml@master
+    strategy:
+      matrix:
+        args:
+          - name: provider-alicloud
+            dir: charts/gardener-extension-provider-alicloud
+            oci-repository: charts/gardener/extensions
+            ocm-mappings:
+              - ref: ocm-resource:gardener-extension-provider-alicloud.repository
+                attribute: image.repository
+              - ref: ocm-resource:gardener-extension-provider-alicloud.tag
+                attribute: image.tag
+          - name: admission-alicloud-application
+            dir: charts/gardener-extension-admission-alicloud/charts/application
+            oci-repository: charts/gardener/extensions
+            ocm-mappings:
+              - ref: ocm-resource:gardener-extension-admission-alicloud.repository
+                attribute: image.repository
+              - ref: ocm-resource:gardener-extension-admission-alicloud.tag
+                attribute: image.tag
+          - name: admission-alicloud-runtime
+            dir: charts/gardener-extension-admission-alicloud/charts/runtime
+            oci-repository: charts/gardener/extensions
+            ocm-mappings:
+              - ref: ocm-resource:gardener-extension-admission-alicloud.repository
+                attribute: image.repository
+              - ref: ocm-resource:gardener-extension-admission-alicloud.tag
+                attribute: image.tag
+    with:
+      name: ${{ matrix.args.name }}
+      dir: ${{ matrix.args.dir }}
+      oci-registry: ${{ needs.prepare.outputs.oci-registry }}
+      oci-repository: ${{ matrix.args.oci-repository }}
+      ocm-mappings: ${{ toJSON(matrix.args.ocm-mappings) }}
+
+  sast-lint:
+    uses: gardener/cc-utils/.github/workflows/sastlint-ocm.yaml@master
+    permissions:
+      contents: read
+    with:
+      linter: gosec
+      run: make sast-report
+      go-version: '1.24'
