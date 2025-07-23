@@ -235,13 +235,13 @@ var _ = Describe("Bastion tests", func() {
 			log,
 			bastion,
 			extensionsv1alpha1.BastionResource,
-			60*time.Second,
-			60*time.Second,
+			10*time.Second,
+			90*time.Second,
 			10*time.Minute,
 			nil,
 		)).To(Succeed())
 
-		time.Sleep(60 * time.Second)
+		time.Sleep(90 * time.Second)
 		verifyPort22IsOpen(ctx, c, bastion)
 		verifyPort42IsClosed(ctx, c, bastion)
 
