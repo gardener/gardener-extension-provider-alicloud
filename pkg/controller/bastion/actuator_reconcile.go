@@ -344,6 +344,7 @@ func ensureSecurityGroupRules(c aliclient.ECS, opt *Options, shootSecurityGroupI
 }
 
 func isInstanceReady(c aliclient.ECS, opt *Options) (bool, error) {
+	time.Sleep(60 * time.Second)
 	response, err := c.GetInstances(opt.BastionInstanceName)
 	if err != nil {
 		return false, err
