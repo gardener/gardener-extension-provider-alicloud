@@ -9,7 +9,6 @@ images:
   csi-snapshot-controller: repository:tag
   csi-resizer: repository:tag
   csi-liveness-probe: repository:tag
-  csi-snapshot-validation-webhook: repository:tag
 
 enableADController: true
 
@@ -59,13 +58,3 @@ csiSnapshotController:
       requests:
         cpu: 11m
         memory: 32Mi
-csiSnapshotValidationWebhook:
-  replica: 1
-  podAnnotations: {}
-  resources:
-    requests:
-      cpu: 10m
-      memory: 32Mi
-  secrets:
-    server: csi-snapshot-validation-server
-  topologyAwareRoutingEnabled: false

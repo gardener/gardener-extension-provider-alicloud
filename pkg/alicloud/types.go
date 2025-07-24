@@ -41,9 +41,6 @@ const (
 	// CSIPluginInitImageName is the name of the CSI plugin init image.
 	CSIPluginInitImageName = "csi-plugin-alicloud-init"
 
-	// CSISnapshotValidationWebhookImageName is the name of the csi-snapshot-validation-webhook image.
-	CSISnapshotValidationWebhookImageName = "csi-snapshot-validation-webhook"
-
 	// StorageEndpoint is the data field in a secret where the storage endpoint is stored at.
 	StorageEndpoint = "storageEndpoint"
 	// CloudControllerManagerName is the a constant for the name of the CloudController.
@@ -52,8 +49,6 @@ const (
 	CSIPluginController = "csi-plugin-controller"
 	// CSISnapshotControllerName is a constant for the name of the csi-snapshot-controller Deployment in the Seed.
 	CSISnapshotControllerName = "csi-snapshot-controller"
-	// CSISnapshotValidationName is the constant for the name of the csi-snapshot-validation-webhook component.
-	CSISnapshotValidationName = "csi-snapshot-validation"
 
 	// CRDVolumeSnapshotClasses is a constant for the name of VolumeSnapshotClasses CRD.
 	CRDVolumeSnapshotClasses = "volumesnapshotclasses.snapshot.storage.k8s.io"
@@ -79,6 +74,10 @@ const (
 	DefaultDNSRegion = "cn-shanghai"
 	// CloudProviderConfigName is the name of the configmap containing the cloud provider config.
 	CloudProviderConfigName = "cloud-provider-config"
+
+	// CSISnapshotValidationName is the constant for the name of the csi-snapshot-validation-webhook component.
+	// TODO: Clean up once SnapshotValidation is removed everywhere
+	CSISnapshotValidationName = "csi-snapshot-validation"
 )
 
 var (
