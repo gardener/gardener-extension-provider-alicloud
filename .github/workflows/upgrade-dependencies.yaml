@@ -6,6 +6,7 @@ on:
 
 jobs:
   upgrade-pullrequests:
+    if: ${{ github.repository_owner == 'gardener' }}
     uses: gardener/cc-utils/.github/workflows/upgrade-dependencies.yaml@master
     secrets: inherit
     permissions:
