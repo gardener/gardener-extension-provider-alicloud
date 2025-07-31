@@ -19,10 +19,17 @@ jobs:
     with:
       mode: release
 
+  integrationtest:
+    uses: ./.github/workflows/run-integrationtests.yaml
+    permissions:
+      contents: read
+      id-token: write
+
   release-to-github-and-bump:
     uses: gardener/cc-utils/.github/workflows/release.yaml@master
     needs:
       - build
+      - integrationtest
     secrets: inherit
     permissions:
       contents: write
