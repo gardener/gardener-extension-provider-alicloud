@@ -25,8 +25,16 @@ import (
 	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 )
 
-// DefaultInternetChargeType is used for EIP
-const DefaultInternetChargeType = "PayByTraffic"
+const (
+	// DefaultInternetChargeType is used for EIP
+	DefaultInternetChargeType = "PayByTraffic"
+
+	// alicloudObjectDeletionLifecyclePolicy is the name of the lifecycle policy that is added to bucket which deletes current objects after their immutability period.
+	alicloudObjectDeletionLifecyclePolicy = "GC-forTaggedObjects"
+
+	// alicloudObjectObjectMarkedForDeletionTagKey is the tag "key" to be added on objects to be garbage-collected by provider's lifecycle policy.
+	alicloudObjectObjectMarkedForDeletionTagKey = "gc-marked-for-deletion"
+)
 
 // ClientFactory is the new factory to instantiate Alicloud clients.
 type ClientFactory interface {
@@ -174,10 +182,15 @@ type ossClient struct {
 
 // OSS is an interface which declares OSS related methods.
 type OSS interface {
-	DeleteObjectsWithPrefix(ctx context.Context, bucketName, prefix string) error
+	GetBucketInfo(bucketName string, options ...oss.Option) (*oss.BucketInfo, error)
+	GetBucketWorm(bucketName string, options ...oss.Option) (*oss.WormConfiguration, error)
 	CreateBucketIfNotExists(ctx context.Context, bucketName string) error
+	CreateRetentionPolicy(bucketName string, retentionDays int, options ...oss.Option) (string, error)
+	LockRetentionPolicy(bucketName, wormID string, options ...oss.Option) error
+	UpdateRetentionPolicy(bucketName string, retentionDays int, wormID string, options ...oss.Option) error
+	AbortRetentionPolcy(bucketName string, options ...oss.Option) error
+	DeleteObjectsWithPrefix(ctx context.Context, bucketName, prefix string) error
 	DeleteBucketIfExists(ctx context.Context, bucketName string) error
-	GetBucketInfo(ctx context.Context, bucketName string) (*oss.BucketInfo, error)
 }
 
 // VPCInfo contains info about an existing VPC.
