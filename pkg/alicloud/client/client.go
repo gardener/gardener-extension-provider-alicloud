@@ -124,7 +124,7 @@ func (c *ossClient) DeleteObjectsWithPrefix(ctx context.Context, bucketName, pre
 		marker = lsRes.NextMarker
 	}
 
-	if isObjectPresent, err := addTagToObjectsIfPresent(c.Client, bucketName, prefix); err != nil {
+	if isObjectPresent, err := addTagToObjectsIfPresent(bucket, prefix); err != nil {
 		return err
 	} else if isObjectPresent {
 		// add the lifecycle policies to bucket to purge the remaining snapshot objects present in the prefix.
@@ -230,10 +230,10 @@ func (c *ossClient) DeleteBucketIfExists(ctx context.Context, bucketName string)
 	if err := c.DeleteBucket(bucketName); err != nil {
 		if ossErr, ok := err.(oss.ServiceError); ok {
 			switch ossErr.Code {
-			case "NoSuchBucket":
+			case ErrorCodeNoSuchBucket:
 				return nil
 
-			case "BucketNotEmpty":
+			case ErrorCodeBucketNotEmpty:
 				if err := c.DeleteObjectsWithPrefix(ctx, bucketName, ""); err != nil {
 					return err
 				}
@@ -837,12 +837,7 @@ func isRoleNotExistsError(err error) bool {
 	return false
 }
 
-func addTagToObjectsIfPresent(ossClient oss.Client, bucketName, prefix string) (bool, error) {
-	bucket, err := ossClient.Bucket(bucketName)
-	if err != nil {
-		return false, err
-	}
-
+func addTagToObjectsIfPresent(bucket *oss.Bucket, prefix string) (bool, error) {
 	isObjectPresent := false
 
 	marker := ""
@@ -857,7 +852,7 @@ func addTagToObjectsIfPresent(ossClient oss.Client, bucketName, prefix string) (
 			if err := bucket.PutObjectTagging(object.Key, oss.Tagging{
 				Tags: []oss.Tag{
 					{
-						Key:   alicloudObjectObjectMarkedForDeletionTagKey,
+						Key:   alicloudObjectMarkedForDeletionTagKey,
 						Value: "true",
 					},
 				},
@@ -880,7 +875,7 @@ func toGCobjectsAddLifeCyclePolicyObjects(ossClient oss.Client, bucket string) e
 			Status: "Enabled",
 			Tags: []oss.Tag{
 				{
-					Key:   alicloudObjectObjectMarkedForDeletionTagKey,
+					Key:   alicloudObjectMarkedForDeletionTagKey,
 					Value: "true",
 				},
 			},

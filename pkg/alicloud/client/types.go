@@ -29,11 +29,25 @@ const (
 	// DefaultInternetChargeType is used for EIP
 	DefaultInternetChargeType = "PayByTraffic"
 
-	// alicloudObjectDeletionLifecyclePolicy is the name of the lifecycle policy that is added to bucket which deletes current objects after their immutability period.
+	// alicloudObjectDeletionLifecyclePolicy is the name of the lifecycle policy that is added to bucket which deletes current objects after their immutability period expires.
 	alicloudObjectDeletionLifecyclePolicy = "GC-forTaggedObjects"
 
-	// alicloudObjectObjectMarkedForDeletionTagKey is the tag "key" to be added on objects to be garbage-collected by provider's lifecycle policy.
-	alicloudObjectObjectMarkedForDeletionTagKey = "gc-marked-for-deletion"
+	// alicloudObjectMarkedForDeletionTagKey is the tag "key" to be added on objects to be garbage-collected by provider's lifecycle policy.
+	alicloudObjectMarkedForDeletionTagKey = "gc-marked-for-deletion"
+
+	// ErrorCodeNoSuchBucket is a constant for OSS error code indicating that bucket does not exist.
+	ErrorCodeNoSuchBucket = "NoSuchBucket"
+	// ErrorCodeBucketNotEmpty is a constant for OSS error code indicating that bucket isn't empty.
+	ErrorCodeBucketNotEmpty = "BucketNotEmpty"
+	// ErrorCodeNoSuchWORMConfiguration is a constant for OSS error code indicating that WORM configuration doesn't exist.
+	ErrorCodeNoSuchWORMConfiguration = "NoSuchWORMConfiguration"
+
+	// WormStateExpired is constant for WORM configuration state `Expired`.
+	WormStateExpired = "Expired"
+	// WormStateLocked is constant for WORM configuration state `Locked`.
+	WormStateLocked = "Locked"
+	// WormStateInProgress is constant for WORM configuration state `InProgress`.
+	WormStateInProgress = "InProgress"
 )
 
 // ClientFactory is the new factory to instantiate Alicloud clients.

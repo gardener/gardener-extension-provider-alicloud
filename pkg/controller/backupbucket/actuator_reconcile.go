@@ -64,7 +64,7 @@ func (a *actuator) reconcile(ctx context.Context, _ logr.Logger, ossClient alicl
 		if !ok {
 			return util.DetermineError(err, helper.KnownCodes)
 		}
-		if ossErr.Code == "NoSuchBucket" {
+		if ossErr.Code == alicloudclient.ErrorCodeNoSuchBucket {
 			if err := ossClient.CreateBucketIfNotExists(ctx, bucket); err != nil {
 				return util.DetermineError(err, helper.KnownCodes)
 			}
@@ -96,17 +96,17 @@ func isBucketUpdateRequired(ossClient alicloudclient.OSS, bucket string, backupb
 
 	if wormConfig != nil {
 		switch wormConfig.State {
-		case "Expired":
+		case alicloudclient.WormStateExpired:
 			if backupbucketConfig.Immutability != nil {
 				return true
 			}
 
-		case "Locked":
+		case alicloudclient.WormStateLocked:
 			if wormConfig.RetentionPeriodInDays != backupbucketConfig.Immutability.RetentionPeriod {
 				return true
 			}
 
-		case "InProgress":
+		case alicloudclient.WormStateInProgress:
 			// Note: In Worm state: "InProgress", retentionPeriod can't be extended until retentionPolicy is locked.
 			if backupbucketConfig.Immutability.Locked {
 				return true
@@ -125,11 +125,11 @@ func isBucketLockConfigNeedToBeRemoved(ossClient alicloudclient.OSS, bucket stri
 
 	if wormConfig != nil {
 		switch wormConfig.State {
-		case "Locked":
+		case alicloudclient.WormStateLocked:
 			// once retentionPolicy is locked, bucket lock can't be removed
 			return false
 
-		case "InProgress", "Expired":
+		case alicloudclient.WormStateInProgress, alicloudclient.WormStateExpired:
 			if backupbucketConfig == nil || backupbucketConfig.Immutability == nil {
 				return true
 			}
@@ -147,7 +147,7 @@ func getAction(ossClient alicloudclient.OSS, bucket string, backupBucketConfig *
 		if err != nil {
 			if ossErr, ok := err.(oss.ServiceError); !ok {
 				return err
-			} else if ossErr.Code == "NoSuchWORMConfiguration" {
+			} else if ossErr.Code == alicloudclient.ErrorCodeNoSuchWORMConfiguration {
 				wormID, err := ossClient.CreateRetentionPolicy(bucket, backupBucketConfig.Immutability.RetentionPeriod)
 				if err != nil {
 					return err
@@ -163,7 +163,7 @@ func getAction(ossClient alicloudclient.OSS, bucket string, backupBucketConfig *
 
 		if wormConfig != nil {
 			switch wormConfig.State {
-			case "Expired":
+			case alicloudclient.WormStateExpired:
 				// first remove the expired retentionPolicy
 				// then only a new retentionPolicy can be added.
 				if err := ossClient.AbortRetentionPolcy(bucket); err != nil {
@@ -179,12 +179,12 @@ func getAction(ossClient alicloudclient.OSS, bucket string, backupBucketConfig *
 					}
 				}
 
-			case "Locked":
+			case alicloudclient.WormStateLocked:
 				if err := ossClient.UpdateRetentionPolicy(bucket, backupBucketConfig.Immutability.RetentionPeriod, wormConfig.WormId); err != nil {
 					return err
 				}
 
-			case "InProgress":
+			case alicloudclient.WormStateInProgress:
 				// Note: In Worm state: "InProgress", retentionPeriod can't be extended until retentionPolicy is locked.
 				if backupBucketConfig.Immutability.Locked {
 					if err := ossClient.LockRetentionPolicy(bucket, wormConfig.WormId); err != nil {
