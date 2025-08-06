@@ -20,3 +20,11 @@ spec:
   secretRef:
     name: backupprovider
     namespace: garden
+  # providerConfig:
+  #   apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+  #   kind: BackupBucketConfig
+  #   immutability:
+  #     retentionType: bucket
+  #     retentionPeriod: 1
+  #     locked: true
+
