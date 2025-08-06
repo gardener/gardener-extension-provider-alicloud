@@ -193,7 +193,7 @@ func (c *ossClient) GetBucketWorm(bucketName string, _ ...oss.Option) (*oss.Worm
 
 // CreateRetentionPolicy creates retention policy for bucket worm configuration on given bucketName.
 func (c *ossClient) CreateRetentionPolicy(bucketName string, retentionDays int, _ ...oss.Option) (string, error) {
-	wormID, err := c.Client.InitiateBucketWorm(bucketName, retentionDays)
+	wormID, err := c.InitiateBucketWorm(bucketName, retentionDays)
 	if err != nil {
 		return "", err
 	}
@@ -202,7 +202,7 @@ func (c *ossClient) CreateRetentionPolicy(bucketName string, retentionDays int, 
 
 // LockRetentionPolicy completes/locked the bucket worm configuration on given bucketName.
 func (c *ossClient) LockRetentionPolicy(bucketName, wormID string, _ ...oss.Option) error {
-	if err := c.Client.CompleteBucketWorm(bucketName, wormID); err != nil {
+	if err := c.CompleteBucketWorm(bucketName, wormID); err != nil {
 		return err
 	}
 	return nil
@@ -210,7 +210,7 @@ func (c *ossClient) LockRetentionPolicy(bucketName, wormID string, _ ...oss.Opti
 
 // UpdateRetentionPolicy extends the bucket worm configuration on given bucketName.
 func (c *ossClient) UpdateRetentionPolicy(bucketName string, retentionDays int, wormID string, _ ...oss.Option) error {
-	if err := c.Client.ExtendBucketWorm(bucketName, retentionDays, wormID); err != nil {
+	if err := c.ExtendBucketWorm(bucketName, retentionDays, wormID); err != nil {
 		return err
 	}
 	return nil
@@ -218,7 +218,7 @@ func (c *ossClient) UpdateRetentionPolicy(bucketName string, retentionDays int, 
 
 // AbortRetentionPolcy delete/abort the bucket worm configuration on given bucketName.
 func (c *ossClient) AbortRetentionPolcy(bucketName string, _ ...oss.Option) error {
-	if err := c.Client.AbortBucketWorm(bucketName); err != nil {
+	if err := c.AbortBucketWorm(bucketName); err != nil {
 		return err
 	}
 	return nil
@@ -854,14 +854,16 @@ func addTagToObjectsIfPresent(ossClient oss.Client, bucketName, prefix string) (
 		for _, object := range lsRes.Objects {
 			isObjectPresent = true
 			// tag the objects
-			bucket.PutObjectTagging(object.Key, oss.Tagging{
+			if err := bucket.PutObjectTagging(object.Key, oss.Tagging{
 				Tags: []oss.Tag{
 					{
 						Key:   alicloudObjectObjectMarkedForDeletionTagKey,
 						Value: "true",
 					},
 				},
-			})
+			}); err != nil {
+				return isObjectPresent, err
+			}
 		}
 		if !lsRes.IsTruncated {
 			break

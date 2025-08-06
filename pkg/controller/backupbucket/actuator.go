@@ -5,10 +5,11 @@
 package backupbucket
 
 import (
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener/extensions/pkg/controller/backupbucket"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 )
 
 type actuator struct {
@@ -32,6 +33,7 @@ func (f ActionFunc) Do() error {
 	return f()
 }
 
+// NewActuator creates a new Actuator that creates/updates backup-bucket.
 func NewActuator(mgr manager.Manager, aliClientFactory alicloudclient.ClientFactory) backupbucket.Actuator {
 	return &actuator{
 		client:           mgr.GetClient(),

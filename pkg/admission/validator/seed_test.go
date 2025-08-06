@@ -19,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/validator"
-
 	apisali "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	apisaliv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 )
