@@ -143,7 +143,7 @@ func (c *ossClient) CreateBucketIfNotExists(ctx context.Context, bucketName stri
 		expirationOption = oss.Expires(t)
 	}
 
-	if err := c.CreateBucket(bucketName, oss.StorageClass(oss.StorageStandard), oss.RedundancyType(oss.RedundancyZRS), expirationOption); err != nil {
+	if err := c.CreateBucket(bucketName, oss.StorageClass(oss.StorageStandard), expirationOption); err != nil {
 		if ossErr, ok := err.(oss.ServiceError); !ok {
 			return err
 		} else if ossErr.StatusCode != http.StatusConflict {
