@@ -883,6 +883,14 @@ func toGCobjectsAddLifeCyclePolicyObjects(ossClient oss.Client, bucket string) e
 				Days: 4,
 			},
 		},
+		// re-add this lifecycle policy to garbage-collect the left out multi-part of objects.
+		{
+			Prefix: "",
+			Status: "Enabled",
+			AbortMultipartUpload: &oss.LifecycleAbortMultipartUpload{
+				Days: 7,
+			},
+		},
 	}); err != nil {
 		return err
 	}
