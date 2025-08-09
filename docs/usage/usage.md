@@ -324,3 +324,70 @@ This extension supports `gardener/gardener`'s `WorkerPoolKubernetesVersion` feat
 ## Shoot CA Certificate and `ServiceAccount` Signing Key Rotation
 
 This extension supports `gardener/gardener`'s `ShootCARotation` feature gate since `gardener-extension-provider-alicloud@v1.36` and `ShootSARotation` feature gate since `gardener-extension-provider-alicloud@v1.37`.
+
+## BackupBucket
+
+Gardener manages `etcd's` backups for Shoot clusters using provider specific storage solutions. On Alicloud, this storage is implemented through [Alicloud object storage service](https://www.alibabacloud.com/en/product/object-storage-service), which store the backups/snapshots of the `etcd's` cluster data.
+
+The `BackupBucket` resource abstracts the backup infrastructure, enabling Gardener and its extension controllers to manage it seamlessly. This abstraction allows Gardener to create, delete, and maintain backup buckets across various cloud providers in a standardized manner.
+
+The `BackupBucket` resource includes a `spec` field, which defines the configuration details for the backup bucket. These details include:
+
+- A `region` is reference to a region where the bucket should be created.
+- A `secretRef` is reference to the secret containing credentials for accessing the cloud provider.
+- A `type` field defines the storage provider type like aws, azure, alicloud etc.
+- A `providerConfig` field defines provider specific configurations.
+
+### BackupBucketConfig
+
+The `BackupBucketConfig` describes the configuration that needs to be passed over for creation of the backup bucket infrastructure. Configuration for immutability feature a.k.a [worm lock](https://www.alibabacloud.com/help/en/oss/developer-reference/worm) in OSS that can be set on the bucket are specified in `BackupBucketConfig`.
+
+Immutability feature (WORM, i.e. write-once-read-many model) ensures that once backups is written to the bucket, it will prevent locked object from being permanently deleted, hence it cannot be modified or deleted for a specified period. This feature is crucial for protecting backups from accidental or malicious deletion, ensuring data safety and availability for restoration.
+
+The Gardener extension provider for Alicloud supports creating bucket (and enabling already existing buckets if immutability configured) to use [worm lock](https://www.alibabacloud.com/help/en/oss/developer-reference/worm) feature provided by storage provider Alicloud OSS(object storage service).
+
+Here is an example configuration for `BackupBucketConfig`:
+
+```yaml
+apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+kind: BackupBucketConfig
+immutability:
+  retentionType: bucket
+  retentionPeriod: 1
+  locked: true
+```
+
+- **`retentionType`**: Specifies the type of retention policy. Currently, Alicloud OSS supports worm(write-once-read-many) lock on `bucket` level. The allowed value is `bucket`, which applies the retention policy and retention period to the entire bucket. For more details, refer to the [documentation](https://www.alibabacloud.com/help/en/oss/user-guide/oss-retention-policies). Objects in the bucket will inherit the retention period which is set on the bucket.
+- **`retentionPeriod`**: Defines the duration for which object(s) in the bucket will remain immutable. Alicloud only supports immutability durations in days, therefore this field must be set as integer.
+- **`locked`**: Defines a boolean indicating whether the retention policy is locked or not. Once locked, the policy cannot be removed or shortened, ensuring immutability. Learn more about retention policies [here](https://www.alibabacloud.com/help/en/oss/user-guide/oss-retention-policies).
+
+> [!Note]
+> Once OSS bucket is worm policy is locked, it cannot be disabled.
+
+To configure a `BackupBucket` with immutability, include the `BackupBucketConfig` in the `ProviderConfig` of the `BackupBucket` resource. If the `locked` field is set to `true`, the retention policy will be locked, preventing further changes.
+
+Here is an example of configuring a `BackupBucket` OSS worm lock with retentionPeriod set to `1 Day` and locked `true`.
+
+```yaml
+apiVersion: extensions.gardener.cloud/v1alpha1
+kind: BackupBucket
+metadata:
+  name: my-backup-bucket
+spec:
+  type: alicloud
+  region: eu-central-1
+  secretRef:
+    name: my-ali-secret
+    namespace: my-namespace
+  providerConfig:
+    apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+    kind: BackupBucketConfig
+    immutability:
+      retentionType: bucket
+      retentionPeriod: 1
+      locked: true
+```
+
+> [!Note]
+> For Alicloud OSS, if the retention policy is not locked within 24 hours of its creation, the policy becomes invalid.
+> Moreover, retention period can only be extended when retention policy is locked.

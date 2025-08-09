@@ -1283,6 +1283,25 @@ func (m *MockOSS) EXPECT() *MockOSSMockRecorder {
 	return m.recorder
 }
 
+// AbortRetentionPolcy mocks base method.
+func (m *MockOSS) AbortRetentionPolcy(bucketName string, options ...oss.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []any{bucketName}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AbortRetentionPolcy", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AbortRetentionPolcy indicates an expected call of AbortRetentionPolcy.
+func (mr *MockOSSMockRecorder) AbortRetentionPolcy(bucketName any, options ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{bucketName}, options...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortRetentionPolcy", reflect.TypeOf((*MockOSS)(nil).AbortRetentionPolcy), varargs...)
+}
+
 // CreateBucketIfNotExists mocks base method.
 func (m *MockOSS) CreateBucketIfNotExists(ctx context.Context, bucketName string) error {
 	m.ctrl.T.Helper()
@@ -1295,6 +1314,26 @@ func (m *MockOSS) CreateBucketIfNotExists(ctx context.Context, bucketName string
 func (mr *MockOSSMockRecorder) CreateBucketIfNotExists(ctx, bucketName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBucketIfNotExists", reflect.TypeOf((*MockOSS)(nil).CreateBucketIfNotExists), ctx, bucketName)
+}
+
+// CreateRetentionPolicy mocks base method.
+func (m *MockOSS) CreateRetentionPolicy(bucketName string, retentionDays int, options ...oss.Option) (string, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{bucketName, retentionDays}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateRetentionPolicy", varargs...)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateRetentionPolicy indicates an expected call of CreateRetentionPolicy.
+func (mr *MockOSSMockRecorder) CreateRetentionPolicy(bucketName, retentionDays any, options ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{bucketName, retentionDays}, options...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRetentionPolicy", reflect.TypeOf((*MockOSS)(nil).CreateRetentionPolicy), varargs...)
 }
 
 // DeleteBucketIfExists mocks base method.
@@ -1326,18 +1365,81 @@ func (mr *MockOSSMockRecorder) DeleteObjectsWithPrefix(ctx, bucketName, prefix a
 }
 
 // GetBucketInfo mocks base method.
-func (m *MockOSS) GetBucketInfo(ctx context.Context, bucketName string) (*oss.BucketInfo, error) {
+func (m *MockOSS) GetBucketInfo(bucketName string, options ...oss.Option) (*oss.BucketInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBucketInfo", ctx, bucketName)
+	varargs := []any{bucketName}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetBucketInfo", varargs...)
 	ret0, _ := ret[0].(*oss.BucketInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBucketInfo indicates an expected call of GetBucketInfo.
-func (mr *MockOSSMockRecorder) GetBucketInfo(ctx, bucketName any) *gomock.Call {
+func (mr *MockOSSMockRecorder) GetBucketInfo(bucketName any, options ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketInfo", reflect.TypeOf((*MockOSS)(nil).GetBucketInfo), ctx, bucketName)
+	varargs := append([]any{bucketName}, options...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketInfo", reflect.TypeOf((*MockOSS)(nil).GetBucketInfo), varargs...)
+}
+
+// GetBucketWorm mocks base method.
+func (m *MockOSS) GetBucketWorm(bucketName string, options ...oss.Option) (*oss.WormConfiguration, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{bucketName}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetBucketWorm", varargs...)
+	ret0, _ := ret[0].(*oss.WormConfiguration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBucketWorm indicates an expected call of GetBucketWorm.
+func (mr *MockOSSMockRecorder) GetBucketWorm(bucketName any, options ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{bucketName}, options...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketWorm", reflect.TypeOf((*MockOSS)(nil).GetBucketWorm), varargs...)
+}
+
+// LockRetentionPolicy mocks base method.
+func (m *MockOSS) LockRetentionPolicy(bucketName, wormID string, options ...oss.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []any{bucketName, wormID}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "LockRetentionPolicy", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// LockRetentionPolicy indicates an expected call of LockRetentionPolicy.
+func (mr *MockOSSMockRecorder) LockRetentionPolicy(bucketName, wormID any, options ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{bucketName, wormID}, options...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockRetentionPolicy", reflect.TypeOf((*MockOSS)(nil).LockRetentionPolicy), varargs...)
+}
+
+// UpdateRetentionPolicy mocks base method.
+func (m *MockOSS) UpdateRetentionPolicy(bucketName string, retentionDays int, wormID string, options ...oss.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []any{bucketName, retentionDays, wormID}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateRetentionPolicy", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRetentionPolicy indicates an expected call of UpdateRetentionPolicy.
+func (mr *MockOSSMockRecorder) UpdateRetentionPolicy(bucketName, retentionDays, wormID any, options ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{bucketName, retentionDays, wormID}, options...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRetentionPolicy", reflect.TypeOf((*MockOSS)(nil).UpdateRetentionPolicy), varargs...)
 }
 
 // MockRAM is a mock of RAM interface.

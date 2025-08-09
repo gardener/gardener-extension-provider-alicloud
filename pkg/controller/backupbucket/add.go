@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 )
 
 var (
@@ -34,7 +35,7 @@ type AddOptions struct {
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(_ context.Context, mgr manager.Manager, opts AddOptions) error {
 	return backupbucket.Add(mgr, backupbucket.AddArgs{
-		Actuator:          newActuator(mgr),
+		Actuator:          NewActuator(mgr, alicloudclient.NewClientFactory()),
 		ControllerOptions: opts.Controller,
 		Predicates:        backupbucket.DefaultPredicates(opts.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,
