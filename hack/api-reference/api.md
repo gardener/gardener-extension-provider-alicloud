@@ -10,6 +10,8 @@
 </p>
 Resource Types:
 <ul><li>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.BackupBucketConfig">BackupBucketConfig</a>
+</li><li>
 <a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.CloudProfileConfig">CloudProfileConfig</a>
 </li><li>
 <a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.ControlPlaneConfig">ControlPlaneConfig</a>
@@ -18,6 +20,52 @@ Resource Types:
 </li><li>
 <a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.WorkerStatus">WorkerStatus</a>
 </li></ul>
+<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.BackupBucketConfig">BackupBucketConfig
+</h3>
+<p>
+<p>BackupBucketConfig represents the configuration for a backup bucket.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+alicloud.provider.extensions.gardener.cloud/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>BackupBucketConfig</code></td>
+</tr>
+<tr>
+<td>
+<code>immutability</code></br>
+<em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.ImmutableConfig">
+ImmutableConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Immutability defines the immutability configuration for the backup bucket.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.CloudProfileConfig">CloudProfileConfig
 </h3>
 <p>
@@ -278,6 +326,65 @@ map[string]bool
 <td>
 <em>(Optional)</em>
 <p>FeatureGates contains information about enabled feature gates.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.ImmutableConfig">ImmutableConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.BackupBucketConfig">BackupBucketConfig</a>)
+</p>
+<p>
+<p>ImmutableConfig represents the immutability configuration for a backup bucket.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>retentionType</code></br>
+<em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.RetentionType">
+RetentionType
+</a>
+</em>
+</td>
+<td>
+<p>RetentionType specifies the type of retention for the backup bucket.
+Currently allowed value is:
+- &ldquo;bucket&rdquo;: retention policy applies on the entire bucket.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retentionPeriod</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>RetentionPeriod specifies the immutability retention period for the backup bucket.
+Alicloud only supports immutability duration in days, therefore this field must be set as integer.
+The minimum retention period is 1 day.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>locked</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Locked indicates whether the immutable retention policy is locked for the backup bucket.
+If set to true, the retention policy can&rsquo;t be removed and retention period can&rsquo;t be reduced.</p>
 </td>
 </tr>
 </tbody>
@@ -617,6 +724,15 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.RetentionType">RetentionType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.ImmutableConfig">ImmutableConfig</a>)
+</p>
+<p>
+<p>RetentionType defines the level at which immutability properties are applied on objects.</p>
+</p>
 <h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.SecurityGroup">SecurityGroup
 </h3>
 <p>

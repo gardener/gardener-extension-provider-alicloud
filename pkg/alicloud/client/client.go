@@ -119,10 +119,19 @@ func (c *ossClient) DeleteObjectsWithPrefix(ctx context.Context, bucketName, pre
 		}
 
 		if !lsRes.IsTruncated {
-			return nil
+			break
 		}
 		marker = lsRes.NextMarker
 	}
+
+	if isObjectPresent, err := addTagToObjectsIfPresent(bucket, prefix); err != nil {
+		return err
+	} else if isObjectPresent {
+		// add the lifecycle policies to bucket to purge the remaining snapshot objects present in the prefix.
+		return toGCobjectsAddLifeCyclePolicyObjects(c.Client, bucketName)
+	}
+
+	return nil
 }
 
 // CreateBucketIfNotExists creates the OSS bucket with name <bucketName> in <region>. If it already exist,
@@ -164,7 +173,7 @@ func (c *ossClient) CreateBucketIfNotExists(ctx context.Context, bucketName stri
 }
 
 // GetBucketInfo retrieves bucket details.
-func (c *ossClient) GetBucketInfo(_ context.Context, bucketName string) (*oss.BucketInfo, error) {
+func (c *ossClient) GetBucketInfo(bucketName string, _ ...oss.Option) (*oss.BucketInfo, error) {
 	result, err := c.Client.GetBucketInfo(bucketName)
 	if err != nil {
 		return nil, err
@@ -173,16 +182,58 @@ func (c *ossClient) GetBucketInfo(_ context.Context, bucketName string) (*oss.Bu
 	return &result.BucketInfo, nil
 }
 
+// GetBucketWorm returns bucket lock configuration for the given bucketName.
+func (c *ossClient) GetBucketWorm(bucketName string, _ ...oss.Option) (*oss.WormConfiguration, error) {
+	bucketWormConfig, err := c.Client.GetBucketWorm(bucketName)
+	if err != nil {
+		return nil, err
+	}
+	return &bucketWormConfig, nil
+}
+
+// CreateRetentionPolicy creates retention policy for bucket worm configuration on given bucketName.
+func (c *ossClient) CreateRetentionPolicy(bucketName string, retentionDays int, _ ...oss.Option) (string, error) {
+	wormID, err := c.InitiateBucketWorm(bucketName, retentionDays)
+	if err != nil {
+		return "", err
+	}
+	return wormID, nil
+}
+
+// LockRetentionPolicy completes/locked the bucket worm configuration on given bucketName.
+func (c *ossClient) LockRetentionPolicy(bucketName, wormID string, _ ...oss.Option) error {
+	if err := c.CompleteBucketWorm(bucketName, wormID); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateRetentionPolicy extends the bucket worm configuration on given bucketName.
+func (c *ossClient) UpdateRetentionPolicy(bucketName string, retentionDays int, wormID string, _ ...oss.Option) error {
+	if err := c.ExtendBucketWorm(bucketName, retentionDays, wormID); err != nil {
+		return err
+	}
+	return nil
+}
+
+// AbortRetentionPolcy delete/abort the bucket worm configuration on given bucketName.
+func (c *ossClient) AbortRetentionPolcy(bucketName string, _ ...oss.Option) error {
+	if err := c.AbortBucketWorm(bucketName); err != nil {
+		return err
+	}
+	return nil
+}
+
 // DeleteBucketIfExists deletes the Alicloud OSS bucket with name <bucketName>. If it does not exist,
 // no error is returned.
 func (c *ossClient) DeleteBucketIfExists(ctx context.Context, bucketName string) error {
 	if err := c.DeleteBucket(bucketName); err != nil {
 		if ossErr, ok := err.(oss.ServiceError); ok {
-			switch ossErr.StatusCode {
-			case http.StatusNotFound:
+			switch ossErr.Code {
+			case ErrorCodeNoSuchBucket:
 				return nil
 
-			case http.StatusConflict:
+			case ErrorCodeBucketNotEmpty:
 				if err := c.DeleteObjectsWithPrefix(ctx, bucketName, ""); err != nil {
 					return err
 				}
@@ -784,4 +835,64 @@ func isRoleNotExistsError(err error) bool {
 		}
 	}
 	return false
+}
+
+func addTagToObjectsIfPresent(bucket *oss.Bucket, prefix string) (bool, error) {
+	isObjectPresent := false
+
+	marker := ""
+	for {
+		lsRes, err := bucket.ListObjects(oss.Marker(marker), oss.Prefix(prefix))
+		if err != nil {
+			return isObjectPresent, err
+		}
+		for _, object := range lsRes.Objects {
+			isObjectPresent = true
+			// tag the objects
+			if err := bucket.PutObjectTagging(object.Key, oss.Tagging{
+				Tags: []oss.Tag{
+					{
+						Key:   alicloudObjectMarkedForDeletionTagKey,
+						Value: "true",
+					},
+				},
+			}); err != nil {
+				return isObjectPresent, err
+			}
+		}
+		if !lsRes.IsTruncated {
+			break
+		}
+		marker = lsRes.NextMarker
+	}
+	return isObjectPresent, nil
+}
+
+func toGCobjectsAddLifeCyclePolicyObjects(ossClient oss.Client, bucket string) error {
+	if err := ossClient.SetBucketLifecycle(bucket, []oss.LifecycleRule{
+		{
+			ID:     alicloudObjectDeletionLifecyclePolicy,
+			Status: "Enabled",
+			Tags: []oss.Tag{
+				{
+					Key:   alicloudObjectMarkedForDeletionTagKey,
+					Value: "true",
+				},
+			},
+			Expiration: &oss.LifecycleExpiration{
+				Days: 4,
+			},
+		},
+		// re-add this lifecycle policy to garbage-collect the left out multi-part of objects.
+		{
+			Prefix: "",
+			Status: "Enabled",
+			AbortMultipartUpload: &oss.LifecycleAbortMultipartUpload{
+				Days: 7,
+			},
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
 }
