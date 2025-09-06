@@ -337,10 +337,14 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	for _, zone := range c.config.Networks.Zones {
 		zoneSuffix := c.getZoneSuffix(zone.Name)
 		workerSuffix := fmt.Sprintf("nodes-%s", zoneSuffix)
+		cidrBlock := zone.Workers
+		if cidrBlock == "" {
+			cidrBlock = zone.Worker
+		}
 		desired = append(desired,
 			&aliclient.VSwitch{
 				Name:      c.namespace + "-" + zone.Name + "-vsw",
-				CidrBlock: zone.Workers,
+				CidrBlock: cidrBlock,
 				VpcId:     vpcId,
 				Tags:      c.commonTagsWithSuffix(workerSuffix),
 				ZoneId:    zone.Name,
