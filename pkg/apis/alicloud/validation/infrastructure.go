@@ -114,8 +114,12 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 
 	for i := range oldZones {
 		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Name, newZones[i].Name, fldPath.Index(i))...)
-		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Workers, newZones[i].Workers, fldPath.Index(i))...)
-		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Worker, fldPath.Index(i))...)
+		if isZoneMigratWorkerToWorkers(oldZones[i], newZones[i]) {
+			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Workers, fldPath.Index(i))...)
+		} else {
+			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Workers, newZones[i].Workers, fldPath.Index(i))...)
+			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Worker, fldPath.Index(i))...)
+		}
 	}
 
 	for i, zone := range newZones {
@@ -124,6 +128,31 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 
 	return allErrs
 }
+
+func isZoneMigratWorkerToWorkers(oldZone, newZone apisalicloud.Zone) bool {
+	if oldZone.Worker != "" && oldZone.Workers == "" && newZone.Worker == "" && newZone.Workers != "" {
+		return true
+	}
+	return false
+}
+
+// func getActiveZoneWorkersValue(oldZone, newZone apisalicloud.Zone) (oldValue, newValue string, checkOk bool) {
+// 	checkOk = true
+// 	if oldZone.Workers != "" && newZone.Workers != "" {
+// 		oldValue = oldZone.Workers
+// 		newValue = newZone.Workers
+// 	} else if oldZone.Worker != "" && newZone.Workers != "" {
+// 		oldValue = oldZone.Worker
+// 		newValue = newZone.Workers
+// 	} else if oldZone.Worker != "" && newZone.Worker != "" {
+// 		oldValue = oldZone.Worker
+// 		newValue = newZone.Worker
+// 	} else {
+// 		checkOk = false
+// 	}
+
+// 	return oldValue, newValue, checkOk
+// }
 
 // ValidateNatGatewayConfig validates a NatGatewayConfig object.
 func ValidateNatGatewayConfig(natGateway *apisalicloud.NatGatewayConfig, fldPath *field.Path) field.ErrorList {
