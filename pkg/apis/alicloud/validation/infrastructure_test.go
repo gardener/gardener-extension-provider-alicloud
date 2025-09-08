@@ -197,6 +197,14 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			Expect(ValidateInfrastructureConfigUpdate(infrastructureConfig, infrastructureConfig)).To(BeEmpty())
 		})
 
+		It("should return no errors for migrate zone worker to workers", func() {
+			oldInfrastructureConfig := infrastructureConfig.DeepCopy()
+			tmpvalue := oldInfrastructureConfig.Networks.Zones[0].Worker
+			oldInfrastructureConfig.Networks.Zones[0].Worker = oldInfrastructureConfig.Networks.Zones[0].Workers
+			oldInfrastructureConfig.Networks.Zones[0].Workers = tmpvalue
+			Expect(ValidateInfrastructureConfigUpdate(oldInfrastructureConfig, infrastructureConfig)).To(BeEmpty())
+		})
+
 		It("should forbid changing the VPC section", func() {
 			newInfrastructureConfig := infrastructureConfig.DeepCopy()
 			newCIDR := "1.2.3.4/5"
