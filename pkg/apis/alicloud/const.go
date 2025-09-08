@@ -14,6 +14,8 @@ const (
 	SeedAnnotationKeyUseFlow = AnnotationKeyUseFlow
 	// SeedAnnotationUseFlowValueNew is the value to restrict flow reconciliation to new shoot clusters
 	SeedAnnotationUseFlowValueNew = "new"
+	// AnnotationKeyFlowReconcileCanDeleteResource is the annotation used to enable the deletion of resources during reconciliation with flow.
+	AnnotationKeyFlowReconcileCanDeleteResource = "alicloud.provider.extensions.gardener.cloud/flow-reconcile-can-delete-resource"
 )
 
 var (

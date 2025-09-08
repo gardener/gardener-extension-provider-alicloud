@@ -121,7 +121,7 @@ func (f *FlowReconciler) reconcileWithFlow(ctx context.Context, infrastructure *
 		}
 	}
 
-	flowContext, err := f.createFlowContext(ctx, infrastructure, cluster, oldState)
+	flowContext, err := f.createFlowContext(ctx, infrastructure, cluster, oldState, false)
 	if err != nil {
 		return err
 	}
@@ -284,7 +284,7 @@ func (f *FlowReconciler) decodeInfrastructureConfig(infrastructure *extensionsv1
 	return infrastructureConfig, nil
 }
 
-func (f *FlowReconciler) createFlowContext(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, oldState *infraflow.PersistentState) (*infraflow.FlowContext, error) {
+func (f *FlowReconciler) createFlowContext(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster, oldState *infraflow.PersistentState, fromDelete bool) (*infraflow.FlowContext, error) {
 	infrastructureConfig, err := f.decodeInfrastructureConfig(infrastructure)
 	if err != nil {
 		return nil, err
@@ -315,7 +315,7 @@ func (f *FlowReconciler) createFlowContext(ctx context.Context, infrastructure *
 		oldFlatState = oldState.ToFlatMap()
 	}
 
-	return infraflow.NewFlowContext(f.log, shootCloudProviderCredentials, infrastructure, infrastructureConfig, oldFlatState, persistor, cluster)
+	return infraflow.NewFlowContext(f.log, shootCloudProviderCredentials, infrastructure, infrastructureConfig, oldFlatState, persistor, cluster, fromDelete)
 }
 
 func (f *FlowReconciler) getFlowStateFromInfraStatus(infrastructure *extensionsv1alpha1.Infrastructure) (*infraflow.PersistentState, error) {
@@ -328,7 +328,7 @@ func (f *FlowReconciler) getFlowStateFromInfraStatus(infrastructure *extensionsv
 func (f *FlowReconciler) deleteWithFlow(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, oldState *infraflow.PersistentState) error {
 	f.log.Info("deleteWithFlow")
 
-	flowContext, err := f.createFlowContext(ctx, infrastructure, nil, oldState)
+	flowContext, err := f.createFlowContext(ctx, infrastructure, nil, oldState, true)
 	if err != nil {
 		return err
 	}

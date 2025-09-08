@@ -167,6 +167,9 @@ func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
 	toBeDeleted, toBeCreated, _ := diffByID(desired.Rules, current.Rules, func(item *aliclient.SecurityGroupRule) string {
 		return item.Direction + "-" + item.Policy + "-" + item.SourceCidrIp + "-" + item.DestCidrIp + "-" + item.PortRange + "-" + item.IpProtocol + "-" + item.Priority
 	})
+	if len(toBeDeleted) > 0 && c.protected {
+		return fmt.Errorf("protected: attempt to delete the security group rule during reconcile ")
+	}
 	for _, rule := range toBeDeleted {
 		if err := c.actor.RevokeSecurityGroupRule(ctx, current.SecurityGroupId, rule.SecurityGroupRuleId, rule.Direction); err != nil {
 			return err

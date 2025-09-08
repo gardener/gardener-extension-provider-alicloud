@@ -6,6 +6,7 @@ package infraflow
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gardener/gardener/pkg/utils/flow"
 
@@ -46,6 +47,9 @@ func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 }
 
 func (c *FlowContext) deleteSecurityGroup(ctx context.Context) error {
+	if c.protected {
+		return fmt.Errorf("protected: attempt to deleteSecurityGroup during reconcile ")
+	}
 	if c.state.IsAlreadyDeleted(IdentifierNodesSecurityGroup) {
 		return nil
 	}
@@ -71,6 +75,9 @@ func (c *FlowContext) deleteSecurityGroup(ctx context.Context) error {
 }
 
 func (c *FlowContext) deleteVpc(ctx context.Context) error {
+	if c.protected {
+		return fmt.Errorf("protected: attempt to deleteVpc during reconcile ")
+	}
 	if c.state.IsAlreadyDeleted(IdentifierVPC) {
 		return nil
 	}
