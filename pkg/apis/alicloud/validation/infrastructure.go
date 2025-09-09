@@ -129,30 +129,13 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 	return allErrs
 }
 
+// check if migrate from worker to workers
 func isZoneMigratWorkerToWorkers(oldZone, newZone apisalicloud.Zone) bool {
 	if oldZone.Worker != "" && oldZone.Workers == "" && newZone.Worker == "" && newZone.Workers != "" {
 		return true
 	}
 	return false
 }
-
-// func getActiveZoneWorkersValue(oldZone, newZone apisalicloud.Zone) (oldValue, newValue string, checkOk bool) {
-// 	checkOk = true
-// 	if oldZone.Workers != "" && newZone.Workers != "" {
-// 		oldValue = oldZone.Workers
-// 		newValue = newZone.Workers
-// 	} else if oldZone.Worker != "" && newZone.Workers != "" {
-// 		oldValue = oldZone.Worker
-// 		newValue = newZone.Workers
-// 	} else if oldZone.Worker != "" && newZone.Worker != "" {
-// 		oldValue = oldZone.Worker
-// 		newValue = newZone.Worker
-// 	} else {
-// 		checkOk = false
-// 	}
-
-// 	return oldValue, newValue, checkOk
-// }
 
 // ValidateNatGatewayConfig validates a NatGatewayConfig object.
 func ValidateNatGatewayConfig(natGateway *apisalicloud.NatGatewayConfig, fldPath *field.Path) field.ErrorList {
