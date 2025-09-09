@@ -114,8 +114,12 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 
 	for i := range oldZones {
 		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Name, newZones[i].Name, fldPath.Index(i))...)
-		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Workers, newZones[i].Workers, fldPath.Index(i))...)
-		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Worker, fldPath.Index(i))...)
+		if isZoneMigratWorkerToWorkers(oldZones[i], newZones[i]) {
+			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Workers, fldPath.Index(i))...)
+		} else {
+			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Workers, newZones[i].Workers, fldPath.Index(i))...)
+			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Worker, fldPath.Index(i))...)
+		}
 	}
 
 	for i, zone := range newZones {
@@ -123,6 +127,14 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 	}
 
 	return allErrs
+}
+
+// check if migrate from worker to workers
+func isZoneMigratWorkerToWorkers(oldZone, newZone apisalicloud.Zone) bool {
+	if oldZone.Worker != "" && oldZone.Workers == "" && newZone.Worker == "" && newZone.Workers != "" {
+		return true
+	}
+	return false
 }
 
 // ValidateNatGatewayConfig validates a NatGatewayConfig object.
