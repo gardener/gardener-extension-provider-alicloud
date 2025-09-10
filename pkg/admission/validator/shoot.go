@@ -18,7 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 )
@@ -34,22 +33,15 @@ var (
 
 // NewShootValidator returns a new instance of a shoot validator.
 func NewShootValidator(mgr manager.Manager) extensionswebhook.Validator {
-	alicloudclientFactory := alicloudclient.NewClientFactory()
 	return &shoot{
-		client:                mgr.GetClient(),
-		apiReader:             mgr.GetAPIReader(),
-		decoder:               serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
-		lenientDecoder:        serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
-		alicloudClientFactory: alicloudclientFactory,
+		decoder:        serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
+		lenientDecoder: serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
 	}
 }
 
 type shoot struct {
-	client                client.Client
-	apiReader             client.Reader
-	decoder               runtime.Decoder
-	lenientDecoder        runtime.Decoder
-	alicloudClientFactory alicloudclient.ClientFactory
+	decoder        runtime.Decoder
+	lenientDecoder runtime.Decoder
 }
 
 // Validate validates the given shoot object.
