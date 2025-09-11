@@ -14,6 +14,13 @@ import (
 	apisali "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
+var (
+	secretGVK = corev1.SchemeGroupVersion.WithKind("Secret")
+
+	allowedGVKs = sets.New(secretGVK)
+	validGVKs   = []string{secretGVK.String()}
+)
+
 // ValidateBackupBucketConfig validates a BackupBucketConfig object.
 func ValidateBackupBucketConfig(backupBucketConfig *apisali.BackupBucketConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
@@ -80,13 +87,6 @@ func ValidateBackupBucketCredentialsRef(credentialsRef *corev1.ObjectReference, 
 	if credentialsRef == nil {
 		return append(allErrs, field.Required(fldPath, "must be set"))
 	}
-
-	var (
-		secretGVK = corev1.SchemeGroupVersion.WithKind("Secret")
-
-		allowedGVKs = sets.New(secretGVK)
-		validGVKs   = []string{secretGVK.String()}
-	)
 
 	if !allowedGVKs.Has(credentialsRef.GroupVersionKind()) {
 		allErrs = append(allErrs, field.NotSupported(fldPath, credentialsRef.String(), validGVKs))

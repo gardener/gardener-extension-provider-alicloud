@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alivalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 )
 
@@ -66,10 +67,9 @@ func (s *seedValidator) validateCreate(seed *core.Seed) field.ErrorList {
 
 		if seed.Spec.Backup.ProviderConfig != nil {
 			providerConfigPath := backupPath.Child("providerConfig")
-
 			backupBucketConfig, err := DecodeBackupBucketConfig(s.decoder, seed.Spec.Backup.ProviderConfig)
 			if err != nil {
-				return append(allErrs, field.InternalError(providerConfigPath, fmt.Errorf("failed to decode new provider config: %w", err)))
+				return append(allErrs, field.Invalid(providerConfigPath, rawExtensionToString(seed.Spec.Backup.ProviderConfig), fmt.Sprintf("failed to decode provider config: %s", err.Error())))
 			}
 
 			allErrs = append(allErrs, alivalidation.ValidateBackupBucketConfig(backupBucketConfig, providerConfigPath)...)
@@ -83,29 +83,33 @@ func (s *seedValidator) validateCreate(seed *core.Seed) field.ErrorList {
 // are correctly managed. It enforces constraints such as preventing the unlocking of retention policies,
 // disabling immutability once locked, and reduction of retention periods when policies are locked.
 func (s *seedValidator) validateUpdate(oldSeed, newSeed *core.Seed) field.ErrorList {
-	if oldSeed.Spec.Backup == nil || oldSeed.Spec.Backup.ProviderConfig == nil {
-		return s.validateCreate(newSeed)
-	}
-
 	var (
-		allErrs            = field.ErrorList{}
-		backupPath         = field.NewPath("spec", "backup")
-		providerConfigPath = backupPath.Child("providerConfig")
+		allErrs                                            = field.ErrorList{}
+		backupPath                                         = field.NewPath("spec", "backup")
+		providerConfigPath                                 = backupPath.Child("providerConfig")
+		newBackupBucketConfig *alicloud.BackupBucketConfig = nil
+		err                   error
 	)
 
-	oldBackupBucketConfig, err := DecodeBackupBucketConfig(s.lenientDecoder, oldSeed.Spec.Backup.ProviderConfig)
-	if err != nil {
-		return append(allErrs, field.InternalError(providerConfigPath, fmt.Errorf("failed to decode old provider config: %w", err)))
+	if newSeed.Spec.Backup != nil {
+		allErrs = append(allErrs, alivalidation.ValidateBackupBucketCredentialsRef(newSeed.Spec.Backup.CredentialsRef, backupPath.Child("credentialsRef"))...)
+
+		newBackupBucketConfig, err = DecodeBackupBucketConfig(s.decoder, newSeed.Spec.Backup.ProviderConfig)
+		if err != nil {
+			return append(allErrs, field.Invalid(providerConfigPath, rawExtensionToString(newSeed.Spec.Backup.ProviderConfig), fmt.Sprintf("failed to decode new provider config: %s", err.Error())))
+		}
+
+		allErrs = append(allErrs, alivalidation.ValidateBackupBucketConfig(newBackupBucketConfig, providerConfigPath)...)
 	}
 
-	newBackupBucketConfig, err := DecodeBackupBucketConfig(s.decoder, newSeed.Spec.Backup.ProviderConfig)
-	if err != nil {
-		return append(allErrs, field.InternalError(providerConfigPath, fmt.Errorf("failed to decode new provider config: %w", err)))
-	}
+	if oldSeed.Spec.Backup != nil && oldSeed.Spec.Backup.ProviderConfig != nil {
+		oldBackupBucketConfig, err := DecodeBackupBucketConfig(s.lenientDecoder, oldSeed.Spec.Backup.ProviderConfig)
+		if err != nil {
+			return append(allErrs, field.Invalid(providerConfigPath, rawExtensionToString(oldSeed.Spec.Backup.ProviderConfig), fmt.Sprintf("failed to decode old provider config: %s", err.Error())))
+		}
 
-	allErrs = append(allErrs, alivalidation.ValidateBackupBucketConfig(newBackupBucketConfig, providerConfigPath)...)
-	allErrs = append(allErrs, alivalidation.ValidateBackupBucketConfigUpdate(oldBackupBucketConfig, newBackupBucketConfig, providerConfigPath)...)
-	allErrs = append(allErrs, alivalidation.ValidateBackupBucketCredentialsRef(newSeed.Spec.Backup.CredentialsRef, backupPath.Child("credentialsRef"))...)
+		allErrs = append(allErrs, alivalidation.ValidateBackupBucketConfigUpdate(oldBackupBucketConfig, newBackupBucketConfig, providerConfigPath)...)
+	}
 
 	return allErrs
 }

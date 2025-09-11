@@ -211,8 +211,8 @@ var _ = Describe("BackupBucket", func() {
 })
 
 // Helper function to generate Seed objects
-func generateBackupBucketConfig(retentionType string, retentionPeriod int, locked bool, isImmutableConfigured bool) apisali.BackupBucketConfig {
-	if !isImmutableConfigured {
+func generateBackupBucketConfig(retentionType string, retentionPeriod int, locked bool, isImmutabilityConfigured bool) apisali.BackupBucketConfig {
+	if !isImmutabilityConfigured {
 		return apisali.BackupBucketConfig{}
 	}
 

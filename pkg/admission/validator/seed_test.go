@@ -111,7 +111,7 @@ var _ = Describe("Seed Validator", func() {
 
 				err := seedValidator.Validate(ctx, seed, nil)
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(ContainSubstring("failed to decode new provider config: ")))
+				Expect(err).To(MatchError(ContainSubstring("failed to decode provider config: ")))
 			})
 
 			It("should succeed to create seed when backup has valid providerConfig", func() {

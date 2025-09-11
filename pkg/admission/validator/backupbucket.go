@@ -60,12 +60,11 @@ func (b *backupBucketValidator) validateCreate(backupBucket *gardencore.BackupBu
 
 	config, err := DecodeBackupBucketConfig(b.decoder, backupBucket.Spec.ProviderConfig)
 	if err != nil {
-		return append(allErrs, field.InternalError(providerConfigPath, fmt.Errorf("failed to decode provider config: %w", err)))
+		return append(allErrs, field.Invalid(providerConfigPath, rawExtensionToString(backupBucket.Spec.ProviderConfig), fmt.Sprintf("failed to decode provider config: %v", err.Error())))
 	}
 
 	allErrs = append(allErrs, alicloudvalidation.ValidateBackupBucketConfig(config, providerConfigPath)...)
 	allErrs = append(allErrs, alicloudvalidation.ValidateBackupBucketCredentialsRef(backupBucket.Spec.CredentialsRef, field.NewPath("spec", "credentialsRef"))...)
-
 	return allErrs
 }
 
@@ -76,23 +75,22 @@ func (b *backupBucketValidator) validateUpdate(oldBackupBucket, backupBucket *ga
 		providerConfigPath = field.NewPath("spec", "providerConfig")
 	)
 
-	if oldBackupBucket.Spec.ProviderConfig == nil {
-		return b.validateCreate(backupBucket)
-	}
-
-	oldConfig, err := DecodeBackupBucketConfig(b.lenientDecoder, oldBackupBucket.Spec.ProviderConfig)
-	if err != nil {
-		return append(allErrs, field.InternalError(providerConfigPath, fmt.Errorf("failed to decode old provider config: %W", err)))
-	}
-
 	config, err := DecodeBackupBucketConfig(b.decoder, backupBucket.Spec.ProviderConfig)
 	if err != nil {
-		return append(allErrs, field.InternalError(providerConfigPath, fmt.Errorf("failed to decode new provider config: %W", err)))
+		return append(allErrs, field.Invalid(providerConfigPath, rawExtensionToString(backupBucket.Spec.ProviderConfig), fmt.Sprintf("failed to decode new provider config: %v", err.Error())))
 	}
 
 	allErrs = append(allErrs, alicloudvalidation.ValidateBackupBucketConfig(config, providerConfigPath)...)
-	allErrs = append(allErrs, alicloudvalidation.ValidateBackupBucketConfigUpdate(oldConfig, config, providerConfigPath)...)
 	allErrs = append(allErrs, alicloudvalidation.ValidateBackupBucketCredentialsRef(backupBucket.Spec.CredentialsRef, field.NewPath("spec", "credentialsRef"))...)
+
+	if oldBackupBucket.Spec.ProviderConfig != nil {
+		oldConfig, err := DecodeBackupBucketConfig(b.lenientDecoder, oldBackupBucket.Spec.ProviderConfig)
+		if err != nil {
+			return append(allErrs, field.Invalid(providerConfigPath, rawExtensionToString(oldBackupBucket.Spec.ProviderConfig), fmt.Sprintf("failed to decode old provider config: %v", err.Error())))
+		}
+
+		allErrs = append(allErrs, alicloudvalidation.ValidateBackupBucketConfigUpdate(oldConfig, config, providerConfigPath)...)
+	}
 
 	return allErrs
 }

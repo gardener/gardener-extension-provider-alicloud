@@ -111,7 +111,7 @@ var _ = Describe("BackupBucket Validator", func() {
 
 				err := backupBucketValidator.Validate(ctx, newBackupBucket, backupBucket)
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(ContainSubstring(`failed to decode provider config: `)))
+				Expect(err).To(MatchError(ContainSubstring(`failed to decode new provider config: `)))
 			})
 
 			It("should succeed when BackupBucket is updated with valid spec and old had unset providerConfig", func() {
@@ -141,7 +141,7 @@ var _ = Describe("BackupBucket Validator", func() {
 				}
 
 				newBackupBucket := backupBucket.DeepCopy()
-				newBackupBucket.Spec.CredentialsRef = nil
+				newBackupBucket.Spec.ProviderConfig.Raw = []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "BackupBucketConfig"}`)
 
 				err := backupBucketValidator.Validate(ctx, newBackupBucket, backupBucket)
 				Expect(err).To(HaveOccurred())
