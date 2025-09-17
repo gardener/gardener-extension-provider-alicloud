@@ -1,0 +1,190 @@
+// SPDX-FileCopyrightText: SAP SE or an SAP affiliate company and Gardener contributors
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package validator_test
+
+import (
+	"context"
+
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	gardencore "github.com/gardener/gardener/pkg/apis/core"
+	mockmanager "github.com/gardener/gardener/third_party/mock/controller-runtime/manager"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/validator"
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	apisalicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+)
+
+var _ = Describe("BackupBucket Validator", func() {
+	Describe("#Validate", func() {
+		var (
+			ctx                   context.Context
+			credentialsRef        *corev1.ObjectReference
+			ctrl                  *gomock.Controller
+			mgr                   *mockmanager.MockManager
+			scheme                *runtime.Scheme
+			backupBucketValidator extensionswebhook.Validator
+		)
+
+		BeforeEach(func() {
+			ctx = context.TODO()
+			credentialsRef = &corev1.ObjectReference{
+				APIVersion: "v1",
+				Kind:       "Secret",
+				Name:       "backup-credentials",
+				Namespace:  "garden",
+			}
+
+			ctrl = gomock.NewController(GinkgoT())
+			scheme = runtime.NewScheme()
+			Expect(gardencore.AddToScheme(scheme)).To(Succeed())
+			Expect(apisalicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
+			Expect(apisalicloud.AddToScheme(scheme)).To(Succeed())
+
+			mgr = mockmanager.NewMockManager(ctrl)
+			mgr.EXPECT().GetScheme().Return(scheme).AnyTimes()
+
+			backupBucketValidator = validator.NewBackupBucketValidator(mgr)
+		})
+
+		It("should return err when obj is not a core.gardener.cloud/v1beta1.BackupBucket", func() {
+			err := backupBucketValidator.Validate(ctx, &corev1.Secret{}, nil)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("wrong object type *v1.Secret for new object"))
+		})
+
+		It("should return err when oldObj is not a core.gardener.cloud/v1beta1.BackupBucket", func() {
+			err := backupBucketValidator.Validate(ctx, &gardencore.BackupBucket{}, &corev1.Secret{})
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("wrong object type *v1.Secret for old object"))
+		})
+
+		Context("Create", func() {
+			It("should return error when BackupBucket provider config cannot be decoded", func() {
+				backupBucket := &gardencore.BackupBucket{
+					Spec: gardencore.BackupBucketSpec{
+						CredentialsRef: credentialsRef,
+						ProviderConfig: &runtime.RawExtension{
+							Raw: []byte(`invalid`),
+						},
+					},
+				}
+
+				err := backupBucketValidator.Validate(ctx, backupBucket, nil)
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError(ContainSubstring(`failed to decode provider config: `)))
+			})
+
+			It("should succeed when BackupBucket is created with valid spec", func() {
+				backupBucket := &gardencore.BackupBucket{
+					Spec: gardencore.BackupBucketSpec{
+						CredentialsRef: credentialsRef,
+						ProviderConfig: &runtime.RawExtension{
+							Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "BackupBucketConfig"}`),
+						},
+					},
+				}
+
+				Expect(backupBucketValidator.Validate(ctx, backupBucket, nil)).To(Succeed())
+			})
+		})
+
+		Context("Update", func() {
+			It("should return error when BackupBucket is updated with invalid spec and old had unset providerConfig", func() {
+				backupBucket := &gardencore.BackupBucket{
+					Spec: gardencore.BackupBucketSpec{
+						CredentialsRef: credentialsRef,
+						ProviderConfig: nil,
+					},
+				}
+
+				newBackupBucket := backupBucket.DeepCopy()
+				newBackupBucket.Spec.ProviderConfig = &runtime.RawExtension{
+					Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "invalid"}`),
+				}
+
+				err := backupBucketValidator.Validate(ctx, newBackupBucket, backupBucket)
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError(ContainSubstring(`failed to decode new provider config: `)))
+			})
+
+			It("should succeed when BackupBucket is updated with valid spec and old had unset providerConfig", func() {
+				backupBucket := &gardencore.BackupBucket{
+					Spec: gardencore.BackupBucketSpec{
+						CredentialsRef: credentialsRef,
+						ProviderConfig: nil,
+					},
+				}
+
+				newBackupBucket := backupBucket.DeepCopy()
+				newBackupBucket.Spec.ProviderConfig = &runtime.RawExtension{
+					Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "BackupBucketConfig"}`),
+				}
+
+				Expect(backupBucketValidator.Validate(ctx, newBackupBucket, backupBucket)).To(Succeed())
+			})
+
+			It("should return error when BackupBucket is updated and old had invalid providerConfig set", func() {
+				backupBucket := &gardencore.BackupBucket{
+					Spec: gardencore.BackupBucketSpec{
+						CredentialsRef: credentialsRef,
+						ProviderConfig: &runtime.RawExtension{
+							Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "invalid"}`),
+						},
+					},
+				}
+
+				newBackupBucket := backupBucket.DeepCopy()
+				newBackupBucket.Spec.ProviderConfig.Raw = []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "BackupBucketConfig"}`)
+
+				err := backupBucketValidator.Validate(ctx, newBackupBucket, backupBucket)
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError(ContainSubstring("failed to decode old provider config")))
+			})
+
+			It("should return error when BackupBucket is updated with invalid providerConfig and old had valid providerConfig set", func() {
+				backupBucket := &gardencore.BackupBucket{
+					Spec: gardencore.BackupBucketSpec{
+						CredentialsRef: credentialsRef,
+						ProviderConfig: &runtime.RawExtension{
+							Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "BackupBucketConfig"}`),
+						},
+					},
+				}
+
+				newBackupBucket := backupBucket.DeepCopy()
+				newBackupBucket.Spec.ProviderConfig = &runtime.RawExtension{
+					Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "invalid"}`),
+				}
+
+				err := backupBucketValidator.Validate(ctx, newBackupBucket, backupBucket)
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError(ContainSubstring("failed to decode new provider config")))
+			})
+
+			It("should succeed when BackupBucket is updated with valid spec and old had valid providerConfig set", func() {
+				backupBucket := &gardencore.BackupBucket{
+					Spec: gardencore.BackupBucketSpec{
+						CredentialsRef: credentialsRef,
+						ProviderConfig: &runtime.RawExtension{
+							Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "BackupBucketConfig", "immutability": {"retentionPeriod": 96, "retentionType": "bucket"}}`),
+						},
+					},
+				}
+
+				newBackupBucket := backupBucket.DeepCopy()
+				newBackupBucket.Spec.ProviderConfig = &runtime.RawExtension{
+					Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "BackupBucketConfig"}`),
+				}
+
+				Expect(backupBucketValidator.Validate(ctx, newBackupBucket, backupBucket)).To(Succeed())
+			})
+		})
+	})
+})

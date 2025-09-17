@@ -21,7 +21,8 @@ IGNORE_OPERATION_ANNOTATION := true
 WEBHOOK_CONFIG_PORT	:= 8443
 WEBHOOK_CONFIG_MODE	:= url
 WEBHOOK_CONFIG_URL	:= host.docker.internal:$(WEBHOOK_CONFIG_PORT)
-EXTENSION_NAMESPACE	:=
+EXTENSION_NAMESPACE	:= garden
+GARDEN_KUBECONFIG	?=
 
 WEBHOOK_PARAM := --webhook-config-url=$(WEBHOOK_CONFIG_URL)
 ifeq ($(WEBHOOK_CONFIG_MODE), service)
@@ -50,7 +51,10 @@ include $(GARDENER_HACK_DIR)/tools.mk
 
 .PHONY: start
 start:
-	@LEADER_ELECTION_NAMESPACE=garden go run \
+	@LEADER_ELECTION_NAMESPACE=$(EXTENSION_NAMESPACE) \
+		GARDEN_KUBECONFIG=$(GARDEN_KUBECONFIG) \
+		GARDENER_SHOOT_CLIENT="external" \
+		go run \
 		-ldflags $(LD_FLAGS) \
 		./cmd/$(EXTENSION_PREFIX)-$(NAME) \
 		--config-file=./example/00-componentconfig.yaml \
@@ -64,7 +68,7 @@ start:
 
 .PHONY: start-admission
 start-admission:
-	@LEADER_ELECTION_NAMESPACE=garden go run \
+	@LEADER_ELECTION_NAMESPACE=$(EXTENSION_NAMESPACE) go run \
 		-ldflags $(LD_FLAGS) \
 		./cmd/$(EXTENSION_PREFIX)-$(ADMISSION_NAME) \
 		--webhook-config-server-host=0.0.0.0 \
