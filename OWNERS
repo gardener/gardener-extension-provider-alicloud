@@ -1,0 +1,6 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+reviewers:
+- gardener-extension-provider-alicloud-reviewers
+approvers:
+- gardener-extension-provider-alicloud-approvers

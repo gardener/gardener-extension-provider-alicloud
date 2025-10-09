@@ -1,0 +1,13 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+aliases:
+  gardener-extension-provider-alicloud-reviewers:
+  - EmoinLanyu
+  - jia-jerry
+  - kevin-lacoo
+  - shaoyongfeng
+  gardener-extension-provider-alicloud-approvers:
+  - EmoinLanyu
+  - jia-jerry
+  - kevin-lacoo
+  - shaoyongfeng
