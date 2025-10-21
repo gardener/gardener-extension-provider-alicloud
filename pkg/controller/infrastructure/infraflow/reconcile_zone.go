@@ -123,9 +123,6 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 		toBeDeleted, toBeCreated, toBeChecked := diffByID(desired, current, func(item *aliclient.SNATEntry) string {
 			return item.SnatTableId + "-" + item.VSwitchId
 		})
-		if len(toBeDeleted) > 0 && c.protected {
-			return fmt.Errorf("protected: attempt to delete the snat entry during reconcile ")
-		}
 		for _, entry := range toBeDeleted {
 			if err := c.actor.DeleteSNatEntry(ctx, entry.SnatEntryId, entry.SnatTableId); err != nil {
 				return err
@@ -147,9 +144,6 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 				toUnAssociateEIPs.Insert(item.current.IpAddress)
 
 				waiter := informOnWaiting(log, 5*time.Second, "still deleting snate entry ...", "SnatEntryId", item.current.SnatEntryId, "SnatTableId", item.current.SnatTableId)
-				if c.protected {
-					return fmt.Errorf("protected: attempt to delete the snat entry during reconcile ")
-				}
 				err := c.actor.DeleteSNatEntry(ctx, item.current.SnatEntryId, item.current.SnatTableId)
 				waiter.Done(err)
 				if err != nil {
@@ -170,9 +164,6 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 			}
 		}
 
-		if len(toUnAssociateEIPs) > 0 && c.protected {
-			return fmt.Errorf("protected: attempt to UnAssociateEIP during reconcile ")
-		}
 		for ipAddress := range toUnAssociateEIPs {
 			the_eip, err := c.actor.GetEIPByAddress(ctx, ipAddress)
 			if err != nil {
@@ -195,9 +186,6 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 				log := c.LogFromContext(ctx)
 				log.Info("deleting...", "AllocationId", managed_eip.EipId)
 				waiter := informOnWaiting(log, 5*time.Second, "still deleting...", "AllocationId", managed_eip.EipId)
-				if c.protected {
-					return fmt.Errorf("protected: attempt to delete managed_eipId during reconcile ")
-				}
 				err = c.actor.DeleteEIP(ctx, managed_eip.EipId)
 				waiter.Done(err)
 				if err != nil {
@@ -411,9 +399,6 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 
 // DeleteZoneByVSwitches is called to delete zone per vswitch
 func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*aliclient.VSwitch) error {
-	if c.protected {
-		return fmt.Errorf("protected: attempt to DeleteZoneByVSwitches during reconcile ")
-	}
 	// Check if toBeDeleted is empty
 	if len(toBeDeleted) == 0 {
 		return nil // Return immediately if there is nothing to delete
@@ -478,9 +463,6 @@ func (c *FlowContext) deleteSNatEntryForZone(zoneName string) flow.TaskFn {
 		log := c.LogFromContext(ctx)
 		log.Info("deleting snate entry for zone ...", "zoneName", zoneName)
 
-		if c.protected {
-			return fmt.Errorf("protected: attempt to deleteSNatEntryForZone during reconcile ")
-		}
 		current, err := c.getCurrentSnatEntryForZone(ctx, zoneName)
 		if err != nil {
 			return err
@@ -502,9 +484,6 @@ func (c *FlowContext) deleteEipAssociation(zoneName string) flow.TaskFn {
 	return func(ctx context.Context) error {
 		log := c.LogFromContext(ctx)
 		log.Info("deleting Eip Association for zone ...", "zoneName", zoneName)
-		if c.protected {
-			return fmt.Errorf("protected: attempt to deleteEipAssociation during reconcile ")
-		}
 		zone := c.getZoneConfig(zoneName)
 		child := c.getZoneChild(zoneName)
 		eipId := child.Get(IdentifierZoneNATGWElasticIP)
@@ -535,9 +514,6 @@ func (c *FlowContext) deleteElasticIP(zoneName string) flow.TaskFn {
 	return func(ctx context.Context) error {
 		log := c.LogFromContext(ctx)
 		log.Info("deleting Eip for zone ...", "zoneName", zoneName)
-		if c.protected {
-			return fmt.Errorf("protected: attempt to deleteElasticIP during reconcile ")
-		}
 		child := c.getZoneChild(zoneName)
 		if child.IsAlreadyDeleted(IdentifierZoneNATGWElasticIP) {
 			return nil
@@ -567,9 +543,6 @@ func (c *FlowContext) deleteNatGatewayInVSwitches(vswitchIds []string) flow.Task
 	return func(ctx context.Context) error {
 		log := c.LogFromContext(ctx)
 		log.Info("deleting natgateway in vswitches ...")
-		if c.protected {
-			return fmt.Errorf("protected: attempt to deleteNatGatewayInVSwitches during reconcile ")
-		}
 		current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTags,
 			c.actor.GetNatGateway, c.actor.FindNatGatewayByTags)
 		if err != nil {
@@ -592,9 +565,6 @@ func (c *FlowContext) deleteSNatEntryForNatGateway(ctx context.Context, ngw *ali
 	log := c.LogFromContext(ctx)
 	log.Info("deleting snate entry for natgateway ...", "NatgatewayId", ngw.NatGatewayId)
 
-	if c.protected {
-		return fmt.Errorf("protected: attempt to deleteSNatEntryForNatGateway during reconcile ")
-	}
 	entries, err := c.actor.FindSNatEntriesByNatGateway(ctx, ngw.NatGatewayId)
 	if err != nil {
 		return err
@@ -615,9 +585,6 @@ func (c *FlowContext) deleteSNatEntryForNatGateway(ctx context.Context, ngw *ali
 func (c *FlowContext) deleteNatGateway(ctx context.Context, ngw *aliclient.NatGateway) error {
 	log := c.LogFromContext(ctx)
 	log.Info("deleting natgateway ...", "NatgatewayId", ngw.NatGatewayId)
-	if c.protected {
-		return fmt.Errorf("protected: attempt to deleteNatGateway during reconcile ")
-	}
 	waiter := informOnWaiting(log, 10*time.Second, "still deleting...", "NatGatewayID", ngw.NatGatewayId)
 	err := c.actor.DeleteNatGateway(ctx, ngw.NatGatewayId)
 	waiter.Done(err)
@@ -634,9 +601,6 @@ func (c *FlowContext) deleteVSwitch(vsw *aliclient.VSwitch) flow.TaskFn {
 		log := c.LogFromContext(ctx)
 		log.Info("deleting vswitch ...", "VSwitchId", vsw.VSwitchId)
 
-		if c.protected {
-			return fmt.Errorf("protected: attempt to deleteVSwitch during reconcile ")
-		}
 		if zoneChild.IsAlreadyDeleted(IdentifierZoneVSwitch) {
 			return nil
 		}
@@ -650,9 +614,6 @@ func (c *FlowContext) deleteVSwitch(vsw *aliclient.VSwitch) flow.TaskFn {
 }
 
 func (c *FlowContext) deleteZones(ctx context.Context) error {
-	if c.protected {
-		return fmt.Errorf("protected: attempt to deleteZones during reconcile ")
-	}
 	current, err := c.collectExistingVSwitches(ctx)
 	if err != nil {
 		return err
