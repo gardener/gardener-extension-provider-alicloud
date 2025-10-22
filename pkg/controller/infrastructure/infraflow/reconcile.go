@@ -291,6 +291,9 @@ func (c *FlowContext) ensureNatGateway(ctx context.Context) error {
 	return c.ensureManagedNatGateway(ctx)
 }
 func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	log.Info("using existing NatGateway in vpc")
+
 	vpcID := c.state.Get(IdentifierVPC)
 	if vpcID == nil {
 		return fmt.Errorf("IdentifierVPC is nil")

@@ -410,6 +410,7 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 	if len(toBeDeleted) == 0 {
 		return nil // Return immediately if there is nothing to delete
 	}
+	needDeleteNatGateway := c.config.Networks.VPC.ID == nil || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
 	g := flow.NewGraph("Alicloud infrastructure deletion: zones")
 
 	toBeDeletedZones := sets.NewString()
@@ -426,9 +427,9 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 		}
 	}
 
-	deleteNatGateway := c.AddTask(g, "delete NatGateway",
+	deleteNatGateway := c.AddTask(g, "delete managed NatGateway",
 		c.deleteNatGatewayInVSwitches(vswitchIds),
-		DoIf(c.hasNatGateway()), Timeout(defaultLongTimeout), Dependencies(dependencies...))
+		DoIf(needDeleteNatGateway && c.hasNatGateway()), Timeout(defaultLongTimeout), Dependencies(dependencies...))
 
 	for _, vsw := range toBeDeleted {
 		c.AddTask(g, "delete vswitch resource "+getZoneName(vsw),
@@ -549,8 +550,8 @@ func (c *FlowContext) deleteElasticIP(zoneName string) flow.TaskFn {
 func (c *FlowContext) deleteNatGatewayInVSwitches(vswitchIds []string) flow.TaskFn {
 	return func(ctx context.Context) error {
 		log := c.LogFromContext(ctx)
-		log.Info("deleting natgateway in vswitches ...")
-		current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTags,
+		log.Info("deleting managed natgateway in vswitches ...")
+		current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTagsWithSuffix("natgw"),
 			c.actor.GetNatGateway, c.actor.FindNatGatewayByTags)
 		if err != nil {
 			return err
