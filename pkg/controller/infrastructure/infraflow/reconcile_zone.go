@@ -7,6 +7,7 @@ package infraflow
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gardener/gardener/pkg/utils/flow"
@@ -364,8 +365,14 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 		return item.ZoneId + "-" + item.CidrBlock
 	})
 
-	if len(toBeDeleted) > 0 && c.protected {
-		return fmt.Errorf("protected: attempt to DeleteZoneByVSwitches during reconcile ")
+	if len(toBeDeleted) > 0 && !c.canDelete {
+		var details []string
+		for _, vsw := range toBeDeleted {
+			zone_name := getZoneName(vsw)
+			vswitch_id := vsw.VSwitchId
+			details = append(details, fmt.Sprintf("zone: %s, vswitch: %s", zone_name, vswitch_id))
+		}
+		return fmt.Errorf("protected: attempt to DeleteZoneByVSwitches during reconcile. Details: %s", strings.Join(details, "; "))
 	}
 	if err := c.DeleteZoneByVSwitches(ctx, toBeDeleted); err != nil {
 		return err

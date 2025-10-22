@@ -65,13 +65,13 @@ type FlowContext struct {
 	updater    aliclient.Updater
 	actor      aliclient.Actor
 	cluster    *extensioncontroller.Cluster
-	protected  bool
+	canDelete  bool
 }
 
 // NewFlowContext creates a new FlowContext object
 func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 	infra *extensionsv1alpha1.Infrastructure, config *aliapi.InfrastructureConfig,
-	oldState shared.FlatMap, persistor shared.FlowStatePersistor, cluster *extensioncontroller.Cluster, fromDelete bool) (*FlowContext, error) {
+	oldState shared.FlatMap, persistor shared.FlowStatePersistor, cluster *extensioncontroller.Cluster) (*FlowContext, error) {
 	actor, err := aliclient.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
 	if err != nil {
 		return nil, err
@@ -81,10 +81,9 @@ func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 	if oldState != nil {
 		whiteboard.ImportFromFlatMap(oldState)
 	}
-	protected := true
-	if fromDelete ||
-		(cluster != nil && cluster.Shoot != nil && cluster.Shoot.Annotations != nil && strings.EqualFold(cluster.Shoot.Annotations[aliapi.AnnotationKeyFlowReconcileCanDeleteResource], "true")) {
-		protected = false
+	canDelete := false
+	if infra.Annotations != nil && strings.EqualFold(infra.Annotations[aliapi.AnnotationKeyFlowReconcileCanDeleteResource], "true") {
+		canDelete = true
 	}
 
 	flowContext := &FlowContext{
@@ -96,7 +95,7 @@ func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 		updater:          updater,
 		actor:            actor,
 		cluster:          cluster,
-		protected:        protected,
+		canDelete:        canDelete,
 	}
 	flowContext.commonTags = aliclient.Tags{
 		flowContext.tagKeyCluster(): TagValueCluster,
