@@ -149,11 +149,18 @@ func (c *FlowContext) getZoneSuffix(zoneName string) string {
 
 func (c *FlowContext) getAllVSwitchids() []string {
 	ids := []string{}
+	firstZoneName := c.config.Networks.Zones[0].Name
+	firstZone := c.getZoneChild(firstZoneName)
+	if switchId := firstZone.Get(IdentifierZoneVSwitch); switchId != nil {
+		ids = append(ids, *switchId)
+	}
 	zones := c.state.GetChild(ChildIdZones)
 	for _, key := range zones.GetChildrenKeys() {
-		theChild := zones.GetChild(key)
-		if switchId := theChild.Get(IdentifierZoneVSwitch); switchId != nil {
-			ids = append(ids, *switchId)
+		if key != firstZoneName {
+			theChild := zones.GetChild(key)
+			if switchId := theChild.Get(IdentifierZoneVSwitch); switchId != nil {
+				ids = append(ids, *switchId)
+			}
 		}
 	}
 	return ids

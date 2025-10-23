@@ -12,6 +12,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -73,11 +74,19 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		logger.Info("Validating infrastructure networks.zones[0].name")
 		allErrs = append(allErrs, c.validateEnhancedNatGatewayZone(ctx, actor, config.Networks.Zones[0].Name, infra.Spec.Region, field.NewPath("networks", "zones[0]", "name"))...)
 	}
-
-	for _, zone := range config.Networks.Zones {
+	eipIds := sets.NewString()
+	for i, zone := range config.Networks.Zones {
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
-			logger.Info("Validating infrastructure networks.zones[].natGatewayid.eipAllocationID")
-			allErrs = append(allErrs, c.validateEIP(ctx, actor, *zone.NatGateway.EIPAllocationID, field.NewPath("networks", "zones[]", "natGateway", "eipAllocationID"))...)
+			logger.Info(fmt.Sprintf("Validating infrastructure networks.zones[%d].natGateway.eipAllocationID", i))
+			fldPath := field.NewPath("networks", fmt.Sprintf("zones[%d]", i), "natGateway", "eipAllocationID")
+			eipId := *zone.NatGateway.EIPAllocationID
+			if !eipIds.Has(eipId) {
+				eipIds.Insert(eipId)
+				allErrs = append(allErrs, c.validateEIP(ctx, actor, eipId, fldPath)...)
+			} else {
+				allErrs = append(allErrs, field.Forbidden(fldPath, fmt.Sprintf("Duplicate EIP Allocation ID %s", eipId)))
+			}
+
 		}
 	}
 
