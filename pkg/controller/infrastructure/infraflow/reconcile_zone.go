@@ -414,7 +414,7 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 	needDeleteNatGateway := c.config.Networks.VPC.ID == nil || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
 	g := flow.NewGraph("Alicloud infrastructure deletion: zones")
 
-	toBeDeletedZones := sets.NewString()
+	toBeDeletedZones := sets.New[string]()
 	vswitchIds := []string{}
 	for _, vsw := range toBeDeleted {
 		targetZoneName := getZoneName(vsw)

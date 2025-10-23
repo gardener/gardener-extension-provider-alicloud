@@ -74,7 +74,7 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		logger.Info("Validating infrastructure networks.zones[0].name")
 		allErrs = append(allErrs, c.validateEnhancedNatGatewayZone(ctx, actor, config.Networks.Zones[0].Name, infra.Spec.Region, field.NewPath("networks", "zones[0]", "name"))...)
 	}
-	eipIds := sets.NewString()
+	eipIds := sets.New[string]()
 	for i, zone := range config.Networks.Zones {
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
 			logger.Info(fmt.Sprintf("Validating infrastructure networks.zones[%d].natGateway.eipAllocationID", i))
