@@ -15,7 +15,6 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
 )
@@ -373,7 +372,7 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 			vswitch_id := vsw.VSwitchId
 			details = append(details, fmt.Sprintf("zone: %s, vswitch: %s", zone_name, vswitch_id))
 		}
-		return fmt.Errorf("protected: attempt to DeleteZoneByVSwitches during reconcile. Details: %s, please annotate infrastructure with %s=true", strings.Join(details, "; "), aliapi.AnnotationKeyFlowReconcileCanDeleteResource)
+		return fmt.Errorf("protected: attempt to DeleteZoneByVSwitches during reconcile. Details: %s", strings.Join(details, "; "))
 	}
 	if err := c.DeleteZoneByVSwitches(ctx, toBeDeleted); err != nil {
 		return err
