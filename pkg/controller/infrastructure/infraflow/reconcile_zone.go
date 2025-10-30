@@ -25,8 +25,13 @@ func (c *FlowContext) ensureZones(ctx context.Context) error {
 	g := flow.NewGraph("Alicloud infrastructure : zones")
 
 	eipIntenetChargeType := c.getEipInternetChargeType(ctx)
-
+	processedZones := sets.New[string]()
 	for _, zone := range c.config.Networks.Zones {
+		if processedZones.Has(zone.Name) {
+			continue
+		}
+		processedZones.Insert(zone.Name)
+
 		c.addZoneReconcileTasks(g, zone.Name, eipIntenetChargeType)
 	}
 
@@ -335,7 +340,13 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	}
 	log := c.LogFromContext(ctx)
 	var desired []*aliclient.VSwitch
+	processedZones := sets.New[string]()
 	for _, zone := range c.config.Networks.Zones {
+		if processedZones.Has(zone.Name) {
+			continue
+		}
+		processedZones.Insert(zone.Name)
+
 		zoneSuffix := c.getZoneSuffix(zone.Name)
 		workerSuffix := fmt.Sprintf("nodes-%s", zoneSuffix)
 		cidrBlock := zone.Workers
@@ -439,7 +450,7 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 		DoIf(needDeleteNatGateway && c.hasNatGateway()), Timeout(defaultLongTimeout), Dependencies(dependencies...))
 
 	for _, vsw := range toBeDeleted {
-		c.AddTask(g, "delete vswitch resource "+getZoneName(vsw),
+		c.AddTask(g, "delete vswitch resource "+getZoneName(vsw)+" "+vsw.VSwitchId,
 			c.deleteVSwitch(vsw),
 			Timeout(defaultTimeout), Dependencies(deleteNatGateway))
 	}

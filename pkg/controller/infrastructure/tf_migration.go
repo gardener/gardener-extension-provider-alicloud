@@ -9,6 +9,7 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/terraformer"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	aliapi "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow"
@@ -53,7 +54,13 @@ func migrateTerraformStateToFlowState(rawExtension *runtime.RawExtension, zones 
 	if nat_gateway != nil && *nat_gateway != "" {
 		setFlowStateData(flowState, infraflow.IdentifierNatGateway, nat_gateway)
 	}
+	processedZones := sets.New[string]()
 	for i, zone := range zones {
+		if processedZones.Has(zone.Name) {
+			continue
+		}
+		processedZones.Insert(zone.Name)
+
 		keyPrefix := infraflow.ChildIdZones + shared.Separator + zone.Name + shared.Separator
 		suffix := fmt.Sprintf("z%d", i)
 		setFlowStateData(flowState, keyPrefix+infraflow.IdentifierZoneSuffix, &suffix)
