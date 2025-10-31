@@ -40,6 +40,7 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 			NewSecretBindingValidator(mgr):          {{Obj: &core.SecretBinding{}}},
 			NewCredentialsBindingValidator(mgr):     {{Obj: &security.CredentialsBinding{}}},
 			NewSeedValidator(mgr):                   {{Obj: &core.Seed{}}},
+			NewBackupBucketValidator(mgr):           {{Obj: &core.BackupBucket{}}},
 		},
 		Target: extensionswebhook.TargetSeed,
 		ObjectSelector: &metav1.LabelSelector{
