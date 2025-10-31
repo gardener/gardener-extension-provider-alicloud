@@ -6,6 +6,7 @@ package infraflow
 
 import (
 	"fmt"
+	"strings"
 
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -64,6 +65,7 @@ type FlowContext struct {
 	updater    aliclient.Updater
 	actor      aliclient.Actor
 	cluster    *extensioncontroller.Cluster
+	canDelete  bool
 }
 
 // NewFlowContext creates a new FlowContext object
@@ -74,10 +76,14 @@ func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 	if err != nil {
 		return nil, err
 	}
+	canDelete := false
 	updater := aliclient.NewUpdater(actor)
 	whiteboard := shared.NewWhiteboard()
 	if oldState != nil {
 		whiteboard.ImportFromFlatMap(oldState)
+	}
+	if infra.Annotations != nil && strings.EqualFold(infra.Annotations[aliapi.AnnotationKeyFlowReconcileCanDeleteResource], "true") {
+		canDelete = true
 	}
 
 	flowContext := &FlowContext{
@@ -89,6 +95,7 @@ func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 		updater:          updater,
 		actor:            actor,
 		cluster:          cluster,
+		canDelete:        canDelete,
 	}
 	flowContext.commonTags = aliclient.Tags{
 		flowContext.tagKeyCluster(): TagValueCluster,
@@ -142,11 +149,18 @@ func (c *FlowContext) getZoneSuffix(zoneName string) string {
 
 func (c *FlowContext) getAllVSwitchids() []string {
 	ids := []string{}
+	firstZoneName := c.config.Networks.Zones[0].Name
+	firstZone := c.getZoneChild(firstZoneName)
+	if switchId := firstZone.Get(IdentifierZoneVSwitch); switchId != nil {
+		ids = append(ids, *switchId)
+	}
 	zones := c.state.GetChild(ChildIdZones)
 	for _, key := range zones.GetChildrenKeys() {
-		theChild := zones.GetChild(key)
-		if switchId := theChild.Get(IdentifierZoneVSwitch); switchId != nil {
-			ids = append(ids, *switchId)
+		if key != firstZoneName {
+			theChild := zones.GetChild(key)
+			if switchId := theChild.Get(IdentifierZoneVSwitch); switchId != nil {
+				ids = append(ids, *switchId)
+			}
 		}
 	}
 	return ids

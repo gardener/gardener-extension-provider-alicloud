@@ -182,7 +182,40 @@ var _ = Describe("ConfigValidator", func() {
 		}))
 	})
 
-	It("should forbid when provide eip id but EIP doesn't exist", func() {
+	It("should forbid when provide eip id duplicated", func() {
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+			Networks: apisalicloud.Networks{
+				VPC: apisalicloud.VPC{},
+				Zones: []apisalicloud.Zone{
+					{
+						Name: "zone_1",
+						NatGateway: &apisalicloud.NatGatewayConfig{
+							EIPAllocationID: ptr.To(eipID),
+						},
+					},
+					{
+						Name: "zone_2",
+						NatGateway: &apisalicloud.NatGatewayConfig{
+							EIPAllocationID: ptr.To(eipID),
+						},
+					},
+				},
+			},
+		})
+		actor.EXPECT().ListEnhanhcedNatGatewayAvailableZones(ctx, region).Return([]string{
+			"zone_1",
+			"zone_2",
+		}, nil)
+		actor.EXPECT().GetEIP(ctx, eipID).Return(&aliclient.EIP{}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(ConsistOfFields(Fields{
+			"Type":  Equal(field.ErrorTypeForbidden),
+			"Field": Equal("networks.zones[].natGateway.eipAllocationID"),
+		}))
+	})
+
+	It("should forbid when the zone is not EnhanhcedNatGateway available zone", func() {
 		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
 			Networks: apisalicloud.Networks{
 				VPC: apisalicloud.VPC{},

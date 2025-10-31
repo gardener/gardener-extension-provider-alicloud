@@ -7,6 +7,7 @@ package infraflow
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gardener/gardener/pkg/utils/flow"
@@ -24,8 +25,13 @@ func (c *FlowContext) ensureZones(ctx context.Context) error {
 	g := flow.NewGraph("Alicloud infrastructure : zones")
 
 	eipIntenetChargeType := c.getEipInternetChargeType(ctx)
-
+	processedZones := sets.New[string]()
 	for _, zone := range c.config.Networks.Zones {
+		if processedZones.Has(zone.Name) {
+			continue
+		}
+		processedZones.Insert(zone.Name)
+
 		c.addZoneReconcileTasks(g, zone.Name, eipIntenetChargeType)
 	}
 
@@ -184,8 +190,8 @@ func (c *FlowContext) ensureSnatEntry(zoneName string) flow.TaskFn {
 
 			if managed_eip != nil {
 				log := c.LogFromContext(ctx)
-				log.Info("deleting...", "AllocationId", managed_eip.EipId)
-				waiter := informOnWaiting(log, 5*time.Second, "still deleting...", "AllocationId", managed_eip.EipId)
+				log.Info("deleting managed eip ...", "AllocationId", managed_eip.EipId)
+				waiter := informOnWaiting(log, 5*time.Second, "still deleting managed eip ...", "AllocationId", managed_eip.EipId)
 				err = c.actor.DeleteEIP(ctx, managed_eip.EipId)
 				waiter.Done(err)
 				if err != nil {
@@ -334,7 +340,13 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	}
 	log := c.LogFromContext(ctx)
 	var desired []*aliclient.VSwitch
+	processedZones := sets.New[string]()
 	for _, zone := range c.config.Networks.Zones {
+		if processedZones.Has(zone.Name) {
+			continue
+		}
+		processedZones.Insert(zone.Name)
+
 		zoneSuffix := c.getZoneSuffix(zone.Name)
 		workerSuffix := fmt.Sprintf("nodes-%s", zoneSuffix)
 		cidrBlock := zone.Workers
@@ -364,6 +376,15 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 		return item.ZoneId + "-" + item.CidrBlock
 	})
 
+	if len(toBeDeleted) > 0 && !c.canDelete {
+		var details []string
+		for _, vsw := range toBeDeleted {
+			zone_name := getZoneName(vsw)
+			vswitch_id := vsw.VSwitchId
+			details = append(details, fmt.Sprintf("zone: %s, vswitch: %s", zone_name, vswitch_id))
+		}
+		return fmt.Errorf("protected: attempt to DeleteZoneByVSwitches during reconcile. Details: %s", strings.Join(details, "; "))
+	}
 	if err := c.DeleteZoneByVSwitches(ctx, toBeDeleted); err != nil {
 		return err
 	}
@@ -400,12 +421,20 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 	if len(toBeDeleted) == 0 {
 		return nil // Return immediately if there is nothing to delete
 	}
+	needDeleteNatGateway := c.config.Networks.VPC.ID == nil || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
 	g := flow.NewGraph("Alicloud infrastructure deletion: zones")
 
-	toBeDeletedZones := sets.NewString()
+	toBeDeletedZones := sets.New[string]()
 	vswitchIds := []string{}
 	for _, vsw := range toBeDeleted {
-		toBeDeletedZones.Insert(getZoneName(vsw))
+		targetZoneName := getZoneName(vsw)
+		if c.state.GetChild(ChildIdZones).HasChild(targetZoneName) {
+			child := c.getZoneChild(targetZoneName)
+			zoneVswitchId := child.Get(IdentifierZoneVSwitch)
+			if zoneVswitchId != nil && *zoneVswitchId == vsw.VSwitchId {
+				toBeDeletedZones.Insert(targetZoneName)
+			}
+		}
 		vswitchIds = append(vswitchIds, vsw.VSwitchId)
 	}
 	dependencies := []flow.TaskIDer{}
@@ -416,12 +445,12 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 		}
 	}
 
-	deleteNatGateway := c.AddTask(g, "delete NatGateway",
+	deleteNatGateway := c.AddTask(g, "delete managed NatGateway",
 		c.deleteNatGatewayInVSwitches(vswitchIds),
-		DoIf(c.hasNatGateway()), Timeout(defaultLongTimeout), Dependencies(dependencies...))
+		DoIf(needDeleteNatGateway && c.hasNatGateway()), Timeout(defaultLongTimeout), Dependencies(dependencies...))
 
 	for _, vsw := range toBeDeleted {
-		c.AddTask(g, "delete vswitch resource "+getZoneName(vsw),
+		c.AddTask(g, "delete vswitch resource "+getZoneName(vsw)+" "+vsw.VSwitchId,
 			c.deleteVSwitch(vsw),
 			Timeout(defaultTimeout), Dependencies(deleteNatGateway))
 	}
@@ -464,13 +493,27 @@ func (c *FlowContext) deleteSNatEntryForZone(zoneName string) flow.TaskFn {
 		if err != nil {
 			return err
 		}
-
+		toUnAssociateEIPs := sets.New[string]()
 		for _, entry := range current {
+			toUnAssociateEIPs.Insert(entry.IpAddress)
 			waiter := informOnWaiting(log, 5*time.Second, "still deleting snate entry ...", "SnatEntryId", entry.SnatEntryId, "SnatTableId", entry.SnatTableId)
 			err := c.actor.DeleteSNatEntry(ctx, entry.SnatEntryId, entry.SnatTableId)
 			waiter.Done(err)
 			if err != nil {
 				return err
+			}
+		}
+		log.Info("deleting Eip Association used in SNatEntry for zone ...", "zoneName", zoneName)
+		for ipAddress := range toUnAssociateEIPs {
+			the_eip, err := c.actor.GetEIPByAddress(ctx, ipAddress)
+			if err != nil {
+				return err
+			}
+			if the_eip != nil && *the_eip.Status == "InUse" {
+				log.Info("delete eip association", "eipId", the_eip.EipId)
+				if err := c.actor.UnAssociateEIP(ctx, the_eip); err != nil {
+					return err
+				}
 			}
 		}
 		return nil
@@ -480,12 +523,9 @@ func (c *FlowContext) deleteSNatEntryForZone(zoneName string) flow.TaskFn {
 func (c *FlowContext) deleteEipAssociation(zoneName string) flow.TaskFn {
 	return func(ctx context.Context) error {
 		log := c.LogFromContext(ctx)
-		zone := c.getZoneConfig(zoneName)
+		log.Info("deleting Eip Association for zone ...", "zoneName", zoneName)
 		child := c.getZoneChild(zoneName)
 		eipId := child.Get(IdentifierZoneNATGWElasticIP)
-		if eipId == nil && zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
-			eipId = zone.NatGateway.EIPAllocationID
-		}
 		if eipId == nil {
 			return nil
 		}
@@ -508,6 +548,8 @@ func (c *FlowContext) deleteEipAssociation(zoneName string) flow.TaskFn {
 
 func (c *FlowContext) deleteElasticIP(zoneName string) flow.TaskFn {
 	return func(ctx context.Context) error {
+		log := c.LogFromContext(ctx)
+		log.Info("deleting Eip for zone ...", "zoneName", zoneName)
 		child := c.getZoneChild(zoneName)
 		if child.IsAlreadyDeleted(IdentifierZoneNATGWElasticIP) {
 			return nil
@@ -520,9 +562,8 @@ func (c *FlowContext) deleteElasticIP(zoneName string) flow.TaskFn {
 			return err
 		}
 		if current != nil {
-			log := c.LogFromContext(ctx)
-			log.Info("deleting...", "AllocationId", current.EipId)
-			waiter := informOnWaiting(log, 5*time.Second, "still deleting...", "AllocationId", current.EipId)
+			log.Info("deleting eip ...", "AllocationId", current.EipId)
+			waiter := informOnWaiting(log, 5*time.Second, "still deleting eip ...", "AllocationId", current.EipId)
 			err = c.actor.DeleteEIP(ctx, current.EipId)
 			waiter.Done(err)
 			if err != nil {
@@ -536,7 +577,9 @@ func (c *FlowContext) deleteElasticIP(zoneName string) flow.TaskFn {
 
 func (c *FlowContext) deleteNatGatewayInVSwitches(vswitchIds []string) flow.TaskFn {
 	return func(ctx context.Context) error {
-		current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTags,
+		log := c.LogFromContext(ctx)
+		log.Info("deleting managed natgateway in vswitches ...")
+		current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTagsWithSuffix("natgw"),
 			c.actor.GetNatGateway, c.actor.FindNatGatewayByTags)
 		if err != nil {
 			return err
@@ -578,7 +621,7 @@ func (c *FlowContext) deleteSNatEntryForNatGateway(ctx context.Context, ngw *ali
 func (c *FlowContext) deleteNatGateway(ctx context.Context, ngw *aliclient.NatGateway) error {
 	log := c.LogFromContext(ctx)
 	log.Info("deleting natgateway ...", "NatgatewayId", ngw.NatGatewayId)
-	waiter := informOnWaiting(log, 10*time.Second, "still deleting...", "NatGatewayID", ngw.NatGatewayId)
+	waiter := informOnWaiting(log, 10*time.Second, "still deleting natgateway ...", "NatGatewayID", ngw.NatGatewayId)
 	err := c.actor.DeleteNatGateway(ctx, ngw.NatGatewayId)
 	waiter.Done(err)
 	if err != nil {
@@ -590,17 +633,20 @@ func (c *FlowContext) deleteNatGateway(ctx context.Context, ngw *aliclient.NatGa
 
 func (c *FlowContext) deleteVSwitch(vsw *aliclient.VSwitch) flow.TaskFn {
 	return func(ctx context.Context) error {
-		zoneChild := c.state.GetChild(ChildIdZones).GetChild(vsw.ZoneId)
 		log := c.LogFromContext(ctx)
 		log.Info("deleting vswitch ...", "VSwitchId", vsw.VSwitchId)
 
-		if zoneChild.IsAlreadyDeleted(IdentifierZoneVSwitch) {
-			return nil
-		}
 		if err := c.actor.DeleteVSwitch(ctx, vsw.VSwitchId); err != nil {
 			return err
 		}
-		zoneChild.SetAsDeleted(IdentifierZoneVSwitch)
+		targetZoneName := getZoneName(vsw)
+		if c.state.GetChild(ChildIdZones).HasChild(targetZoneName) {
+			child := c.getZoneChild(targetZoneName)
+			zoneVswitchId := child.Get(IdentifierZoneVSwitch)
+			if zoneVswitchId != nil && *zoneVswitchId == vsw.VSwitchId {
+				child.SetAsDeleted(IdentifierZoneVSwitch)
+			}
+		}
 
 		return nil
 	}
