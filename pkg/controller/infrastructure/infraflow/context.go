@@ -76,12 +76,12 @@ func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 	if err != nil {
 		return nil, err
 	}
+	canDelete := false
 	updater := aliclient.NewUpdater(actor)
 	whiteboard := shared.NewWhiteboard()
 	if oldState != nil {
 		whiteboard.ImportFromFlatMap(oldState)
 	}
-	canDelete := false
 	if infra.Annotations != nil && strings.EqualFold(infra.Annotations[aliapi.AnnotationKeyFlowReconcileCanDeleteResource], "true") {
 		canDelete = true
 	}

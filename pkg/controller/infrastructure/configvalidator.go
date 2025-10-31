@@ -86,7 +86,6 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 			} else {
 				allErrs = append(allErrs, field.Forbidden(fldPath, fmt.Sprintf("Duplicate EIP Allocation ID %s", eipId)))
 			}
-
 		}
 	}
 
