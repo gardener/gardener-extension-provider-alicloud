@@ -32,7 +32,7 @@ func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 
 	deleteZones := c.AddTask(g, "delete vswitch",
 		c.deleteZones,
-		Timeout(defaultTimeout))
+		Timeout(defaultLongTimeout))
 
 	deleteSecurityGroup := c.AddTask(g, "delete security group",
 		c.deleteSecurityGroup,
