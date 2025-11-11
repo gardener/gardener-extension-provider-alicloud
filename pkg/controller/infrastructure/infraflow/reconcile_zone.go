@@ -447,7 +447,7 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 
 	deleteNatGateway := c.AddTask(g, "delete managed NatGateway",
 		c.deleteNatGatewayInVSwitches(vswitchIds),
-		DoIf(needDeleteNatGateway && c.hasNatGateway()), Timeout(defaultLongTimeout), Dependencies(dependencies...))
+		DoIf(needDeleteNatGateway), Timeout(defaultLongTimeout), Dependencies(dependencies...))
 
 	for _, vsw := range toBeDeleted {
 		c.AddTask(g, "delete vswitch resource "+getZoneName(vsw)+" "+vsw.VSwitchId,
@@ -583,6 +583,19 @@ func (c *FlowContext) deleteNatGatewayInVSwitches(vswitchIds []string) flow.Task
 			c.actor.GetNatGateway, c.actor.FindNatGatewayByTags)
 		if err != nil {
 			return err
+		}
+		if current == nil {
+			vpcId := c.state.Get(IdentifierVPC)
+			if vpcId == nil {
+				return fmt.Errorf("IdentifierVPC is nil")
+			}
+			ngw_in_vsw_list, err := c.actor.ListNatGatewaysByVSwitchInVPC(ctx, *vpcId, vswitchIds)
+			if err != nil {
+				return err
+			}
+			if len(ngw_in_vsw_list) > 0 {
+				current = ngw_in_vsw_list[0]
+			}
 		}
 		if current != nil && contains(vswitchIds, *current.VswitchId) {
 			if err := c.deleteSNatEntryForNatGateway(ctx, current); err != nil {
