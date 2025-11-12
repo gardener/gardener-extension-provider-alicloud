@@ -51,7 +51,7 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 
 	_ = c.AddTask(g, "ensure zones",
 		c.ensureZones,
-		Timeout(defaultTimeout), Dependencies(ensureNatGateway))
+		Timeout(defaultLongTimeout), Dependencies(ensureNatGateway))
 
 	return g
 }
@@ -327,13 +327,25 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		VpcId:              vpcId,
 		AvailableVSwitches: availableVSwitches,
 	}
-
-	current, err := findExisting(ctx, c.state.Get(IdentifierNatGateway), c.commonTagsWithSuffix("natgw"),
+	stored_ngwId := c.state.Get(IdentifierNatGateway)
+	current, err := findExisting(ctx, stored_ngwId, c.commonTagsWithSuffix("natgw"),
 		c.actor.GetNatGateway, c.actor.FindNatGatewayByTags)
 
 	if err != nil {
 		return err
 	}
+	if current == nil {
+		if stored_ngwId == nil {
+			ngw_in_vsw_list, err := c.actor.ListNatGatewaysByVSwitchInVPC(ctx, *vpcId, desired.AvailableVSwitches)
+			if err != nil {
+				return err
+			}
+			if len(ngw_in_vsw_list) > 0 {
+				current = ngw_in_vsw_list[0]
+			}
+		}
+	}
+
 	if current != nil {
 		c.state.Set(IdentifierNatGateway, current.NatGatewayId)
 		if !contains(desired.AvailableVSwitches, *current.VswitchId) {
