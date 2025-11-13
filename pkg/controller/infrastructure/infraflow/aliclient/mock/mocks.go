@@ -541,6 +541,21 @@ func (mr *MockActorMockRecorder) ListNatGateways(ctx, ids any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNatGateways", reflect.TypeOf((*MockActor)(nil).ListNatGateways), ctx, ids)
 }
 
+// ListNatGatewaysByVSwitchInVPC mocks base method.
+func (m *MockActor) ListNatGatewaysByVSwitchInVPC(ctx context.Context, vpcId string, vswitchIds []string) ([]*aliclient.NatGateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListNatGatewaysByVSwitchInVPC", ctx, vpcId, vswitchIds)
+	ret0, _ := ret[0].([]*aliclient.NatGateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListNatGatewaysByVSwitchInVPC indicates an expected call of ListNatGatewaysByVSwitchInVPC.
+func (mr *MockActorMockRecorder) ListNatGatewaysByVSwitchInVPC(ctx, vpcId, vswitchIds any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNatGatewaysByVSwitchInVPC", reflect.TypeOf((*MockActor)(nil).ListNatGatewaysByVSwitchInVPC), ctx, vpcId, vswitchIds)
+}
+
 // ListSecurityGroups mocks base method.
 func (m *MockActor) ListSecurityGroups(ctx context.Context, ids []string) ([]*aliclient.SecurityGroup, error) {
 	m.ctrl.T.Helper()
