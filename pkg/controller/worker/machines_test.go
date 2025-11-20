@@ -707,6 +707,14 @@ var _ = Describe("Machines", func() {
 
 					labelsZone1 := map[string]string{alicloud.CSIDiskTopologyZoneKey: zone1}
 					labelsZone2 := map[string]string{alicloud.CSIDiskTopologyZoneKey: zone2}
+
+					emptyClusterAutoscalerAnnotations := map[string]string{
+						"autoscaler.gardener.cloud/max-node-provision-time":              "",
+						"autoscaler.gardener.cloud/scale-down-gpu-utilization-threshold": "",
+						"autoscaler.gardener.cloud/scale-down-unneeded-time":             "",
+						"autoscaler.gardener.cloud/scale-down-unready-time":              "",
+						"autoscaler.gardener.cloud/scale-down-utilization-threshold":     "",
+					}
 					machineDeployments = worker.MachineDeployments{
 						{
 							Name:       machineClassNamePool1Zone1,
@@ -724,8 +732,9 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
-							Labels:               labelsZone1,
-							MachineConfiguration: machineConfiguration,
+							Labels:                       labelsZone1,
+							MachineConfiguration:         machineConfiguration,
+							ClusterAutoscalerAnnotations: emptyClusterAutoscalerAnnotations,
 						},
 						{
 							Name:       machineClassNamePool1Zone2,
@@ -743,8 +752,9 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
-							Labels:               labelsZone2,
-							MachineConfiguration: machineConfiguration,
+							Labels:                       labelsZone2,
+							MachineConfiguration:         machineConfiguration,
+							ClusterAutoscalerAnnotations: emptyClusterAutoscalerAnnotations,
 						},
 						{
 							Name:       machineClassNamePool2Zone1,
@@ -763,8 +773,9 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
-							Labels:               labelsZone1,
-							MachineConfiguration: machineConfiguration,
+							Labels:                       labelsZone1,
+							MachineConfiguration:         machineConfiguration,
+							ClusterAutoscalerAnnotations: emptyClusterAutoscalerAnnotations,
 						},
 						{
 							Name:       machineClassNamePool2Zone2,
@@ -783,8 +794,9 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
-							Labels:               labelsZone2,
-							MachineConfiguration: machineConfiguration,
+							Labels:                       labelsZone2,
+							MachineConfiguration:         machineConfiguration,
+							ClusterAutoscalerAnnotations: emptyClusterAutoscalerAnnotations,
 						},
 						{
 							Name:       machineClassNamePool3Zone1,
@@ -804,8 +816,9 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
-							Labels:               labelsZone1,
-							MachineConfiguration: machineConfiguration,
+							Labels:                       labelsZone1,
+							MachineConfiguration:         machineConfiguration,
+							ClusterAutoscalerAnnotations: emptyClusterAutoscalerAnnotations,
 						},
 						{
 							Name:       machineClassNamePool3Zone2,
@@ -825,8 +838,9 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
-							Labels:               labelsZone2,
-							MachineConfiguration: machineConfiguration,
+							Labels:                       labelsZone2,
+							MachineConfiguration:         machineConfiguration,
+							ClusterAutoscalerAnnotations: emptyClusterAutoscalerAnnotations,
 						},
 						{
 							Name:       machineClassNamePool4Zone1,
@@ -846,8 +860,9 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
-							Labels:               labelsZone1,
-							MachineConfiguration: machineConfiguration,
+							Labels:                       labelsZone1,
+							MachineConfiguration:         machineConfiguration,
+							ClusterAutoscalerAnnotations: emptyClusterAutoscalerAnnotations,
 						},
 						{
 							Name:       machineClassNamePool4Zone2,
@@ -867,8 +882,9 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
-							Labels:               labelsZone2,
-							MachineConfiguration: machineConfiguration,
+							Labels:                       labelsZone2,
+							MachineConfiguration:         machineConfiguration,
+							ClusterAutoscalerAnnotations: emptyClusterAutoscalerAnnotations,
 						},
 					}
 				})
@@ -1080,12 +1096,25 @@ var _ = Describe("Machines", func() {
 
 				Expect(result[0].ClusterAutoscalerAnnotations).NotTo(BeNil())
 				Expect(result[1].ClusterAutoscalerAnnotations).NotTo(BeNil())
-				Expect(result[2].ClusterAutoscalerAnnotations).To(BeNil())
-				Expect(result[3].ClusterAutoscalerAnnotations).To(BeNil())
-				Expect(result[4].ClusterAutoscalerAnnotations).To(BeNil())
-				Expect(result[5].ClusterAutoscalerAnnotations).To(BeNil())
-				Expect(result[6].ClusterAutoscalerAnnotations).To(BeNil())
-				Expect(result[7].ClusterAutoscalerAnnotations).To(BeNil())
+
+				for k, v := range result[2].ClusterAutoscalerAnnotations {
+					Expect(v).To(BeEmpty(), "entry for key %v is not empty", k)
+				}
+				for k, v := range result[3].ClusterAutoscalerAnnotations {
+					Expect(v).To(BeEmpty(), "entry for key %v is not empty", k)
+				}
+				for k, v := range result[4].ClusterAutoscalerAnnotations {
+					Expect(v).To(BeEmpty(), "entry for key %v is not empty", k)
+				}
+				for k, v := range result[5].ClusterAutoscalerAnnotations {
+					Expect(v).To(BeEmpty(), "entry for key %v is not empty", k)
+				}
+				for k, v := range result[6].ClusterAutoscalerAnnotations {
+					Expect(v).To(BeEmpty(), "entry for key %v is not empty", k)
+				}
+				for k, v := range result[7].ClusterAutoscalerAnnotations {
+					Expect(v).To(BeEmpty(), "entry for key %v is not empty", k)
+				}
 
 				Expect(result[0].ClusterAutoscalerAnnotations[extensionsv1alpha1.MaxNodeProvisionTimeAnnotation]).To(Equal("1m0s"))
 				Expect(result[0].ClusterAutoscalerAnnotations[extensionsv1alpha1.ScaleDownGpuUtilizationThresholdAnnotation]).To(Equal("0.5"))
