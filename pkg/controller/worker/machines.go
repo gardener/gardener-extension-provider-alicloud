@@ -97,7 +97,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		machineImages = helper.AppendMachineImage(machineImages, *machineImage)
 
-		disks, err := computeDisks(w.worker.Namespace, pool)
+		disks, err := computeDisks(w.cluster.Shoot.Status.TechnicalID, pool)
 		if err != nil {
 			return err
 		}
@@ -128,8 +128,8 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				"spotStrategy":            "NoSpot",
 				"tags": utils.MergeStringMaps(
 					map[string]string{
-						fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace):     "1",
-						fmt.Sprintf("kubernetes.io/role/worker/%s", w.worker.Namespace): "1",
+						fmt.Sprintf("kubernetes.io/cluster/%s", w.cluster.Shoot.Status.TechnicalID):     "1",
+						fmt.Sprintf("kubernetes.io/role/worker/%s", w.cluster.Shoot.Status.TechnicalID): "1",
 					},
 					getLabelsWithValue(pool.Labels),
 				),
@@ -143,7 +143,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			}, disks)
 
 			var (
-				deploymentName = fmt.Sprintf("%s-%s-%s", w.worker.Namespace, pool.Name, zone)
+				deploymentName = fmt.Sprintf("%s-%s-%s", w.cluster.Shoot.Status.TechnicalID, pool.Name, zone)
 				className      = fmt.Sprintf("%s-%s", deploymentName, workerPoolHash)
 			)
 
@@ -230,7 +230,7 @@ func getLabelsWithValue(labels map[string]string) map[string]string {
 	}
 	return out
 }
-func computeDisks(namespace string, pool extensionsv1alpha1.WorkerPool) (map[string]interface{}, error) {
+func computeDisks(technicalID string, pool extensionsv1alpha1.WorkerPool) (map[string]interface{}, error) {
 	// handle root disk
 	volumeSize, err := worker.DiskSize(pool.Volume.Size)
 	if err != nil {
@@ -258,7 +258,7 @@ func computeDisks(namespace string, pool extensionsv1alpha1.WorkerPool) (map[str
 				"name":               vol.Name,
 				"size":               volumeSize,
 				"deleteWithInstance": true,
-				"description":        fmt.Sprintf("%s-datavol-%s", namespace, vol.Name),
+				"description":        fmt.Sprintf("%s-datavol-%s", technicalID, vol.Name),
 			}
 			if vol.Type != nil {
 				dataDisk["category"] = *vol.Type
