@@ -69,6 +69,7 @@ var _ = Describe("Machines", func() {
 		Describe("#GenerateMachineDeployments, #DeployMachineClasses", func() {
 			var (
 				namespace        string
+				technicalID      string
 				cloudProfileName string
 
 				region string
@@ -163,7 +164,8 @@ var _ = Describe("Machines", func() {
 			)
 
 			BeforeEach(func() {
-				namespace = "shoot--foobar--alicloud"
+				namespace = "control-plane-namespace"
+				technicalID = "shoot--foobar--alicloud"
 				cloudProfileName = "alicloud"
 
 				region = "china"
@@ -307,6 +309,9 @@ var _ = Describe("Machines", func() {
 							Kubernetes: gardencorev1beta1.Kubernetes{
 								Version: shootVersion,
 							},
+						},
+						Status: gardencorev1beta1.ShootStatus{
+							TechnicalID: technicalID,
 						},
 					},
 				}
@@ -580,8 +585,8 @@ var _ = Describe("Machines", func() {
 						"internetMaxBandwidthOut": internetMaxBandwidthOut,
 						"spotStrategy":            spotStrategy,
 						"tags": map[string]string{
-							fmt.Sprintf("kubernetes.io/cluster/%s", namespace):     "1",
-							fmt.Sprintf("kubernetes.io/role/worker/%s", namespace): "1",
+							fmt.Sprintf("kubernetes.io/cluster/%s", technicalID):     "1",
+							fmt.Sprintf("kubernetes.io/role/worker/%s", technicalID): "1",
 						},
 						"secret": map[string]interface{}{
 							"userData": string(userData),
@@ -603,7 +608,7 @@ var _ = Describe("Machines", func() {
 							"deleteWithInstance": true,
 							"category":           dataVolume1Type,
 							"encrypted":          dataVolume1Encrypted,
-							"description":        namespace + "-datavol-" + dataVolume1Name,
+							"description":        technicalID + "-datavol-" + dataVolume1Name,
 						},
 						{
 							"name":               dataVolume2Name,
@@ -611,7 +616,7 @@ var _ = Describe("Machines", func() {
 							"deleteWithInstance": true,
 							"category":           dataVolume2Type,
 							"encrypted":          dataVolume2Encrypted,
-							"description":        namespace + "-datavol-" + dataVolume2Name,
+							"description":        technicalID + "-datavol-" + dataVolume2Name,
 						},
 					}
 
@@ -657,14 +662,14 @@ var _ = Describe("Machines", func() {
 							"imageID", encryptedImageID,
 						)
 
-						machineClassNamePool1Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool1, zone1)
-						machineClassNamePool1Zone2 = fmt.Sprintf("%s-%s-%s", namespace, namePool1, zone2)
-						machineClassNamePool2Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool2, zone1)
-						machineClassNamePool2Zone2 = fmt.Sprintf("%s-%s-%s", namespace, namePool2, zone2)
-						machineClassNamePool3Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool3, zone1)
-						machineClassNamePool3Zone2 = fmt.Sprintf("%s-%s-%s", namespace, namePool3, zone2)
-						machineClassNamePool4Zone1 = fmt.Sprintf("%s-%s-%s", namespace, namePool4, zone1)
-						machineClassNamePool4Zone2 = fmt.Sprintf("%s-%s-%s", namespace, namePool4, zone2)
+						machineClassNamePool1Zone1 = fmt.Sprintf("%s-%s-%s", technicalID, namePool1, zone1)
+						machineClassNamePool1Zone2 = fmt.Sprintf("%s-%s-%s", technicalID, namePool1, zone2)
+						machineClassNamePool2Zone1 = fmt.Sprintf("%s-%s-%s", technicalID, namePool2, zone1)
+						machineClassNamePool2Zone2 = fmt.Sprintf("%s-%s-%s", technicalID, namePool2, zone2)
+						machineClassNamePool3Zone1 = fmt.Sprintf("%s-%s-%s", technicalID, namePool3, zone1)
+						machineClassNamePool3Zone2 = fmt.Sprintf("%s-%s-%s", technicalID, namePool3, zone2)
+						machineClassNamePool4Zone1 = fmt.Sprintf("%s-%s-%s", technicalID, namePool4, zone1)
+						machineClassNamePool4Zone2 = fmt.Sprintf("%s-%s-%s", technicalID, namePool4, zone2)
 
 						machineClassWithHashPool1Zone1 = fmt.Sprintf("%s-%s", machineClassNamePool1Zone1, workerPoolHash1)
 						machineClassWithHashPool1Zone2 = fmt.Sprintf("%s-%s", machineClassNamePool1Zone2, workerPoolHash1)
