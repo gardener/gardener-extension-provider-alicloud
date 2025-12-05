@@ -8,15 +8,15 @@ spec:
       runtimeCluster:
         helm:
           ociRepository:
-            ref: europe-docker.pkg.dev/gardener-project/public/charts/gardener/extensions/admission-alicloud-runtime:v1.67.0-dev
+            ref: europe-docker.pkg.dev/gardener-project/public/charts/gardener/extensions/admission-alicloud-runtime:v1.67.0
       virtualCluster:
         helm:
           ociRepository:
-            ref: europe-docker.pkg.dev/gardener-project/public/charts/gardener/extensions/admission-alicloud-application:v1.67.0-dev
+            ref: europe-docker.pkg.dev/gardener-project/public/charts/gardener/extensions/admission-alicloud-application:v1.67.0
     extension:
       helm:
         ociRepository:
-          ref: europe-docker.pkg.dev/gardener-project/public/charts/gardener/extensions/provider-alicloud:v1.67.0-dev
+          ref: europe-docker.pkg.dev/gardener-project/public/charts/gardener/extensions/provider-alicloud:v1.67.0
       injectGardenKubeconfig: true
   resources:
   - kind: BackupBucket
