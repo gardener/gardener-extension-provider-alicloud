@@ -640,7 +640,10 @@ func (c *FlowContext) deleteNatGateway(ctx context.Context, ngw *aliclient.NatGa
 	if err != nil {
 		return err
 	}
-	c.state.SetAsDeleted(IdentifierNatGateway)
+	ngwId := c.state.Get(IdentifierNatGateway)
+	if ngwId != nil && *ngwId == ngw.NatGatewayId {
+		c.state.SetAsDeleted(IdentifierNatGateway)
+	}
 	return nil
 }
 
