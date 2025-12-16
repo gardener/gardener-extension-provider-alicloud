@@ -442,7 +442,7 @@ var _ = Describe("Machines", func() {
 								Name:           namePool2,
 								Minimum:        minPool2,
 								Maximum:        maxPool2,
-								Priority:       priorityPool2,
+								Priority:       ptr.To(priorityPool2),
 								MaxSurge:       maxSurgePool2,
 								MaxUnavailable: maxUnavailablePool2,
 								Architecture:   ptr.To(archARM),
@@ -472,7 +472,7 @@ var _ = Describe("Machines", func() {
 								Name:           namePool3,
 								Minimum:        minPool3,
 								Maximum:        maxPool3,
-								Priority:       priorityPool3,
+								Priority:       ptr.To(priorityPool3),
 								MaxSurge:       maxSurgePool3,
 								MaxUnavailable: maxUnavailablePool3,
 								Architecture:   ptr.To(archARM),
@@ -504,7 +504,7 @@ var _ = Describe("Machines", func() {
 								Name:           namePool4,
 								Minimum:        minPool4,
 								Maximum:        maxPool4,
-								Priority:       priorityPool4,
+								Priority:       ptr.To(priorityPool4),
 								MaxSurge:       maxSurgePool4,
 								MaxUnavailable: maxUnavailablePool4,
 								Architecture:   ptr.To(archARM),
@@ -768,7 +768,7 @@ var _ = Describe("Machines", func() {
 							PoolName:   namePool2,
 							Minimum:    worker.DistributeOverZones(0, minPool2, 2),
 							Maximum:    worker.DistributeOverZones(0, maxPool2, 2),
-							Priority:   priorityPool2,
+							Priority:   ptr.To(priorityPool2),
 							Strategy: machinev1alpha1.MachineDeploymentStrategy{
 								Type: machinev1alpha1.RollingUpdateMachineDeploymentStrategyType,
 								RollingUpdate: &machinev1alpha1.RollingUpdateMachineDeployment{
@@ -789,7 +789,7 @@ var _ = Describe("Machines", func() {
 							PoolName:   namePool2,
 							Minimum:    worker.DistributeOverZones(1, minPool2, 2),
 							Maximum:    worker.DistributeOverZones(1, maxPool2, 2),
-							Priority:   priorityPool2,
+							Priority:   ptr.To(priorityPool2),
 							Strategy: machinev1alpha1.MachineDeploymentStrategy{
 								Type: machinev1alpha1.RollingUpdateMachineDeploymentStrategyType,
 								RollingUpdate: &machinev1alpha1.RollingUpdateMachineDeployment{
@@ -810,7 +810,7 @@ var _ = Describe("Machines", func() {
 							PoolName:   namePool3,
 							Minimum:    worker.DistributeOverZones(0, minPool3, 2),
 							Maximum:    worker.DistributeOverZones(0, maxPool3, 2),
-							Priority:   priorityPool3,
+							Priority:   ptr.To(priorityPool3),
 							Strategy: machinev1alpha1.MachineDeploymentStrategy{
 								Type: machinev1alpha1.InPlaceUpdateMachineDeploymentStrategyType,
 								InPlaceUpdate: &machinev1alpha1.InPlaceUpdateMachineDeployment{
@@ -832,7 +832,7 @@ var _ = Describe("Machines", func() {
 							PoolName:   namePool3,
 							Minimum:    worker.DistributeOverZones(1, minPool3, 2),
 							Maximum:    worker.DistributeOverZones(1, maxPool3, 2),
-							Priority:   priorityPool3,
+							Priority:   ptr.To(priorityPool3),
 							Strategy: machinev1alpha1.MachineDeploymentStrategy{
 								Type: machinev1alpha1.InPlaceUpdateMachineDeploymentStrategyType,
 								InPlaceUpdate: &machinev1alpha1.InPlaceUpdateMachineDeployment{
@@ -854,7 +854,7 @@ var _ = Describe("Machines", func() {
 							PoolName:   namePool4,
 							Minimum:    worker.DistributeOverZones(0, minPool4, 2),
 							Maximum:    worker.DistributeOverZones(0, maxPool4, 2),
-							Priority:   priorityPool4,
+							Priority:   ptr.To(priorityPool4),
 							Strategy: machinev1alpha1.MachineDeploymentStrategy{
 								Type: machinev1alpha1.InPlaceUpdateMachineDeploymentStrategyType,
 								InPlaceUpdate: &machinev1alpha1.InPlaceUpdateMachineDeployment{
@@ -876,7 +876,7 @@ var _ = Describe("Machines", func() {
 							PoolName:   namePool4,
 							Minimum:    worker.DistributeOverZones(1, minPool4, 2),
 							Maximum:    worker.DistributeOverZones(1, maxPool4, 2),
-							Priority:   priorityPool4,
+							Priority:   ptr.To(priorityPool4),
 							Strategy: machinev1alpha1.MachineDeploymentStrategy{
 								Type: machinev1alpha1.InPlaceUpdateMachineDeploymentStrategyType,
 								InPlaceUpdate: &machinev1alpha1.InPlaceUpdateMachineDeployment{
