@@ -125,8 +125,17 @@ var _ = Describe("ConfigValidator", func() {
 		ctrl.Finish()
 	})
 
-	It("should forbid when provide vpc id but VPC doesn't exist", func() {
+	It("should forbid when provide vpc id but call get VPC failed", func() {
 		actor.EXPECT().GetVpc(ctx, vpcID).Return(nil, fmt.Errorf("not found"))
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(ConsistOfFields(Fields{
+			"Type":  Equal(field.ErrorTypeInternal),
+			"Field": Equal("networks.vpc.id"),
+		}))
+	})
+
+	It("should forbid when provide vpc id but VPC doesn't exist", func() {
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(nil, nil)
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(ConsistOfFields(Fields{
 			"Type":  Equal(field.ErrorTypeNotFound),
@@ -134,9 +143,20 @@ var _ = Describe("ConfigValidator", func() {
 		}))
 	})
 
-	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but natgateway doesn't exist", func() {
+	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but call get natgateway failed", func() {
 		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
 		actor.EXPECT().FindNatGatewayByVPC(ctx, vpcID).Return(nil, fmt.Errorf("not found"))
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(ConsistOfFields(Fields{
+			"Type":  Equal(field.ErrorTypeInternal),
+			"Field": Equal("networks.vpc.id"),
+		}))
+	})
+
+	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but natgateway doesn't exist", func() {
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().FindNatGatewayByVPC(ctx, vpcID).Return(nil, nil)
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(ConsistOfFields(Fields{
@@ -153,6 +173,33 @@ var _ = Describe("ConfigValidator", func() {
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(BeEmpty())
 
+	})
+
+	It("should forbid when provide eip id but call get EIP failed", func() {
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+			Networks: apisalicloud.Networks{
+				VPC: apisalicloud.VPC{},
+				Zones: []apisalicloud.Zone{
+					{
+						Name: "zone_1",
+						NatGateway: &apisalicloud.NatGatewayConfig{
+							EIPAllocationID: ptr.To(eipID),
+						},
+					},
+				},
+			},
+		})
+		actor.EXPECT().ListEnhanhcedNatGatewayAvailableZones(ctx, region).Return([]string{
+			"zone_1",
+			"zone_2",
+		}, nil)
+		actor.EXPECT().GetEIP(ctx, eipID).Return(nil, fmt.Errorf("not found"))
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(ConsistOfFields(Fields{
+			"Type":  Equal(field.ErrorTypeInternal),
+			"Field": Equal("networks.zones[].natGateway.eipAllocationID"),
+		}))
 	})
 
 	It("should forbid when provide eip id but EIP doesn't exist", func() {
@@ -173,7 +220,7 @@ var _ = Describe("ConfigValidator", func() {
 			"zone_1",
 			"zone_2",
 		}, nil)
-		actor.EXPECT().GetEIP(ctx, eipID).Return(nil, fmt.Errorf("not found"))
+		actor.EXPECT().GetEIP(ctx, eipID).Return(nil, nil)
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(ConsistOfFields(Fields{
