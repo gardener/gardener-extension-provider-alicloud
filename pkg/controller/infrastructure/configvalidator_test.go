@@ -143,9 +143,9 @@ var _ = Describe("ConfigValidator", func() {
 		}))
 	})
 
-	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but call get natgateway failed", func() {
+	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but call ListNatGatewaysByVPC failed", func() {
 		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
-		actor.EXPECT().FindNatGatewayByVPC(ctx, vpcID).Return(nil, fmt.Errorf("not found"))
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{}, fmt.Errorf("not found"))
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(ConsistOfFields(Fields{
@@ -154,9 +154,9 @@ var _ = Describe("ConfigValidator", func() {
 		}))
 	})
 
-	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but natgateway doesn't exist", func() {
+	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but no natgateway found in the vpc", func() {
 		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
-		actor.EXPECT().FindNatGatewayByVPC(ctx, vpcID).Return(nil, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{}, nil)
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(ConsistOfFields(Fields{
@@ -166,9 +166,26 @@ var _ = Describe("ConfigValidator", func() {
 		}))
 	})
 
+	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but more than one natgateway in the vpc", func() {
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{
+			&aliclient.NatGateway{},
+			&aliclient.NatGateway{},
+		}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(ConsistOfFields(Fields{
+			"Type":   Equal(field.ErrorTypeInvalid),
+			"Field":  Equal("networks.vpc.id"),
+			"Detail": Equal("more than one natgateway found"),
+		}))
+	})
+
 	It("should succeed when provide vpc exist and natgateway exist", func() {
 		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
-		actor.EXPECT().FindNatGatewayByVPC(ctx, vpcID).Return(&aliclient.NatGateway{}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{
+			&aliclient.NatGateway{},
+		}, nil)
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(BeEmpty())

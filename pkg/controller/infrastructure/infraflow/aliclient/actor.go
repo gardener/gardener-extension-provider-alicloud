@@ -46,6 +46,7 @@ type Actor interface {
 	FindNatGatewayByVPC(ctx context.Context, vpcId string) (*NatGateway, error)
 	DeleteNatGateway(ctx context.Context, id string) error
 	ListNatGatewaysByVSwitchInVPC(ctx context.Context, vpcId string, vswitchIds []string) ([]*NatGateway, error)
+	ListNatGatewaysByVPC(ctx context.Context, vpcId string) ([]*NatGateway, error)
 
 	CreateEIP(ctx context.Context, eip *EIP) (*EIP, error)
 	GetEIP(ctx context.Context, id string) (*EIP, error)
@@ -725,6 +726,18 @@ func (c *actor) getNatGateway(id string) (*NatGateway, error) {
 
 func (c *actor) ListNatGateways(_ context.Context, ids []string) ([]*NatGateway, error) {
 	return listByIds(c.getNatGateway, ids)
+}
+
+func (c *actor) ListNatGatewaysByVPC(_ context.Context, vpcId string) ([]*NatGateway, error) {
+	var ngwList []*NatGateway
+	req := vpc.CreateDescribeNatGatewaysRequest()
+	req.VpcId = vpcId
+
+	resp, err := c.describeNatGateway(req)
+	if err != nil {
+		return ngwList, err
+	}
+	return resp, nil
 }
 
 func (c *actor) ListNatGatewaysByVSwitchInVPC(_ context.Context, vpcId string, vswitchIds []string) ([]*NatGateway, error) {

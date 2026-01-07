@@ -541,6 +541,21 @@ func (mr *MockActorMockRecorder) ListNatGateways(ctx, ids any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNatGateways", reflect.TypeOf((*MockActor)(nil).ListNatGateways), ctx, ids)
 }
 
+// ListNatGatewaysByVPC mocks base method.
+func (m *MockActor) ListNatGatewaysByVPC(ctx context.Context, vpcId string) ([]*aliclient.NatGateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListNatGatewaysByVPC", ctx, vpcId)
+	ret0, _ := ret[0].([]*aliclient.NatGateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListNatGatewaysByVPC indicates an expected call of ListNatGatewaysByVPC.
+func (mr *MockActorMockRecorder) ListNatGatewaysByVPC(ctx, vpcId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNatGatewaysByVPC", reflect.TypeOf((*MockActor)(nil).ListNatGatewaysByVPC), ctx, vpcId)
+}
+
 // ListNatGatewaysByVSwitchInVPC mocks base method.
 func (m *MockActor) ListNatGatewaysByVSwitchInVPC(ctx context.Context, vpcId string, vswitchIds []string) ([]*aliclient.NatGateway, error) {
 	m.ctrl.T.Helper()

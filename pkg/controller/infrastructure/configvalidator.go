@@ -105,13 +105,18 @@ func (c *configValidator) validateVPC(ctx context.Context, actor aliclient.Actor
 		return allErrs
 	}
 	if checkNatgatewayExists {
-		gw, err := actor.FindNatGatewayByVPC(ctx, vpcID)
+		gw_list, err := actor.ListNatGatewaysByVPC(ctx, vpcID)
 		if err != nil {
 			allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateVPC FindNatGatewayByVPC %s failed: %+v", vpcID, err)))
 			return allErrs
 		}
-		if gw == nil {
+		if len(gw_list) == 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath, vpcID, "no user natgateway found"))
+			return allErrs
+		}
+		if len(gw_list) > 1 {
+			allErrs = append(allErrs, field.Invalid(fldPath, vpcID, "more than one natgateway found"))
+			return allErrs
 		}
 	}
 
