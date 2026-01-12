@@ -20,7 +20,7 @@ images:
 - name: alicloud-controller-manager
   sourceRepository: https://github.com/kubernetes/cloud-provider-alibaba-cloud
   repository: registry-eu-central-1.ack.aliyuncs.com/acs/cloud-controller-manager
-  tag: v2.10.0
+  tag: v2.12.4
   labels:
   - name: 'cloud.gardener.cnudie/responsibles'
     value:
@@ -146,7 +146,7 @@ images:
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
-  tag: v1.34.1
+  tag: v1.34.3
   labels:
   - name: 'cloud.gardener.cnudie/responsibles'
     value:
@@ -157,7 +157,7 @@ images:
 - name: csi-plugin-alicloud-init
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
-  tag: v1.34.1-init
+  tag: v1.34.3-init
   labels:
   - name: 'cloud.gardener.cnudie/responsibles'
     value:
