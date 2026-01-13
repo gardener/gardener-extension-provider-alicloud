@@ -96,14 +96,27 @@ func (c *configValidator) validateVPC(ctx context.Context, actor aliclient.Actor
 	allErrs := field.ErrorList{}
 	// check vpc if exists
 	vpc, err := actor.GetVpc(ctx, vpcID)
-	if err != nil || vpc == nil {
+	if err != nil {
+		allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateVPC GetVpc %s failed: %+v", vpcID, err)))
+		return allErrs
+	}
+	if vpc == nil {
 		allErrs = append(allErrs, field.NotFound(fldPath, vpcID))
 		return allErrs
 	}
 	if checkNatgatewayExists {
-		gw, err := actor.FindNatGatewayByVPC(ctx, vpcID)
-		if err != nil || gw == nil {
+		gw_list, err := actor.ListNatGatewaysByVPC(ctx, vpcID)
+		if err != nil {
+			allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateVPC FindNatGatewayByVPC %s failed: %+v", vpcID, err)))
+			return allErrs
+		}
+		if len(gw_list) == 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath, vpcID, "no user natgateway found"))
+			return allErrs
+		}
+		if len(gw_list) > 1 {
+			allErrs = append(allErrs, field.Invalid(fldPath, vpcID, "more than one natgateway found"))
+			return allErrs
 		}
 	}
 
@@ -113,7 +126,11 @@ func (c *configValidator) validateVPC(ctx context.Context, actor aliclient.Actor
 func (c *configValidator) validateEIP(ctx context.Context, actor aliclient.Actor, eipId string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	eip, err := actor.GetEIP(ctx, eipId)
-	if err != nil || eip == nil {
+	if err != nil {
+		allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateEIP GetEIP %s failed: %+v", eipId, err)))
+		return allErrs
+	}
+	if eip == nil {
 		allErrs = append(allErrs, field.NotFound(fldPath, eipId))
 	}
 	return allErrs
