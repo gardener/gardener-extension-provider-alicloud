@@ -16,6 +16,7 @@ parameters:
 {{- else }}
 provisioner: diskplugin.csi.alibabacloud.com
 volumeBindingMode: {{ .Values.config.etcd.storage.volumeBindingMode }}
+allowVolumeExpansion: true
 parameters:
   csi.storage.k8s.io/fstype: ext4
   type: cloud_essd
