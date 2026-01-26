@@ -17,23 +17,10 @@ import (
 
 // Restore implements infrastructure.Actuator.
 func (a *actuator) Restore(ctx context.Context, log logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	return util.DetermineError(a.restore(ctx, log, OnRestore, infra, cluster), helper.KnownCodes)
+	return util.DetermineError(a.restore(ctx, log, infra, cluster), helper.KnownCodes)
 }
 
-func (a *actuator) restore(ctx context.Context, logger logr.Logger, selectorFn SelectorFunc, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
-	useFlow, err := selectorFn(infra, cluster)
-	if err != nil {
-		return err
-	}
-
-	factory := ReconcilerFactoryImpl{
-		log: logger,
-		a:   a,
-	}
-
-	reconciler, err := factory.Build(useFlow)
-	if err != nil {
-		return err
-	}
+func (a *actuator) restore(ctx context.Context, logger logr.Logger, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error {
+	reconciler := NewFlowReconciler(a.client, a.restConfig, logger, a.disableProjectedTokenMount, a)
 	return reconciler.Restore(ctx, infra, cluster)
 }

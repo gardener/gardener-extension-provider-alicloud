@@ -11,10 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
-const (
-	// TerraformerImageName is the name of the Terraformer image.
-	TerraformerImageName = "terraformer"
-)
+const ()
 
 // ImagesYAML contains the content of the images.yaml file
 //
@@ -35,11 +32,4 @@ func init() {
 // ImageVector is the image vector that contains all the needed images.
 func ImageVector() imagevector.ImageVector {
 	return imageVector
-}
-
-// TerraformerImage retrieves the Terraformer image.
-func TerraformerImage() string {
-	image, err := imageVector.FindImage(TerraformerImageName)
-	runtime.Must(err)
-	return image.String()
 }
