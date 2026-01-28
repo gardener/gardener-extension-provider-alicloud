@@ -6,10 +6,12 @@ package validator_test
 
 import (
 	"context"
+	"fmt"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
 	"github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/utils/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -27,7 +29,7 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
 )
 
-var _ = Describe("NamespacedCloudProfile Validator", func() {
+var _ = DescribeTableSubtree("NamespacedCloudProfile Validator", func(isCapabilitiesCloudProfile bool) {
 	var (
 		fakeClient  client.Client
 		fakeManager manager.Manager
@@ -37,9 +39,15 @@ var _ = Describe("NamespacedCloudProfile Validator", func() {
 		namespacedCloudProfileValidator extensionswebhook.Validator
 		namespacedCloudProfile          *core.NamespacedCloudProfile
 		cloudProfile                    *v1beta1.CloudProfile
+		capabilityDefinitions           []v1beta1.CapabilityDefinition
 	)
 
 	BeforeEach(func() {
+		if isCapabilitiesCloudProfile {
+			capabilityDefinitions = []v1beta1.CapabilityDefinition{
+				{Name: v1beta1constants.ArchitectureName, Values: []string{"amd64"}},
+			}
+		}
 		scheme := runtime.NewScheme()
 		utilruntime.Must(install.AddToScheme(scheme))
 		utilruntime.Must(v1beta1.AddToScheme(scheme))
@@ -67,6 +75,9 @@ var _ = Describe("NamespacedCloudProfile Validator", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "cloud-profile",
 			},
+			Spec: v1beta1.CloudProfileSpec{
+				MachineCapabilities: capabilityDefinitions,
+			},
 		}
 	})
 
@@ -83,19 +94,24 @@ var _ = Describe("NamespacedCloudProfile Validator", func() {
 		})
 
 		It("should succeed if the NamespacedCloudProfile correctly defines new machine images and types", func() {
-			cloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
+			idMappings := `"regions":[{"name":"eu1","id":"id-123"}]`
+			namespacedIdMappings := `{"name":"image-1","versions":[{"version":"1.1","regions":[{"name":"eu1","id":"id-123"}]}]},
+  {"name":"image-2","versions":[{"version":"2.0","regions":[{"name":"eu1","id":"id-123"}]}]}`
+			if isCapabilitiesCloudProfile {
+				idMappings = `"capabilityFlavors":[{"regions":[{"name":"eu1","id":"id-123"}]}]`
+				namespacedIdMappings = `{"name":"image-1","versions":[{"version":"1.1","capabilityFlavors":[{"regions":[{"name":"eu1","id":"id-123"}]}]}]},
+  {"name":"image-2","versions":[{"version":"2.0","capabilityFlavors":[{"regions":[{"name":"eu1","id":"id-123"}]}]}]}`
+			}
+			cloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(fmt.Sprintf(`{
 "apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
-"machineImages":[{"name":"image-1","versions":[{"version":"1.0","regions":[{"name":"eu1","id":"id-123"}]}]}]
-}`)}
-			namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
+"machineImages":[{"name":"image-1","versions":[{"version":"1.0",%s}]}]
+}`, idMappings))}
+			namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(fmt.Sprintf(`{
 "apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
-"machineImages":[
-  {"name":"image-1","versions":[{"version":"1.1","regions":[{"name":"eu1","id":"id-123"}]}]},
-  {"name":"image-2","versions":[{"version":"2.0","regions":[{"name":"eu1","id":"id-123"}]}]}
-]
-}`)}
+"machineImages":[%s]
+}`, namespacedIdMappings))}
 			namespacedCloudProfile.Spec.MachineImages = []core.MachineImage{
 				{
 					Name:     "image-1",
@@ -128,18 +144,22 @@ var _ = Describe("NamespacedCloudProfile Validator", func() {
 		})
 
 		It("should fail for NamespacedCloudProfile trying to override an already existing machine image version", func() {
+			idMappings := `"regions":[{"name":"eu1","id":"id-123"}]`
+			if isCapabilitiesCloudProfile {
+				idMappings = `"capabilityFlavors":[{"regions":[{"name":"eu1","id":"id-123"}]}]`
+			}
 			cloudProfile.Spec.MachineImages = []v1beta1.MachineImage{
 				{Name: "image-1", Versions: []v1beta1.MachineImageVersion{{ExpirableVersion: v1beta1.ExpirableVersion{Version: "1.0"}}}},
 			}
 			cloudProfile.Spec.MachineTypes = []v1beta1.MachineType{{Name: "type-1"}}
 
-			namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
+			namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(fmt.Sprintf(`{
 "apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
 "machineImages":[
-  {"name":"image-1","versions":[{"version":"1.0","regions":[{"name":"eu1","id":"id-123"}]}]}
+  {"name":"image-1","versions":[{"version":"1.0",%s}]}
 ]
-}`)}
+}`, idMappings))}
 			namespacedCloudProfile.Spec.MachineImages = []core.MachineImage{
 				{
 					Name: "image-1",
@@ -160,18 +180,23 @@ var _ = Describe("NamespacedCloudProfile Validator", func() {
 		})
 
 		It("should fail for NamespacedCloudProfile specifying provider config without the according version in the spec.machineImages", func() {
-			namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
+			idMappings := `"regions":[{"name":"eu1","id":"id-123"}]`
+			if isCapabilitiesCloudProfile {
+				idMappings = `"capabilityFlavors":[{"regions":[{"name":"eu1","id":"id-123"}]}]`
+			}
+
+			namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(fmt.Sprintf(`{
 "apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
 "machineImages":[
-  {"name":"image-1","versions":[{"version":"1.1","regions":[{"name":"eu1","id":"id-123"}]}]}
+  {"name":"image-1","versions":[{"version":"1.1",%s}]}
 ]
-}`)}
+}`, idMappings))}
 			namespacedCloudProfile.Spec.MachineImages = []core.MachineImage{
 				{
 					Name: "image-1",
 					Versions: []core.MachineImageVersion{
-						{ExpirableVersion: core.ExpirableVersion{Version: "1.2"}},
+						{ExpirableVersion: core.ExpirableVersion{Version: "1.2"}, Architectures: []string{"amd64"}},
 					},
 				},
 			}
@@ -191,29 +216,48 @@ var _ = Describe("NamespacedCloudProfile Validator", func() {
 			}))))
 		})
 
-		It("should fail for NamespacedCloudProfile specifying new spec.machineImages without the according version entry in the provider config", func() {
-			namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
+		It("should fail for NamespacedCloudProfile specifying new spec.machineImages without the according version and architecture entries in the provider config", func() {
+			image1IdMappings := `"regions":[
+{"name":"image-region-1","id":"id-img-reg-1"},
+{"name":"image-region-2","id":"id-img-reg-2"}
+]`
+			image1FallbackMappings := `"regions":[{"name":"image-region-2","id":"id-img-reg-2"}]`
+			if isCapabilitiesCloudProfile {
+				image1IdMappings = `"capabilityFlavors":[
+{"capabilities":{"architecture":["arm64"]},"regions":[{"name":"image-region-1","id":"id-img-reg-1"}]},
+{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","id":"id-img-reg-2"}]}
+]`
+				image1FallbackMappings = `"capabilityFlavors":[
+{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","id":"id-img-reg-2"}]}
+]`
+				cloudProfile.Spec.MachineCapabilities[0].Values = []string{"amd64", "arm64"}
+			}
+			namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(fmt.Sprintf(`{
 "apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
 "machineImages":[
   {"name":"image-1","versions":[
-	{"version":"1.1-regions","regions":[
-      {"name":"image-region-1","id":"id-img-reg-1"},
-      {"name":"image-region-2","id":"id-img-reg-2"}
-    ]},
-    {"version":"1.1-fallback","regions":[
-      {"name":"image-region-2","id":"id-img-reg-2"}
-    ]}
+	{"version":"1.1-regions",%s},
+    {"version":"1.1-fallback",%s}
   ]}
-]
-}`)}
+]}`, image1IdMappings, image1FallbackMappings))}
 			namespacedCloudProfile.Spec.MachineImages = []core.MachineImage{
 				{
 					Name: "image-1",
 					Versions: []core.MachineImageVersion{
-						{ExpirableVersion: core.ExpirableVersion{Version: "1.1-regions"}, Architectures: []string{"amd64", "arm64"}},
-						{ExpirableVersion: core.ExpirableVersion{Version: "1.1-fallback"}, Architectures: []string{"arm64"}},
-						{ExpirableVersion: core.ExpirableVersion{Version: "1.1-missing"}, Architectures: []string{"arm64"}},
+						{ExpirableVersion: core.ExpirableVersion{Version: "1.1-regions"}, Architectures: []string{"amd64", "arm64"},
+							CapabilityFlavors: []core.MachineImageFlavor{
+								{Capabilities: core.Capabilities{v1beta1constants.ArchitectureName: []string{"amd64"}}},
+								{Capabilities: core.Capabilities{v1beta1constants.ArchitectureName: []string{"arm64"}}},
+							}},
+						{ExpirableVersion: core.ExpirableVersion{Version: "1.1-fallback"}, Architectures: []string{"arm64"},
+							CapabilityFlavors: []core.MachineImageFlavor{
+								{Capabilities: core.Capabilities{v1beta1constants.ArchitectureName: []string{"arm64"}}},
+							}},
+						{ExpirableVersion: core.ExpirableVersion{Version: "1.1-missing"}, Architectures: []string{"arm64"},
+							CapabilityFlavors: []core.MachineImageFlavor{
+								{Capabilities: core.Capabilities{v1beta1constants.ArchitectureName: []string{"arm64"}}},
+							}},
 					},
 				},
 			}
@@ -221,11 +265,36 @@ var _ = Describe("NamespacedCloudProfile Validator", func() {
 			Expect(fakeClient.Create(ctx, cloudProfile)).To(Succeed())
 
 			err := namespacedCloudProfileValidator.Validate(ctx, namespacedCloudProfile, nil)
-			Expect(err).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Type":   Equal(field.ErrorTypeRequired),
-				"Field":  Equal("spec.providerConfig.machineImages"),
-				"Detail": Equal("machine image version image-1@1.1-missing is not defined in the NamespacedCloudProfile providerConfig"),
-			}))))
+			fieldMatcher := Equal("spec.providerConfig.machineImages")
+			if isCapabilitiesCloudProfile {
+				Expect(err).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeRequired),
+					"Field":  fieldMatcher,
+					"Detail": Equal("machine image version image-1@1.1-regions is missing region \"image-region-1\" in capabilityFlavor map[architecture:[amd64]] in the NamespacedCloudProfile providerConfig"),
+				})), PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeRequired),
+					"Field":  fieldMatcher,
+					"Detail": Equal("machine image version image-1@1.1-regions is missing region \"image-region-2\" in capabilityFlavor map[architecture:[arm64]] in the NamespacedCloudProfile providerConfig"),
+				})), PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeForbidden),
+					"Field":  fieldMatcher,
+					"Detail": Equal("machine image version image-1@1.1-fallback has an excess capabilityFlavor map[architecture:[amd64]], which is not defined in the machineImages spec"),
+				})), PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeRequired),
+					"Field":  fieldMatcher,
+					"Detail": Equal("machine image version image-1@1.1-fallback has a capabilityFlavor map[architecture:[arm64]] not defined in the NamespacedCloudProfile providerConfig"),
+				})), PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeRequired),
+					"Field":  fieldMatcher,
+					"Detail": Equal("machine image version image-1@1.1-missing is not defined in the NamespacedCloudProfile providerConfig"),
+				}))))
+			} else {
+				Expect(err).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeRequired),
+					"Field":  fieldMatcher,
+					"Detail": Equal("machine image version image-1@1.1-missing is not defined in the NamespacedCloudProfile providerConfig"),
+				}))))
+			}
 		})
 
 		It("should fail for NamespacedCloudProfile specifying new spec.machineImages without the according version in the provider config", func() {
@@ -252,4 +321,7 @@ var _ = Describe("NamespacedCloudProfile Validator", func() {
 			}))))
 		})
 	})
-})
+},
+	Entry("CloudProfile uses regions only", false),
+	Entry("CloudProfile uses capabilities", true),
+)
