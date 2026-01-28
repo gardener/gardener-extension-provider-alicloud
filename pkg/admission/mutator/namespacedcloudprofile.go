@@ -19,17 +19,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 )
 
 // NewNamespacedCloudProfileMutator returns a new instance of a NamespacedCloudProfile mutator.
 func NewNamespacedCloudProfileMutator(mgr manager.Manager) extensionswebhook.Mutator {
 	return &namespacedCloudProfile{
+		client:  mgr.GetClient(),
 		decoder: serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
 	}
 }
 
 type namespacedCloudProfile struct {
+	client  client.Client
 	decoder runtime.Decoder
 }
 
@@ -40,9 +43,7 @@ func (p *namespacedCloudProfile) Mutate(_ context.Context, newObj, _ client.Obje
 		return fmt.Errorf("wrong object type %T", newObj)
 	}
 
-	// Ignore NamespacedCloudProfiles being deleted and wait for core mutator to patch the status.
-	if profile.DeletionTimestamp != nil || profile.Generation != profile.Status.ObservedGeneration ||
-		profile.Spec.ProviderConfig == nil || profile.Status.CloudProfileSpec.ProviderConfig == nil {
+	if shouldSkipMutation(profile) {
 		return nil
 	}
 
@@ -55,14 +56,26 @@ func (p *namespacedCloudProfile) Mutate(_ context.Context, newObj, _ client.Obje
 		return fmt.Errorf("could not decode providerConfig of namespacedCloudProfile status for '%s': %w", profile.Name, err)
 	}
 
-	statusConfig.MachineImages = mergeMachineImages(specConfig.MachineImages, statusConfig.MachineImages)
+	// TODO(Roncossek): Remove TransformProviderConfigToParentFormat once all CloudProfiles have been migrated to use CapabilityFlavors and the Architecture fields are effectively forbidden or have been removed.
+	uniformSpecConfig := helper.TransformProviderConfigToParentFormat(specConfig, profile.Status.CloudProfileSpec.MachineCapabilities)
+	statusConfig.MachineImages = mergeMachineImages(uniformSpecConfig.MachineImages, statusConfig.MachineImages)
 
-	modifiedStatusConfig, err := json.Marshal(statusConfig)
+	return p.updateProfileStatus(profile, statusConfig)
+}
+
+func shouldSkipMutation(profile *gardencorev1beta1.NamespacedCloudProfile) bool {
+	return profile.DeletionTimestamp != nil ||
+		profile.Generation != profile.Status.ObservedGeneration ||
+		profile.Spec.ProviderConfig == nil ||
+		profile.Status.CloudProfileSpec.ProviderConfig == nil
+}
+
+func (p *namespacedCloudProfile) updateProfileStatus(profile *gardencorev1beta1.NamespacedCloudProfile, config *v1alpha1.CloudProfileConfig) error {
+	modifiedStatusConfig, err := json.Marshal(config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal status config: %w", err)
 	}
 	profile.Status.CloudProfileSpec.ProviderConfig.Raw = modifiedStatusConfig
-
 	return nil
 }
 

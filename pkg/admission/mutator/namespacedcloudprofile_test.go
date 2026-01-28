@@ -20,6 +20,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/mutator"
@@ -29,6 +31,7 @@ import (
 
 var _ = Describe("NamespacedCloudProfile Mutator", func() {
 	var (
+		fakeClient  client.Client
 		fakeManager manager.Manager
 		namespace   string
 		ctx         = context.Background()
@@ -42,7 +45,9 @@ var _ = Describe("NamespacedCloudProfile Mutator", func() {
 		scheme := runtime.NewScheme()
 		utilruntime.Must(install.AddToScheme(scheme))
 		utilruntime.Must(v1beta1.AddToScheme(scheme))
+		fakeClient = fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 		fakeManager = &test.FakeManager{
+			Client: fakeClient,
 			Scheme: scheme,
 		}
 		namespace = "garden-dev"
@@ -74,17 +79,17 @@ var _ = Describe("NamespacedCloudProfile Mutator", func() {
 		Describe("merge the provider configurations from a NamespacedCloudProfile and the parent CloudProfile", func() {
 			It("should correctly merge extended machineImages", func() {
 				namespacedCloudProfile.Status.CloudProfileSpec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
-"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
+"apiVersion":"aws.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
 "machineImages":[
-  {"name":"image-1","versions":[{"version":"1.0","regions":[{"name":"eu1","id":"id-123"}]}]}
+  {"name":"image-1","versions":[{"version":"1.0","regions":[{"name":"eu1","ami":"ami-123"}]}]}
 ]}`)}
 				namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
-"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
+"apiVersion":"aws.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
 "machineImages":[
-  {"name":"image-1","versions":[{"version":"1.1","regions":[{"name":"eu2","id":"id-124"}]}]},
-  {"name":"image-2","versions":[{"version":"2.0","regions":[{"name":"eu3","id":"id-125"}]}]}
+  {"name":"image-1","versions":[{"version":"1.1","regions":[{"name":"eu2","ami":"ami-124","architecture":"arm64"}]}]},
+  {"name":"image-2","versions":[{"version":"2.0","regions":[{"name":"eu3","ami":"ami-125"}]}]}
 ]}`)}
 
 				Expect(namespacedCloudProfileMutator.Mutate(ctx, namespacedCloudProfile, nil)).To(Succeed())
@@ -102,6 +107,65 @@ var _ = Describe("NamespacedCloudProfile Mutator", func() {
 					MatchFields(IgnoreExtras, Fields{
 						"Name":     Equal("image-2"),
 						"Versions": ContainElements(api.MachineImageVersion{Version: "2.0", Regions: []api.RegionIDMapping{{Name: "eu3", ID: "id-125"}}}),
+					}),
+				))
+			})
+			It("should correctly merge extended machineImages using capabilities ", func() {
+				namespacedCloudProfile.Status.CloudProfileSpec.MachineCapabilities = []v1beta1.CapabilityDefinition{{
+					Name:   "architecture",
+					Values: []string{"amd64", "arm64"},
+				}}
+				namespacedCloudProfile.Status.CloudProfileSpec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
+"apiVersion":"aws.provider.extensions.gardener.cloud/v1alpha1",
+"kind":"CloudProfileConfig",
+"machineImages":[
+  {"name":"image-1","versions":[{"version":"1.0","capabilityFlavors":[
+{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"eu1","ami":"ami-123"}]}
+]}]}
+]}`)}
+				namespacedCloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
+"apiVersion":"aws.provider.extensions.gardener.cloud/v1alpha1",
+"kind":"CloudProfileConfig",
+"machineImages":[
+  {"name":"image-1","versions":[{"version":"1.1","capabilityFlavors":[
+{"capabilities":{"architecture":["arm64"]},"regions":[{"name":"eu2","ami":"ami-124"}]}
+]}]},
+  {"name":"image-2","versions":[{"version":"2.0","capabilityFlavors":[
+{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"eu3","ami":"ami-125"}]}
+]}]}
+]}`)}
+
+				Expect(namespacedCloudProfileMutator.Mutate(ctx, namespacedCloudProfile, nil)).To(Succeed())
+
+				mergedConfig, err := decodeCloudProfileConfig(decoder, namespacedCloudProfile.Status.CloudProfileSpec.ProviderConfig)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mergedConfig.MachineImages).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Name": Equal("image-1"),
+						"Versions": ContainElements(
+							api.MachineImageVersion{Version: "1.0",
+								CapabilityFlavors: []api.MachineImageFlavor{{
+									Capabilities: v1beta1.Capabilities{"architecture": []string{"amd64"}},
+									Regions:      []api.RegionIDMapping{{Name: "eu1", ID: "id-123"}},
+								}},
+							},
+							api.MachineImageVersion{Version: "1.1",
+								CapabilityFlavors: []api.MachineImageFlavor{{
+									Capabilities: v1beta1.Capabilities{"architecture": []string{"arm64"}},
+									Regions:      []api.RegionIDMapping{{Name: "eu2", ID: "id-124"}},
+								}},
+							},
+						),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Name": Equal("image-2"),
+						"Versions": ContainElements(
+							api.MachineImageVersion{Version: "2.0",
+								CapabilityFlavors: []api.MachineImageFlavor{{
+									Capabilities: v1beta1.Capabilities{"architecture": []string{"amd64"}},
+									Regions:      []api.RegionIDMapping{{Name: "eu3", ID: "id-125"}},
+								}},
+							}),
 					}),
 				))
 			})

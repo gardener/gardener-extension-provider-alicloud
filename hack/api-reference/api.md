@@ -509,6 +509,17 @@ bool
 <p>Encrypted is a flag to specify whether this image is encrypted or not</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>capabilities</code></br>
+<em>
+github.com/gardener/gardener/pkg/apis/core/v1beta1.Capabilities
+</em>
+</td>
+<td>
+<p>Capabilities of the machine image.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageFlavor">MachineImageFlavor
@@ -518,6 +529,7 @@ bool
 <a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageVersion">MachineImageVersion</a>)
 </p>
 <p>
+<p>MachineImageFlavor groups all RegionIDMappings for a specific set of capabilities.</p>
 </p>
 <table>
 <thead>

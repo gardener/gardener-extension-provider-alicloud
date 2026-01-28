@@ -421,6 +421,7 @@ func autoConvert_v1alpha1_MachineImage_To_alicloud_MachineImage(in *MachineImage
 	out.Version = in.Version
 	out.ID = in.ID
 	out.Encrypted = (*bool)(unsafe.Pointer(in.Encrypted))
+	out.Capabilities = *(*v1beta1.Capabilities)(unsafe.Pointer(&in.Capabilities))
 	return nil
 }
 
@@ -434,6 +435,7 @@ func autoConvert_alicloud_MachineImage_To_v1alpha1_MachineImage(in *alicloud.Mac
 	out.Version = in.Version
 	out.ID = in.ID
 	out.Encrypted = (*bool)(unsafe.Pointer(in.Encrypted))
+	out.Capabilities = *(*v1beta1.Capabilities)(unsafe.Pointer(&in.Capabilities))
 	return nil
 }
 
