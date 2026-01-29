@@ -45,6 +45,7 @@ const (
 	imageName       = "gardenlinux"
 	imageVersionStr = "318.9.0"
 	imageId         = "m-uf6htf9lstsi99xr2out"
+	machineType     = "ecs.sn1ne.large"
 )
 
 func expectEncode(data []byte, err error) []byte {
@@ -141,6 +142,11 @@ var _ = Describe("Mutating Shoot", func() {
 				ProviderConfig: &runtime.RawExtension{
 					Raw: configJson,
 				},
+				MachineTypes: []corev1beta1.MachineType{
+					{
+						Name: machineType,
+					},
+				},
 			},
 		}
 		controlPlaneConfig := &apisalicloudv1alpha1.ControlPlaneConfig{
@@ -166,6 +172,7 @@ var _ = Describe("Mutating Shoot", func() {
 									Name:    imageName,
 									Version: ptr.To(imageVersionStr),
 								},
+								Type: machineType,
 							},
 							Volume: &corev1beta1.Volume{
 								Encrypted: ptr.To(true),
@@ -200,6 +207,7 @@ var _ = Describe("Mutating Shoot", func() {
 									Name:    imageName,
 									Version: ptr.To(imageVersionStr),
 								},
+								Type: machineType,
 							},
 							Volume: &corev1beta1.Volume{},
 							DataVolumes: []corev1beta1.DataVolume{
@@ -212,6 +220,7 @@ var _ = Describe("Mutating Shoot", func() {
 									Name:    imageName,
 									Version: ptr.To(imageVersionStr),
 								},
+								Type: machineType,
 							},
 						},
 					},

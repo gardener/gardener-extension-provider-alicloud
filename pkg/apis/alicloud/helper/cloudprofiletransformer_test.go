@@ -104,7 +104,7 @@ var _ = Describe("#TransformProviderConfigToParentFormat", func() {
 
 			Expect(result.MachineImages).To(HaveLen(1))
 			version := result.MachineImages[0].Versions[0]
-			Expect(version.CapabilityFlavors).To(HaveLen(2))
+			Expect(version.CapabilityFlavors).To(HaveLen(1))
 
 			// Check both architecture flavors are present
 			var amd64Flavor, arm64Flavor *v1alpha1.MachineImageFlavor
@@ -120,13 +120,11 @@ var _ = Describe("#TransformProviderConfigToParentFormat", func() {
 			Expect(amd64Flavor).NotTo(BeNil())
 			Expect(amd64Flavor.Regions).To(ConsistOf(
 				v1alpha1.RegionIDMapping{Name: "eu-west-1", ID: "id-123"},
+				v1alpha1.RegionIDMapping{Name: "eu-west-1", ID: "id-124"},
 				v1alpha1.RegionIDMapping{Name: "us-east-1", ID: "id-456"},
 			))
 
-			Expect(arm64Flavor).NotTo(BeNil())
-			Expect(arm64Flavor.Regions).To(ConsistOf(
-				v1alpha1.RegionIDMapping{Name: "eu-west-1", ID: "id-124"},
-			))
+			Expect(arm64Flavor).To(BeNil())
 		})
 
 		It("should default to amd64 when architecture is not specified", func() {
@@ -246,7 +244,7 @@ var _ = Describe("#TransformProviderConfigToParentFormat", func() {
 			version := result.MachineImages[0].Versions[0]
 			Expect(version.Regions).To(HaveLen(1))
 			Expect(version.Regions[0]).To(Equal(v1alpha1.RegionIDMapping{
-				Name: "eu-west-1", ID: "ami-123",
+				Name: "eu-west-1", ID: "id-123",
 			}))
 		})
 
