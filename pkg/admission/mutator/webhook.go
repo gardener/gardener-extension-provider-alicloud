@@ -7,7 +7,6 @@ package mutator
 import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -32,7 +31,7 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Mutators: map[extensionswebhook.Mutator][]extensionswebhook.Type{
 			NewShootMutator(mgr):                  {{Obj: &corev1beta1.Shoot{}}},
 			NewNamespacedCloudProfileMutator(mgr): {{Obj: &corev1beta1.NamespacedCloudProfile{}, Subresource: ptr.To("status")}},
-			NewCloudProfileMutator(mgr):           {{Obj: &gardencorev1beta1.CloudProfile{}}},
+			NewCloudProfileMutator(mgr):           {{Obj: &corev1beta1.CloudProfile{}}},
 		},
 		Target: extensionswebhook.TargetSeed,
 		ObjectSelector: &metav1.LabelSelector{
