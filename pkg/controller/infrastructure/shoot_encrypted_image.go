@@ -178,14 +178,14 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 }
 
 func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, log logr.Logger, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootECSClient alicloudclient.ECS, shootCloudProviderAccountID string, cluster *extensioncontroller.Cluster) (*apisalicloud.MachineImage, error) {
-	machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(cluster.CloudProfile.Spec.MachineTypes, worker.Machine.Type)
-	if machineTypeFromCloudProfile == nil {
-		return nil, fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cluster.CloudProfile.Name)
-	}
 	var imageID string
 	var err error
 	var capabilitySet *apisalicloud.MachineImageFlavor
 	if len(cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
+		machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(cluster.CloudProfile.Spec.MachineTypes, worker.Machine.Type)
+		if machineTypeFromCloudProfile == nil {
+			return nil, fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cluster.CloudProfile.Name)
+		}
 		capabilitySet, err := helper.FindImageInCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region, machineTypeFromCloudProfile.Capabilities, cluster.CloudProfile.Spec.MachineCapabilities)
 		if err == nil {
 			imageID = capabilitySet.Regions[0].ID
