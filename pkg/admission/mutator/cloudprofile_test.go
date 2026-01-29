@@ -70,7 +70,7 @@ var _ = Describe("CloudProfile Mutator", func() {
 
 		cloudProfile = &v1beta1.CloudProfile{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "aws",
+				Name: "alicloud",
 			},
 			Spec: v1beta1.CloudProfileSpec{
 				MachineImages: machineImages,
@@ -86,10 +86,10 @@ var _ = Describe("CloudProfile Mutator", func() {
 
 			It("should succeed and not modify the CloudProfile", func() {
 				cloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
-"apiVersion":"aws.provider.extensions.gardener.cloud/v1alpha1",
+"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
 "machineImages":[
-  {"name":"image-1","versions":[{"version":"1.1","regions":[{"name":"eu2","ami":"ami-124","architecture":"armhf"}]}]}
+  {"name":"image-1","versions":[{"version":"1.1","regions":[{"name":"eu2","id":"id-124"]}]}
 ]}`)}
 				expectedProfileSpec := cloudProfile.Spec.DeepCopy()
 				Expect(cloudProfileMutator.Mutate(ctx, cloudProfile, nil)).To(Succeed())
@@ -126,15 +126,15 @@ var _ = Describe("CloudProfile Mutator", func() {
 
 			It("should fill capabilityFlavors based on provider config", func() {
 				image1AmiMappings := `"capabilityFlavors":[
-{"capabilities":{"architecture":["arm64"]},"regions":[{"name":"image-region-1","ami":"id-img-reg-1"}]},
-{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","ami":"id-img-reg-2"}]}
+{"capabilities":{"architecture":["arm64"]},"regions":[{"name":"image-region-1","id":"id-img-reg-1"}]},
+{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","id":"id-img-reg-2"}]}
 ]`
 				image1FallbackMappings := `"capabilityFlavors":[
-{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","ami":"id-img-reg-2"}]}
+{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","id":"id-img-reg-2"}]}
 ]`
 
 				cloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(fmt.Sprintf(`{
-"apiVersion":"aws.provider.extensions.gardener.cloud/v1alpha1",
+"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
 "machineImages":[
   {"name":"os-1","versions":[
@@ -167,11 +167,11 @@ var _ = Describe("CloudProfile Mutator", func() {
 
 			It("should overwrite capabilityFlavors when some versions already have them", func() {
 				twoFlavors := `"capabilityFlavors":[
-{"capabilities":{"architecture":["arm64"]},"regions":[{"name":"image-region-1","ami":"id-img-reg-1"}]},
-{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","ami":"id-img-reg-2"}]}
+{"capabilities":{"architecture":["arm64"]},"regions":[{"name":"image-region-1","id":"id-img-reg-1"}]},
+{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","id":"id-img-reg-2"}]}
 ]`
 				oneFlavors := `"capabilityFlavors":[
-{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","ami":"id-img-reg-2"}]}
+{"capabilities":{"architecture":["amd64"]},"regions":[{"name":"image-region-2","id":"id-img-reg-2"}]}
 ]`
 				cloudProfile.Spec.MachineImages = []v1beta1.MachineImage{
 					{
@@ -196,7 +196,7 @@ var _ = Describe("CloudProfile Mutator", func() {
 					},
 				}
 				cloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(fmt.Sprintf(`{
-"apiVersion":"aws.provider.extensions.gardener.cloud/v1alpha1",
+"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
 "kind":"CloudProfileConfig",
 "machineImages":[
   {"name":"os-1","versions":[
