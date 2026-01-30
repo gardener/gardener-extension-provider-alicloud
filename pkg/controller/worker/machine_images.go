@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"k8s.io/utils/ptr"
 
@@ -40,7 +40,7 @@ func (w *workerDelegate) UpdateMachineImagesStatus(ctx context.Context) error {
 	return nil
 }
 
-func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPool, infraStatus *api.InfrastructureStatus, region string, machineCapabilities gardencorev1beta1.Capabilities) (*api.MachineImage, error) {
+func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPool, infraStatus *api.InfrastructureStatus, region string) (*api.MachineImage, error) {
 	name := workerPool.MachineImage.Name
 	version := workerPool.MachineImage.Version
 	encrypted, err := common.UseEncryptedSystemDisk(workerPool.Volume)
@@ -49,16 +49,31 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 	}
 
 	if !encrypted {
-		selectedMachineImage := &api.MachineImage{
-			Name:      name,
-			Version:   version,
-			Encrypted: ptr.To(encrypted),
-		}
+		var imageID string
+		var err error
+		var capabilitySet *api.MachineImageFlavor
+		if len(w.cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
+			machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(w.cluster.CloudProfile.Spec.MachineTypes, workerPool.MachineType)
+			if machineTypeFromCloudProfile == nil {
+				return nil, fmt.Errorf("machine type %q not found in cloud profile %q", workerPool.MachineType, w.cluster.CloudProfile.Name)
+			}
 
-		if capabilitySet, err := helper.FindImageInCloudProfile(w.cloudProfileConfig, name, version, region, machineCapabilities, w.cluster.CloudProfile.Spec.MachineCapabilities); err == nil {
-			selectedMachineImage.Capabilities = capabilitySet.Capabilities
-			selectedMachineImage.ID = capabilitySet.Regions[0].ID
-			return selectedMachineImage, nil
+			capabilitySet, err = helper.FindImageInCloudProfile(w.cloudProfileConfig, name, version, region, machineTypeFromCloudProfile.Capabilities, w.cluster.CloudProfile.Spec.MachineCapabilities)
+			if err == nil {
+				imageID = capabilitySet.Regions[0].ID
+			}
+		} else {
+			capabilitySet = &api.MachineImageFlavor{}
+			imageID, err = helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
+		}
+		if err == nil {
+			return &api.MachineImage{
+				Name:         name,
+				Version:      version,
+				ID:           imageID,
+				Encrypted:    ptr.To(encrypted),
+				Capabilities: capabilitySet.Capabilities,
+			}, nil
 		}
 	}
 
