@@ -66,7 +66,7 @@ var _ = Describe("Machines", func() {
 	Context("workerDelegate", func() {
 		workerDelegate, _ := NewWorkerDelegate(nil, nil, nil, nil, "", nil, nil)
 
-		Describe("#GenerateMachineDeployments, #DeployMachineClasses", func() {
+		DescribeTableSubtree("#GenerateMachineDeployments, #DeployMachineClasses", func(isCapabilitiesCloudProfile bool) {
 			var (
 				namespace        string
 				technicalID      string
@@ -88,6 +88,7 @@ var _ = Describe("Machines", func() {
 				archARM string
 
 				machineType           string
+				machineTypeArm        string
 				userData              []byte
 				userDataSecretName    string
 				userDataSecretDataKey string
@@ -154,16 +155,30 @@ var _ = Describe("Machines", func() {
 				workerPoolHash3 string
 				workerPoolHash4 string
 
-				shootVersionMajorMinor string
-				shootVersion           string
-				scheme                 *runtime.Scheme
-				decoder                runtime.Decoder
-				clusterWithoutImages   *extensionscontroller.Cluster
-				cluster                *extensionscontroller.Cluster
-				w                      *extensionsv1alpha1.Worker
+				shootVersionMajorMinor           string
+				shootVersion                     string
+				scheme                           *runtime.Scheme
+				decoder                          runtime.Decoder
+				clusterWithoutImages             *extensionscontroller.Cluster
+				cluster                          *extensionscontroller.Cluster
+				w                                *extensionsv1alpha1.Worker
+				capabilitiesAmd, capabilitiesArm gardencorev1beta1.Capabilities
+				capabilityDefinitions            []gardencorev1beta1.CapabilityDefinition
 			)
 
 			BeforeEach(func() {
+				if isCapabilitiesCloudProfile {
+					capabilityDefinitions = []gardencorev1beta1.CapabilityDefinition{
+						{Name: "some-capability", Values: []string{"a", "b", "c"}},
+						{Name: v1beta1constants.ArchitectureName, Values: []string{"amd64", "arm64"}},
+					}
+					capabilitiesAmd = gardencorev1beta1.Capabilities{
+						v1beta1constants.ArchitectureName: []string{"amd64"},
+					}
+					capabilitiesArm = gardencorev1beta1.Capabilities{
+						v1beta1constants.ArchitectureName: []string{"arm64"},
+					}
+				}
 				namespace = "control-plane-namespace"
 				technicalID = "shoot--foobar--alicloud"
 				cloudProfileName = "alicloud"
@@ -183,6 +198,7 @@ var _ = Describe("Machines", func() {
 				archAMD = "amd64"
 				archARM = "arm64"
 				machineType = "large"
+				machineTypeArm = "large-arm"
 				userData = []byte("some-user-data")
 				userDataSecretName = "userdata-secret-name"
 				userDataSecretDataKey = "userdata-secret-key"
@@ -305,15 +321,8 @@ var _ = Describe("Machines", func() {
 
 				clusterWithoutImages = &extensionscontroller.Cluster{
 					CloudProfile: &gardencorev1beta1.CloudProfile{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: cloudProfileName,
-						},
 						Spec: gardencorev1beta1.CloudProfileSpec{
-							MachineTypes: []gardencorev1beta1.MachineType{
-								{
-									Name: machineType,
-								},
-							},
+							MachineCapabilities: capabilityDefinitions,
 						},
 					},
 					Shoot: &gardencorev1beta1.Shoot{
@@ -328,12 +337,39 @@ var _ = Describe("Machines", func() {
 					},
 				}
 
-				cloudProfileConfig := &apiv1alpha1.CloudProfileConfig{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: apiv1alpha1.SchemeGroupVersion.String(),
-						Kind:       "CloudProfileConfig",
+				machineImages := []apiv1alpha1.MachineImages{
+					{
+						Name: machineImageName,
+						Versions: []apiv1alpha1.MachineImageVersion{
+							{
+								Version: machineImageVersion,
+								CapabilityFlavors: []apiv1alpha1.MachineImageFlavor{
+									{
+										Capabilities: capabilitiesAmd,
+										Regions: []apiv1alpha1.RegionIDMapping{
+											{
+												Name: region,
+												ID:   machineImageID,
+											},
+										},
+									},
+									{
+										Capabilities: capabilitiesArm,
+										Regions: []apiv1alpha1.RegionIDMapping{
+											{
+												Name: region,
+												ID:   machineImageID,
+											},
+										},
+									},
+								},
+							},
+						},
 					},
-					MachineImages: []apiv1alpha1.MachineImages{
+				}
+
+				if !isCapabilitiesCloudProfile {
+					machineImages = []apiv1alpha1.MachineImages{
 						{
 							Name: machineImageName,
 							Versions: []apiv1alpha1.MachineImageVersion{
@@ -347,8 +383,29 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
+						}, {
+							Name: machineImageName,
+							Versions: []apiv1alpha1.MachineImageVersion{
+								{
+									Version: machineImageVersion,
+									Regions: []apiv1alpha1.RegionIDMapping{
+										{
+											Name: region,
+											ID:   machineImageID,
+										},
+									},
+								},
+							},
 						},
+					}
+				}
+
+				cloudProfileConfig := &apiv1alpha1.CloudProfileConfig{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: apiv1alpha1.SchemeGroupVersion.String(),
+						Kind:       "CloudProfileConfig",
 					},
+					MachineImages: machineImages,
 				}
 				cloudProfileConfigJSON, _ := json.Marshal(cloudProfileConfig)
 				cluster = &extensionscontroller.Cluster{
@@ -357,12 +414,19 @@ var _ = Describe("Machines", func() {
 							Name: cloudProfileName,
 						},
 						Spec: gardencorev1beta1.CloudProfileSpec{
+							MachineCapabilities: capabilityDefinitions,
 							ProviderConfig: &runtime.RawExtension{
 								Raw: cloudProfileConfigJSON,
 							},
 							MachineTypes: []gardencorev1beta1.MachineType{
 								{
-									Name: machineType,
+									Name:         machineType,
+									Capabilities: capabilitiesAmd,
+								},
+								{
+									Name:         machineTypeArm,
+									Architecture: ptr.To(archARM),
+									Capabilities: capabilitiesArm,
 								},
 							},
 						},
@@ -933,13 +997,24 @@ var _ = Describe("Machines", func() {
 					err := workerDelegate.DeployMachineClasses(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
-					// Test workerDelegate.UpdateMachineDeployments()
-					expectedImages := &apiv1alpha1.WorkerStatus{
-						TypeMeta: metav1.TypeMeta{
-							APIVersion: apiv1alpha1.SchemeGroupVersion.String(),
-							Kind:       "WorkerStatus",
+					machineImages := []apiv1alpha1.MachineImage{
+						{
+							Name:         machineImageName,
+							Version:      machineImageVersion,
+							ID:           machineImageID,
+							Encrypted:    ptr.To(false),
+							Capabilities: capabilitiesAmd,
 						},
-						MachineImages: []apiv1alpha1.MachineImage{
+						{
+							Name:         machineImageName,
+							Version:      machineImageVersion,
+							ID:           encryptedImageID,
+							Capabilities: capabilitiesAmd,
+							Encrypted:    ptr.To(true),
+						},
+					}
+					if !isCapabilitiesCloudProfile {
+						machineImages = []apiv1alpha1.MachineImage{
 							{
 								Name:      machineImageName,
 								Version:   machineImageVersion,
@@ -952,7 +1027,15 @@ var _ = Describe("Machines", func() {
 								ID:        encryptedImageID,
 								Encrypted: ptr.To(true),
 							},
+						}
+					}
+					// Test workerDelegate.UpdateMachineDeployments()
+					expectedImages := &apiv1alpha1.WorkerStatus{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: apiv1alpha1.SchemeGroupVersion.String(),
+							Kind:       "WorkerStatus",
 						},
+						MachineImages: machineImages,
 					}
 
 					workerWithExpectedImages := w.DeepCopy()
@@ -1151,7 +1234,10 @@ var _ = Describe("Machines", func() {
 				Expect(result[1].ClusterAutoscalerAnnotations[extensionsv1alpha1.ScaleDownUnreadyTimeAnnotation]).To(Equal("3m0s"))
 				Expect(result[1].ClusterAutoscalerAnnotations[extensionsv1alpha1.ScaleDownUtilizationThresholdAnnotation]).To(Equal("0.6"))
 			})
-		})
+		},
+			Entry("with capabilities", true),
+			Entry("without capabilities", false),
+		)
 	})
 })
 

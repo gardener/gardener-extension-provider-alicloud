@@ -132,10 +132,10 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 			imageID = capabilitySet.Regions[0].ID
 		}
 	} else {
+		capabilitySet = &apisalicloud.MachineImageFlavor{}
 		imageID, err = helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
 	}
 	if err != nil {
-		capabilitySet = &apisalicloud.MachineImageFlavor{}
 		if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
 			return nil, err
 		} else {
@@ -191,10 +191,10 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 			imageID = capabilitySet.Regions[0].ID
 		}
 	} else {
+		capabilitySet = &apisalicloud.MachineImageFlavor{}
 		imageID, err = helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
 	}
 	if err != nil {
-		capabilitySet = &apisalicloud.MachineImageFlavor{}
 		providerStatus := infra.Status.ProviderStatus
 		if providerStatus == nil {
 			return nil, err
