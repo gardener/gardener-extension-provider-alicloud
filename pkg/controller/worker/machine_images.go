@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"k8s.io/utils/ptr"
@@ -51,7 +52,9 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 	if !encrypted {
 		var imageID string
 		var err error
-		var capabilitySet *api.MachineImageFlavor
+		capabilitySet := &api.MachineImageFlavor{
+			Capabilities: gardencorev1beta1.Capabilities{},
+		}
 		if len(w.cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
 			machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(w.cluster.CloudProfile.Spec.MachineTypes, workerPool.MachineType)
 			if machineTypeFromCloudProfile == nil {
@@ -63,7 +66,6 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 				imageID = capabilitySet.Regions[0].ID
 			}
 		} else {
-			capabilitySet = &api.MachineImageFlavor{}
 			imageID, err = helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
 		}
 		if err == nil {
