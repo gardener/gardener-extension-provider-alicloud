@@ -11,6 +11,7 @@ import (
 
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
@@ -87,6 +88,11 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, log 
 		} else {
 			if machineImage, err = a.ensurePlainImageForShootProviderAccount(ctx, log, cloudProfileConfig, worker, infra, shootAlicloudECSClient, shootCloudProviderAccountID, cluster); err != nil {
 				return nil, err
+			}
+		}
+		if len(cluster.CloudProfile.Spec.MachineCapabilities) > 0 && machineImage.Capabilities == nil {
+			machineImage.Capabilities = gardencorev1beta1.Capabilities{
+				v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
 			}
 		}
 		machineImages = helper.AppendMachineImage(machineImages, *machineImage)
