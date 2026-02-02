@@ -383,19 +383,6 @@ var _ = Describe("Machines", func() {
 									},
 								},
 							},
-						}, {
-							Name: machineImageName,
-							Versions: []apiv1alpha1.MachineImageVersion{
-								{
-									Version: machineImageVersion,
-									Regions: []apiv1alpha1.RegionIDMapping{
-										{
-											Name: region,
-											ID:   machineImageID,
-										},
-									},
-								},
-							},
 						},
 					}
 				}
@@ -468,10 +455,11 @@ var _ = Describe("Machines", func() {
 								},
 								MachineImages: []api.MachineImage{
 									{
-										Name:      machineImageName,
-										Version:   machineImageVersion,
-										Encrypted: ptr.To(true),
-										ID:        encryptedImageID,
+										Name:         machineImageName,
+										Version:      machineImageVersion,
+										Encrypted:    ptr.To(true),
+										ID:           encryptedImageID,
+										Capabilities: capabilitiesAmd,
 									},
 								},
 							}),
@@ -1044,15 +1032,14 @@ var _ = Describe("Machines", func() {
 					}
 
 					c.EXPECT().Status().Return(statusWriter)
-					statusWriter.EXPECT().Patch(ctx, gomock.AssignableToTypeOf(&extensionsv1alpha1.Worker{}), gomock.Any()).Return(nil)
-					// statusWriter.EXPECT().Patch(ctx, gomock.AssignableToTypeOf(&extensionsv1alpha1.Worker{}), gomock.Any()).DoAndReturn(
-					// 	func(_ context.Context, obj *extensionsv1alpha1.Worker, _ client.Patch, _ ...client.PatchOption) error {
-					// 		Expect(obj.Status.ProviderStatus).To(Equal(&runtime.RawExtension{
-					// 			Object: expectedImages,
-					// 		}))
-					// 		return nil
-					// 	},
-					// )
+					statusWriter.EXPECT().Patch(ctx, gomock.AssignableToTypeOf(&extensionsv1alpha1.Worker{}), gomock.Any()).DoAndReturn(
+						func(_ context.Context, obj *extensionsv1alpha1.Worker, _ client.Patch, _ ...client.PatchOption) error {
+							Expect(obj.Status.ProviderStatus).To(Equal(&runtime.RawExtension{
+								Object: expectedImages,
+							}))
+							return nil
+						},
+					)
 					err = workerDelegate.UpdateMachineImagesStatus(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
