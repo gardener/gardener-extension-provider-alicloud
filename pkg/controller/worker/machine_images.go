@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"k8s.io/utils/ptr"
@@ -83,6 +85,11 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 			opt = "encrypted"
 		}
 		return nil, worker.ErrorMachineImageNotFound(name, version, opt)
+	}
+	if len(w.cluster.CloudProfile.Spec.MachineCapabilities) > 0 && machineImage.Capabilities == nil {
+		machineImage.Capabilities = gardencorev1beta1.Capabilities{
+			v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
+		}
 	}
 
 	return machineImage, nil
