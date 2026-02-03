@@ -320,11 +320,6 @@ var _ = Describe("Machines", func() {
 				shootVersion = shootVersionMajorMinor + ".3"
 
 				clusterWithoutImages = &extensionscontroller.Cluster{
-					CloudProfile: &gardencorev1beta1.CloudProfile{
-						Spec: gardencorev1beta1.CloudProfileSpec{
-							MachineCapabilities: capabilityDefinitions,
-						},
-					},
 					Shoot: &gardencorev1beta1.Shoot{
 						Spec: gardencorev1beta1.ShootSpec{
 							Kubernetes: gardencorev1beta1.Kubernetes{
@@ -985,45 +980,28 @@ var _ = Describe("Machines", func() {
 					err := workerDelegate.DeployMachineClasses(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
-					machineImages := []apiv1alpha1.MachineImage{
-						{
-							Name:         machineImageName,
-							Version:      machineImageVersion,
-							ID:           machineImageID,
-							Encrypted:    ptr.To(false),
-							Capabilities: capabilitiesAmd,
-						},
-						{
-							Name:         machineImageName,
-							Version:      machineImageVersion,
-							ID:           encryptedImageID,
-							Capabilities: capabilitiesAmd,
-							Encrypted:    ptr.To(true),
-						},
-					}
-					if !isCapabilitiesCloudProfile {
-						machineImages = []apiv1alpha1.MachineImage{
-							{
-								Name:      machineImageName,
-								Version:   machineImageVersion,
-								ID:        machineImageID,
-								Encrypted: ptr.To(false),
-							},
-							{
-								Name:      machineImageName,
-								Version:   machineImageVersion,
-								ID:        encryptedImageID,
-								Encrypted: ptr.To(true),
-							},
-						}
-					}
 					// Test workerDelegate.UpdateMachineDeployments()
 					expectedImages := &apiv1alpha1.WorkerStatus{
 						TypeMeta: metav1.TypeMeta{
 							APIVersion: apiv1alpha1.SchemeGroupVersion.String(),
 							Kind:       "WorkerStatus",
 						},
-						MachineImages: machineImages,
+						MachineImages: []apiv1alpha1.MachineImage{
+							{
+								Name:         machineImageName,
+								Version:      machineImageVersion,
+								ID:           machineImageID,
+								Encrypted:    ptr.To(false),
+								Capabilities: capabilitiesAmd,
+							},
+							{
+								Name:         machineImageName,
+								Version:      machineImageVersion,
+								ID:           encryptedImageID,
+								Encrypted:    ptr.To(true),
+								Capabilities: capabilitiesAmd,
+							},
+						},
 					}
 
 					workerWithExpectedImages := w.DeepCopy()
@@ -1093,7 +1071,8 @@ var _ = Describe("Machines", func() {
 			})
 
 			It("should fail because the machine image cannot be found", func() {
-				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, clusterWithoutImages)
+				w.Spec.Region = "another-region"
+				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
 
 				result, err := workerDelegate.GenerateMachineDeployments(ctx)
 				Expect(err).To(HaveOccurred())
