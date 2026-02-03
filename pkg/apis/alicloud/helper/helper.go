@@ -132,13 +132,13 @@ func FindImageInCloudProfile(
 
 	capabilitySet, err := findMachineImageFlavor(machineImages, name, version, region, machineCapabilities, capabilityDefinitions)
 	if err != nil {
-		return nil, fmt.Errorf("could not find an AMI for region %q, image %q, version %q that supports %v: %w", region, name, version, machineCapabilities, err)
+		return nil, fmt.Errorf("could not find an Image for region %q, image %q, version %q that supports %v: %w", region, name, version, machineCapabilities, err)
 	}
 
 	if capabilitySet != nil && len(capabilitySet.Regions) > 0 && capabilitySet.Regions[0].ID != "" {
 		return capabilitySet, nil
 	}
-	return nil, fmt.Errorf("could not find an AMI for region %q, image %q, version %q that supports %v", region, name, version, machineCapabilities)
+	return nil, fmt.Errorf("could not find an Image for region %q, image %q, version %q that supports %v", region, name, version, machineCapabilities)
 }
 
 // FindImageInWorkerStatus takes a list of machine images from the worker status and tries to find the first entry
@@ -207,21 +207,21 @@ func findMachineImageFlavor(
 	return nil, nil
 }
 
-// filterCapabilityFlavorsByRegion returns a new list with capabilityFlavors that only contain RegionAMIMappings
+// filterCapabilityFlavorsByRegion returns a new list with capabilityFlavors that only contain RegionIDMappings
 // of the region to filter for.
 func filterCapabilityFlavorsByRegion(capabilityFlavors []api.MachineImageFlavor, regionName string) []*api.MachineImageFlavor {
 	var compatibleFlavors []*api.MachineImageFlavor
 
 	for _, capabilityFlavor := range capabilityFlavors {
-		var regionAMIMapping *api.RegionIDMapping
+		var regionIDMapping *api.RegionIDMapping
 		for _, region := range capabilityFlavor.Regions {
 			if region.Name == regionName {
-				regionAMIMapping = &region
+				regionIDMapping = &region
 			}
 		}
-		if regionAMIMapping != nil {
+		if regionIDMapping != nil {
 			compatibleFlavors = append(compatibleFlavors, &api.MachineImageFlavor{
-				Regions:      []api.RegionIDMapping{*regionAMIMapping},
+				Regions:      []api.RegionIDMapping{*regionIDMapping},
 				Capabilities: capabilityFlavor.Capabilities,
 			})
 		}
