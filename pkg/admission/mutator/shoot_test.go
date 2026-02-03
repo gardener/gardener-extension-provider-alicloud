@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package mutator
+package mutator_test
 
 import (
 	"context"
@@ -27,6 +27,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	alimutator "github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/mutator"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
@@ -96,7 +97,7 @@ var _ = Describe("Mutating Shoot", func() {
 		ecsClient = mockalicloudclient.NewMockECS(ctrl)
 		ctx = context.TODO()
 
-		mutator = NewShootMutatorWithDeps(mgr, alicloudClientFactory)
+		mutator = alimutator.NewShootMutatorWithDeps(mgr, alicloudClientFactory)
 
 		secretBinding = &corev1beta1.SecretBinding{
 			SecretRef: corev1.SecretReference{
