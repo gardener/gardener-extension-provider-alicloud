@@ -88,7 +88,7 @@ func transformImageVersions(versions []v1alpha1.MachineImageVersion, capabilityD
 	return result
 }
 
-// sortRegions sorts a slice of RegionAMIMapping by name
+// sortRegions sorts a slice of RegionIDMapping by name
 func sortRegions(regions []v1alpha1.RegionIDMapping) {
 	slices.SortFunc(regions, func(a, b v1alpha1.RegionIDMapping) int {
 		if a.Name < b.Name {
