@@ -11,8 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
-const ()
-
 // ImagesYAML contains the content of the images.yaml file
 //
 //go:embed images.yaml

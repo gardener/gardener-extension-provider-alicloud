@@ -55,13 +55,6 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow"
 )
 
-type flowUsage int
-
-const (
-	fuUseFlow flowUsage = iota
-	fuUseFlowRecoverState
-)
-
 var (
 	ctx = context.Background()
 	log logr.Logger
@@ -187,7 +180,7 @@ var _ = Describe("Infrastructure tests", func() {
 				CIDR: ptr.To(vpcCIDR),
 			}, availabilityZone)
 
-			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseFlowRecoverState)
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -203,7 +196,7 @@ var _ = Describe("Infrastructure tests", func() {
 				ID: identifiers.vpcID,
 			}, availabilityZone)
 
-			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory, fuUseFlow)
+			err := runTest(ctx, log, c, providerConfig, decoder, clientFactory)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -299,7 +292,7 @@ var _ = Describe("Infrastructure tests", func() {
 	})
 })
 
-func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory, flow flowUsage) error {
+func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
 	var (
 		namespace                 *corev1.Namespace
 		cluster                   *extensionsv1alpha1.Cluster
@@ -420,16 +413,14 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 	infrastructureIdentifiers = verifyCreation(clientFactory, infra, providerStatus, providerConfig)
 
 	oldState := infra.Status.State
-	if flow == fuUseFlowRecoverState {
-		By("drop state for testing recover")
-		patch := client.MergeFrom(infra.DeepCopy())
-		infra.Status.ProviderStatus = nil
-		state, err := infraflow.NewPersistentState().ToJSON()
-		Expect(err).To(Succeed())
-		infra.Status.State = &runtime.RawExtension{Raw: state}
-		err = c.Status().Patch(ctx, infra, patch)
-		Expect(err).To(Succeed())
-	}
+	By("drop state for testing recover")
+	patch := client.MergeFrom(infra.DeepCopy())
+	infra.Status.ProviderStatus = nil
+	state, err := infraflow.NewPersistentState().ToJSON()
+	Expect(err).To(Succeed())
+	infra.Status.State = &runtime.RawExtension{Raw: state}
+	err = c.Status().Patch(ctx, infra, patch)
+	Expect(err).To(Succeed())
 
 	By("triggering infrastructure reconciliation")
 	infraCopy := infra.DeepCopy()
@@ -453,18 +444,16 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 		return err
 	}
 
-	if flow == fuUseFlowRecoverState {
-		By("check state recovery")
-		if err := c.Get(ctx, client.ObjectKey{Namespace: infra.Namespace, Name: infra.Name}, infra); err != nil {
-			return err
-		}
-		Expect(infra.Status.State).To(Equal(oldState))
-		newProviderStatus := &alicloudv1alpha1.InfrastructureStatus{}
-		if _, _, err := decoder.Decode(infra.Status.ProviderStatus.Raw, nil, newProviderStatus); err != nil {
-			return err
-		}
-		Expect(newProviderStatus).To(EqualInfrastructureStatus(providerStatus))
+	By("check state recovery")
+	if err := c.Get(ctx, client.ObjectKey{Namespace: infra.Namespace, Name: infra.Name}, infra); err != nil {
+		return err
 	}
+	Expect(infra.Status.State).To(Equal(oldState))
+	newProviderStatus := &alicloudv1alpha1.InfrastructureStatus{}
+	if _, _, err := decoder.Decode(infra.Status.ProviderStatus.Raw, nil, newProviderStatus); err != nil {
+		return err
+	}
+	Expect(newProviderStatus).To(EqualInfrastructureStatus(providerStatus))
 
 	if *enableEncryptedImage {
 		By("verify image prepared in infrastructure status")
