@@ -12,6 +12,7 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -94,8 +95,10 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		machineImages = EnsureUniformMachineImages(machineImages, w.cluster.CloudProfile.Spec.MachineCapabilities)
+		machineImages = appendMachineImage(machineImages, *machineImage, w.cluster.CloudProfile.Spec.MachineCapabilities)
 
-		machineImages = helper.AppendMachineImage(machineImages, *machineImage)
+		// machineImages = helper.AppendMachineImage(machineImages, *machineImage)
 
 		disks, err := computeDisks(w.cluster.Shoot.Status.TechnicalID, pool)
 		if err != nil {
@@ -300,4 +303,44 @@ func computeAdditionalHashData(pool extensionsv1alpha1.WorkerPool) []string {
 
 func addTopologyLabel(labels map[string]string, zone string) map[string]string {
 	return utils.MergeStringMaps(labels, map[string]string{alicloud.CSIDiskTopologyZoneKey: zone})
+}
+
+// EnsureUniformMachineImages ensures that all machine images are in the same format, either with or without Capabilities.
+func EnsureUniformMachineImages(images []apisalicloud.MachineImage, definitions []gardencorev1beta1.CapabilityDefinition) []apisalicloud.MachineImage {
+	var uniformMachineImages []apisalicloud.MachineImage
+
+	if len(definitions) == 0 {
+		// transform images that were added with Capabilities to the legacy format without Capabilities
+		for _, img := range images {
+			if len(img.Capabilities) == 0 {
+				// image is already legacy format
+				uniformMachineImages = appendMachineImage(uniformMachineImages, img, definitions)
+				continue
+			}
+			uniformMachineImages = appendMachineImage(uniformMachineImages, apisalicloud.MachineImage{
+				Name:      img.Name,
+				Version:   img.Version,
+				ID:        img.ID,
+				Encrypted: img.Encrypted,
+			}, definitions)
+		}
+		return uniformMachineImages
+	}
+
+	// transform images that were added without Capabilities to contain a MachineImageFlavor with defaulted Architecture
+	for _, img := range images {
+		if len(img.Capabilities) > 0 {
+			// image is already in the new format with Capabilities
+			uniformMachineImages = appendMachineImage(uniformMachineImages, img, definitions)
+		} else {
+			uniformMachineImages = appendMachineImage(uniformMachineImages, apisalicloud.MachineImage{
+				Name:         img.Name,
+				Version:      img.Version,
+				ID:           img.ID,
+				Encrypted:    img.Encrypted,
+				Capabilities: gardencorev1beta1.Capabilities{v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64}},
+			}, definitions)
+		}
+	}
+	return uniformMachineImages
 }
