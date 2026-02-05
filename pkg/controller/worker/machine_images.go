@@ -94,3 +94,54 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 
 	return machineImage, nil
 }
+
+func appendMachineImage(machineImages []api.MachineImage, machineImage api.MachineImage, capabilityDefinitions []gardencorev1beta1.CapabilityDefinition) []api.MachineImage {
+	// support for cloudprofile machine images without capabilities
+	if len(capabilityDefinitions) == 0 {
+		for _, image := range machineImages {
+			if image.Name == machineImage.Name && image.Version == machineImage.Version && matchEncryptedFlag(machineImage.Encrypted, image.Encrypted) {
+				// If the image already exists without capabilities, we can just return the existing list.
+				return machineImages
+			}
+		}
+		return append(machineImages, api.MachineImage{
+			Name:      machineImage.Name,
+			Version:   machineImage.Version,
+			ID:        machineImage.ID,
+			Encrypted: machineImage.Encrypted,
+		})
+	}
+
+	defaultedCapabilities := gardencorev1beta1.GetCapabilitiesWithAppliedDefaults(machineImage.Capabilities, capabilityDefinitions)
+
+	for _, existingMachineImage := range machineImages {
+		existingDefaultedCapabilities := gardencorev1beta1.GetCapabilitiesWithAppliedDefaults(existingMachineImage.Capabilities, capabilityDefinitions)
+		if existingMachineImage.Name == machineImage.Name && existingMachineImage.Version == machineImage.Version && matchEncryptedFlag(machineImage.Encrypted, existingMachineImage.Encrypted) && gardencorev1beta1helper.AreCapabilitiesEqual(defaultedCapabilities, existingDefaultedCapabilities) {
+			// If the image already exists with the same capabilities return the existing list.
+			return machineImages
+		}
+	}
+
+	// If the image does not exist, we create a new machine image entry with the capabilities.
+	machineImages = append(machineImages, api.MachineImage{
+		Name:         machineImage.Name,
+		Version:      machineImage.Version,
+		ID:           machineImage.ID,
+		Encrypted:    machineImage.Encrypted,
+		Capabilities: machineImage.Capabilities,
+	})
+
+	return machineImages
+}
+
+func matchEncryptedFlag(source *bool, target *bool) bool {
+	sourceVal := false
+	if source != nil {
+		sourceVal = *source
+	}
+	targetVal := false
+	if target != nil {
+		targetVal = *target
+	}
+	return sourceVal == targetVal
+}

@@ -1205,6 +1205,115 @@ var _ = Describe("Machines", func() {
 			Entry("without capabilities", false),
 		)
 	})
+	DescribeTable("EnsureUniformMachineImages", func(capabilityDefinitions []gardencorev1beta1.CapabilityDefinition, expectedImages []api.MachineImage) {
+		machineImages := []api.MachineImage{
+			// images with capability sets
+			{
+				Name:    "some-image",
+				Version: "1.2.1",
+				ID:      "ami-for-arm64",
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"arm64"},
+				},
+			},
+			{
+				Name:    "some-image",
+				Version: "1.2.2",
+				ID:      "ami-for-amd64",
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"amd64"},
+				},
+			},
+			// legacy image entry without capability sets
+			{
+				Name:      "some-image",
+				Version:   "1.2.3",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(false),
+			},
+			{
+				Name:    "some-image",
+				Version: "1.2.2",
+				ID:      "ami-for-amd64",
+			},
+			{
+				Name:      "some-image",
+				Version:   "1.2.1",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(true),
+			},
+		}
+		actualImages := EnsureUniformMachineImages(machineImages, capabilityDefinitions)
+		Expect(actualImages).To(ContainElements(expectedImages))
+
+	},
+		Entry("should return images with Architecture", nil, []api.MachineImage{
+			// images with capability sets
+			{
+				Name:    "some-image",
+				Version: "1.2.1",
+				ID:      "ami-for-arm64",
+			},
+			{
+				Name:    "some-image",
+				Version: "1.2.2",
+				ID:      "ami-for-amd64",
+			},
+			// legacy image entry without capability sets
+			{
+				Name:      "some-image",
+				Version:   "1.2.3",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(false),
+			},
+			{
+				Name:      "some-image",
+				Version:   "1.2.1",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(true),
+			},
+		}),
+		Entry("should return images with Capabilities", []gardencorev1beta1.CapabilityDefinition{{
+			Name:   v1beta1constants.ArchitectureName,
+			Values: []string{"amd64", "arm64"},
+		}}, []api.MachineImage{
+			// images with capability sets
+			{
+				Name:    "some-image",
+				Version: "1.2.1",
+				ID:      "ami-for-arm64",
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"arm64"},
+				},
+			},
+			{
+				Name:    "some-image",
+				Version: "1.2.2",
+				ID:      "ami-for-amd64",
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"amd64"},
+				},
+			},
+			// legacy image entry without capability sets
+			{
+				Name:      "some-image",
+				Version:   "1.2.3",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(false),
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"amd64"},
+				}},
+			{
+				Name:      "some-image",
+				Version:   "1.2.1",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(true),
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"amd64"},
+				},
+			},
+		}),
+	)
 })
 
 func encode(obj runtime.Object) []byte {
