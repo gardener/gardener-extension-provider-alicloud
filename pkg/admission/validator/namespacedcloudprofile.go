@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 )
 
@@ -67,6 +68,10 @@ func (p *namespacedCloudProfile) Validate(ctx context.Context, newObj, _ client.
 		return err
 	}
 
+	// TODO(Roncossek): Remove TransformSpecToParentFormat once all CloudProfiles have been migrated to use CapabilityFlavors and the Architecture fields are effectively forbidden or have been removed.
+	if err := helper.SimulateTransformToParentFormat(cloudProfileConfig, cloudProfile, parentProfile.Spec.MachineCapabilities); err != nil {
+		return err
+	}
 	return p.validateMachineImages(cloudProfileConfig, cloudProfile.Spec.MachineImages, parentProfile.Spec).ToAggregate()
 }
 
