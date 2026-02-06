@@ -290,18 +290,19 @@ func (s *shootMutator) getImageId(_ context.Context, imageName string, imageVers
 	if err != nil {
 		return "", err
 	}
-	machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(cloudProfileSpec.Spec.MachineTypes, worker.Machine.Type)
-	if machineTypeFromCloudProfile == nil {
-		return "", fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cloudProfileSpec.Name)
-	}
+	if len(cloudProfileSpec.Spec.MachineCapabilities) > 0 {
+		machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(cloudProfileSpec.Spec.MachineTypes, worker.Machine.Type)
+		if machineTypeFromCloudProfile == nil {
+			return "", fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cloudProfileSpec.Name)
+		}
 
-	capabilitySet, err := helper.FindImageInCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion, machineTypeFromCloudProfile.Capabilities, cloudProfileSpec.Spec.MachineCapabilities)
-	if err != nil {
-		return "", err
+		capabilitySet, err := helper.FindImageInCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion, machineTypeFromCloudProfile.Capabilities, cloudProfileSpec.Spec.MachineCapabilities)
+		if err != nil {
+			return "", err
+		}
+		return capabilitySet.Regions[0].ID, nil
 	}
-	return capabilitySet.Regions[0].ID, nil
-
-	//return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
+	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
 }
 
 func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
