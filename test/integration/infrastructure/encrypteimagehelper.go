@@ -28,6 +28,7 @@ import (
 
 var imageName = "ubuntu"
 var imageVersion = "20.04"
+var imageId = getImageId(*region)
 
 func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 	providerConfig := &alicloudv1alpha1.CloudProfileConfig{
@@ -44,7 +45,7 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 						Regions: []alicloudv1alpha1.RegionIDMapping{
 							{
 								Name: *region,
-								ID:   getImageId(*region),
+								ID:   imageId,
 							},
 						},
 					},
@@ -134,7 +135,7 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 }
 
 func deleteEncryptedImageStackIfExists(ctx context.Context, clientFactory alicloudclient.ClientFactory) error {
-	stackName := common.GetEncryptImageStackName(imageName, imageVersion, *region)
+	stackName := common.GetEncryptImageStackName(imageName, imageVersion, *region, imageId)
 	listRequest := ros.CreateListStacksRequest()
 	listRequest.StackName = &[]string{stackName}
 	listRequest.RegionId = *region
@@ -175,7 +176,7 @@ func deleteEncryptedImageStackIfExists(ctx context.Context, clientFactory aliclo
 }
 
 func verifyStackExists(ctx context.Context, clientFactory alicloudclient.ClientFactory) error {
-	stackName := common.GetEncryptImageStackName(imageName, imageVersion, *region)
+	stackName := common.GetEncryptImageStackName(imageName, imageVersion, *region, imageId)
 	listRequest := ros.CreateListStacksRequest()
 	listRequest.StackName = &[]string{stackName}
 	listRequest.RegionId = *region
