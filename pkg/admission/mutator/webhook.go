@@ -31,6 +31,7 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Mutators: map[extensionswebhook.Mutator][]extensionswebhook.Type{
 			NewShootMutator(mgr):                  {{Obj: &corev1beta1.Shoot{}}},
 			NewNamespacedCloudProfileMutator(mgr): {{Obj: &corev1beta1.NamespacedCloudProfile{}, Subresource: ptr.To("status")}},
+			NewCloudProfileMutator(mgr):           {{Obj: &corev1beta1.CloudProfile{}}},
 		},
 		Target: extensionswebhook.TargetSeed,
 		ObjectSelector: &metav1.LabelSelector{

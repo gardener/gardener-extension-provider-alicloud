@@ -66,7 +66,7 @@ var _ = Describe("Machines", func() {
 	Context("workerDelegate", func() {
 		workerDelegate, _ := NewWorkerDelegate(nil, nil, nil, nil, "", nil, nil)
 
-		Describe("#GenerateMachineDeployments, #DeployMachineClasses", func() {
+		DescribeTableSubtree("#GenerateMachineDeployments, #DeployMachineClasses", func(isCapabilitiesCloudProfile bool) {
 			var (
 				namespace        string
 				technicalID      string
@@ -88,6 +88,7 @@ var _ = Describe("Machines", func() {
 				archARM string
 
 				machineType           string
+				machineTypeArm        string
 				userData              []byte
 				userDataSecretName    string
 				userDataSecretDataKey string
@@ -154,16 +155,30 @@ var _ = Describe("Machines", func() {
 				workerPoolHash3 string
 				workerPoolHash4 string
 
-				shootVersionMajorMinor string
-				shootVersion           string
-				scheme                 *runtime.Scheme
-				decoder                runtime.Decoder
-				clusterWithoutImages   *extensionscontroller.Cluster
-				cluster                *extensionscontroller.Cluster
-				w                      *extensionsv1alpha1.Worker
+				shootVersionMajorMinor           string
+				shootVersion                     string
+				scheme                           *runtime.Scheme
+				decoder                          runtime.Decoder
+				clusterWithoutImages             *extensionscontroller.Cluster
+				cluster                          *extensionscontroller.Cluster
+				w                                *extensionsv1alpha1.Worker
+				capabilitiesAmd, capabilitiesArm gardencorev1beta1.Capabilities
+				capabilityDefinitions            []gardencorev1beta1.CapabilityDefinition
 			)
 
 			BeforeEach(func() {
+				if isCapabilitiesCloudProfile {
+					capabilityDefinitions = []gardencorev1beta1.CapabilityDefinition{
+						{Name: "some-capability", Values: []string{"a", "b", "c"}},
+						{Name: v1beta1constants.ArchitectureName, Values: []string{"amd64", "arm64"}},
+					}
+					capabilitiesAmd = gardencorev1beta1.Capabilities{
+						v1beta1constants.ArchitectureName: []string{"amd64"},
+					}
+					capabilitiesArm = gardencorev1beta1.Capabilities{
+						v1beta1constants.ArchitectureName: []string{"arm64"},
+					}
+				}
 				namespace = "control-plane-namespace"
 				technicalID = "shoot--foobar--alicloud"
 				cloudProfileName = "alicloud"
@@ -183,6 +198,7 @@ var _ = Describe("Machines", func() {
 				archAMD = "amd64"
 				archARM = "arm64"
 				machineType = "large"
+				machineTypeArm = "large-arm"
 				userData = []byte("some-user-data")
 				userDataSecretName = "userdata-secret-name"
 				userDataSecretDataKey = "userdata-secret-key"
@@ -316,12 +332,39 @@ var _ = Describe("Machines", func() {
 					},
 				}
 
-				cloudProfileConfig := &apiv1alpha1.CloudProfileConfig{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: apiv1alpha1.SchemeGroupVersion.String(),
-						Kind:       "CloudProfileConfig",
+				machineImages := []apiv1alpha1.MachineImages{
+					{
+						Name: machineImageName,
+						Versions: []apiv1alpha1.MachineImageVersion{
+							{
+								Version: machineImageVersion,
+								CapabilityFlavors: []apiv1alpha1.MachineImageFlavor{
+									{
+										Capabilities: capabilitiesAmd,
+										Regions: []apiv1alpha1.RegionIDMapping{
+											{
+												Name: region,
+												ID:   machineImageID,
+											},
+										},
+									},
+									{
+										Capabilities: capabilitiesArm,
+										Regions: []apiv1alpha1.RegionIDMapping{
+											{
+												Name: region,
+												ID:   machineImageID,
+											},
+										},
+									},
+								},
+							},
+						},
 					},
-					MachineImages: []apiv1alpha1.MachineImages{
+				}
+
+				if !isCapabilitiesCloudProfile {
+					machineImages = []apiv1alpha1.MachineImages{
 						{
 							Name: machineImageName,
 							Versions: []apiv1alpha1.MachineImageVersion{
@@ -336,7 +379,15 @@ var _ = Describe("Machines", func() {
 								},
 							},
 						},
+					}
+				}
+
+				cloudProfileConfig := &apiv1alpha1.CloudProfileConfig{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: apiv1alpha1.SchemeGroupVersion.String(),
+						Kind:       "CloudProfileConfig",
 					},
+					MachineImages: machineImages,
 				}
 				cloudProfileConfigJSON, _ := json.Marshal(cloudProfileConfig)
 				cluster = &extensionscontroller.Cluster{
@@ -345,8 +396,20 @@ var _ = Describe("Machines", func() {
 							Name: cloudProfileName,
 						},
 						Spec: gardencorev1beta1.CloudProfileSpec{
+							MachineCapabilities: capabilityDefinitions,
 							ProviderConfig: &runtime.RawExtension{
 								Raw: cloudProfileConfigJSON,
+							},
+							MachineTypes: []gardencorev1beta1.MachineType{
+								{
+									Name:         machineType,
+									Capabilities: capabilitiesAmd,
+								},
+								{
+									Name:         machineTypeArm,
+									Architecture: ptr.To(archARM),
+									Capabilities: capabilitiesArm,
+								},
 							},
 						},
 					},
@@ -387,10 +450,11 @@ var _ = Describe("Machines", func() {
 								},
 								MachineImages: []api.MachineImage{
 									{
-										Name:      machineImageName,
-										Version:   machineImageVersion,
-										Encrypted: ptr.To(true),
-										ID:        encryptedImageID,
+										Name:         machineImageName,
+										Version:      machineImageVersion,
+										Encrypted:    ptr.To(true),
+										ID:           encryptedImageID,
+										Capabilities: capabilitiesAmd,
 									},
 								},
 							}),
@@ -924,16 +988,18 @@ var _ = Describe("Machines", func() {
 						},
 						MachineImages: []apiv1alpha1.MachineImage{
 							{
-								Name:      machineImageName,
-								Version:   machineImageVersion,
-								ID:        machineImageID,
-								Encrypted: ptr.To(false),
+								Name:         machineImageName,
+								Version:      machineImageVersion,
+								ID:           machineImageID,
+								Encrypted:    ptr.To(false),
+								Capabilities: capabilitiesAmd,
 							},
 							{
-								Name:      machineImageName,
-								Version:   machineImageVersion,
-								ID:        encryptedImageID,
-								Encrypted: ptr.To(true),
+								Name:         machineImageName,
+								Version:      machineImageVersion,
+								ID:           encryptedImageID,
+								Encrypted:    ptr.To(true),
+								Capabilities: capabilitiesAmd,
 							},
 						},
 					}
@@ -1005,7 +1071,8 @@ var _ = Describe("Machines", func() {
 			})
 
 			It("should fail because the machine image cannot be found", func() {
-				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, clusterWithoutImages)
+				w.Spec.Region = "another-region"
+				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
 
 				result, err := workerDelegate.GenerateMachineDeployments(ctx)
 				Expect(err).To(HaveOccurred())
@@ -1133,8 +1200,120 @@ var _ = Describe("Machines", func() {
 				Expect(result[1].ClusterAutoscalerAnnotations[extensionsv1alpha1.ScaleDownUnreadyTimeAnnotation]).To(Equal("3m0s"))
 				Expect(result[1].ClusterAutoscalerAnnotations[extensionsv1alpha1.ScaleDownUtilizationThresholdAnnotation]).To(Equal("0.6"))
 			})
-		})
+		},
+			Entry("with capabilities", true),
+			Entry("without capabilities", false),
+		)
 	})
+	DescribeTable("EnsureUniformMachineImages", func(capabilityDefinitions []gardencorev1beta1.CapabilityDefinition, expectedImages []api.MachineImage) {
+		machineImages := []api.MachineImage{
+			// images with capability sets
+			{
+				Name:    "some-image",
+				Version: "1.2.1",
+				ID:      "ami-for-arm64",
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"arm64"},
+				},
+			},
+			{
+				Name:    "some-image",
+				Version: "1.2.2",
+				ID:      "ami-for-amd64",
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"amd64"},
+				},
+			},
+			// legacy image entry without capability sets
+			{
+				Name:      "some-image",
+				Version:   "1.2.3",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(false),
+			},
+			{
+				Name:    "some-image",
+				Version: "1.2.2",
+				ID:      "ami-for-amd64",
+			},
+			{
+				Name:      "some-image",
+				Version:   "1.2.1",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(true),
+			},
+		}
+		actualImages := EnsureUniformMachineImages(machineImages, capabilityDefinitions)
+		Expect(actualImages).To(ContainElements(expectedImages))
+
+	},
+		Entry("should return images with Architecture", nil, []api.MachineImage{
+			// images with capability sets
+			{
+				Name:    "some-image",
+				Version: "1.2.1",
+				ID:      "ami-for-arm64",
+			},
+			{
+				Name:    "some-image",
+				Version: "1.2.2",
+				ID:      "ami-for-amd64",
+			},
+			// legacy image entry without capability sets
+			{
+				Name:      "some-image",
+				Version:   "1.2.3",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(false),
+			},
+			{
+				Name:      "some-image",
+				Version:   "1.2.1",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(true),
+			},
+		}),
+		Entry("should return images with Capabilities", []gardencorev1beta1.CapabilityDefinition{{
+			Name:   v1beta1constants.ArchitectureName,
+			Values: []string{"amd64", "arm64"},
+		}}, []api.MachineImage{
+			// images with capability sets
+			{
+				Name:    "some-image",
+				Version: "1.2.1",
+				ID:      "ami-for-arm64",
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"arm64"},
+				},
+			},
+			{
+				Name:    "some-image",
+				Version: "1.2.2",
+				ID:      "ami-for-amd64",
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"amd64"},
+				},
+			},
+			// legacy image entry without capability sets
+			{
+				Name:      "some-image",
+				Version:   "1.2.3",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(false),
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"amd64"},
+				}},
+			{
+				Name:      "some-image",
+				Version:   "1.2.1",
+				ID:        "ami-for-amd64",
+				Encrypted: ptr.To(true),
+				Capabilities: gardencorev1beta1.Capabilities{
+					v1beta1constants.ArchitectureName: []string{"amd64"},
+				},
+			},
+		}),
+	)
 })
 
 func encode(obj runtime.Object) []byte {

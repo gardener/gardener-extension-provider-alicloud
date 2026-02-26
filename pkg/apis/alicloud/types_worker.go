@@ -5,6 +5,7 @@
 package alicloud
 
 import (
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,4 +33,6 @@ type MachineImage struct {
 	ID string
 	// Encrypted is a flag to specify whether this image is encrypted or not
 	Encrypted *bool
+	// Capabilities of the machine image.
+	Capabilities gardencorev1beta1.Capabilities
 }

@@ -62,7 +62,7 @@ var _ = Describe("Encrypt Image tools", func() {
 
 		Describe("#GetEncryptImageStackName", func() {
 			It("should compose correct name", func() {
-				Expect(GetEncryptImageStackName(imageName, imageVersion, regionID)).To(Equal("encrypt_image_GardenLinux_1-184-0_cn-shanghai"))
+				Expect(GetEncryptImageStackName(imageName, imageVersion, regionID, sourceImageID)).To(Equal("encrypt_image_GardenLinux_1-184-0_cn-shanghai_m-123456"))
 			})
 		})
 

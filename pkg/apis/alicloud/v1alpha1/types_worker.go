@@ -5,6 +5,7 @@
 package v1alpha1
 
 import (
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,4 +36,6 @@ type MachineImage struct {
 	// Encrypted is a flag to specify whether this image is encrypted or not
 	// +optional
 	Encrypted *bool `json:"encrypted,omitempty"`
+	// Capabilities of the machine image.
+	Capabilities gardencorev1beta1.Capabilities `json:"capabilities,omitempty"`
 }

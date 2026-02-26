@@ -10,6 +10,7 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -46,6 +47,10 @@ func (cp *cloudProfile) Validate(_ context.Context, newObject, _ client.Object) 
 	if err != nil {
 		return err
 	}
+	capabilityDefinitions, err := gardencorev1beta1helper.ConvertV1beta1CapabilityDefinitions(cloudProfile.Spec.MachineCapabilities)
+	if err != nil {
+		return field.InternalError(field.NewPath("spec").Child("machineCapabilities"), err)
+	}
 
-	return alicloudvalidation.ValidateCloudProfileConfig(cpConfig, providerConfigPath).ToAggregate()
+	return alicloudvalidation.ValidateCloudProfileConfig(cpConfig, cloudProfile.Spec.MachineImages, capabilityDefinitions, providerConfigPath).ToAggregate()
 }

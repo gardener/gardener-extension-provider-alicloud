@@ -207,7 +207,7 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 	}
 	if worker.Volume != nil && worker.Volume.Encrypted == nil {
 		//don't set encrypted disk by default if image is system image
-		isCustomizeImage, err := s.isCustomizedImage(ctx, shoot, imageName, imageVersion)
+		isCustomizeImage, err := s.isCustomizedImage(ctx, shoot, imageName, imageVersion, worker)
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,7 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 	return nil
 }
 
-func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1.Shoot, imageName string, imageVersion *string) (bool, error) {
+func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1.Shoot, imageName string, imageVersion *string, worker *corev1beta1.Worker) (bool, error) {
 	cloudProfile, err := gardener.GetCloudProfile(ctx, s.client, shoot)
 	if err != nil {
 		return false, err
@@ -230,7 +230,7 @@ func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1
 	}
 	region := shoot.Spec.Region
 	logger.Info("Checking in cloudProfile", "CloudProfile", client.ObjectKeyFromObject(cloudProfile), "Region", region)
-	imageId, err := s.getImageId(ctx, imageName, imageVersion, region, cloudProfile)
+	imageId, err := s.getImageId(ctx, imageName, imageVersion, region, cloudProfile, worker)
 	if err != nil || imageId == "" {
 		return false, err
 	}
@@ -285,10 +285,22 @@ func (s *shootMutator) isOwnedByAliCloud(ctx context.Context, shoot *corev1beta1
 	return false, nil
 }
 
-func (s *shootMutator) getImageId(_ context.Context, imageName string, imageVersion *string, imageRegion string, cloudProfileSpec *corev1beta1.CloudProfile) (string, error) {
+func (s *shootMutator) getImageId(_ context.Context, imageName string, imageVersion *string, imageRegion string, cloudProfileSpec *corev1beta1.CloudProfile, worker *corev1beta1.Worker) (string, error) {
 	cloudProfileConfig, err := s.getCloudProfileConfig(cloudProfileSpec)
 	if err != nil {
 		return "", err
+	}
+	if len(cloudProfileSpec.Spec.MachineCapabilities) > 0 {
+		machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(cloudProfileSpec.Spec.MachineTypes, worker.Machine.Type)
+		if machineTypeFromCloudProfile == nil {
+			return "", fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cloudProfileSpec.Name)
+		}
+
+		capabilitySet, err := helper.FindImageInCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion, machineTypeFromCloudProfile.Capabilities, cloudProfileSpec.Spec.MachineCapabilities)
+		if err != nil {
+			return "", err
+		}
+		return capabilitySet.Regions[0].ID, nil
 	}
 	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
 }
