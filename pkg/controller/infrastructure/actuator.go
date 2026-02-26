@@ -6,8 +6,10 @@ package infrastructure
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
@@ -26,7 +28,6 @@ import (
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/common"
 )
 
 // StatusTypeMeta is the TypeMeta of InfrastructureStatus.
@@ -43,8 +44,6 @@ func NewActuator(mgr manager.Manager, machineImageOwnerSecretRef *corev1.SecretR
 	return NewActuatorWithDeps(
 		mgr,
 		alicloudclient.NewClientFactory(),
-		terraformer.DefaultFactory(),
-		DefaultTerraformOps(),
 		machineImageOwnerSecretRef,
 		toBeSharedImageIDs,
 		disableProjectedTokenMount,
@@ -55,8 +54,6 @@ func NewActuator(mgr manager.Manager, machineImageOwnerSecretRef *corev1.SecretR
 func NewActuatorWithDeps(
 	mgr manager.Manager,
 	newClientFactory alicloudclient.ClientFactory,
-	terraformerFactory terraformer.Factory,
-	terraformChartOps TerraformChartOps,
 	machineImageOwnerSecretRef *corev1.SecretReference,
 	toBeSharedImageIDs []string,
 	disableProjectedTokenMount bool,
@@ -68,8 +65,6 @@ func NewActuatorWithDeps(
 		decoder:    serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
 
 		newClientFactory:           newClientFactory,
-		terraformerFactory:         terraformerFactory,
-		terraformChartOps:          terraformChartOps,
 		machineImageOwnerSecretRef: machineImageOwnerSecretRef,
 		toBeSharedImageIDs:         toBeSharedImageIDs,
 		disableProjectedTokenMount: disableProjectedTokenMount,
@@ -101,10 +96,8 @@ type actuator struct {
 	decoder    runtime.Decoder
 	restConfig *rest.Config
 
-	alicloudECSClient  alicloudclient.ECS
-	newClientFactory   alicloudclient.ClientFactory
-	terraformerFactory terraformer.Factory
-	terraformChartOps  TerraformChartOps
+	alicloudECSClient alicloudclient.ECS
+	newClientFactory  alicloudclient.ClientFactory
 
 	machineImageOwnerSecretRef *corev1.SecretReference
 	toBeSharedImageIDs         []string
@@ -219,7 +212,7 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 }
 
 func (a *actuator) cleanupTerraformerResources(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) error {
-	tf, err := common.NewTerraformer(log, a.terraformerFactory, a.restConfig, TerraformerPurpose, infrastructure, a.disableProjectedTokenMount)
+	tf, err := NewTerraformer(log, a.restConfig, TerraformerPurpose, infrastructure, a.disableProjectedTokenMount)
 	if err != nil {
 		return fmt.Errorf("could not create terraformer object: %w", err)
 	}
@@ -251,4 +244,62 @@ func (a *actuator) ensureServiceLinkedRole(_ context.Context, infra *extensionsv
 	}
 
 	return nil
+}
+
+// NewTerraformer initializes a new Terraformer.
+func NewTerraformer(
+	logger logr.Logger,
+	restConfig *rest.Config,
+	purpose string,
+	infra *extensionsv1alpha1.Infrastructure,
+	disableProjectedTokenMount bool,
+) (
+	terraformer.Terraformer,
+	error,
+) {
+	tf, err := terraformer.NewForConfig(logger, restConfig, purpose, infra.Namespace, infra.Name, "")
+	if err != nil {
+		return nil, err
+	}
+
+	owner := metav1.NewControllerRef(infra, extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.InfrastructureResource))
+	return tf.
+		UseProjectedTokenMount(!disableProjectedTokenMount).
+		SetTerminationGracePeriodSeconds(630).
+		SetDeadlineCleaning(5 * time.Minute).
+		SetDeadlinePod(15 * time.Minute).
+		SetOwnerRef(owner), nil
+}
+
+// Reconciler is an interface for the infrastructure reconciliation.
+type Reconciler interface {
+	// Reconcile manages infrastructure resources according to desired spec.
+	Reconcile(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error
+	// Delete removes any created infrastructure resource on the provider.
+	Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error
+	// Restore restores the infrastructure after a control plane migration. Effectively it performs a recovery of data from the infrastructure.status.state and
+	// proceeds to reconcile.
+	Restore(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, cluster *extensioncontroller.Cluster) error
+}
+
+func hasFlowState(state *runtime.RawExtension) (bool, error) {
+	if state == nil {
+		return false, nil
+	}
+
+	flowState := runtime.TypeMeta{}
+	stateJson, err := state.MarshalJSON()
+	if err != nil {
+		return false, err
+	}
+
+	if err := json.Unmarshal(stateJson, &flowState); err != nil {
+		return false, err
+	}
+
+	if flowState.GroupVersionKind().GroupVersion() == alicloudv1alpha1.SchemeGroupVersion {
+		return true, nil
+	}
+
+	return false, nil
 }
