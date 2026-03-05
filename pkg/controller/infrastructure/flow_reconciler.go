@@ -46,8 +46,17 @@ func NewFlowReconciler(client client.Client, restConfig *rest.Config, log logr.L
 
 // Delete implements Reconciler.
 func (f *FlowReconciler) Delete(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, _ *extensioncontroller.Cluster) error {
+	f.log.Info("check if flowstate exists")
+	fsOk, err := hasFlowState(infra.Status.State)
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+	if !fsOk {
+		return nil
+	}
+
 	f.log.Info("cleanupServiceLoadBalancers")
-	err := f.actuator.cleanupServiceLoadBalancers(ctx, infra)
+	err = f.actuator.cleanupServiceLoadBalancers(ctx, infra)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
