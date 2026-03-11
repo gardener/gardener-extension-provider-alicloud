@@ -74,7 +74,21 @@ func overwriteMachineImageCapabilityFlavors(profile *gardencorev1beta1.CloudProf
 				continue
 			}
 
-			profile.Spec.MachineImages[imageIdx].Versions[versionIdx].CapabilityFlavors = convertCapabilityFlavors(providerVersion.CapabilityFlavors)
+			// Support both new format (capabilityFlavors) and old format (regions with architecture)
+			if len(providerVersion.CapabilityFlavors) > 0 {
+				// New format: use capabilityFlavors directly
+				profile.Spec.MachineImages[imageIdx].Versions[versionIdx].CapabilityFlavors = convertCapabilityFlavors(providerVersion.CapabilityFlavors)
+			} else if len(providerVersion.Regions) > 0 {
+				// Old format: only amd64
+				amd64capabilityFlavors := []gardencorev1beta1.MachineImageFlavor{
+					{
+						Capabilities: gardencorev1beta1.Capabilities{
+							"architecture": []string{"amd64"},
+						},
+					},
+				}
+				profile.Spec.MachineImages[imageIdx].Versions[versionIdx].CapabilityFlavors = amd64capabilityFlavors
+			}
 		}
 	}
 }
