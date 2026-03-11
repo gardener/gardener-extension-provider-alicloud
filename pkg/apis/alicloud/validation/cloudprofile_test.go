@@ -222,14 +222,141 @@ var _ = Describe("CloudProfileConfig validation", func() {
 				})
 
 				errorList := ValidateCloudProfileConfig(cloudProfileConfig, machineImages, capabilityDefinitions, fldPath)
-				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":   Equal(field.ErrorTypeForbidden),
-					"Field":  fieldMatcher,
-					"Detail": ContainSubstring("must not be set as CloudProfile"),
-				}))))
+				// Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+				// 	"Type":   Equal(field.ErrorTypeForbidden),
+				// 	"Field":  fieldMatcher,
+				// 	"Detail": ContainSubstring("must not be set as CloudProfile"),
+				// }))))
+				if isCapabilitiesCloudProfile {
+					Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(field.ErrorTypeForbidden),
+						"Field":  fieldMatcher,
+						"Detail": ContainSubstring("must not be set together with capabilityFlavors"),
+					}))))
+				} else {
+					Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(field.ErrorTypeForbidden),
+						"Field":  fieldMatcher,
+						"Detail": ContainSubstring("must not be set as CloudProfile does not define capabilities"),
+					}))))
+				}
 			})
 		})
 	},
 		Entry("CloudProfile uses regions only", false),
 		Entry("CloudProfile uses capabilities", true))
+
+	Describe("Mixed format support for capabilities CloudProfile", func() {
+		var (
+			capabilityDefinitions []v1beta1.CapabilityDefinition
+			cloudProfileConfig    *apisalicloud.CloudProfileConfig
+			machineImages         []core.MachineImage
+			fldPath               *field.Path
+		)
+
+		BeforeEach(func() {
+			capabilityDefinitions = []v1beta1.CapabilityDefinition{{
+				Name:   v1beta1constants.ArchitectureName,
+				Values: []string{"amd64", "arm64"},
+			}}
+		})
+
+		It("should pass validation when using old format (regions with architecture) in capabilities CloudProfile", func() {
+			cloudProfileConfig = &apisalicloud.CloudProfileConfig{
+				MachineImages: []apisalicloud.MachineImages{{
+					Name: "ubuntu",
+					Versions: []apisalicloud.MachineImageVersion{{
+						Version: "1.2.3",
+						Regions: []apisalicloud.RegionIDMapping{
+							{Name: "eu-west-1", ID: "ami-1234"},
+						},
+					}},
+				}},
+			}
+			machineImages = []core.MachineImage{{
+				Name: "ubuntu",
+				Versions: []core.MachineImageVersion{{
+					ExpirableVersion: core.ExpirableVersion{Version: "1.2.3"},
+					CapabilityFlavors: []core.MachineImageFlavor{
+						{Capabilities: core.Capabilities{v1beta1constants.ArchitectureName: []string{"amd64"}}},
+					},
+				}},
+			}}
+
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, machineImages, capabilityDefinitions, fldPath)
+			Expect(errorList).To(BeEmpty())
+		})
+
+		It("should pass validation with mixed format - one version using old format, another using new format", func() {
+			cloudProfileConfig = &apisalicloud.CloudProfileConfig{
+				MachineImages: []apisalicloud.MachineImages{{
+					Name: "ubuntu",
+					Versions: []apisalicloud.MachineImageVersion{
+						{
+							// Old format with regions
+							Version: "1.2.3",
+							Regions: []apisalicloud.RegionIDMapping{
+								{Name: "eu-west-1", ID: "ami-1234"},
+							},
+						},
+						{
+							// New format with capabilityFlavors
+							Version: "1.3.0",
+							CapabilityFlavors: []apisalicloud.MachineImageFlavor{{
+								Regions:      []apisalicloud.RegionIDMapping{{Name: "eu-west-1", ID: "ami-9999"}},
+								Capabilities: v1beta1.Capabilities{v1beta1constants.ArchitectureName: []string{"amd64"}},
+							}},
+						},
+					},
+				}},
+			}
+			machineImages = []core.MachineImage{{
+				Name: "ubuntu",
+				Versions: []core.MachineImageVersion{
+					{
+						ExpirableVersion:  core.ExpirableVersion{Version: "1.2.3"},
+						CapabilityFlavors: []core.MachineImageFlavor{{Capabilities: core.Capabilities{v1beta1constants.ArchitectureName: []string{"amd64"}}}},
+					},
+					{
+						ExpirableVersion:  core.ExpirableVersion{Version: "1.3.0"},
+						CapabilityFlavors: []core.MachineImageFlavor{{Capabilities: core.Capabilities{v1beta1constants.ArchitectureName: []string{"amd64"}}}},
+					},
+				},
+			}}
+
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, machineImages, capabilityDefinitions, fldPath)
+			Expect(errorList).To(BeEmpty())
+		})
+
+		It("should fail when old format is missing required architecture in capabilities CloudProfile", func() {
+			cloudProfileConfig = &apisalicloud.CloudProfileConfig{
+				MachineImages: []apisalicloud.MachineImages{{
+					Name: "ubuntu",
+					Versions: []apisalicloud.MachineImageVersion{{
+						Version: "1.2.3",
+						Regions: []apisalicloud.RegionIDMapping{
+							{Name: "eu-west-1", ID: "ami-1234"},
+						},
+					}},
+				}},
+			}
+			machineImages = []core.MachineImage{{
+				Name: "ubuntu",
+				Versions: []core.MachineImageVersion{{
+					ExpirableVersion: core.ExpirableVersion{Version: "1.2.3"},
+					CapabilityFlavors: []core.MachineImageFlavor{
+						{Capabilities: core.Capabilities{v1beta1constants.ArchitectureName: []string{"amd64"}}},
+						{Capabilities: core.Capabilities{v1beta1constants.ArchitectureName: []string{"arm64"}}},
+					},
+				}},
+			}}
+
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, machineImages, capabilityDefinitions, fldPath)
+			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":   Equal(field.ErrorTypeRequired),
+				"Field":  Equal("spec.machineImages[0].versions[0].capabilityFlavors[1]"),
+				"Detail": ContainSubstring("missing providerConfig mapping for machine image version ubuntu@1.2.3 and architecture: arm64"),
+			}))))
+		})
+	})
 })

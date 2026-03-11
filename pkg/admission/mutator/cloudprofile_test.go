@@ -260,7 +260,55 @@ var _ = Describe("CloudProfile Mutator", func() {
 					}),
 				))
 			})
+			It("should support mixed format - old and new format in same image", func() {
+				cloudProfile.Spec.MachineImages = []v1beta1.MachineImage{
+					{
+						Name: "os-1",
+						Versions: []v1beta1.MachineImageVersion{
+							{ExpirableVersion: v1beta1.ExpirableVersion{Version: "1.0.0"}},
+							{ExpirableVersion: v1beta1.ExpirableVersion{Version: "1.0.1"}},
+						},
+					},
+				}
+				cloudProfile.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(`{
+"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1",
+"kind":"CloudProfileConfig",
+"machineImages":[
+  {"name":"os-1","versions":[
+	{"version":"1.0.0","regions":[
+		{"name":"eu-west-1","id":"id-1234"},
+		{"name":"eu-west-1","id":"id-5678"}
+	]},
+	{"version":"1.0.1","capabilityFlavors":[
+		{"capabilities":{"architecture":["amd64"],"gpu":["true"]},"regions":[{"name":"eu-west-1","id":"id-gpu"}]}
+	]}
+  ]}
+]}`)}
+				Expect(cloudProfileMutator.Mutate(ctx, cloudProfile, nil)).To(Succeed())
+				Expect(cloudProfile.Spec.MachineImages).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Name": Equal("os-1"),
+						"Versions": ConsistOf(
+							MatchFields(IgnoreExtras, Fields{
+								"ExpirableVersion": MatchFields(IgnoreExtras, Fields{"Version": Equal("1.0.0")}),
+								"CapabilityFlavors": ConsistOf(
+									MatchFields(IgnoreExtras, Fields{
+										"Capabilities": Equal(v1beta1.Capabilities{"architecture": []string{"amd64"}}),
+									}),
+								),
+							}),
+							MatchFields(IgnoreExtras, Fields{
+								"ExpirableVersion": MatchFields(IgnoreExtras, Fields{"Version": Equal("1.0.1")}),
+								"CapabilityFlavors": ConsistOf(
+									MatchFields(IgnoreExtras, Fields{
+										"Capabilities": Equal(v1beta1.Capabilities{"architecture": []string{"amd64"}, "gpu": []string{"true"}}),
+									}),
+								),
+							}),
+						),
+					}),
+				))
+			})
 		})
-
 	})
 })
