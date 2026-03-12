@@ -7,12 +7,13 @@ package validator
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gardencoreapi "github.com/gardener/gardener/pkg/api"
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,7 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 )
 
@@ -60,7 +60,7 @@ func (p *namespacedCloudProfile) Validate(ctx context.Context, newObj, _ client.
 	}
 
 	parentCloudProfile := cloudProfile.Spec.Parent
-	if parentCloudProfile.Kind != constants.CloudProfileReferenceKindCloudProfile {
+	if parentCloudProfile.Kind != v1beta1constants.CloudProfileReferenceKindCloudProfile {
 		return fmt.Errorf("parent reference must be of kind CloudProfile (unsupported kind: %s)", parentCloudProfile.Kind)
 	}
 	parentProfile := &gardencorev1beta1.CloudProfile{}
@@ -68,10 +68,8 @@ func (p *namespacedCloudProfile) Validate(ctx context.Context, newObj, _ client.
 		return err
 	}
 
-	// TODO(Roncossek): Remove TransformSpecToParentFormat once all CloudProfiles have been migrated to use CapabilityFlavors and the Architecture fields are effectively forbidden or have been removed.
-	if err := helper.SimulateTransformToParentFormat(cloudProfileConfig, cloudProfile, parentProfile.Spec.MachineCapabilities); err != nil {
-		return err
-	}
+	// Validate provider config as-is without transforming to parent format.
+	// Mixed format (old regions with architecture and new capabilityFlavors) is supported per version.
 	return p.validateMachineImages(cloudProfileConfig, cloudProfile.Spec.MachineImages, parentProfile.Spec).ToAggregate()
 }
 
@@ -156,6 +154,30 @@ func validateMachineImageCapabilities(machineImage core.MachineImage, version ga
 	allErrs := field.ErrorList{}
 	path := field.NewPath("spec.providerConfig.machineImages")
 	defaultedCapabilityFlavors := gardencorev1beta1helper.GetImageFlavorsWithAppliedDefaults(version.CapabilityFlavors, capabilityDefinitions)
+
+	// Check if provider uses old format (regions with architecture) or new format (capabilityFlavors)
+	if len(providerImageVersion.CapabilityFlavors) > 0 {
+		// New format: validate using capabilityFlavors
+		allErrs = append(allErrs, validateCapabilityFlavorsFormat(machineImage, version, providerImageVersion, defaultedCapabilityFlavors, capabilityDefinitions, path)...)
+	} else if len(providerImageVersion.Regions) > 0 {
+		// Old format: validate regions with architecture against expected capability flavors
+		allErrs = append(allErrs, validateRegionsFormatWithCapabilities(machineImage, version, providerImageVersion, defaultedCapabilityFlavors, path)...)
+	} else {
+		// No regions or capabilityFlavors
+		for _, coreDefaultedCapabilityFlavor := range defaultedCapabilityFlavors {
+			allErrs = append(allErrs, field.Required(path,
+				fmt.Sprintf("machine image version %s@%s has a capabilityFlavor %v not defined in the NamespacedCloudProfile providerConfig",
+					machineImage.Name, version.Version, coreDefaultedCapabilityFlavor.Capabilities)))
+		}
+	}
+
+	return allErrs
+}
+
+// validateCapabilityFlavorsFormat validates when provider uses new format (capabilityFlavors)
+func validateCapabilityFlavorsFormat(machineImage core.MachineImage, version gardencorev1beta1.MachineImageVersion, providerImageVersion api.MachineImageVersion, defaultedCapabilityFlavors []gardencorev1beta1.MachineImageFlavor, capabilityDefinitions []gardencorev1beta1.CapabilityDefinition, path *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
 	regionsCapabilitiesMap := map[string][]gardencorev1beta1.Capabilities{}
 
 	// 1. Create an error for each capabilityFlavor in the providerConfig that is not defined in the core machine image version
@@ -208,6 +230,42 @@ func validateMachineImageCapabilities(machineImage core.MachineImage, version ga
 				allErrs = append(allErrs, field.Required(path,
 					fmt.Sprintf("machine image version %s@%s is missing region %q in capabilityFlavor %v in the NamespacedCloudProfile providerConfig",
 						machineImage.Name, version.Version, region, coreDefaultedCapabilityFlavor.Capabilities)))
+			}
+		}
+	}
+
+	return allErrs
+}
+
+// validateRegionsFormatWithCapabilities validates when provider uses old format (no architecture in regions all defalt to amd64) in capabilities CloudProfile
+func validateRegionsFormatWithCapabilities(machineImage core.MachineImage, version gardencorev1beta1.MachineImageVersion, providerImageVersion api.MachineImageVersion, defaultedCapabilityFlavors []gardencorev1beta1.MachineImageFlavor, path *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	availableArchitectures := []string{v1beta1constants.ArchitectureAMD64}
+
+	// 1. Check for excess architectures in provider that are not in spec
+	isFound := false
+	for _, coreDefaultedCapabilityFlavor := range defaultedCapabilityFlavors {
+		expectedArchitectures := coreDefaultedCapabilityFlavor.Capabilities[v1beta1constants.ArchitectureName]
+		if slices.Contains(expectedArchitectures, v1beta1constants.ArchitectureAMD64) {
+			isFound = true
+			break
+		}
+	}
+	if !isFound {
+		allErrs = append(allErrs, field.Forbidden(path,
+			fmt.Sprintf("machine image version %s@%s has an excess architecture %q, which is not defined in the machineImages spec",
+				machineImage.Name, version.Version, v1beta1constants.ArchitectureAMD64)))
+	}
+
+	// 2. Check that each expected capability flavor has a corresponding architecture in regions
+	for _, coreDefaultedCapabilityFlavor := range defaultedCapabilityFlavors {
+		expectedArchitectures := coreDefaultedCapabilityFlavor.Capabilities[v1beta1constants.ArchitectureName]
+		for _, expectedArch := range expectedArchitectures {
+			if !slices.Contains(availableArchitectures, expectedArch) {
+				allErrs = append(allErrs, field.Required(path,
+					fmt.Sprintf("machine image version %s@%s has a capabilityFlavor %v not defined in the NamespacedCloudProfile providerConfig",
+						machineImage.Name, version.Version, coreDefaultedCapabilityFlavor.Capabilities)))
 			}
 		}
 	}
