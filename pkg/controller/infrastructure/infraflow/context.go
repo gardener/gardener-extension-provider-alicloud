@@ -44,6 +44,8 @@ const (
 	ZoneNATGWElasticIPAddress = "NATGatewayElasticIPAddress"
 	// IdentifierNodesSecurityGroup is the key for the id of the nodes security group
 	IdentifierNodesSecurityGroup = "NodesSecurityGroup"
+	// IdentifierRouteTable is the key for the id of the custom route table
+	IdentifierRouteTable = "RouteTable"
 
 	// IdentifierZoneSuffix is the key for the suffix used for a zone
 	IdentifierZoneSuffix = "Suffix"

@@ -34,13 +34,17 @@ func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 		c.deleteZones,
 		Timeout(defaultLongTimeout))
 
+	deleteRouteTable := c.AddTask(g, "delete route table",
+		c.deleteRouteTable,
+		Timeout(defaultTimeout), Dependencies(deleteZones))
+
 	deleteSecurityGroup := c.AddTask(g, "delete security group",
 		c.deleteSecurityGroup,
 		Timeout(defaultTimeout))
 
 	_ = c.AddTask(g, "delete VPC",
 		c.deleteVpc,
-		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout), Dependencies(deleteZones, deleteSecurityGroup))
+		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout), Dependencies(deleteRouteTable, deleteSecurityGroup))
 
 	return g
 }
@@ -67,6 +71,26 @@ func (c *FlowContext) deleteSecurityGroup(ctx context.Context) error {
 		}
 	}
 	c.state.SetAsDeleted(IdentifierNodesSecurityGroup)
+	return nil
+}
+
+func (c *FlowContext) deleteRouteTable(ctx context.Context) error {
+	if c.state.IsAlreadyDeleted(IdentifierRouteTable) {
+		return nil
+	}
+	log := c.LogFromContext(ctx)
+	current, err := findExisting(ctx, c.state.Get(IdentifierRouteTable), c.commonTagsWithSuffix("rt"),
+		c.actor.GetRouteTable, c.actor.FindRouteTablesByTags)
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		log.Info("deleting custom route table ...", "RouteTableId", current.RouteTableId)
+		if err := c.actor.DeleteRouteTable(ctx, current.RouteTableId); err != nil {
+			return err
+		}
+	}
+	c.state.SetAsDeleted(IdentifierRouteTable)
 	return nil
 }
 
