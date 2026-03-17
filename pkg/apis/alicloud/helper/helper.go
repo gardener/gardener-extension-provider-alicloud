@@ -9,11 +9,10 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"k8s.io/utils/ptr"
 
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 )
 
 // FindVSwitchForPurposeAndZone takes a list of vswitches and tries to find the first entry
@@ -141,33 +140,6 @@ func FindImageInCloudProfile(
 	return nil, fmt.Errorf("could not find an Image for region %q, image %q, version %q that supports %v", region, name, version, machineCapabilities)
 }
 
-// FindImageInWorkerStatus takes a list of machine images from the worker status and tries to find the first entry
-// whose name, version, architecture, capabilities and zone matches with the given ones. If no such entry is
-// found then an error will be returned.
-func FindImageInWorkerStatus(machineImages []api.MachineImage, name string, version string, machineCapabilities gardencorev1beta1.Capabilities, capabilityDefinitions []gardencorev1beta1.CapabilityDefinition) (*api.MachineImage, error) {
-	// If no capabilityDefinitions are specified, return the (legacy) architecture format field as no Capabilities are used.
-	if len(capabilityDefinitions) == 0 {
-		for _, statusMachineImage := range machineImages {
-			if statusMachineImage.Name == name && statusMachineImage.Version == version {
-				return &statusMachineImage, nil
-			}
-		}
-		return nil, fmt.Errorf("no machine image found for image %q with version %q", name, version)
-	}
-
-	// If capabilityDefinitions are specified, we need to find the best matching capability set.
-	for _, statusMachineImage := range machineImages {
-		var statusMachineImageV1alpha1 v1alpha1.MachineImage
-		if err := v1alpha1.Convert_alicloud_MachineImage_To_v1alpha1_MachineImage(&statusMachineImage, &statusMachineImageV1alpha1, nil); err != nil {
-			return nil, fmt.Errorf("failed to convert machine image: %w", err)
-		}
-		if statusMachineImage.Name == name && statusMachineImage.Version == version && gardencorev1beta1helper.AreCapabilitiesCompatible(statusMachineImageV1alpha1.Capabilities, machineCapabilities, capabilityDefinitions) {
-			return &statusMachineImage, nil
-		}
-	}
-	return nil, fmt.Errorf("no machine image found for image %q with version %q and capabilities %v", name, version, machineCapabilities)
-}
-
 func findMachineImageFlavor(
 	machineImages []api.MachineImages,
 	imageName, imageVersion, region string,
@@ -183,6 +155,7 @@ func findMachineImageFlavor(
 				continue
 			}
 
+			// When no capabilities are defined, only use the old format (regions)
 			if len(capabilityDefinitions) == 0 {
 				for _, mapping := range version.Regions {
 					if region == mapping.Name {
@@ -195,13 +168,33 @@ func findMachineImageFlavor(
 				continue
 			}
 
-			filteredCapabilityFlavors := filterCapabilityFlavorsByRegion(version.CapabilityFlavors, region)
-			bestMatch, err := worker.FindBestImageFlavor(filteredCapabilityFlavors, machineCapabilities, capabilityDefinitions)
-			if err != nil {
-				return nil, fmt.Errorf("could not determine best flavor %w", err)
+			// When capabilities are defined, support both formats per version:
+			// - New format: capabilityFlavors
+			// - Old format: regions only amd64 architecture (converted to capability flavors)
+			if len(version.CapabilityFlavors) > 0 {
+				// New format: use capabilityFlavors
+				filteredCapabilityFlavors := filterCapabilityFlavorsByRegion(version.CapabilityFlavors, region)
+				bestMatch, err := worker.FindBestImageFlavor(filteredCapabilityFlavors, machineCapabilities, capabilityDefinitions)
+				if err != nil {
+					return nil, fmt.Errorf("could not determine best flavor %w", err)
+				}
+				return bestMatch, nil
+			} else if len(version.Regions) > 0 {
+				// Old format: convert regions only amd64 architecture to capability flavors
+				var capabilityFlavors []api.MachineImageFlavor
+				capabilityFlavors = append(capabilityFlavors, api.MachineImageFlavor{
+					Capabilities: gardencorev1beta1.Capabilities{
+						v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
+					},
+					Regions: version.Regions,
+				})
+				filteredCapabilityFlavors := filterCapabilityFlavorsByRegion(capabilityFlavors, region)
+				bestMatch, err := worker.FindBestImageFlavor(filteredCapabilityFlavors, machineCapabilities, capabilityDefinitions)
+				if err != nil {
+					return nil, fmt.Errorf("could not determine best flavor %w", err)
+				}
+				return bestMatch, nil
 			}
-
-			return bestMatch, nil
 		}
 	}
 	return nil, nil
