@@ -120,7 +120,7 @@ var _ = Describe("Helper", func() {
 		Entry("profile non matching region", makeProfileMachineImages("ubuntu", "1", "china", nil), "ubuntu", "1", "eu", ""),
 	)
 
-	DescribeTable("#FindImageInCloudProfile for capabilities",
+	DescribeTable("#FindImageInCloudProfileFlavor for capabilities",
 		func(profileImages []api.MachineImages, imageName, version, regionName string, arch *string, expectedID string) {
 			var capabilityDefinitions []v1beta1.CapabilityDefinition
 			var machineTypeCapabilities v1beta1.Capabilities
@@ -142,7 +142,7 @@ var _ = Describe("Helper", func() {
 			cfg := &api.CloudProfileConfig{}
 			cfg.MachineImages = profileImages
 
-			imageFlavor, err := FindImageInCloudProfile(cfg, imageName, version, regionName, machineTypeCapabilities, capabilityDefinitions)
+			imageFlavor, err := FindImageInCloudProfileFlavor(cfg, imageName, version, regionName, machineTypeCapabilities, capabilityDefinitions)
 
 			if expectedID != "" {
 				Expect(err).NotTo(HaveOccurred())
@@ -178,13 +178,13 @@ var _ = Describe("Helper", func() {
 			}
 		})
 
-		DescribeTable("#FindImageInCloudProfile with old format (regions)",
+		DescribeTable("#FindImageInCloudProfileFlavor with old format (regions)",
 			func(profileImages []api.MachineImages, imageName, version, regionName string, arch *string, expectedID string) {
 				machineTypeCapabilities["architecture"] = []string{*arch}
 				cfg := &api.CloudProfileConfig{}
 				cfg.MachineImages = profileImages
 
-				imageFlavor, err := FindImageInCloudProfile(cfg, imageName, version, regionName, machineTypeCapabilities, capabilityDefinitions)
+				imageFlavor, err := FindImageInCloudProfileFlavor(cfg, imageName, version, regionName, machineTypeCapabilities, capabilityDefinitions)
 
 				if expectedID != "" {
 					Expect(err).NotTo(HaveOccurred())
@@ -207,13 +207,13 @@ var _ = Describe("Helper", func() {
 				"ubuntu", "22.04", "us-east-1", ptr.To("amd64"), ""),
 		)
 
-		DescribeTable("#FindImageInCloudProfile with mixed format (some versions old, some new)",
+		DescribeTable("#FindImageInCloudProfileFlavor with mixed format (some versions old, some new)",
 			func(imageName, version, regionName string, arch *string, expectedID string) {
 				machineTypeCapabilities["architecture"] = []string{*arch}
 				cfg := &api.CloudProfileConfig{}
 				cfg.MachineImages = makeProfileMachineImagesMixedFormat()
 
-				imageFlavor, err := FindImageInCloudProfile(cfg, imageName, version, regionName, machineTypeCapabilities, capabilityDefinitions)
+				imageFlavor, err := FindImageInCloudProfileFlavor(cfg, imageName, version, regionName, machineTypeCapabilities, capabilityDefinitions)
 
 				if expectedID != "" {
 					Expect(err).NotTo(HaveOccurred())

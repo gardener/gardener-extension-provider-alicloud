@@ -11,6 +11,7 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -83,7 +84,7 @@ func overwriteMachineImageCapabilityFlavors(profile *gardencorev1beta1.CloudProf
 				amd64capabilityFlavors := []gardencorev1beta1.MachineImageFlavor{
 					{
 						Capabilities: gardencorev1beta1.Capabilities{
-							"architecture": []string{"amd64"},
+							v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
 						},
 					},
 				}
