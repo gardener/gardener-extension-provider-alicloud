@@ -296,11 +296,11 @@ func (s *shootMutator) getImageId(_ context.Context, imageName string, imageVers
 			return "", fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cloudProfileSpec.Name)
 		}
 
-		capabilitySet, err := helper.FindImageInCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion, machineTypeFromCloudProfile.Capabilities, cloudProfileSpec.Spec.MachineCapabilities)
+		imageFlavor, err := helper.FindImageInCloudProfileFlavor(cloudProfileConfig, imageName, *imageVersion, imageRegion, machineTypeFromCloudProfile.Capabilities, cloudProfileSpec.Spec.MachineCapabilities)
 		if err != nil {
 			return "", err
 		}
-		return capabilitySet.Regions[0].ID, nil
+		return imageFlavor.Regions[0].ID, nil
 	}
 	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
 }

@@ -53,16 +53,16 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 	if !encrypted {
 		var imageID string
 		var err error
-		capabilitySet := &api.MachineImageFlavor{}
+		imageFlavor := &api.MachineImageFlavor{}
 		if len(w.cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
 			machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(w.cluster.CloudProfile.Spec.MachineTypes, workerPool.MachineType)
 			if machineTypeFromCloudProfile == nil {
 				return nil, fmt.Errorf("machine type %q not found in cloud profile %q", workerPool.MachineType, w.cluster.CloudProfile.Name)
 			}
 
-			capabilitySet, err = helper.FindImageInCloudProfile(w.cloudProfileConfig, name, version, region, machineTypeFromCloudProfile.Capabilities, w.cluster.CloudProfile.Spec.MachineCapabilities)
+			imageFlavor, err = helper.FindImageInCloudProfileFlavor(w.cloudProfileConfig, name, version, region, machineTypeFromCloudProfile.Capabilities, w.cluster.CloudProfile.Spec.MachineCapabilities)
 			if err == nil {
-				imageID = capabilitySet.Regions[0].ID
+				imageID = imageFlavor.Regions[0].ID
 			}
 		} else {
 			imageID, err = helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
@@ -73,7 +73,7 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 				Version:      version,
 				ID:           imageID,
 				Encrypted:    ptr.To(encrypted),
-				Capabilities: capabilitySet.Capabilities,
+				Capabilities: imageFlavor.Capabilities,
 			}, nil
 		}
 	}

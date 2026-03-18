@@ -127,15 +127,15 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	// Find from cloud profile first, if not found then from status
 	var imageID string
 	var err error
-	capabilitySet := &apisalicloud.MachineImageFlavor{}
+	imageFlavor := &apisalicloud.MachineImageFlavor{}
 	if len(cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
 		machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(cluster.CloudProfile.Spec.MachineTypes, worker.Machine.Type)
 		if machineTypeFromCloudProfile == nil {
 			return nil, fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cluster.CloudProfile.Name)
 		}
-		capabilitySet, err = helper.FindImageInCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region, machineTypeFromCloudProfile.Capabilities, cluster.CloudProfile.Spec.MachineCapabilities)
+		imageFlavor, err = helper.FindImageInCloudProfileFlavor(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region, machineTypeFromCloudProfile.Capabilities, cluster.CloudProfile.Spec.MachineCapabilities)
 		if err == nil {
-			imageID = capabilitySet.Regions[0].ID
+			imageID = imageFlavor.Regions[0].ID
 		}
 	} else {
 		imageID, err = helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
@@ -178,22 +178,22 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 		Version:      *worker.Machine.Image.Version,
 		ID:           encryptedImageID,
 		Encrypted:    ptr.To(true),
-		Capabilities: capabilitySet.Capabilities,
+		Capabilities: imageFlavor.Capabilities,
 	}, nil
 }
 
 func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, log logr.Logger, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootECSClient alicloudclient.ECS, shootCloudProviderAccountID string, cluster *extensioncontroller.Cluster) (*apisalicloud.MachineImage, error) {
 	var imageID string
 	var err error
-	capabilitySet := &apisalicloud.MachineImageFlavor{}
+	imageFlavor := &apisalicloud.MachineImageFlavor{}
 	if len(cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
 		machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(cluster.CloudProfile.Spec.MachineTypes, worker.Machine.Type)
 		if machineTypeFromCloudProfile == nil {
 			return nil, fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cluster.CloudProfile.Name)
 		}
-		capabilitySet, err := helper.FindImageInCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region, machineTypeFromCloudProfile.Capabilities, cluster.CloudProfile.Spec.MachineCapabilities)
+		imageFlavor, err := helper.FindImageInCloudProfileFlavor(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region, machineTypeFromCloudProfile.Capabilities, cluster.CloudProfile.Spec.MachineCapabilities)
 		if err == nil {
-			imageID = capabilitySet.Regions[0].ID
+			imageID = imageFlavor.Regions[0].ID
 		}
 	} else {
 		imageID, err = helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
@@ -223,7 +223,7 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 		Version:      *worker.Machine.Image.Version,
 		ID:           imageID,
 		Encrypted:    ptr.To(false),
-		Capabilities: capabilitySet.Capabilities,
+		Capabilities: imageFlavor.Capabilities,
 	}, nil
 }
 
