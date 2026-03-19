@@ -40,9 +40,7 @@ func (p *namespacedCloudProfile) Mutate(_ context.Context, newObj, _ client.Obje
 		return fmt.Errorf("wrong object type %T", newObj)
 	}
 
-	// Ignore NamespacedCloudProfiles being deleted and wait for core mutator to patch the status.
-	if profile.DeletionTimestamp != nil || profile.Generation != profile.Status.ObservedGeneration ||
-		profile.Spec.ProviderConfig == nil || profile.Status.CloudProfileSpec.ProviderConfig == nil {
+	if shouldSkipMutation(profile) {
 		return nil
 	}
 
@@ -55,14 +53,26 @@ func (p *namespacedCloudProfile) Mutate(_ context.Context, newObj, _ client.Obje
 		return fmt.Errorf("could not decode providerConfig of namespacedCloudProfile status for '%s': %w", profile.Name, err)
 	}
 
+	// Merge spec config into status config without format transformation.
+	// Mixed format (old regions with architecture and new capabilityFlavors) is supported per version.
 	statusConfig.MachineImages = mergeMachineImages(specConfig.MachineImages, statusConfig.MachineImages)
 
-	modifiedStatusConfig, err := json.Marshal(statusConfig)
+	return p.updateProfileStatus(profile, statusConfig)
+}
+
+func shouldSkipMutation(profile *gardencorev1beta1.NamespacedCloudProfile) bool {
+	return profile.DeletionTimestamp != nil ||
+		profile.Generation != profile.Status.ObservedGeneration ||
+		profile.Spec.ProviderConfig == nil ||
+		profile.Status.CloudProfileSpec.ProviderConfig == nil
+}
+
+func (p *namespacedCloudProfile) updateProfileStatus(profile *gardencorev1beta1.NamespacedCloudProfile, config *v1alpha1.CloudProfileConfig) error {
+	modifiedStatusConfig, err := json.Marshal(config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal status config: %w", err)
 	}
 	profile.Status.CloudProfileSpec.ProviderConfig.Raw = modifiedStatusConfig
-
 	return nil
 }
 

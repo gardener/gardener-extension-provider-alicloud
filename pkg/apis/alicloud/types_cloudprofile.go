@@ -5,6 +5,7 @@
 package alicloud
 
 import (
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -31,8 +32,24 @@ type MachineImages struct {
 type MachineImageVersion struct {
 	// Version is the version of the image.
 	Version string
+	// TODO add "// deprecated" once cloudprofiles are migrated to use CapabilityFlavors
 	// Regions is a mapping to the correct ID for the machine image in the supported regions.
 	Regions []RegionIDMapping
+	// CapabilityFlavors is grouping of region machine image IDs by capabilities.
+	CapabilityFlavors []MachineImageFlavor
+}
+
+// MachineImageFlavor groups all RegionIDMappings for a specific set of capabilities.
+type MachineImageFlavor struct {
+	// Regions is a mapping to the correct ID for the machine image in the supported regions.
+	Regions []RegionIDMapping
+	// Capabilities that are supported by the machine image IDs in this set.
+	Capabilities gardencorev1beta1.Capabilities
+}
+
+// GetCapabilities returns the Capabilities of a MachineImageFlavor
+func (cs *MachineImageFlavor) GetCapabilities() gardencorev1beta1.Capabilities {
+	return cs.Capabilities
 }
 
 // RegionIDMapping is a mapping to the correct ID for the machine image in the given region.

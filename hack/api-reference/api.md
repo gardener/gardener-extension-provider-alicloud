@@ -509,6 +509,60 @@ bool
 <p>Encrypted is a flag to specify whether this image is encrypted or not</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>capabilities</code></br>
+<em>
+github.com/gardener/gardener/pkg/apis/core/v1beta1.Capabilities
+</em>
+</td>
+<td>
+<p>Capabilities of the machine image.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageFlavor">MachineImageFlavor
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageVersion">MachineImageVersion</a>)
+</p>
+<p>
+<p>MachineImageFlavor groups all RegionIDMappings for a specific set of capabilities.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regions</code></br>
+<em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.RegionIDMapping">
+[]RegionIDMapping
+</a>
+</em>
+</td>
+<td>
+<p>Regions is a mapping to the correct ID for the machine image in the supported regions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capabilities</code></br>
+<em>
+github.com/gardener/gardener/pkg/apis/core/v1beta1.Capabilities
+</em>
+</td>
+<td>
+<p>Capabilities that are supported by the machine image IDs in this set.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageVersion">MachineImageVersion
@@ -549,7 +603,21 @@ string
 </em>
 </td>
 <td>
-<p>Regions is a mapping to the correct ID for the machine image in the supported regions.</p>
+<p>TODO add &ldquo;// deprecated&rdquo; once cloudprofiles are migrated to use CapabilityFlavors
+Regions is a mapping to the correct ID for the machine image in the supported regions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capabilityFlavors</code></br>
+<em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageFlavor">
+[]MachineImageFlavor
+</a>
+</em>
+</td>
+<td>
+<p>CapabilityFlavors is grouping of region machine image IDs by capabilities.</p>
 </td>
 </tr>
 </tbody>
@@ -687,6 +755,7 @@ VPC
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageFlavor">MachineImageFlavor</a>, 
 <a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageVersion">MachineImageVersion</a>)
 </p>
 <p>

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package mutator
+package mutator_test
 
 import (
 	"context"
@@ -27,6 +27,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	alimutator "github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/mutator"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
@@ -45,6 +46,7 @@ const (
 	imageName       = "gardenlinux"
 	imageVersionStr = "318.9.0"
 	imageId         = "m-uf6htf9lstsi99xr2out"
+	machineType     = "ecs.sn1ne.large"
 )
 
 func expectEncode(data []byte, err error) []byte {
@@ -95,7 +97,7 @@ var _ = Describe("Mutating Shoot", func() {
 		ecsClient = mockalicloudclient.NewMockECS(ctrl)
 		ctx = context.TODO()
 
-		mutator = NewShootMutatorWithDeps(mgr, alicloudClientFactory)
+		mutator = alimutator.NewShootMutatorWithDeps(mgr, alicloudClientFactory)
 
 		secretBinding = &corev1beta1.SecretBinding{
 			SecretRef: corev1.SecretReference{
@@ -141,6 +143,11 @@ var _ = Describe("Mutating Shoot", func() {
 				ProviderConfig: &runtime.RawExtension{
 					Raw: configJson,
 				},
+				MachineTypes: []corev1beta1.MachineType{
+					{
+						Name: machineType,
+					},
+				},
 			},
 		}
 		controlPlaneConfig := &apisalicloudv1alpha1.ControlPlaneConfig{
@@ -166,6 +173,7 @@ var _ = Describe("Mutating Shoot", func() {
 									Name:    imageName,
 									Version: ptr.To(imageVersionStr),
 								},
+								Type: machineType,
 							},
 							Volume: &corev1beta1.Volume{
 								Encrypted: ptr.To(true),
@@ -200,6 +208,7 @@ var _ = Describe("Mutating Shoot", func() {
 									Name:    imageName,
 									Version: ptr.To(imageVersionStr),
 								},
+								Type: machineType,
 							},
 							Volume: &corev1beta1.Volume{},
 							DataVolumes: []corev1beta1.DataVolume{
@@ -212,6 +221,7 @@ var _ = Describe("Mutating Shoot", func() {
 									Name:    imageName,
 									Version: ptr.To(imageVersionStr),
 								},
+								Type: machineType,
 							},
 						},
 					},

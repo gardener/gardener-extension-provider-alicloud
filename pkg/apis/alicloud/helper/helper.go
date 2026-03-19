@@ -7,6 +7,9 @@ package helper
 import (
 	"fmt"
 
+	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"k8s.io/utils/ptr"
 
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
@@ -90,6 +93,7 @@ func AppendMachineImage(machineImages []api.MachineImage, machineImage api.Machi
 // FindImageForRegionFromCloudProfile takes a list of machine images, and the desired image name, version, and region.
 // It tries to find the image with the given name and version in the desired region.
 // If no image is found then an error is returned.
+// only used for non capability based cloud profiles.
 func FindImageForRegionFromCloudProfile(cloudProfileConfig *api.CloudProfileConfig, imageName, imageVersion, regionName string) (string, error) {
 	if cloudProfileConfig != nil {
 		for _, machineImage := range cloudProfileConfig.MachineImages {
@@ -110,4 +114,108 @@ func FindImageForRegionFromCloudProfile(cloudProfileConfig *api.CloudProfileConf
 	}
 
 	return "", fmt.Errorf("could not find an image for name %q in version %q", imageName, imageVersion)
+}
+
+// FindImageInCloudProfile takes a list of machine images and tries to find the first entry
+// whose name, version, region, architecture, capabilities and zone matches with the given ones. If no such entry is
+// found then an error will be returned.
+func FindImageInCloudProfileFlavor(
+	cloudProfileConfig *api.CloudProfileConfig,
+	name, version, region string,
+	machineCapabilities gardencorev1beta1.Capabilities,
+	capabilityDefinitions []gardencorev1beta1.CapabilityDefinition,
+) (*api.MachineImageFlavor, error) {
+	if cloudProfileConfig == nil {
+		return nil, fmt.Errorf("cloud profile config is nil")
+	}
+	machineImages := cloudProfileConfig.MachineImages
+
+	imageFlavor, err := findMachineImageFlavor(machineImages, name, version, region, machineCapabilities, capabilityDefinitions)
+	if err != nil {
+		return nil, fmt.Errorf("could not find an Image for region %q, image %q, version %q that supports %v: %w", region, name, version, machineCapabilities, err)
+	}
+
+	if imageFlavor != nil && len(imageFlavor.Regions) > 0 && imageFlavor.Regions[0].ID != "" {
+		return imageFlavor, nil
+	}
+	return nil, fmt.Errorf("could not find an Image for region %q, image %q, version %q that supports %v", region, name, version, machineCapabilities)
+}
+
+func findMachineImageFlavor(
+	machineImages []api.MachineImages,
+	imageName, imageVersion, region string,
+	machineCapabilities gardencorev1beta1.Capabilities,
+	capabilityDefinitions []gardencorev1beta1.CapabilityDefinition,
+) (*api.MachineImageFlavor, error) {
+	for _, machineImage := range machineImages {
+		if machineImage.Name != imageName {
+			continue
+		}
+		for _, version := range machineImage.Versions {
+			if imageVersion != version.Version {
+				continue
+			}
+
+			// // When no capabilities are defined, only use the old format (regions)
+			// if len(capabilityDefinitions) == 0 {
+			// 	for _, mapping := range version.Regions {
+			// 		if region == mapping.Name {
+			// 			return &api.MachineImageFlavor{
+			// 				Regions:      []api.RegionIDMapping{mapping},
+			// 				Capabilities: gardencorev1beta1.Capabilities{},
+			// 			}, nil
+			// 		}
+			// 	}
+			// 	continue
+			// }
+
+			// When capabilities are defined, support both formats per version:
+			// - New format: capabilityFlavors
+			// - Old format: regions only amd64 architecture (converted to capability flavors)
+			var capabilityFlavors []api.MachineImageFlavor
+			if len(version.CapabilityFlavors) > 0 {
+				// New format: use capabilityFlavors in version
+				capabilityFlavors = version.CapabilityFlavors
+			} else if len(version.Regions) > 0 {
+				// Old format: convert regions only amd64 architecture to capability flavors
+				capabilityFlavors = append(capabilityFlavors, api.MachineImageFlavor{
+					Capabilities: gardencorev1beta1.Capabilities{
+						v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
+					},
+					Regions: version.Regions,
+				})
+			} else {
+				continue
+			}
+			filteredCapabilityFlavors := filterCapabilityFlavorsByRegion(capabilityFlavors, region)
+			bestMatch, err := worker.FindBestImageFlavor(filteredCapabilityFlavors, machineCapabilities, capabilityDefinitions)
+			if err != nil {
+				return nil, fmt.Errorf("could not determine best flavor %w", err)
+			}
+			return bestMatch, nil
+		}
+	}
+	return nil, nil
+}
+
+// filterCapabilityFlavorsByRegion returns a new list with capabilityFlavors that only contain RegionIDMappings
+// of the region to filter for.
+func filterCapabilityFlavorsByRegion(capabilityFlavors []api.MachineImageFlavor, regionName string) []*api.MachineImageFlavor {
+	var compatibleFlavors []*api.MachineImageFlavor
+
+	for _, capabilityFlavor := range capabilityFlavors {
+		var regionIDMapping *api.RegionIDMapping
+		for _, region := range capabilityFlavor.Regions {
+			if region.Name == regionName {
+				regionIDMapping = &region
+			}
+		}
+		if regionIDMapping != nil {
+			compatibleFlavors = append(compatibleFlavors, &api.MachineImageFlavor{
+				Regions:      []api.RegionIDMapping{*regionIDMapping},
+				Capabilities: capabilityFlavor.Capabilities,
+			})
+		}
+	}
+	return compatibleFlavors
 }
