@@ -93,12 +93,12 @@ func validateMachineImageVersion(providerImage apisalicloud.MachineImages, capab
 		} else if hasCapabilityFlavors {
 			allErrs = append(allErrs, validateCapabilityFlavors(providerImage, version, capabilityDefinitions, jdxPath)...)
 		} else {
-			// Using old format with regions - validate regions without architecture restriction (architecture is validated separately)
-			allErrs = append(allErrs, validateRegionsWithCapabilities(version.Regions, providerImage.Name, version.Version, jdxPath)...)
+			// Using old format with regions
+			allErrs = append(allErrs, validateRegions(version.Regions, providerImage.Name, version.Version, jdxPath)...)
 		}
 	} else {
 		// Without capabilities, only old format with regions is supported
-		allErrs = append(allErrs, validateRegions(version.Regions, providerImage.Name, version.Version, capabilityDefinitions, jdxPath)...)
+		allErrs = append(allErrs, validateRegions(version.Regions, providerImage.Name, version.Version, jdxPath)...)
 		if hasCapabilityFlavors {
 			allErrs = append(allErrs, field.Forbidden(jdxPath.Child("capabilityFlavors"), "must not be set as CloudProfile does not define capabilities. Use regions instead."))
 		}
@@ -114,34 +114,13 @@ func validateCapabilityFlavors(providerImage apisalicloud.MachineImages, version
 	for k, capabilitySet := range version.CapabilityFlavors {
 		kdxPath := jdxPath.Child("capabilityFlavors").Index(k)
 		allErrs = append(allErrs, gutil.ValidateCapabilities(capabilitySet.Capabilities, capabilityDefinitions, kdxPath.Child("capabilities"))...)
-		allErrs = append(allErrs, validateRegions(capabilitySet.Regions, providerImage.Name, version.Version, capabilityDefinitions, kdxPath)...)
-	}
-	return allErrs
-}
-
-// validateRegionsWithCapabilities validates regions when using old format with capabilities CloudProfile.
-// This allows architecture field in regions since it will be converted to capability flavors.
-func validateRegionsWithCapabilities(regions []apisalicloud.RegionIDMapping, name, version string, jdxPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-	if len(regions) == 0 {
-		return append(allErrs, field.Required(jdxPath.Child("regions"), fmt.Sprintf("must provide at least one region for machine image %q and version %q", name, version)))
-	}
-
-	for k, region := range regions {
-		kdxPath := jdxPath.Child("regions").Index(k)
-
-		if len(region.Name) == 0 {
-			allErrs = append(allErrs, field.Required(kdxPath.Child("name"), "must provide a name"))
-		}
-		if len(region.ID) == 0 {
-			allErrs = append(allErrs, field.Required(kdxPath.Child("id"), "must provide an id"))
-		}
+		allErrs = append(allErrs, validateRegions(capabilitySet.Regions, providerImage.Name, version.Version, kdxPath)...)
 	}
 	return allErrs
 }
 
 // validateRegions validates the regions of a machine image version or capability flavor.
-func validateRegions(regions []apisalicloud.RegionIDMapping, name, version string, _ []gardencorev1beta1.CapabilityDefinition, jdxPath *field.Path) field.ErrorList {
+func validateRegions(regions []apisalicloud.RegionIDMapping, name, version string, jdxPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if len(regions) == 0 {
 		return append(allErrs, field.Required(jdxPath.Child("regions"), fmt.Sprintf("must provide at least one region for machine image %q and version %q", name, version)))
