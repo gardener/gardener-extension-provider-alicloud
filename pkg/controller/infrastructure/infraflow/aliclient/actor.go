@@ -74,6 +74,13 @@ type Actor interface {
 
 	AuthorizeSecurityGroupRule(ctx context.Context, sgId string, rule SecurityGroupRule) error
 	RevokeSecurityGroupRule(ctx context.Context, sgId, ruleId, direction string) error
+
+	CreateRouteTable(ctx context.Context, rt *RouteTable) (*RouteTable, error)
+	GetRouteTable(ctx context.Context, id string) (*RouteTable, error)
+	DeleteRouteTable(ctx context.Context, id string) error
+	FindRouteTablesByTags(ctx context.Context, tags Tags) ([]*RouteTable, error)
+	AssociateRouteTable(ctx context.Context, routeTableId, vswitchId string) error
+	UnassociateRouteTable(ctx context.Context, routeTableId, vswitchId string) error
 }
 
 type actor struct {
@@ -1348,6 +1355,127 @@ func (c *actor) fromVpc(item vpc.Vpc) (*VPC, error) {
 	vpc.Tags = tags
 
 	return vpc, nil
+}
+
+func (c *actor) CreateRouteTable(ctx context.Context, rt *RouteTable) (*RouteTable, error) {
+	req := vpc.CreateCreateRouteTableRequest()
+	req.VpcId = rt.VpcId
+	req.RouteTableName = rt.Name
+
+	resp, err := callApi(c.vpcClient.CreateRouteTable, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *RouteTable
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+		created, err = c.GetRouteTable(ctx, resp.RouteTableId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
+}
+
+func (c *actor) GetRouteTable(_ context.Context, id string) (*RouteTable, error) {
+	return c.getRouteTable(id)
+}
+
+func (c *actor) getRouteTable(id string) (*RouteTable, error) {
+	req := vpc.CreateDescribeRouteTableListRequest()
+	req.RouteTableId = id
+	resp, err := callApi(c.vpcClient.DescribeRouteTableList, req)
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.RouterTableList.RouterTableListType) == 0 {
+		return nil, nil
+	}
+	item := resp.RouterTableList.RouterTableListType[0]
+	rt := &RouteTable{
+		Name:         item.RouteTableName,
+		RouteTableId: item.RouteTableId,
+		VpcId:        item.VpcId,
+		Status:       &item.Status,
+	}
+	tags := Tags{}
+	for _, t := range item.Tags.Tag {
+		tags[t.Key] = t.Value
+	}
+	rt.Tags = tags
+	return rt, nil
+}
+
+func (c *actor) DeleteRouteTable(ctx context.Context, id string) error {
+	current, err := c.GetRouteTable(ctx, id)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return nil
+	}
+	req := vpc.CreateDeleteRouteTableRequest()
+	req.RouteTableId = id
+	_, err = callApi(c.vpcClient.DeleteRouteTable, req)
+	if err != nil {
+		return err
+	}
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+		current, err := c.GetRouteTable(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		if current == nil {
+			return true, nil
+		}
+		return false, nil
+	})
+	return err
+}
+
+func (c *actor) FindRouteTablesByTags(ctx context.Context, tags Tags) ([]*RouteTable, error) {
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "ROUTETABLE"
+
+	var reqTag []vpc.ListTagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, vpc.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	idList, err := c.listVpcTagResources(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return listByIds(c.getRouteTable, idList)
+}
+
+func (c *actor) AssociateRouteTable(_ context.Context, routeTableId, vswitchId string) error {
+	req := vpc.CreateAssociateRouteTableRequest()
+	req.RouteTableId = routeTableId
+	req.VSwitchId = vswitchId
+	_, err := callApi(c.vpcClient.AssociateRouteTable, req)
+	return err
+}
+
+func (c *actor) UnassociateRouteTable(_ context.Context, routeTableId, vswitchId string) error {
+	req := vpc.CreateUnassociateRouteTableRequest()
+	req.RouteTableId = routeTableId
+	req.VSwitchId = vswitchId
+	_, err := callApi(c.vpcClient.UnassociateRouteTable, req)
+	return err
 }
 
 func listByIds[RESP any](geter func(id string) (*RESP, error), ids []string) ([]*RESP, error) {
