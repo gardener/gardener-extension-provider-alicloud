@@ -10,6 +10,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	"k8s.io/utils/ptr"
 
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
@@ -78,14 +79,43 @@ func FindMachineImage(machineImages []api.MachineImage, imageName, imageVersion 
 
 // AppendMachineImage will append a given MachineImage to an existing image list.
 // If a same image (by checking name, version and encrypted flag) already exists, nothing happens
-func AppendMachineImage(machineImages []api.MachineImage, machineImage api.MachineImage) []api.MachineImage {
-	expectEncripted := machineImage.Encrypted
-	if expectEncripted == nil {
-		expectEncripted = ptr.To(false)
+func AppendMachineImage(machineImages []api.MachineImage, machineImage api.MachineImage, capabilityDefinitions []gardencorev1beta1.CapabilityDefinition) []api.MachineImage {
+	// support for cloudprofile machine images without capabilities
+	if len(capabilityDefinitions) == 0 {
+		for _, image := range machineImages {
+			imageEncrypted := image.Encrypted != nil && *image.Encrypted
+			if image.Name == machineImage.Name && image.Version == machineImage.Version && matchEncryptedFlag(machineImage.Encrypted, imageEncrypted) {
+				// If the image already exists without capabilities, we can just return the existing list.
+				return machineImages
+			}
+		}
+		return append(machineImages, api.MachineImage{
+			Name:      machineImage.Name,
+			Version:   machineImage.Version,
+			ID:        machineImage.ID,
+			Encrypted: machineImage.Encrypted,
+		})
 	}
-	if _, err := FindMachineImage(machineImages, machineImage.Name, machineImage.Version, *expectEncripted); err != nil {
-		return append(machineImages, machineImage)
+
+	defaultedCapabilities := gardencorev1beta1.GetCapabilitiesWithAppliedDefaults(machineImage.Capabilities, capabilityDefinitions)
+
+	for _, existingMachineImage := range machineImages {
+		existingDefaultedCapabilities := gardencorev1beta1.GetCapabilitiesWithAppliedDefaults(existingMachineImage.Capabilities, capabilityDefinitions)
+		existingEncrypted := existingMachineImage.Encrypted != nil && *existingMachineImage.Encrypted
+		if existingMachineImage.Name == machineImage.Name && existingMachineImage.Version == machineImage.Version && matchEncryptedFlag(machineImage.Encrypted, existingEncrypted) && gardencorev1beta1helper.AreCapabilitiesEqual(defaultedCapabilities, existingDefaultedCapabilities) {
+			// If the image already exists with the same capabilities return the existing list.
+			return machineImages
+		}
 	}
+
+	// If the image does not exist, we create a new machine image entry with the capabilities.
+	machineImages = append(machineImages, api.MachineImage{
+		Name:         machineImage.Name,
+		Version:      machineImage.Version,
+		ID:           machineImage.ID,
+		Encrypted:    machineImage.Encrypted,
+		Capabilities: machineImage.Capabilities,
+	})
 
 	return machineImages
 }
@@ -218,4 +248,76 @@ func filterCapabilityFlavorsByRegion(capabilityFlavors []api.MachineImageFlavor,
 		}
 	}
 	return compatibleFlavors
+}
+
+// EnsureUniformMachineImages ensures that all machine images are in the same format, either with or without Capabilities.
+func EnsureUniformMachineImages(images []api.MachineImage, definitions []gardencorev1beta1.CapabilityDefinition) []api.MachineImage {
+	var uniformMachineImages []api.MachineImage
+
+	if len(definitions) == 0 {
+		// transform images that were added with Capabilities to the legacy format without Capabilities
+		for _, img := range images {
+			if len(img.Capabilities) == 0 {
+				// image is already legacy format
+				uniformMachineImages = AppendMachineImage(uniformMachineImages, img, definitions)
+				continue
+			}
+			uniformMachineImages = AppendMachineImage(uniformMachineImages, api.MachineImage{
+				Name:      img.Name,
+				Version:   img.Version,
+				ID:        img.ID,
+				Encrypted: img.Encrypted,
+			}, definitions)
+		}
+		return uniformMachineImages
+	}
+
+	// transform images that were added without Capabilities to contain a MachineImageFlavor with defaulted Architecture
+	for _, img := range images {
+		if len(img.Capabilities) > 0 {
+			// image is already in the new format with Capabilities
+			uniformMachineImages = AppendMachineImage(uniformMachineImages, img, definitions)
+		} else {
+			uniformMachineImages = AppendMachineImage(uniformMachineImages, api.MachineImage{
+				Name:         img.Name,
+				Version:      img.Version,
+				ID:           img.ID,
+				Encrypted:    img.Encrypted,
+				Capabilities: gardencorev1beta1.Capabilities{v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64}},
+			}, definitions)
+		}
+	}
+	return uniformMachineImages
+}
+
+// UniformSingleMachineImage ensure that machine image are in the same format, either with or without Capabilities.
+func UniformSingleMachineImage(img *api.MachineImage, definitions []gardencorev1beta1.CapabilityDefinition) *api.MachineImage {
+	if len(definitions) == 0 {
+		// transform image that were added with Capabilities to the legacy format without Capabilities
+		if len(img.Capabilities) == 0 {
+			// image is already legacy format
+			return img
+		} else {
+			return &api.MachineImage{
+				Name:      img.Name,
+				Version:   img.Version,
+				ID:        img.ID,
+				Encrypted: img.Encrypted,
+			}
+		}
+	}
+
+	// transform image that were added without Capabilities to contain a MachineImageFlavor with defaulted Architecture
+	if len(img.Capabilities) > 0 {
+		// image is already in the new format with Capabilities
+		return img
+	} else {
+		return &api.MachineImage{
+			Name:         img.Name,
+			Version:      img.Version,
+			ID:           img.ID,
+			Encrypted:    img.Encrypted,
+			Capabilities: gardencorev1beta1.Capabilities{v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64}},
+		}
+	}
 }

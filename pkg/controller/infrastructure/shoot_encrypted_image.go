@@ -11,7 +11,6 @@ import (
 
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
@@ -90,12 +89,14 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, log 
 				return nil, err
 			}
 		}
-		if len(cluster.CloudProfile.Spec.MachineCapabilities) > 0 && machineImage.Capabilities == nil {
-			machineImage.Capabilities = gardencorev1beta1.Capabilities{
-				v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
-			}
-		}
-		machineImages = helper.AppendMachineImage(machineImages, *machineImage)
+		machineImage = helper.UniformSingleMachineImage(machineImage, cluster.CloudProfile.Spec.MachineCapabilities)
+		// if len(cluster.CloudProfile.Spec.MachineCapabilities) > 0 && machineImage.Capabilities == nil {
+		// 	machineImage.Capabilities = gardencorev1beta1.Capabilities{
+		// 		v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
+		// 	}
+		// }
+		machineImages = helper.EnsureUniformMachineImages(machineImages, cluster.CloudProfile.Spec.MachineCapabilities)
+		machineImages = helper.AppendMachineImage(machineImages, *machineImage, cluster.CloudProfile.Spec.MachineCapabilities)
 	}
 	log.Info("Finish preparing virtual machine images for Shoot's Alicloud account", "infrastructure", infra.Name)
 
@@ -173,13 +174,22 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 		return nil, err
 	}
 
-	return &apisalicloud.MachineImage{
-		Name:         worker.Machine.Image.Name,
-		Version:      *worker.Machine.Image.Version,
-		ID:           encryptedImageID,
-		Encrypted:    ptr.To(true),
-		Capabilities: imageFlavor.Capabilities,
-	}, nil
+	if len(cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
+		return &apisalicloud.MachineImage{
+			Name:         worker.Machine.Image.Name,
+			Version:      *worker.Machine.Image.Version,
+			ID:           encryptedImageID,
+			Encrypted:    ptr.To(true),
+			Capabilities: imageFlavor.Capabilities,
+		}, nil
+	} else {
+		return &apisalicloud.MachineImage{
+			Name:      worker.Machine.Image.Name,
+			Version:   *worker.Machine.Image.Version,
+			ID:        encryptedImageID,
+			Encrypted: ptr.To(true),
+		}, nil
+	}
 }
 
 func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, log logr.Logger, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootECSClient alicloudclient.ECS, shootCloudProviderAccountID string, cluster *extensioncontroller.Cluster) (*apisalicloud.MachineImage, error) {
@@ -191,7 +201,7 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 		if machineTypeFromCloudProfile == nil {
 			return nil, fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cluster.CloudProfile.Name)
 		}
-		imageFlavor, err := helper.FindImageInCloudProfileFlavor(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region, machineTypeFromCloudProfile.Capabilities, cluster.CloudProfile.Spec.MachineCapabilities)
+		imageFlavor, err = helper.FindImageInCloudProfileFlavor(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region, machineTypeFromCloudProfile.Capabilities, cluster.CloudProfile.Spec.MachineCapabilities)
 		if err == nil {
 			imageID = imageFlavor.Regions[0].ID
 		}
@@ -217,14 +227,22 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 	if err = a.makeImageVisibleForShoot(ctx, log, shootECSClient, infra.Spec.Region, imageID, shootCloudProviderAccountID); err != nil {
 		return nil, err
 	}
-
-	return &apisalicloud.MachineImage{
-		Name:         worker.Machine.Image.Name,
-		Version:      *worker.Machine.Image.Version,
-		ID:           imageID,
-		Encrypted:    ptr.To(false),
-		Capabilities: imageFlavor.Capabilities,
-	}, nil
+	if len(cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
+		return &apisalicloud.MachineImage{
+			Name:         worker.Machine.Image.Name,
+			Version:      *worker.Machine.Image.Version,
+			ID:           imageID,
+			Encrypted:    ptr.To(false),
+			Capabilities: imageFlavor.Capabilities,
+		}, nil
+	} else {
+		return &apisalicloud.MachineImage{
+			Name:      worker.Machine.Image.Name,
+			Version:   *worker.Machine.Image.Version,
+			ID:        imageID,
+			Encrypted: ptr.To(false),
+		}, nil
+	}
 }
 
 func (a *actuator) makeImageVisibleForShoot(ctx context.Context, log logr.Logger, shootECSClient alicloudclient.ECS, region, imageID, shootAccountID string) error {

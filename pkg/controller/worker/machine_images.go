@@ -9,8 +9,6 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"k8s.io/utils/ptr"
@@ -51,33 +49,34 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 	}
 
 	if !encrypted {
-		var imageID string
-		var err error
-		imageFlavor := &api.MachineImageFlavor{}
 		if len(w.cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
 			machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(w.cluster.CloudProfile.Spec.MachineTypes, workerPool.MachineType)
 			if machineTypeFromCloudProfile == nil {
 				return nil, fmt.Errorf("machine type %q not found in cloud profile %q", workerPool.MachineType, w.cluster.CloudProfile.Name)
 			}
 
-			imageFlavor, err = helper.FindImageInCloudProfileFlavor(w.cloudProfileConfig, name, version, region, machineTypeFromCloudProfile.Capabilities, w.cluster.CloudProfile.Spec.MachineCapabilities)
+			imageFlavor, err := helper.FindImageInCloudProfileFlavor(w.cloudProfileConfig, name, version, region, machineTypeFromCloudProfile.Capabilities, w.cluster.CloudProfile.Spec.MachineCapabilities)
 			if err == nil {
-				imageID = imageFlavor.Regions[0].ID
+				return &api.MachineImage{
+					Name:         name,
+					Version:      version,
+					ID:           imageFlavor.Regions[0].ID,
+					Encrypted:    ptr.To(encrypted),
+					Capabilities: imageFlavor.Capabilities,
+				}, nil
 			}
 		} else {
-			imageID, err = helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
-		}
-		if err == nil {
-			return &api.MachineImage{
-				Name:         name,
-				Version:      version,
-				ID:           imageID,
-				Encrypted:    ptr.To(encrypted),
-				Capabilities: imageFlavor.Capabilities,
-			}, nil
+			machineImageID, err := helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
+			if err == nil {
+				return &api.MachineImage{
+					Name:      name,
+					Version:   version,
+					ID:        machineImageID,
+					Encrypted: ptr.To(encrypted),
+				}, nil
+			}
 		}
 	}
-
 	machineImage, err := helper.FindMachineImage(infraStatus.MachineImages, name, version, encrypted)
 	if err != nil {
 		opt := "unencrypted"
@@ -86,62 +85,12 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 		}
 		return nil, worker.ErrorMachineImageNotFound(name, version, opt)
 	}
-	if len(w.cluster.CloudProfile.Spec.MachineCapabilities) > 0 && machineImage.Capabilities == nil {
-		machineImage.Capabilities = gardencorev1beta1.Capabilities{
-			v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
-		}
-	}
+	machineImage = helper.UniformSingleMachineImage(machineImage, w.cluster.CloudProfile.Spec.MachineCapabilities)
+	// if len(w.cluster.CloudProfile.Spec.MachineCapabilities) > 0 && machineImage.Capabilities == nil {
+	// 	machineImage.Capabilities = gardencorev1beta1.Capabilities{
+	// 		v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
+	// 	}
+	// }
 
 	return machineImage, nil
-}
-
-func appendMachineImage(machineImages []api.MachineImage, machineImage api.MachineImage, capabilityDefinitions []gardencorev1beta1.CapabilityDefinition) []api.MachineImage {
-	// support for cloudprofile machine images without capabilities
-	if len(capabilityDefinitions) == 0 {
-		for _, image := range machineImages {
-			if image.Name == machineImage.Name && image.Version == machineImage.Version && matchEncryptedFlag(machineImage.Encrypted, image.Encrypted) {
-				// If the image already exists without capabilities, we can just return the existing list.
-				return machineImages
-			}
-		}
-		return append(machineImages, api.MachineImage{
-			Name:      machineImage.Name,
-			Version:   machineImage.Version,
-			ID:        machineImage.ID,
-			Encrypted: machineImage.Encrypted,
-		})
-	}
-
-	defaultedCapabilities := gardencorev1beta1.GetCapabilitiesWithAppliedDefaults(machineImage.Capabilities, capabilityDefinitions)
-
-	for _, existingMachineImage := range machineImages {
-		existingDefaultedCapabilities := gardencorev1beta1.GetCapabilitiesWithAppliedDefaults(existingMachineImage.Capabilities, capabilityDefinitions)
-		if existingMachineImage.Name == machineImage.Name && existingMachineImage.Version == machineImage.Version && matchEncryptedFlag(machineImage.Encrypted, existingMachineImage.Encrypted) && gardencorev1beta1helper.AreCapabilitiesEqual(defaultedCapabilities, existingDefaultedCapabilities) {
-			// If the image already exists with the same capabilities return the existing list.
-			return machineImages
-		}
-	}
-
-	// If the image does not exist, we create a new machine image entry with the capabilities.
-	machineImages = append(machineImages, api.MachineImage{
-		Name:         machineImage.Name,
-		Version:      machineImage.Version,
-		ID:           machineImage.ID,
-		Encrypted:    machineImage.Encrypted,
-		Capabilities: machineImage.Capabilities,
-	})
-
-	return machineImages
-}
-
-func matchEncryptedFlag(source *bool, target *bool) bool {
-	sourceVal := false
-	if source != nil {
-		sourceVal = *source
-	}
-	targetVal := false
-	if target != nil {
-		targetVal = *target
-	}
-	return sourceVal == targetVal
 }
