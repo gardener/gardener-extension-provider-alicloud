@@ -15,23 +15,78 @@ This section describes, how the configuration for `CloudProfile` looks like for 
 The cloud profile configuration contains information about the real machine image IDs in the Alicloud environment (AMIs).
 You have to map every version that you specify in `.spec.machineImages[].versions` here such that the Alicloud extension knows the AMI for every version you want to offer.
 
-An example `CloudProfileConfig` for the Alicloud extension looks as follows:
+#### NEW: MachineCapabilities
+With the introduction of `spec.machineCapabilities` in Gardener *v1.131.0* you have to map every `capabilityFlavor` in `.spec.machineImages[].versions` here to an available VM image in your subscription.
+
+The Alicloud extension currently supports only the `architecture` capability, and only `amd64` is available. 
+
+Two formats are supported in `providerConfig.machineImages[].versions[]`:
+
+**Legacy / flat format** — each version entry has a flat `regions[]` list with `name`/`id` pairs. Use this format when `spec.machineCapabilities` is not defined.
 
 ```yaml
 apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
 kind: CloudProfileConfig
 machineImages:
-- name: coreos
+- name: gardenlinux
   versions:
-  - version: 2023.4.0
+  - version: 1877.13.0
     regions:
-    - name: eu-central-1
-      id: coreos_2023_4_0_64_30G_alibase_20190319.vhd
+    - name: cn-shanghai
+      id: m-uf6hvbrxclop1jtat17m
+    - name: cn-hangzhou
+      id: m-bp11yg724jupyxgcv61j
+```
+
+**CapabilityFlavors format** — each version entry has a `capabilityFlavors[]` list, where each flavor specifies a `capabilities` map and its own `regions[]` list. This format is required when `spec.machineCapabilities` is defined (introduced in Gardener v1.131.0). Versions that apply to all capability combinations can still use the flat `regions[]` form alongside flavored entries (mixed mode).
+
+```yaml
+apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+kind: CloudProfileConfig
+machineImages:
+- name: gardenlinux
+  versions:
+  - version: 1877.13.0
+    capabilityFlavors:
+    - capabilities:
+        architecture:
+        - amd64
+      regions:
+      - name: cn-shanghai
+        id: m-uf6hvbrxclop1jtat17m
+```
+
+#### Transitioning to the capabilityFlavors format
+
+When `spec.machineCapabilities` is added to a `CloudProfile`, the mixed mode allows a gradual migration: newer image versions can use `capabilityFlavors` while older versions retain the flat `regions[]` format. The mixed mode is a transitional state — the goal is to move all versions to `capabilityFlavors` over time.
+
+```yaml
+apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+kind: CloudProfileConfig
+machineImages:
+- name: gardenlinux
+  versions:
+  - version: 1877.13.0          # new version: uses capabilityFlavors
+    capabilityFlavors:
+    - capabilities:
+        architecture:
+        - amd64
+      regions:
+      - name: cn-shanghai
+        id: m-uf6hvbrxclop1jtat17m
+  - version: 1877.10.0          # old version: still uses legacy flat format
+    regions:
+    - name: cn-shanghai
+      id: m-uf63n3zty62esx53qolr
+    - name: cn-hangzhou
+      id: m-bp196lsdf3k91xp2wtco
 ```
 
 ### Example `CloudProfile` manifest
 
-Please find below an example `CloudProfile` manifest:
+#### Legacy format (without `machineCapabilities`)
+
+Please find below an example `CloudProfile` manifest using the legacy flat image mapping format:
 
 ```yaml
 apiVersion: core.gardener.cloud/v1beta1
@@ -74,6 +129,83 @@ spec:
         regions:
         - name: eu-central-1
           id: coreos_2023_4_0_64_30G_alibase_20190319.vhd
+```
+
+#### New format (with `machineCapabilities`)
+
+```yaml
+apiVersion: core.gardener.cloud/v1beta1
+kind: CloudProfile
+metadata:
+  name: alicloud
+spec:
+  type: alicloud
+  machineCapabilities:
+  - name: architecture
+    values:
+    - amd64
+  kubernetes:
+    versions:
+    - version: 1.32.0
+    - version: 1.31.1
+      expirationDate: "2026-03-31T23:59:59Z"
+  machineImages:
+  - name: gardenlinux
+    updateStrategy: minor
+    versions:
+    - architectures:
+      - amd64
+      capabilityFlavors:
+      - architecture:
+        - amd64
+      classification: preview
+      cri:
+      - containerRuntimes:
+        - type: gvisor
+        name: containerd
+      version: 1877.13.0
+  machineTypes:
+  - architecture: amd64
+    capabilities:
+      architecture:
+      - amd64
+    cpu: "8"
+    gpu: "0"
+    memory: 32Gi
+    name: ecs.g6.2xlarge
+    usable: true
+  volumeTypes:
+  - class: standard
+    name: cloud_efficiency
+    usable: true
+  - class: premium
+    name: cloud_ssd
+    usable: true
+  - class: premium
+    name: cloud_essd
+    usable: true
+  regions:
+  - name: cn-shanghai
+    zones:
+    - name: cn-shanghai-e
+    - name: cn-shanghai-f
+    - name: cn-shanghai-g
+  providerConfig:
+    apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+    kind: CloudProfileConfig
+    machineImages:
+    - name: gardenlinux
+      versions:
+      - version: 1877.13.0
+        capabilityFlavors:
+        - capabilities:
+            architecture:
+            - amd64
+          regions:
+          - name: cn-shanghai
+            id: m-uf6hvbrxclop1jtat17m
+          - id: m-bp1aywhq0kit1x5xgyc8
+            name: cn-hangzhou
 ```
 
 ## Enable customized machine images for the Alicloud extension
@@ -195,3 +327,4 @@ An example of the referenced secret containing the credentials for the Alicloud 
 
 Please make sure the RAM user associated with the provided AccessKey pair has the following permission.
 - AliyunOSSFullAccess
+
