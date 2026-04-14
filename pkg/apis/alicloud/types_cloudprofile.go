@@ -48,7 +48,7 @@ type MachineImageFlavor struct {
 }
 
 // GetCapabilities returns the Capabilities of a MachineImageFlavor
-func (cs *MachineImageFlavor) GetCapabilities() gardencorev1beta1.Capabilities {
+func (cs MachineImageFlavor) GetCapabilities() gardencorev1beta1.Capabilities {
 	return cs.Capabilities
 }
 

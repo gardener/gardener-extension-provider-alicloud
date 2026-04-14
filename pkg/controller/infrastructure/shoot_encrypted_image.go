@@ -90,11 +90,6 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, log 
 			}
 		}
 		machineImage = helper.UniformSingleMachineImage(machineImage, cluster.CloudProfile.Spec.MachineCapabilities)
-		// if len(cluster.CloudProfile.Spec.MachineCapabilities) > 0 && machineImage.Capabilities == nil {
-		// 	machineImage.Capabilities = gardencorev1beta1.Capabilities{
-		// 		v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
-		// 	}
-		// }
 		machineImages = helper.EnsureUniformMachineImages(machineImages, cluster.CloudProfile.Spec.MachineCapabilities)
 		machineImages = helper.AppendMachineImage(machineImages, *machineImage, cluster.CloudProfile.Spec.MachineCapabilities)
 	}

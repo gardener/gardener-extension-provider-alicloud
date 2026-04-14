@@ -238,7 +238,7 @@ func validateCapabilityFlavorsFormat(machineImage core.MachineImage, version gar
 }
 
 // validateRegionsFormatWithCapabilities validates when provider uses old format (no architecture in regions all defalt to amd64) in capabilities CloudProfile
-func validateRegionsFormatWithCapabilities(machineImage core.MachineImage, version gardencorev1beta1.MachineImageVersion, providerImageVersion api.MachineImageVersion, defaultedCapabilityFlavors []gardencorev1beta1.MachineImageFlavor, path *field.Path) field.ErrorList {
+func validateRegionsFormatWithCapabilities(machineImage core.MachineImage, version gardencorev1beta1.MachineImageVersion, _ api.MachineImageVersion, defaultedCapabilityFlavors []gardencorev1beta1.MachineImageFlavor, path *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	availableArchitectures := []string{v1beta1constants.ArchitectureAMD64}

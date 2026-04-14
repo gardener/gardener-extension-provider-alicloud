@@ -5,15 +5,14 @@
 package helper_test
 
 import (
+	"github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 
 	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
-	"github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 )
 
 const profileImageID = "id-1235"
@@ -244,14 +243,14 @@ var _ = Describe("Helper", func() {
 
 	})
 
-	DescribeTable("EnsureUniformMachineImages", func(capabilityDefinitions []gardencorev1beta1.CapabilityDefinition, expectedImages []api.MachineImage) {
+	DescribeTable("EnsureUniformMachineImages", func(capabilityDefinitions []v1beta1.CapabilityDefinition, expectedImages []api.MachineImage) {
 		machineImages := []api.MachineImage{
 			// images with capability sets
 			{
 				Name:    "some-image",
 				Version: "1.2.1",
 				ID:      "ami-for-arm64",
-				Capabilities: gardencorev1beta1.Capabilities{
+				Capabilities: v1beta1.Capabilities{
 					v1beta1constants.ArchitectureName: []string{"arm64"},
 				},
 			},
@@ -259,7 +258,7 @@ var _ = Describe("Helper", func() {
 				Name:    "some-image",
 				Version: "1.2.2",
 				ID:      "ami-for-amd64",
-				Capabilities: gardencorev1beta1.Capabilities{
+				Capabilities: v1beta1.Capabilities{
 					v1beta1constants.ArchitectureName: []string{"amd64"},
 				},
 			},
@@ -312,7 +311,7 @@ var _ = Describe("Helper", func() {
 				Encrypted: ptr.To(true),
 			},
 		}),
-		Entry("should return images with Capabilities", []gardencorev1beta1.CapabilityDefinition{{
+		Entry("should return images with Capabilities", []v1beta1.CapabilityDefinition{{
 			Name:   v1beta1constants.ArchitectureName,
 			Values: []string{"amd64", "arm64"},
 		}}, []api.MachineImage{
@@ -321,7 +320,7 @@ var _ = Describe("Helper", func() {
 				Name:    "some-image",
 				Version: "1.2.1",
 				ID:      "ami-for-arm64",
-				Capabilities: gardencorev1beta1.Capabilities{
+				Capabilities: v1beta1.Capabilities{
 					v1beta1constants.ArchitectureName: []string{"arm64"},
 				},
 			},
@@ -329,7 +328,7 @@ var _ = Describe("Helper", func() {
 				Name:    "some-image",
 				Version: "1.2.2",
 				ID:      "ami-for-amd64",
-				Capabilities: gardencorev1beta1.Capabilities{
+				Capabilities: v1beta1.Capabilities{
 					v1beta1constants.ArchitectureName: []string{"amd64"},
 				},
 			},
@@ -339,7 +338,7 @@ var _ = Describe("Helper", func() {
 				Version:   "1.2.3",
 				ID:        "ami-for-amd64",
 				Encrypted: ptr.To(false),
-				Capabilities: gardencorev1beta1.Capabilities{
+				Capabilities: v1beta1.Capabilities{
 					v1beta1constants.ArchitectureName: []string{"amd64"},
 				}},
 			{
@@ -347,7 +346,7 @@ var _ = Describe("Helper", func() {
 				Version:   "1.2.1",
 				ID:        "ami-for-amd64",
 				Encrypted: ptr.To(true),
-				Capabilities: gardencorev1beta1.Capabilities{
+				Capabilities: v1beta1.Capabilities{
 					v1beta1constants.ArchitectureName: []string{"amd64"},
 				},
 			},

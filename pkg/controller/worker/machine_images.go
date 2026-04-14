@@ -86,11 +86,6 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 		return nil, worker.ErrorMachineImageNotFound(name, version, opt)
 	}
 	machineImage = helper.UniformSingleMachineImage(machineImage, w.cluster.CloudProfile.Spec.MachineCapabilities)
-	// if len(w.cluster.CloudProfile.Spec.MachineCapabilities) > 0 && machineImage.Capabilities == nil {
-	// 	machineImage.Capabilities = gardencorev1beta1.Capabilities{
-	// 		v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64},
-	// 	}
-	// }
 
 	return machineImage, nil
 }

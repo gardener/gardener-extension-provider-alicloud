@@ -146,7 +146,7 @@ func FindImageForRegionFromCloudProfile(cloudProfileConfig *api.CloudProfileConf
 	return "", fmt.Errorf("could not find an image for name %q in version %q", imageName, imageVersion)
 }
 
-// FindImageInCloudProfile takes a list of machine images and tries to find the first entry
+// FindImageInCloudProfileFlavor takes a list of machine images and tries to find the first entry
 // whose name, version, region, architecture, capabilities and zone matches with the given ones. If no such entry is
 // found then an error will be returned.
 func FindImageInCloudProfileFlavor(
@@ -186,20 +186,6 @@ func findMachineImageFlavor(
 				continue
 			}
 
-			// // When no capabilities are defined, only use the old format (regions)
-			// if len(capabilityDefinitions) == 0 {
-			// 	for _, mapping := range version.Regions {
-			// 		if region == mapping.Name {
-			// 			return &api.MachineImageFlavor{
-			// 				Regions:      []api.RegionIDMapping{mapping},
-			// 				Capabilities: gardencorev1beta1.Capabilities{},
-			// 			}, nil
-			// 		}
-			// 	}
-			// 	continue
-			// }
-
-			// When capabilities are defined, support both formats per version:
 			// - New format: capabilityFlavors
 			// - Old format: regions only amd64 architecture (converted to capability flavors)
 			var capabilityFlavors []api.MachineImageFlavor

@@ -6,7 +6,6 @@ package validation
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 
 	gardencoreapi "github.com/gardener/gardener/pkg/api"
@@ -224,11 +223,7 @@ func validateImageFlavorMapping(machineImage core.MachineImage, version core.Mac
 		}
 	} else if len(imageVersion.Regions) > 0 {
 		// Old format: validate against regions with architecture
-		// Collect architectures from regions
-		architecturesMap := utils.CreateMapFromSlice(imageVersion.Regions, func(re apisalicloud.RegionIDMapping) string {
-			return v1beta1constants.ArchitectureAMD64
-		})
-		availableArchitectures := slices.Collect(maps.Keys(architecturesMap))
+		availableArchitectures := []string{v1beta1constants.ArchitectureAMD64}
 
 		// For each expected capability flavor, check if the architecture capability is available in regions
 		for idxCapability, defaultedCapabilitySet := range defaultedCapabilityFlavors {
