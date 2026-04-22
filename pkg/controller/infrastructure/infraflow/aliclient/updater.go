@@ -18,6 +18,7 @@ type Updater interface {
 	UpdateEIP(ctx context.Context, desired, current *EIP) (modified bool, err error)
 	UpdateSNATEntry(ctx context.Context, desired, current *SNATEntry) (modified bool, err error)
 	UpdateSecurityGroup(ctx context.Context, desired, current *SecurityGroup) (modified bool, err error)
+	UpdateRouteTable(ctx context.Context, desired, current *RouteTable) (modified bool, err error)
 }
 
 type updater struct {
@@ -35,6 +36,11 @@ func NewUpdater(actor Actor) Updater {
 
 func (u *updater) UpdateSecurityGroup(ctx context.Context, desired, current *SecurityGroup) (modified bool, err error) {
 	modified, err = u.updateTags(ctx, current.SecurityGroupId, desired.Tags, current.Tags, "securitygroup")
+	return
+}
+
+func (u *updater) UpdateRouteTable(ctx context.Context, desired, current *RouteTable) (modified bool, err error) {
+	modified, err = u.updateTags(ctx, current.RouteTableId, desired.Tags, current.Tags, "ROUTETABLE")
 	return
 }
 

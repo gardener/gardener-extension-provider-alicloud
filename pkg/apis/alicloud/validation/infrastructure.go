@@ -81,6 +81,17 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 		allErrs = append(allErrs, vpcCIDR.ValidateNotOverlap(pods, services)...)
 	}
 
+	// useCustomRouteTable can only be set when vpc.id is provided
+	if infra.Networks.VPC.UseCustomRouteTable != nil && *infra.Networks.VPC.UseCustomRouteTable {
+		if infra.Networks.VPC.ID == nil {
+			allErrs = append(allErrs, field.Invalid(
+				networksPath.Child("vpc", "useCustomRouteTable"),
+				infra.Networks.VPC.UseCustomRouteTable,
+				"useCustomRouteTable can only be set when vpc.id is provided",
+			))
+		}
+	}
+
 	// make sure that VPC cidrs don't overlap with each other
 	allErrs = append(allErrs, cidrvalidation.ValidateCIDROverlap(cidrs, false)...)
 	if pods != nil {
@@ -97,10 +108,27 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.InfrastructureConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.Networks.VPC, oldConfig.Networks.VPC, field.NewPath("networks").Child("vpc"))...)
+	vpcPath := field.NewPath("networks").Child("vpc")
+	// Treat nil and false as equivalent for UseCustomRouteTable so that a nil→false
+	// transition (which is semantically a no-op) does not trigger an immutability error.
+	// Normalise both sides before the whole-struct comparison.
+	normalizedOldVPC := oldConfig.Networks.VPC
+	normalizedNewVPC := newConfig.Networks.VPC
+	if !normalizeUseCustomRouteTable(normalizedOldVPC.UseCustomRouteTable) {
+		normalizedOldVPC.UseCustomRouteTable = nil
+	}
+	if !normalizeUseCustomRouteTable(normalizedNewVPC.UseCustomRouteTable) {
+		normalizedNewVPC.UseCustomRouteTable = nil
+	}
+	allErrs = append(allErrs, apivalidation.ValidateImmutableField(normalizedNewVPC, normalizedOldVPC, vpcPath)...)
 	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, field.NewPath("networks").Child("zones"))...)
 
 	return allErrs
+}
+
+// normalizeUseCustomRouteTable treats nil and false as equivalent (both mean "disabled").
+func normalizeUseCustomRouteTable(v *bool) bool {
+	return v != nil && *v
 }
 
 // ValidateNetworkZonesConfig validates a Zone slice.

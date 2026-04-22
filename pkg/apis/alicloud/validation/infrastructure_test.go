@@ -190,6 +190,51 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			})
 
 		})
+
+		Context("useCustomRouteTable", func() {
+			var vpcID = "vpc-12345678"
+
+			It("should forbid useCustomRouteTable=true when vpc.id is not set", func() {
+				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
+					CIDR:                &vpc,
+					UseCustomRouteTable: ptr.To(true),
+				}
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("networks.vpc.useCustomRouteTable"),
+					"Detail": ContainSubstring("useCustomRouteTable can only be set when vpc.id is provided"),
+				}))))
+			})
+
+			It("should allow useCustomRouteTable=true when vpc.id is set", func() {
+				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
+					ID:                  &vpcID,
+					UseCustomRouteTable: ptr.To(true),
+				}
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+
+				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Field": Equal("networks.vpc.useCustomRouteTable"),
+				}))))
+			})
+
+			It("should allow useCustomRouteTable=false when vpc.id is not set", func() {
+				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
+					CIDR:                &vpc,
+					UseCustomRouteTable: ptr.To(false),
+				}
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+
+				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Field": Equal("networks.vpc.useCustomRouteTable"),
+				}))))
+			})
+		})
 	})
 
 	Describe("#ValidateInfrastructureConfigUpdate", func() {
@@ -263,6 +308,52 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
 
 			Expect(errorList).To(BeEmpty())
+		})
+
+		Context("useCustomRouteTable immutability", func() {
+			var vpcID = "vpc-12345678"
+
+			It("should forbid changing useCustomRouteTable from nil to true", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(true)
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("networks.vpc"),
+				}))))
+			})
+
+			It("should forbid changing useCustomRouteTable from true to false", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID, UseCustomRouteTable: ptr.To(true)}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(false)
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("networks.vpc"),
+				}))))
+			})
+
+			It("should allow nil to false transition (semantically equivalent)", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(false)
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(BeEmpty())
+			})
 		})
 	})
 })

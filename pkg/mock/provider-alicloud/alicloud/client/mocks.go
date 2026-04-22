@@ -839,6 +839,21 @@ func (mr *MockVPCMockRecorder) AssociateEipAddress(request any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEipAddress", reflect.TypeOf((*MockVPC)(nil).AssociateEipAddress), request)
 }
 
+// AssociateRouteTable mocks base method.
+func (m *MockVPC) AssociateRouteTable(request *vpc.AssociateRouteTableRequest) (*vpc.AssociateRouteTableResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssociateRouteTable", request)
+	ret0, _ := ret[0].(*vpc.AssociateRouteTableResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssociateRouteTable indicates an expected call of AssociateRouteTable.
+func (mr *MockVPCMockRecorder) AssociateRouteTable(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateRouteTable", reflect.TypeOf((*MockVPC)(nil).AssociateRouteTable), request)
+}
+
 // CreateNatGateway mocks base method.
 func (m *MockVPC) CreateNatGateway(request *vpc.CreateNatGatewayRequest) (*vpc.CreateNatGatewayResponse, error) {
 	m.ctrl.T.Helper()
@@ -852,6 +867,36 @@ func (m *MockVPC) CreateNatGateway(request *vpc.CreateNatGatewayRequest) (*vpc.C
 func (mr *MockVPCMockRecorder) CreateNatGateway(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNatGateway", reflect.TypeOf((*MockVPC)(nil).CreateNatGateway), request)
+}
+
+// CreateRouteEntry mocks base method.
+func (m *MockVPC) CreateRouteEntry(request *vpc.CreateRouteEntryRequest) (*vpc.CreateRouteEntryResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRouteEntry", request)
+	ret0, _ := ret[0].(*vpc.CreateRouteEntryResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateRouteEntry indicates an expected call of CreateRouteEntry.
+func (mr *MockVPCMockRecorder) CreateRouteEntry(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRouteEntry", reflect.TypeOf((*MockVPC)(nil).CreateRouteEntry), request)
+}
+
+// CreateRouteTable mocks base method.
+func (m *MockVPC) CreateRouteTable(request *vpc.CreateRouteTableRequest) (*vpc.CreateRouteTableResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRouteTable", request)
+	ret0, _ := ret[0].(*vpc.CreateRouteTableResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateRouteTable indicates an expected call of CreateRouteTable.
+func (mr *MockVPCMockRecorder) CreateRouteTable(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRouteTable", reflect.TypeOf((*MockVPC)(nil).CreateRouteTable), request)
 }
 
 // CreateSnatEntry mocks base method.
@@ -912,6 +957,36 @@ func (m *MockVPC) DeleteNatGateway(request *vpc.DeleteNatGatewayRequest) (*vpc.D
 func (mr *MockVPCMockRecorder) DeleteNatGateway(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNatGateway", reflect.TypeOf((*MockVPC)(nil).DeleteNatGateway), request)
+}
+
+// DeleteRouteEntry mocks base method.
+func (m *MockVPC) DeleteRouteEntry(request *vpc.DeleteRouteEntryRequest) (*vpc.DeleteRouteEntryResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRouteEntry", request)
+	ret0, _ := ret[0].(*vpc.DeleteRouteEntryResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteRouteEntry indicates an expected call of DeleteRouteEntry.
+func (mr *MockVPCMockRecorder) DeleteRouteEntry(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRouteEntry", reflect.TypeOf((*MockVPC)(nil).DeleteRouteEntry), request)
+}
+
+// DeleteRouteTable mocks base method.
+func (m *MockVPC) DeleteRouteTable(request *vpc.DeleteRouteTableRequest) (*vpc.DeleteRouteTableResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRouteTable", request)
+	ret0, _ := ret[0].(*vpc.DeleteRouteTableResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteRouteTable indicates an expected call of DeleteRouteTable.
+func (mr *MockVPCMockRecorder) DeleteRouteTable(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRouteTable", reflect.TypeOf((*MockVPC)(nil).DeleteRouteTable), request)
 }
 
 // DeleteSnatEntry mocks base method.
@@ -987,6 +1062,36 @@ func (m *MockVPC) DescribeNatGateways(request *vpc.DescribeNatGatewaysRequest) (
 func (mr *MockVPCMockRecorder) DescribeNatGateways(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeNatGateways", reflect.TypeOf((*MockVPC)(nil).DescribeNatGateways), request)
+}
+
+// DescribeRouteEntryList mocks base method.
+func (m *MockVPC) DescribeRouteEntryList(request *vpc.DescribeRouteEntryListRequest) (*vpc.DescribeRouteEntryListResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeRouteEntryList", request)
+	ret0, _ := ret[0].(*vpc.DescribeRouteEntryListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeRouteEntryList indicates an expected call of DescribeRouteEntryList.
+func (mr *MockVPCMockRecorder) DescribeRouteEntryList(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRouteEntryList", reflect.TypeOf((*MockVPC)(nil).DescribeRouteEntryList), request)
+}
+
+// DescribeRouteTableList mocks base method.
+func (m *MockVPC) DescribeRouteTableList(request *vpc.DescribeRouteTableListRequest) (*vpc.DescribeRouteTableListResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeRouteTableList", request)
+	ret0, _ := ret[0].(*vpc.DescribeRouteTableListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeRouteTableList indicates an expected call of DescribeRouteTableList.
+func (mr *MockVPCMockRecorder) DescribeRouteTableList(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRouteTableList", reflect.TypeOf((*MockVPC)(nil).DescribeRouteTableList), request)
 }
 
 // DescribeSnatTableEntries mocks base method.
@@ -1257,6 +1362,21 @@ func (m *MockVPC) UnassociateEipAddress(request *vpc.UnassociateEipAddressReques
 func (mr *MockVPCMockRecorder) UnassociateEipAddress(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnassociateEipAddress", reflect.TypeOf((*MockVPC)(nil).UnassociateEipAddress), request)
+}
+
+// UnassociateRouteTable mocks base method.
+func (m *MockVPC) UnassociateRouteTable(request *vpc.UnassociateRouteTableRequest) (*vpc.UnassociateRouteTableResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnassociateRouteTable", request)
+	ret0, _ := ret[0].(*vpc.UnassociateRouteTableResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnassociateRouteTable indicates an expected call of UnassociateRouteTable.
+func (mr *MockVPCMockRecorder) UnassociateRouteTable(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnassociateRouteTable", reflect.TypeOf((*MockVPC)(nil).UnassociateRouteTable), request)
 }
 
 // MockOSS is a mock of OSS interface.

@@ -652,6 +652,13 @@ func (c *FlowContext) deleteVSwitch(vsw *aliclient.VSwitch) flow.TaskFn {
 		log := c.LogFromContext(ctx)
 		log.Info("deleting vswitch ...", "VSwitchId", vsw.VSwitchId)
 
+		// Unassociate from custom route table before deletion (idempotent, ignore errors)
+		if c.useCustomRouteTable() {
+			if routeTableId := c.state.Get(IdentifierRouteTable); routeTableId != nil {
+				_ = c.actor.UnassociateRouteTable(ctx, *routeTableId, vsw.VSwitchId)
+			}
+		}
+
 		if err := c.actor.DeleteVSwitch(ctx, vsw.VSwitchId); err != nil {
 			return err
 		}

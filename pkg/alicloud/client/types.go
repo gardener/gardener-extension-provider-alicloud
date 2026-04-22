@@ -168,6 +168,15 @@ type VPC interface {
 	UnassociateEipAddress(request *vpc.UnassociateEipAddressRequest) (response *vpc.UnassociateEipAddressResponse, err error)
 	CreateSnatEntry(request *vpc.CreateSnatEntryRequest) (response *vpc.CreateSnatEntryResponse, err error)
 	DeleteSnatEntry(request *vpc.DeleteSnatEntryRequest) (response *vpc.DeleteSnatEntryResponse, err error)
+
+	CreateRouteTable(request *vpc.CreateRouteTableRequest) (response *vpc.CreateRouteTableResponse, err error)
+	DescribeRouteTableList(request *vpc.DescribeRouteTableListRequest) (response *vpc.DescribeRouteTableListResponse, err error)
+	DeleteRouteTable(request *vpc.DeleteRouteTableRequest) (response *vpc.DeleteRouteTableResponse, err error)
+	AssociateRouteTable(request *vpc.AssociateRouteTableRequest) (response *vpc.AssociateRouteTableResponse, err error)
+	UnassociateRouteTable(request *vpc.UnassociateRouteTableRequest) (response *vpc.UnassociateRouteTableResponse, err error)
+	CreateRouteEntry(request *vpc.CreateRouteEntryRequest) (response *vpc.CreateRouteEntryResponse, err error)
+	DeleteRouteEntry(request *vpc.DeleteRouteEntryRequest) (response *vpc.DeleteRouteEntryResponse, err error)
+	DescribeRouteEntryList(request *vpc.DescribeRouteEntryListRequest) (response *vpc.DescribeRouteEntryListResponse, err error)
 }
 
 // ramClient implements the RAM interface.

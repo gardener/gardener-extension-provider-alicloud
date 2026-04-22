@@ -14,6 +14,9 @@ import (
 type InfrastructureConfig struct {
 	metav1.TypeMeta
 
+	// DualStack specifies whether dual-stack or IPv4-only should be supported.
+	DualStack *DualStack
+
 	// Networks specifies the networks for an infrastructure.
 	Networks Networks
 }
@@ -39,6 +42,10 @@ type VPC struct {
 	// This will only take effect if VPC ID is set.
 	// +optional
 	GardenerManagedNATGateway *bool
+	// UseCustomRouteTable indicates whether Gardener should create create a custom route table for this shoot.
+	// This will only take effect if VPC ID is set.
+	// +optional
+	UseCustomRouteTable *bool
 }
 
 // VPCStatus contains output information about the VPC.
@@ -49,6 +56,9 @@ type VPCStatus struct {
 	VSwitches []VSwitch
 	// SecurityGroups is a list of security groups.
 	SecurityGroups []SecurityGroup
+	// RouteTableID is the ID of the custom route table created for this shoot cluster.
+	// This will only take effect if vpc.useCustomRouteTable is set true.
+	RouteTableID string
 }
 
 // Purpose is a purpose of a subnet.
@@ -88,6 +98,10 @@ type Zone struct {
 	Worker string
 	// Workers specifies the worker CIDR to use.
 	Workers string
+	// Ipv6CidrBlock specifies the worker ipv6 CIDR block to use 0-255.
+	// This will only take effect if dualStack.enabled is true.
+	// +optional
+	Ipv6CidrBlock *int
 	// NatGatewayConfig specifies configuration for the NAT gateway in this zone.
 	NatGateway *NatGatewayConfig
 }
@@ -117,4 +131,10 @@ type InfrastructureStatus struct {
 	// it cannot reconcile anymore existing `Infrastructure` resources that are still using this version. Hence, it stores
 	// the used versions in the provider status to ensure reconciliation is possible.
 	MachineImages []MachineImage
+}
+
+// DualStack specifies whether dual-stack or IPv4-only should be supported.
+type DualStack struct {
+	// Enabled specifies if dual-stack is enabled or not.
+	Enabled bool
 }

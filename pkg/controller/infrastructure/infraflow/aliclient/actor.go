@@ -74,6 +74,19 @@ type Actor interface {
 
 	AuthorizeSecurityGroupRule(ctx context.Context, sgId string, rule SecurityGroupRule) error
 	RevokeSecurityGroupRule(ctx context.Context, sgId, ruleId, direction string) error
+
+	CreateRouteTable(ctx context.Context, rt *RouteTable) (*RouteTable, error)
+	GetRouteTable(ctx context.Context, id string) (*RouteTable, error)
+	FindRouteTablesByTags(ctx context.Context, tags Tags) ([]*RouteTable, error)
+	DeleteRouteTable(ctx context.Context, id string) error
+
+	AssociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error
+	UnassociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error
+
+	CreateRouteEntry(ctx context.Context, routeTableId string, entry *RouteEntry) (*RouteEntry, error)
+	DeleteRouteEntry(ctx context.Context, routeTableId string, entry *RouteEntry) error
+	FindRouteEntryByDest(ctx context.Context, routeTableId, destCidrBlock string) (*RouteEntry, error)
+	ListRouteEntriesByRouteTable(ctx context.Context, routeTableId string) ([]*RouteEntry, error)
 }
 
 type actor struct {
@@ -1398,10 +1411,12 @@ func page_call[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) 
 		"DescribeNatGatewaysRequest",
 		"DescribeEipAddressesRequest",
 		"DescribeSnatTableEntriesRequest",
+		"DescribeRouteTableListRequest",
 	}
 	type2_req_type_name_list := []string{
 		"ListTagResourcesRequest",
 		"DescribeSecurityGroupsRequest",
+		"DescribeRouteEntryListRequest",
 	}
 
 	reqTypeName := reflect.ValueOf(req).Elem().Type().Name()
@@ -1498,4 +1513,281 @@ func contains(elems []string, elem string) bool {
 		}
 	}
 	return false
+}
+
+func (c *actor) CreateRouteTable(ctx context.Context, rt *RouteTable) (*RouteTable, error) {
+	req := vpc.CreateCreateRouteTableRequest()
+	req.VpcId = rt.VpcId
+	req.RouteTableName = rt.Name
+
+	resp, err := callApi(c.vpcClient.CreateRouteTable, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *RouteTable
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+		created, err = c.GetRouteTable(ctx, resp.RouteTableId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
+func (c *actor) GetRouteTable(_ context.Context, id string) (*RouteTable, error) {
+	return c.getRouteTable(id)
+}
+
+func (c *actor) getRouteTable(id string) (*RouteTable, error) {
+	req := vpc.CreateDescribeRouteTableListRequest()
+	req.RouteTableId = id
+	resp, err := c.describeRouteTableList(req)
+	return single(resp, err)
+}
+
+func (c *actor) FindRouteTablesByTags(ctx context.Context, tags Tags) ([]*RouteTable, error) {
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "ROUTETABLE"
+
+	var reqTag []vpc.ListTagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, vpc.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	idList, err := c.listVpcTagResources(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*RouteTable
+	for _, id := range idList {
+		rt, err := c.getRouteTable(id)
+		if err != nil {
+			return nil, err
+		}
+		if rt != nil {
+			result = append(result, rt)
+		}
+	}
+	return result, nil
+}
+
+func (c *actor) DeleteRouteTable(ctx context.Context, id string) error {
+	current, err := c.GetRouteTable(ctx, id)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return nil
+	}
+	req := vpc.CreateDeleteRouteTableRequest()
+	req.RouteTableId = id
+	_, err = callApi(c.vpcClient.DeleteRouteTable, req)
+	return err
+}
+
+func (c *actor) AssociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error {
+	req := vpc.CreateAssociateRouteTableRequest()
+	req.RouteTableId = routeTableId
+	req.VSwitchId = vSwitchId
+	if _, err := callApi(c.vpcClient.AssociateRouteTable, req); err != nil {
+		return err
+	}
+	// Wait for the vswitch to return to Available before the caller attempts
+	// further operations (e.g. CreateRouteEntry) that require a stable vswitch.
+	return c.waitVSwitchAvailable(ctx, vSwitchId)
+}
+
+func (c *actor) UnassociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error {
+	req := vpc.CreateUnassociateRouteTableRequest()
+	req.RouteTableId = routeTableId
+	req.VSwitchId = vSwitchId
+	if _, err := callApi(c.vpcClient.UnassociateRouteTable, req); err != nil {
+		return err
+	}
+	return c.waitVSwitchAvailable(ctx, vSwitchId)
+}
+
+// waitVSwitchAvailable polls until the vswitch reaches Status="Available".
+func (c *actor) waitVSwitchAvailable(ctx context.Context, vSwitchId string) error {
+	return wait.PollUntilContextCancel(ctx, c.PollInterval, false, func(_ context.Context) (bool, error) {
+		vsw, err := c.getVSwitch(vSwitchId)
+		if err != nil {
+			return false, err
+		}
+		if vsw == nil {
+			return false, fmt.Errorf("vswitch %s not found while waiting for Available", vSwitchId)
+		}
+		return *vsw.Status == "Available", nil
+	})
+}
+
+func (c *actor) CreateRouteEntry(ctx context.Context, routeTableId string, entry *RouteEntry) (*RouteEntry, error) {
+	req := vpc.CreateCreateRouteEntryRequest()
+	req.RouteTableId = routeTableId
+	req.DestinationCidrBlock = entry.DestinationCidrBlock
+	req.NextHopId = entry.NextHopId
+	req.NextHopType = entry.NextHopType
+	req.RouteEntryName = entry.Name
+
+	resp, err := callApi(c.vpcClient.CreateRouteEntry, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *RouteEntry
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+		created, err = c.getRouteEntry(routeTableId, resp.RouteEntryId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
+func (c *actor) DeleteRouteEntry(ctx context.Context, routeTableId string, entry *RouteEntry) error {
+	current, err := c.getRouteEntry(routeTableId, entry.RouteEntryId)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return nil
+	}
+	req := vpc.CreateDeleteRouteEntryRequest()
+	// req.RouteTableId = routeTableId
+	req.RouteEntryId = entry.RouteEntryId
+	// req.DestinationCidrBlock = entry.DestinationCidrBlock
+	req.NextHopId = entry.NextHopId
+	_, err = callApi(c.vpcClient.DeleteRouteEntry, req)
+	if err != nil {
+		return err
+	}
+	return wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+		found, err := c.getRouteEntry(routeTableId, entry.RouteEntryId)
+		if err != nil {
+			return false, err
+		}
+		return found == nil, nil
+	})
+}
+
+func (c *actor) getRouteEntry(routeTableId, routeEntryId string) (*RouteEntry, error) {
+	req := vpc.CreateDescribeRouteEntryListRequest()
+	req.RouteTableId = routeTableId
+	req.RouteEntryId = routeEntryId
+	req.RouteEntryType = "Custom"
+	resp, err := c.describeRouteEntryList(req)
+	return single(resp, err)
+}
+
+func (c *actor) FindRouteEntryByDest(_ context.Context, routeTableId, destCidrBlock string) (*RouteEntry, error) {
+	req := vpc.CreateDescribeRouteEntryListRequest()
+	req.RouteTableId = routeTableId
+	req.DestinationCidrBlock = destCidrBlock
+	req.RouteEntryType = "Custom"
+	resp, err := c.describeRouteEntryList(req)
+	return single(resp, err)
+}
+
+func (c *actor) ListRouteEntriesByRouteTable(_ context.Context, routeTableId string) ([]*RouteEntry, error) {
+	req := vpc.CreateDescribeRouteEntryListRequest()
+	req.RouteTableId = routeTableId
+	req.RouteEntryType = "Custom"
+	return c.describeRouteEntryList(req)
+}
+
+func (c *actor) describeRouteTableList(req *vpc.DescribeRouteTableListRequest) ([]*RouteTable, error) {
+	var rtList []*RouteTable
+
+	respList, err := page_call(c.vpcClient.DescribeRouteTableList, req)
+	if err != nil {
+		return nil, err
+	}
+	var theList []vpc.RouterTableListType
+	for _, resp := range respList {
+		theList = append(theList, resp.RouterTableList.RouterTableListType...)
+	}
+	for _, item := range theList {
+		rt := c.fromRouteTable(item)
+		if rt != nil {
+			rtList = append(rtList, rt)
+		}
+	}
+	return rtList, nil
+}
+
+func (c *actor) fromRouteTable(item vpc.RouterTableListType) *RouteTable {
+	status := item.Status
+	rt := &RouteTable{
+		Name:         item.RouteTableName,
+		RouteTableId: item.RouteTableId,
+		VpcId:        item.VpcId,
+		Status:       &status,
+		VSwitchIds:   item.VSwitchIds.VSwitchId,
+	}
+	tags := Tags{}
+	for _, t := range item.Tags.Tag {
+		tags[t.Key] = t.Value
+	}
+	rt.Tags = tags
+	return rt
+}
+
+func (c *actor) describeRouteEntryList(req *vpc.DescribeRouteEntryListRequest) ([]*RouteEntry, error) {
+	var entryList []*RouteEntry
+
+	respList, err := page_call(c.vpcClient.DescribeRouteEntryList, req)
+	if err != nil {
+		return nil, err
+	}
+	var theList []vpc.RouteEntry
+	for _, resp := range respList {
+		theList = append(theList, resp.RouteEntrys.RouteEntry...)
+	}
+	for _, item := range theList {
+		entry := c.fromRouteEntry(item)
+		if entry != nil {
+			entryList = append(entryList, entry)
+		}
+	}
+	return entryList, nil
+}
+
+func (c *actor) fromRouteEntry(item vpc.RouteEntry) *RouteEntry {
+	status := item.Status
+	nextHopId := item.InstanceId
+	if len(item.NextHops.NextHop) > 0 {
+		nextHopId = item.NextHops.NextHop[0].NextHopId
+	}
+	return &RouteEntry{
+		RouteEntryId:         item.RouteEntryId,
+		RouteTableId:         item.RouteTableId,
+		Name:                 item.RouteEntryName,
+		DestinationCidrBlock: item.DestinationCidrBlock,
+		NextHopType:          item.NextHopType,
+		NextHopId:            nextHopId,
+		Status:               &status,
+	}
 }

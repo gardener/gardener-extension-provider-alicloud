@@ -7,6 +7,7 @@ package infraflow
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gardener/gardener/pkg/utils/flow"
@@ -49,9 +50,13 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		c.ensureNatGateway,
 		Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
 
+	ensureRouteTable := c.AddTask(g, "ensure route table",
+		c.ensureRouteTable,
+		DoIf(c.useCustomRouteTable()), Timeout(defaultTimeout), Dependencies(ensureNatGateway))
+
 	_ = c.AddTask(g, "ensure zones",
 		c.ensureZones,
-		Timeout(defaultLongTimeout), Dependencies(ensureNatGateway))
+		Timeout(defaultLongTimeout), Dependencies(ensureNatGateway, ensureRouteTable))
 
 	return g
 }
@@ -378,4 +383,89 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 
 func getZoneName(item *aliclient.VSwitch) string {
 	return item.ZoneId
+}
+
+func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	vpcId := c.state.Get(IdentifierVPC)
+	natGwId := c.state.Get(IdentifierNatGateway)
+	if vpcId == nil || natGwId == nil {
+		return fmt.Errorf("VPC or NatGateway not ready for route table")
+	}
+
+	desired := &aliclient.RouteTable{
+		Tags:  c.commonTagsWithSuffix("rt"),
+		Name:  c.namespace + "-rt",
+		VpcId: *vpcId,
+	}
+	current, err := findExisting(ctx, c.state.Get(IdentifierRouteTable), desired.Tags,
+		c.actor.GetRouteTable, c.actor.FindRouteTablesByTags)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		log.Info("creating custom route table ...")
+		current, err = c.actor.CreateRouteTable(ctx, desired)
+		if err != nil {
+			return err
+		}
+	}
+	c.state.Set(IdentifierRouteTable, current.RouteTableId)
+	if _, err := c.updater.UpdateRouteTable(ctx, desired, current); err != nil {
+		return err
+	}
+
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
+
+	// Ensure default route 0.0.0.0/0 → NatGateway
+	if err := c.ensureRouteEntry(ctx, current.RouteTableId, &aliclient.RouteEntry{
+		DestinationCidrBlock: "0.0.0.0/0",
+		NextHopType:          "NatGateway",
+		NextHopId:            *natGwId,
+		Name:                 c.namespace + "-rt-default",
+	}); err != nil {
+		return err
+	}
+
+	// Associate all vswitches that are not yet bound to this route table
+	for _, vswId := range c.getAllVSwitchids() {
+		if !contains(current.VSwitchIds, vswId) {
+			if err := c.actor.AssociateRouteTable(ctx, current.RouteTableId, vswId); err != nil {
+				if !isAlreadyAssociatedError(err) {
+					return fmt.Errorf("failed to associate route table %s with vswitch %s: %w", current.RouteTableId, vswId, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (c *FlowContext) ensureRouteEntry(ctx context.Context, routeTableId string, desired *aliclient.RouteEntry) error {
+	current, err := c.actor.FindRouteEntryByDest(ctx, routeTableId, desired.DestinationCidrBlock)
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		if current.NextHopId == desired.NextHopId {
+			return nil // already correct, idempotent
+		}
+		// Same destination but different next-hop: delete and recreate
+		if err := c.actor.DeleteRouteEntry(ctx, routeTableId, current); err != nil {
+			return err
+		}
+	}
+	_, err = c.actor.CreateRouteEntry(ctx, routeTableId, desired)
+	return err
+}
+
+func isAlreadyAssociatedError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := err.Error()
+	return strings.Contains(errMsg, "bindError") ||
+		strings.Contains(errMsg, "IncorrectRouteTableStatus") ||
+		strings.Contains(errMsg, "AlreadyAssociated")
 }

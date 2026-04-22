@@ -55,6 +55,20 @@ func (mr *MockActorMockRecorder) AssociateEIP(ctx, id, to, insType any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEIP", reflect.TypeOf((*MockActor)(nil).AssociateEIP), ctx, id, to, insType)
 }
 
+// AssociateRouteTable mocks base method.
+func (m *MockActor) AssociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssociateRouteTable", ctx, routeTableId, vSwitchId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AssociateRouteTable indicates an expected call of AssociateRouteTable.
+func (mr *MockActorMockRecorder) AssociateRouteTable(ctx, routeTableId, vSwitchId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateRouteTable", reflect.TypeOf((*MockActor)(nil).AssociateRouteTable), ctx, routeTableId, vSwitchId)
+}
+
 // AuthorizeSecurityGroupRule mocks base method.
 func (m *MockActor) AuthorizeSecurityGroupRule(ctx context.Context, sgId string, rule aliclient.SecurityGroupRule) error {
 	m.ctrl.T.Helper()
@@ -97,6 +111,36 @@ func (m *MockActor) CreateNatGateway(ctx context.Context, ngw *aliclient.NatGate
 func (mr *MockActorMockRecorder) CreateNatGateway(ctx, ngw any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNatGateway", reflect.TypeOf((*MockActor)(nil).CreateNatGateway), ctx, ngw)
+}
+
+// CreateRouteEntry mocks base method.
+func (m *MockActor) CreateRouteEntry(ctx context.Context, routeTableId string, entry *aliclient.RouteEntry) (*aliclient.RouteEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRouteEntry", ctx, routeTableId, entry)
+	ret0, _ := ret[0].(*aliclient.RouteEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateRouteEntry indicates an expected call of CreateRouteEntry.
+func (mr *MockActorMockRecorder) CreateRouteEntry(ctx, routeTableId, entry any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRouteEntry", reflect.TypeOf((*MockActor)(nil).CreateRouteEntry), ctx, routeTableId, entry)
+}
+
+// CreateRouteTable mocks base method.
+func (m *MockActor) CreateRouteTable(ctx context.Context, rt *aliclient.RouteTable) (*aliclient.RouteTable, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRouteTable", ctx, rt)
+	ret0, _ := ret[0].(*aliclient.RouteTable)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateRouteTable indicates an expected call of CreateRouteTable.
+func (mr *MockActorMockRecorder) CreateRouteTable(ctx, rt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRouteTable", reflect.TypeOf((*MockActor)(nil).CreateRouteTable), ctx, rt)
 }
 
 // CreateSNatEntry mocks base method.
@@ -199,6 +243,34 @@ func (m *MockActor) DeleteNatGateway(ctx context.Context, id string) error {
 func (mr *MockActorMockRecorder) DeleteNatGateway(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNatGateway", reflect.TypeOf((*MockActor)(nil).DeleteNatGateway), ctx, id)
+}
+
+// DeleteRouteEntry mocks base method.
+func (m *MockActor) DeleteRouteEntry(ctx context.Context, routeTableId string, entry *aliclient.RouteEntry) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRouteEntry", ctx, routeTableId, entry)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteRouteEntry indicates an expected call of DeleteRouteEntry.
+func (mr *MockActorMockRecorder) DeleteRouteEntry(ctx, routeTableId, entry any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRouteEntry", reflect.TypeOf((*MockActor)(nil).DeleteRouteEntry), ctx, routeTableId, entry)
+}
+
+// DeleteRouteTable mocks base method.
+func (m *MockActor) DeleteRouteTable(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRouteTable", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteRouteTable indicates an expected call of DeleteRouteTable.
+func (mr *MockActorMockRecorder) DeleteRouteTable(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRouteTable", reflect.TypeOf((*MockActor)(nil).DeleteRouteTable), ctx, id)
 }
 
 // DeleteSNatEntry mocks base method.
@@ -314,6 +386,36 @@ func (m *MockActor) FindNatGatewayByVPC(ctx context.Context, vpcId string) (*ali
 func (mr *MockActorMockRecorder) FindNatGatewayByVPC(ctx, vpcId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindNatGatewayByVPC", reflect.TypeOf((*MockActor)(nil).FindNatGatewayByVPC), ctx, vpcId)
+}
+
+// FindRouteEntryByDest mocks base method.
+func (m *MockActor) FindRouteEntryByDest(ctx context.Context, routeTableId, destCidrBlock string) (*aliclient.RouteEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindRouteEntryByDest", ctx, routeTableId, destCidrBlock)
+	ret0, _ := ret[0].(*aliclient.RouteEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindRouteEntryByDest indicates an expected call of FindRouteEntryByDest.
+func (mr *MockActorMockRecorder) FindRouteEntryByDest(ctx, routeTableId, destCidrBlock any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindRouteEntryByDest", reflect.TypeOf((*MockActor)(nil).FindRouteEntryByDest), ctx, routeTableId, destCidrBlock)
+}
+
+// FindRouteTablesByTags mocks base method.
+func (m *MockActor) FindRouteTablesByTags(ctx context.Context, tags aliclient.Tags) ([]*aliclient.RouteTable, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindRouteTablesByTags", ctx, tags)
+	ret0, _ := ret[0].([]*aliclient.RouteTable)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindRouteTablesByTags indicates an expected call of FindRouteTablesByTags.
+func (mr *MockActorMockRecorder) FindRouteTablesByTags(ctx, tags any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindRouteTablesByTags", reflect.TypeOf((*MockActor)(nil).FindRouteTablesByTags), ctx, tags)
 }
 
 // FindSNatEntriesByNatGateway mocks base method.
@@ -434,6 +536,21 @@ func (m *MockActor) GetNatGateway(ctx context.Context, id string) (*aliclient.Na
 func (mr *MockActorMockRecorder) GetNatGateway(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNatGateway", reflect.TypeOf((*MockActor)(nil).GetNatGateway), ctx, id)
+}
+
+// GetRouteTable mocks base method.
+func (m *MockActor) GetRouteTable(ctx context.Context, id string) (*aliclient.RouteTable, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRouteTable", ctx, id)
+	ret0, _ := ret[0].(*aliclient.RouteTable)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRouteTable indicates an expected call of GetRouteTable.
+func (mr *MockActorMockRecorder) GetRouteTable(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouteTable", reflect.TypeOf((*MockActor)(nil).GetRouteTable), ctx, id)
 }
 
 // GetSNatEntry mocks base method.
@@ -571,6 +688,21 @@ func (mr *MockActorMockRecorder) ListNatGatewaysByVSwitchInVPC(ctx, vpcId, vswit
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNatGatewaysByVSwitchInVPC", reflect.TypeOf((*MockActor)(nil).ListNatGatewaysByVSwitchInVPC), ctx, vpcId, vswitchIds)
 }
 
+// ListRouteEntriesByRouteTable mocks base method.
+func (m *MockActor) ListRouteEntriesByRouteTable(ctx context.Context, routeTableId string) ([]*aliclient.RouteEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListRouteEntriesByRouteTable", ctx, routeTableId)
+	ret0, _ := ret[0].([]*aliclient.RouteEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListRouteEntriesByRouteTable indicates an expected call of ListRouteEntriesByRouteTable.
+func (mr *MockActorMockRecorder) ListRouteEntriesByRouteTable(ctx, routeTableId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRouteEntriesByRouteTable", reflect.TypeOf((*MockActor)(nil).ListRouteEntriesByRouteTable), ctx, routeTableId)
+}
+
 // ListSecurityGroups mocks base method.
 func (m *MockActor) ListSecurityGroups(ctx context.Context, ids []string) ([]*aliclient.SecurityGroup, error) {
 	m.ctrl.T.Helper()
@@ -656,6 +788,20 @@ func (m *MockActor) UnAssociateEIP(ctx context.Context, eip *aliclient.EIP) erro
 func (mr *MockActorMockRecorder) UnAssociateEIP(ctx, eip any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnAssociateEIP", reflect.TypeOf((*MockActor)(nil).UnAssociateEIP), ctx, eip)
+}
+
+// UnassociateRouteTable mocks base method.
+func (m *MockActor) UnassociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnassociateRouteTable", ctx, routeTableId, vSwitchId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnassociateRouteTable indicates an expected call of UnassociateRouteTable.
+func (mr *MockActorMockRecorder) UnassociateRouteTable(ctx, routeTableId, vSwitchId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnassociateRouteTable", reflect.TypeOf((*MockActor)(nil).UnassociateRouteTable), ctx, routeTableId, vSwitchId)
 }
 
 // MockFactory is a mock of Factory interface.

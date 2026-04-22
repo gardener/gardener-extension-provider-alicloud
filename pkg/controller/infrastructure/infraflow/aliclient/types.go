@@ -97,3 +97,24 @@ type SecurityGroupRule struct {
 	SourceCidrIp        string
 	Direction           string
 }
+
+// RouteTable is the struct for a custom route table object
+type RouteTable struct {
+	Tags
+	Name         string
+	RouteTableId string
+	VpcId        string
+	VSwitchIds   []string
+	Status       *string
+}
+
+// RouteEntry is the struct for a route entry in a route table
+type RouteEntry struct {
+	RouteEntryId         string
+	RouteTableId         string
+	Name                 string
+	DestinationCidrBlock string
+	NextHopType          string
+	NextHopId            string
+	Status               *string
+}
