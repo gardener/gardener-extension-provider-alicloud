@@ -42,11 +42,36 @@ func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 		c.deleteRouteTable,
 		DoIf(c.useCustomRouteTable()), Timeout(defaultTimeout), Dependencies(deleteZones))
 
+	deleteIpv6Gateway := c.AddTask(g, "delete ipv6 gateway",
+		c.deleteIpv6Gateway,
+		DoIf(c.dualStackEnabled() && c.config.Networks.VPC.ID == nil), Timeout(defaultLongTimeout),
+		Dependencies(deleteRouteTable))
+
 	_ = c.AddTask(g, "delete VPC",
 		c.deleteVpc,
-		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout), Dependencies(deleteZones, deleteSecurityGroup, deleteRouteTable))
+		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout), Dependencies(deleteZones, deleteSecurityGroup, deleteRouteTable, deleteIpv6Gateway))
 
 	return g
+}
+
+func (c *FlowContext) deleteIpv6Gateway(ctx context.Context) error {
+	if c.state.IsAlreadyDeleted(IdentifierIPV6Gateway) {
+		return nil
+	}
+	log := c.LogFromContext(ctx)
+	current, err := findExisting(ctx, c.state.Get(IdentifierIPV6Gateway), c.commonTagsWithSuffix("ipv6gw"),
+		c.actor.GetIpv6Gateway, c.actor.FindIpv6GatewaysByTags)
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		log.Info("deleting IPv6 gateway ...", "Ipv6GatewayId", current.Ipv6GatewayId)
+		if err := c.actor.DeleteIpv6Gateway(ctx, current.Ipv6GatewayId); err != nil {
+			return err
+		}
+	}
+	c.state.SetAsDeleted(IdentifierIPV6Gateway)
+	return c.PersistState(ctx, true)
 }
 
 func (c *FlowContext) deleteRouteTable(ctx context.Context) error {

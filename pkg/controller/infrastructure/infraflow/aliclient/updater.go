@@ -19,6 +19,7 @@ type Updater interface {
 	UpdateSNATEntry(ctx context.Context, desired, current *SNATEntry) (modified bool, err error)
 	UpdateSecurityGroup(ctx context.Context, desired, current *SecurityGroup) (modified bool, err error)
 	UpdateRouteTable(ctx context.Context, desired, current *RouteTable) (modified bool, err error)
+	UpdateIpv6Gateway(ctx context.Context, desired, current *IPv6Gateway) (modified bool, err error)
 }
 
 type updater struct {
@@ -41,6 +42,11 @@ func (u *updater) UpdateSecurityGroup(ctx context.Context, desired, current *Sec
 
 func (u *updater) UpdateRouteTable(ctx context.Context, desired, current *RouteTable) (modified bool, err error) {
 	modified, err = u.updateTags(ctx, current.RouteTableId, desired.Tags, current.Tags, "ROUTETABLE")
+	return
+}
+
+func (u *updater) UpdateIpv6Gateway(ctx context.Context, desired, current *IPv6Gateway) (modified bool, err error) {
+	modified, err = u.updateTags(ctx, current.Ipv6GatewayId, desired.Tags, current.Tags, "IPV6GATEWAY")
 	return
 }
 

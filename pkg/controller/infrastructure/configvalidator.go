@@ -69,6 +69,11 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 			createManagedNATGateway = false
 		}
 		allErrs = append(allErrs, c.validateVPC(ctx, actor, *config.Networks.VPC.ID, !createManagedNATGateway, field.NewPath("networks", "vpc", "id"))...)
+
+		if config.DualStack != nil && config.DualStack.Enabled {
+			logger.Info("Validating VPC IPv6 support for dualStack")
+			allErrs = append(allErrs, c.validateVpcIPv6(ctx, actor, *config.Networks.VPC.ID, field.NewPath("networks", "vpc", "id"))...)
+		}
 	}
 	if createManagedNATGateway {
 		logger.Info("Validating infrastructure networks.zones[0].name")
@@ -152,6 +157,34 @@ func (c *configValidator) validateEnhancedNatGatewayZone(ctx context.Context, ac
 	}
 	if !validNatGatewayZone {
 		allErrs = append(allErrs, field.Forbidden(fldPath, fmt.Sprintf("zone %s does not support enhance natgateway, please use following zones: %s", zone, strings.Join(validZones, " "))))
+	}
+	return allErrs
+}
+
+func (c *configValidator) validateVpcIPv6(ctx context.Context, actor aliclient.Actor, vpcID string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	// Check whether VPC has IPv6 enabled
+	ipv6Cidr, err := actor.GetVpcIpv6Info(ctx, vpcID)
+	if err != nil {
+		allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateVpcIPv6 GetVpcIpv6Info %s failed: %+v", vpcID, err)))
+		return allErrs
+	}
+	if ipv6Cidr == "" {
+		allErrs = append(allErrs, field.Invalid(fldPath, vpcID,
+			"VPC does not have IPv6 enabled; please enable IPv6 on the VPC before using dualStack"))
+		return allErrs
+	}
+
+	// Check whether VPC has an IPv6 Gateway
+	gw, err := actor.FindIpv6GatewayByVPC(ctx, vpcID)
+	if err != nil {
+		allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateVpcIPv6 FindIpv6GatewayByVPC %s failed: %+v", vpcID, err)))
+		return allErrs
+	}
+	if gw == nil {
+		allErrs = append(allErrs, field.Invalid(fldPath, vpcID,
+			"VPC does not have an IPv6 Gateway; please create one before using dualStack"))
 	}
 	return allErrs
 }

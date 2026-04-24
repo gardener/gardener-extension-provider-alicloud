@@ -46,13 +46,17 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		c.ensureVSwitches,
 		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
+	ensureIpv6Gateway := c.AddTask(g, "ensure ipv6 gateway",
+		c.ensureIpv6Gateway,
+		DoIf(c.dualStackEnabled()), Timeout(defaultLongTimeout), Dependencies(ensureVpc))
+
 	ensureNatGateway := c.AddTask(g, "ensure natgateway",
 		c.ensureNatGateway,
 		Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
 
 	ensureRouteTable := c.AddTask(g, "ensure route table",
 		c.ensureRouteTable,
-		DoIf(c.useCustomRouteTable()), Timeout(defaultTimeout), Dependencies(ensureNatGateway))
+		DoIf(c.useCustomRouteTable()), Timeout(defaultTimeout), Dependencies(ensureNatGateway, ensureIpv6Gateway))
 
 	_ = c.AddTask(g, "ensure zones",
 		c.ensureZones,
@@ -205,6 +209,17 @@ func (c *FlowContext) ensureExistingVpc(ctx context.Context) error {
 		return fmt.Errorf("VPC %s has not been found", vpcID)
 	}
 	c.state.Set(IdentifierVPC, vpcID)
+
+	if c.dualStackEnabled() {
+		ipv6Cidr, err := c.actor.GetVpcIpv6Info(ctx, vpcID)
+		if err != nil {
+			return fmt.Errorf("failed to check IPv6 support for VPC %s: %w", vpcID, err)
+		}
+		if ipv6Cidr == "" {
+			return fmt.Errorf("VPC %s does not have IPv6 enabled; please enable IPv6 on the VPC first", vpcID)
+		}
+	}
+
 	return c.PersistState(ctx, true)
 }
 
@@ -251,7 +266,25 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 			return err
 		}
 	}
-	return c.PersistState(ctx, true)
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
+
+	if c.dualStackEnabled() {
+		vpcId := c.state.Get(IdentifierVPC)
+		ipv6Cidr, err := c.actor.GetVpcIpv6Info(ctx, *vpcId)
+		if err != nil {
+			return fmt.Errorf("failed to check IPv6 support for VPC: %w", err)
+		}
+		if ipv6Cidr == "" {
+			log.Info("enabling IPv6 for VPC ...")
+			if err := c.actor.EnableVpcIpv6(ctx, *vpcId); err != nil {
+				return fmt.Errorf("failed to enable IPv6 on VPC: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (c *FlowContext) collectExistingVSwitches(ctx context.Context) ([]*aliclient.VSwitch, error) {
@@ -385,6 +418,49 @@ func getZoneName(item *aliclient.VSwitch) string {
 	return item.ZoneId
 }
 
+func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
+	// need export IdentifierIPV6Gateway for ensureRouteTable to add route entry, call ensureIpv6Gateway no care VPC.ID
+	log := c.LogFromContext(ctx)
+	vpcId := c.state.Get(IdentifierVPC)
+	if vpcId == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
+	desired := &aliclient.IPv6Gateway{
+		Tags:  c.commonTagsWithSuffix("ipv6gw"),
+		Name:  c.namespace + "-ipv6gw",
+		VpcId: *vpcId,
+	}
+	// only one ipv6Gateway is allowed in a VPC, so we find by vpcId
+	current, err := c.actor.FindIpv6GatewayByVPC(ctx, *vpcId)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		if c.config.Networks.VPC.ID != nil {
+			// User-provided VPC: do not create, fail fast
+			return fmt.Errorf("VPC %s does not have an IPv6 Gateway; please create one first", *vpcId)
+		}
+		log.Info("creating IPv6 gateway ...")
+		current, err = c.actor.CreateIpv6Gateway(ctx, desired)
+		if err != nil {
+			return fmt.Errorf("failed to create IPv6 Gateway: %w", err)
+		}
+		c.state.Set(IdentifierIPV6Gateway, current.Ipv6GatewayId)
+		if _, err := c.updater.UpdateIpv6Gateway(ctx, desired, current); err != nil {
+			return err
+		}
+	} else {
+		c.state.Set(IdentifierIPV6Gateway, current.Ipv6GatewayId)
+		// User-provided VPC: Gateway belongs to the user, do not modify tags
+		if c.config.Networks.VPC.ID == nil {
+			if _, err := c.updater.UpdateIpv6Gateway(ctx, desired, current); err != nil {
+				return err
+			}
+		}
+	}
+	return c.PersistState(ctx, true)
+}
+
 func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
 	log := c.LogFromContext(ctx)
 	vpcId := c.state.Get(IdentifierVPC)
@@ -427,6 +503,22 @@ func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
 		Name:                 c.namespace + "-rt-default",
 	}); err != nil {
 		return err
+	}
+
+	// Ensure ::/0 → IPv6Gateway when dualStack is enabled
+	if c.dualStackEnabled() {
+		ipv6GwId := c.state.Get(IdentifierIPV6Gateway)
+		if ipv6GwId == nil {
+			return fmt.Errorf("IdentifierIPV6Gateway is nil")
+		}
+		if err := c.ensureRouteEntry(ctx, current.RouteTableId, &aliclient.RouteEntry{
+			DestinationCidrBlock: "::/0",
+			NextHopType:          "IPv6Gateway",
+			NextHopId:            *ipv6GwId,
+			Name:                 c.namespace + "-rt-ipv6",
+		}); err != nil {
+			return err
+		}
 	}
 
 	// Associate all vswitches that are not yet bound to this route table

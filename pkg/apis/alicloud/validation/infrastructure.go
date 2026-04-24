@@ -5,16 +5,48 @@
 package validation
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/gardener/gardener/pkg/apis/core"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
+// nlbSupportedRegions lists Alicloud regions that support NLB (last updated: 2026-04).
+// Keep in sync with https://help.aliyun.com/zh/slb/network-load-balancer/product-overview/regions-that-support-nlb
+var nlbSupportedRegions = sets.New[string](
+	"cn-hangzhou",
+	"cn-beijing",
+	"cn-shenzhen",
+	"cn-shanghai",
+	"cn-qingdao",
+	"cn-zhangjiakou",
+	"cn-chengdu",
+	"cn-guangzhou",
+	"cn-hongkong",
+	"cn-heyuan",
+	"cn-wulanchabu",
+	"ap-southeast-7",
+	"ap-southeast-6",
+	"ap-southeast-1",
+	"ap-northeast-1",
+	"ap-northeast-2",
+	"ap-southeast-3",
+	"ap-southeast-5",
+	"eu-central-1",
+	"eu-west-1",
+	"us-east-1",
+	"us-west-1",
+	"na-south-1",
+)
+
 // ValidateInfrastructureConfig validates a InfrastructureConfig object.
-func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, networking *core.Networking) field.ErrorList {
+func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, networking *core.Networking, region string) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	var (
@@ -101,6 +133,40 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 		allErrs = append(allErrs, services.ValidateNotOverlap(cidrs...)...)
 	}
 
+	// DualStack validation
+	if infra.DualStack != nil && infra.DualStack.Enabled {
+		isManagedVPC := infra.Networks.VPC.ID == nil
+		seen := sets.New[int]()
+		for i, zone := range infra.Networks.Zones {
+			zonePath := networksPath.Child("zones").Index(i).Child("ipv6CidrBlock")
+			if zone.Ipv6CidrBlock == nil {
+				if isManagedVPC {
+					allErrs = append(allErrs, field.Required(zonePath,
+						"ipv6CidrBlock is required when dualStack.enabled is true and VPC is managed by Gardener"))
+				}
+			} else {
+				v := *zone.Ipv6CidrBlock
+				if v < 0 || v > 255 {
+					allErrs = append(allErrs, field.Invalid(zonePath, v,
+						"ipv6CidrBlock must be in range 0-255"))
+				} else if seen.Has(v) {
+					allErrs = append(allErrs, field.Invalid(zonePath, v,
+						"ipv6CidrBlock must be unique across zones"))
+				} else {
+					seen.Insert(v)
+				}
+			}
+		}
+
+		// NLB region check
+		if !nlbSupportedRegions.Has(region) {
+			allErrs = append(allErrs, field.Invalid(
+				field.NewPath("region"), region,
+				fmt.Sprintf("region %s does not support NLB which is required for dualStack; supported regions: %s",
+					region, strings.Join(sets.List(nlbSupportedRegions), ", "))))
+		}
+	}
+
 	return allErrs
 }
 
@@ -122,6 +188,14 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 	}
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(normalizedNewVPC, normalizedOldVPC, vpcPath)...)
 	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, field.NewPath("networks").Child("zones"))...)
+
+	// DualStack.Enabled can be enabled but not disabled once set
+	oldEnabled := oldConfig.DualStack != nil && oldConfig.DualStack.Enabled
+	newEnabled := newConfig.DualStack != nil && newConfig.DualStack.Enabled
+	if oldEnabled && !newEnabled {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("dualStack"),
+			"dualStack cannot be disabled once enabled"))
+	}
 
 	return allErrs
 }
@@ -147,6 +221,13 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 		} else {
 			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Workers, newZones[i].Workers, fldPath.Index(i))...)
 			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Worker, fldPath.Index(i))...)
+		}
+		// Ipv6CidrBlock can be changed but not removed once set
+		if oldZones[i].Ipv6CidrBlock != nil && newZones[i].Ipv6CidrBlock == nil {
+			allErrs = append(allErrs, field.Invalid(
+				fldPath.Index(i).Child("ipv6CidrBlock"), nil,
+				"ipv6CidrBlock cannot be removed once set",
+			))
 		}
 	}
 

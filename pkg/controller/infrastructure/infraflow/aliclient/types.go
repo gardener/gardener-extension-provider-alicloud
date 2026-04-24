@@ -21,21 +21,23 @@ func (f FactoryFunc) NewActor(accessKeyID, secretAccessKey, region string) (Acto
 // VPC is the struct for a vpc object
 type VPC struct {
 	Tags
-	Name      string
-	VpcId     string
-	CidrBlock string
-	Status    *string
+	Name          string
+	VpcId         string
+	CidrBlock     string
+	Status        *string
+	Ipv6CidrBlock string // VPC 的 IPv6 CIDR（如 "2408:xxxx::/56"），空表示未启用
 }
 
 // VSwitch is the struct for a vswitch object
 type VSwitch struct {
 	Tags
-	Name      string
-	VSwitchId string
-	VpcId     *string
-	CidrBlock string
-	ZoneId    string
-	Status    *string
+	Name          string
+	VSwitchId     string
+	VpcId         *string
+	CidrBlock     string
+	ZoneId        string
+	Status        *string
+	Ipv6CidrBlock string // vswitch 的 IPv6 CIDR（如 "2408:xxxx:0:N::/64"），空表示未配置
 }
 
 // NatGateway is the struct for a nat gateway object
@@ -117,4 +119,13 @@ type RouteEntry struct {
 	NextHopType          string
 	NextHopId            string
 	Status               *string
+}
+
+// IPv6Gateway is the struct for an IPv6 gateway object
+type IPv6Gateway struct {
+	Tags
+	Name          string
+	Ipv6GatewayId string
+	VpcId         string
+	Status        *string
 }

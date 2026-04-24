@@ -98,6 +98,21 @@ func (mr *MockActorMockRecorder) CreateEIP(ctx, eip any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEIP", reflect.TypeOf((*MockActor)(nil).CreateEIP), ctx, eip)
 }
 
+// CreateIpv6Gateway mocks base method.
+func (m *MockActor) CreateIpv6Gateway(ctx context.Context, gw *aliclient.IPv6Gateway) (*aliclient.IPv6Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateIpv6Gateway", ctx, gw)
+	ret0, _ := ret[0].(*aliclient.IPv6Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateIpv6Gateway indicates an expected call of CreateIpv6Gateway.
+func (mr *MockActorMockRecorder) CreateIpv6Gateway(ctx, gw any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIpv6Gateway", reflect.TypeOf((*MockActor)(nil).CreateIpv6Gateway), ctx, gw)
+}
+
 // CreateNatGateway mocks base method.
 func (m *MockActor) CreateNatGateway(ctx context.Context, ngw *aliclient.NatGateway) (*aliclient.NatGateway, error) {
 	m.ctrl.T.Helper()
@@ -231,6 +246,20 @@ func (mr *MockActorMockRecorder) DeleteEIP(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEIP", reflect.TypeOf((*MockActor)(nil).DeleteEIP), ctx, id)
 }
 
+// DeleteIpv6Gateway mocks base method.
+func (m *MockActor) DeleteIpv6Gateway(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteIpv6Gateway", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteIpv6Gateway indicates an expected call of DeleteIpv6Gateway.
+func (mr *MockActorMockRecorder) DeleteIpv6Gateway(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteIpv6Gateway", reflect.TypeOf((*MockActor)(nil).DeleteIpv6Gateway), ctx, id)
+}
+
 // DeleteNatGateway mocks base method.
 func (m *MockActor) DeleteNatGateway(ctx context.Context, id string) error {
 	m.ctrl.T.Helper()
@@ -343,6 +372,20 @@ func (mr *MockActorMockRecorder) DeleteVpc(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteVpc", reflect.TypeOf((*MockActor)(nil).DeleteVpc), ctx, id)
 }
 
+// EnableVpcIpv6 mocks base method.
+func (m *MockActor) EnableVpcIpv6(ctx context.Context, vpcId string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableVpcIpv6", ctx, vpcId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EnableVpcIpv6 indicates an expected call of EnableVpcIpv6.
+func (mr *MockActorMockRecorder) EnableVpcIpv6(ctx, vpcId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableVpcIpv6", reflect.TypeOf((*MockActor)(nil).EnableVpcIpv6), ctx, vpcId)
+}
+
 // FindEIPsByTags mocks base method.
 func (m *MockActor) FindEIPsByTags(ctx context.Context, tags aliclient.Tags) ([]*aliclient.EIP, error) {
 	m.ctrl.T.Helper()
@@ -356,6 +399,36 @@ func (m *MockActor) FindEIPsByTags(ctx context.Context, tags aliclient.Tags) ([]
 func (mr *MockActorMockRecorder) FindEIPsByTags(ctx, tags any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindEIPsByTags", reflect.TypeOf((*MockActor)(nil).FindEIPsByTags), ctx, tags)
+}
+
+// FindIpv6GatewayByVPC mocks base method.
+func (m *MockActor) FindIpv6GatewayByVPC(ctx context.Context, vpcId string) (*aliclient.IPv6Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindIpv6GatewayByVPC", ctx, vpcId)
+	ret0, _ := ret[0].(*aliclient.IPv6Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindIpv6GatewayByVPC indicates an expected call of FindIpv6GatewayByVPC.
+func (mr *MockActorMockRecorder) FindIpv6GatewayByVPC(ctx, vpcId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindIpv6GatewayByVPC", reflect.TypeOf((*MockActor)(nil).FindIpv6GatewayByVPC), ctx, vpcId)
+}
+
+// FindIpv6GatewaysByTags mocks base method.
+func (m *MockActor) FindIpv6GatewaysByTags(ctx context.Context, tags aliclient.Tags) ([]*aliclient.IPv6Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindIpv6GatewaysByTags", ctx, tags)
+	ret0, _ := ret[0].([]*aliclient.IPv6Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindIpv6GatewaysByTags indicates an expected call of FindIpv6GatewaysByTags.
+func (mr *MockActorMockRecorder) FindIpv6GatewaysByTags(ctx, tags any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindIpv6GatewaysByTags", reflect.TypeOf((*MockActor)(nil).FindIpv6GatewaysByTags), ctx, tags)
 }
 
 // FindNatGatewayByTags mocks base method.
@@ -523,6 +596,21 @@ func (mr *MockActorMockRecorder) GetEIPByAddress(ctx, ipAddress any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEIPByAddress", reflect.TypeOf((*MockActor)(nil).GetEIPByAddress), ctx, ipAddress)
 }
 
+// GetIpv6Gateway mocks base method.
+func (m *MockActor) GetIpv6Gateway(ctx context.Context, id string) (*aliclient.IPv6Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIpv6Gateway", ctx, id)
+	ret0, _ := ret[0].(*aliclient.IPv6Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIpv6Gateway indicates an expected call of GetIpv6Gateway.
+func (mr *MockActorMockRecorder) GetIpv6Gateway(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIpv6Gateway", reflect.TypeOf((*MockActor)(nil).GetIpv6Gateway), ctx, id)
+}
+
 // GetNatGateway mocks base method.
 func (m *MockActor) GetNatGateway(ctx context.Context, id string) (*aliclient.NatGateway, error) {
 	m.ctrl.T.Helper()
@@ -598,6 +686,21 @@ func (mr *MockActorMockRecorder) GetVSwitch(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVSwitch", reflect.TypeOf((*MockActor)(nil).GetVSwitch), ctx, id)
 }
 
+// GetVSwitchIpv6CidrBlock mocks base method.
+func (m *MockActor) GetVSwitchIpv6CidrBlock(ctx context.Context, vSwitchId string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVSwitchIpv6CidrBlock", ctx, vSwitchId)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVSwitchIpv6CidrBlock indicates an expected call of GetVSwitchIpv6CidrBlock.
+func (mr *MockActorMockRecorder) GetVSwitchIpv6CidrBlock(ctx, vSwitchId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVSwitchIpv6CidrBlock", reflect.TypeOf((*MockActor)(nil).GetVSwitchIpv6CidrBlock), ctx, vSwitchId)
+}
+
 // GetVpc mocks base method.
 func (m *MockActor) GetVpc(ctx context.Context, id string) (*aliclient.VPC, error) {
 	m.ctrl.T.Helper()
@@ -611,6 +714,21 @@ func (m *MockActor) GetVpc(ctx context.Context, id string) (*aliclient.VPC, erro
 func (mr *MockActorMockRecorder) GetVpc(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpc", reflect.TypeOf((*MockActor)(nil).GetVpc), ctx, id)
+}
+
+// GetVpcIpv6Info mocks base method.
+func (m *MockActor) GetVpcIpv6Info(ctx context.Context, vpcId string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVpcIpv6Info", ctx, vpcId)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVpcIpv6Info indicates an expected call of GetVpcIpv6Info.
+func (mr *MockActorMockRecorder) GetVpcIpv6Info(ctx, vpcId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpcIpv6Info", reflect.TypeOf((*MockActor)(nil).GetVpcIpv6Info), ctx, vpcId)
 }
 
 // ListEIPs mocks base method.
@@ -774,6 +892,20 @@ func (m *MockActor) RevokeSecurityGroupRule(ctx context.Context, sgId, ruleId, d
 func (mr *MockActorMockRecorder) RevokeSecurityGroupRule(ctx, sgId, ruleId, direction any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSecurityGroupRule", reflect.TypeOf((*MockActor)(nil).RevokeSecurityGroupRule), ctx, sgId, ruleId, direction)
+}
+
+// SetVSwitchIpv6CidrBlock mocks base method.
+func (m *MockActor) SetVSwitchIpv6CidrBlock(ctx context.Context, vSwitchId string, ipv6CidrBlock int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetVSwitchIpv6CidrBlock", ctx, vSwitchId, ipv6CidrBlock)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetVSwitchIpv6CidrBlock indicates an expected call of SetVSwitchIpv6CidrBlock.
+func (mr *MockActorMockRecorder) SetVSwitchIpv6CidrBlock(ctx, vSwitchId, ipv6CidrBlock any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetVSwitchIpv6CidrBlock", reflect.TypeOf((*MockActor)(nil).SetVSwitchIpv6CidrBlock), ctx, vSwitchId, ipv6CidrBlock)
 }
 
 // UnAssociateEIP mocks base method.

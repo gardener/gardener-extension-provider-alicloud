@@ -129,6 +129,10 @@ func (c *FlowContext) useCustomRouteTable() bool {
 		*c.config.Networks.VPC.UseCustomRouteTable
 }
 
+func (c *FlowContext) dualStackEnabled() bool {
+	return c.config.DualStack != nil && c.config.DualStack.Enabled
+}
+
 func (c *FlowContext) commonTagsWithSuffix(suffix string) aliclient.Tags {
 	tags := c.commonTags.Clone()
 	tags[TagKeyName] = fmt.Sprintf("%s-%s", c.namespace, suffix)

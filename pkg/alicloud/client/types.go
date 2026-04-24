@@ -177,6 +177,12 @@ type VPC interface {
 	CreateRouteEntry(request *vpc.CreateRouteEntryRequest) (response *vpc.CreateRouteEntryResponse, err error)
 	DeleteRouteEntry(request *vpc.DeleteRouteEntryRequest) (response *vpc.DeleteRouteEntryResponse, err error)
 	DescribeRouteEntryList(request *vpc.DescribeRouteEntryListRequest) (response *vpc.DescribeRouteEntryListResponse, err error)
+
+	ModifyVpcAttribute(request *vpc.ModifyVpcAttributeRequest) (response *vpc.ModifyVpcAttributeResponse, err error)
+	CreateIpv6Gateway(request *vpc.CreateIpv6GatewayRequest) (response *vpc.CreateIpv6GatewayResponse, err error)
+	DescribeIpv6Gateways(request *vpc.DescribeIpv6GatewaysRequest) (response *vpc.DescribeIpv6GatewaysResponse, err error)
+	DeleteIpv6Gateway(request *vpc.DeleteIpv6GatewayRequest) (response *vpc.DeleteIpv6GatewayResponse, err error)
+	ModifyVSwitchAttribute(request *vpc.ModifyVSwitchAttributeRequest) (response *vpc.ModifyVSwitchAttributeResponse, err error)
 }
 
 // ramClient implements the RAM interface.
