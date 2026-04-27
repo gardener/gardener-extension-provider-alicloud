@@ -42,8 +42,7 @@ type VPC struct {
 	// This will only take effect if VPC ID is set.
 	// +optional
 	GardenerManagedNATGateway *bool
-	// UseCustomRouteTable indicates whether Gardener should create create a custom route table for this shoot.
-	// This will only take effect if VPC ID is set.
+	// UseCustomRouteTable indicates whether Gardener should create a custom route table for this shoot.
 	// +optional
 	UseCustomRouteTable *bool
 }

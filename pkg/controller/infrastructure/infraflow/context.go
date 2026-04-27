@@ -124,8 +124,7 @@ func (c *FlowContext) hasNatGateway() bool {
 }
 
 func (c *FlowContext) useCustomRouteTable() bool {
-	return c.config.Networks.VPC.ID != nil &&
-		c.config.Networks.VPC.UseCustomRouteTable != nil &&
+	return c.config.Networks.VPC.UseCustomRouteTable != nil &&
 		*c.config.Networks.VPC.UseCustomRouteTable
 }
 

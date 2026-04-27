@@ -278,6 +278,10 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					infrastructureConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID}
 				})
 
+				// Note: with a bare VPC.ID and no CIDR, ValidateInfrastructureConfig will produce
+				// unrelated CIDR/zone errors. Assertions below are scoped to the specific field
+				// under test to avoid false failures from those unrelated errors.
+
 				It("should allow omitting ipv6CidrBlock when dualStack.enabled=true", func() {
 					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
 					// no Ipv6CidrBlock set
@@ -392,7 +396,11 @@ var _ = Describe("InfrastructureConfig validation", func() {
 		Context("useCustomRouteTable", func() {
 			var vpcID = "vpc-12345678"
 
-			It("should forbid useCustomRouteTable=true when vpc.id is not set", func() {
+			// Note: VPC is replaced wholesale in these tests, which may produce unrelated
+			// CIDR/zone validation errors. Assertions are scoped to the useCustomRouteTable
+			// field only so that unrelated errors do not cause false failures.
+
+			It("should allow useCustomRouteTable=true when vpc.id is not set", func() {
 				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
 					CIDR:                &vpc,
 					UseCustomRouteTable: ptr.To(true),
@@ -400,10 +408,8 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
-				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":   Equal(field.ErrorTypeInvalid),
-					"Field":  Equal("networks.vpc.useCustomRouteTable"),
-					"Detail": ContainSubstring("useCustomRouteTable can only be set when vpc.id is provided"),
+				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Field": Equal("networks.vpc.useCustomRouteTable"),
 				}))))
 			})
 
@@ -518,9 +524,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
 
-				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Field": Equal("dualStack"),
-				}))))
+				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should allow enabling dualStack (nil -> true)", func() {
@@ -532,9 +536,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
 
-				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Field": Equal("dualStack"),
-				}))))
+				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should forbid disabling dualStack (true -> false)", func() {
@@ -576,9 +578,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newConfig)
 
-				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Field": ContainSubstring("ipv6CidrBlock"),
-				}))))
+				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should allow changing ipv6CidrBlock once set (value -> new value)", func() {
@@ -592,9 +592,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
 
-				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Field": ContainSubstring("ipv6CidrBlock"),
-				}))))
+				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should forbid removing ipv6CidrBlock once set (value -> nil)", func() {
@@ -628,8 +626,25 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
 
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":  Equal(field.ErrorTypeInvalid),
-					"Field": Equal("networks.vpc"),
+					"Type":   Equal(field.ErrorTypeForbidden),
+					"Field":  Equal("networks.vpc.useCustomRouteTable"),
+					"Detail": ContainSubstring("useCustomRouteTable is immutable once set"),
+				}))))
+			})
+
+			It("should forbid changing useCustomRouteTable from false to true", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID, UseCustomRouteTable: ptr.To(false)}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(true)
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeForbidden),
+					"Field":  Equal("networks.vpc.useCustomRouteTable"),
+					"Detail": ContainSubstring("useCustomRouteTable is immutable once set"),
 				}))))
 			})
 
@@ -643,8 +658,25 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
 
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":  Equal(field.ErrorTypeInvalid),
-					"Field": Equal("networks.vpc"),
+					"Type":   Equal(field.ErrorTypeForbidden),
+					"Field":  Equal("networks.vpc.useCustomRouteTable"),
+					"Detail": ContainSubstring("useCustomRouteTable is immutable once set"),
+				}))))
+			})
+
+			It("should forbid changing useCustomRouteTable from true to nil", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID, UseCustomRouteTable: ptr.To(true)}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = nil
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeForbidden),
+					"Field":  Equal("networks.vpc.useCustomRouteTable"),
+					"Detail": ContainSubstring("useCustomRouteTable is immutable once set"),
 				}))))
 			})
 

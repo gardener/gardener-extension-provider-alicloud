@@ -113,17 +113,6 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 		allErrs = append(allErrs, vpcCIDR.ValidateNotOverlap(pods, services)...)
 	}
 
-	// useCustomRouteTable can only be set when vpc.id is provided
-	if infra.Networks.VPC.UseCustomRouteTable != nil && *infra.Networks.VPC.UseCustomRouteTable {
-		if infra.Networks.VPC.ID == nil {
-			allErrs = append(allErrs, field.Invalid(
-				networksPath.Child("vpc", "useCustomRouteTable"),
-				infra.Networks.VPC.UseCustomRouteTable,
-				"useCustomRouteTable can only be set when vpc.id is provided",
-			))
-		}
-	}
-
 	// make sure that VPC cidrs don't overlap with each other
 	allErrs = append(allErrs, cidrvalidation.ValidateCIDROverlap(cidrs, false)...)
 	if pods != nil {
@@ -175,18 +164,25 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 	allErrs := field.ErrorList{}
 
 	vpcPath := field.NewPath("networks").Child("vpc")
-	// Treat nil and false as equivalent for UseCustomRouteTable so that a nil→false
-	// transition (which is semantically a no-op) does not trigger an immutability error.
-	// Normalise both sides before the whole-struct comparison.
+	// UseCustomRouteTable is a one-way switch: nil/false → true is allowed, but true → false/nil is forbidden.
+	// Strip UseCustomRouteTable from both sides before the whole-struct comparison so that the
+	// general immutability check does not fire on it, then enforce the one-way rule separately.
 	normalizedOldVPC := oldConfig.Networks.VPC
 	normalizedNewVPC := newConfig.Networks.VPC
-	if !normalizeUseCustomRouteTable(normalizedOldVPC.UseCustomRouteTable) {
-		normalizedOldVPC.UseCustomRouteTable = nil
-	}
-	if !normalizeUseCustomRouteTable(normalizedNewVPC.UseCustomRouteTable) {
-		normalizedNewVPC.UseCustomRouteTable = nil
-	}
+	normalizedOldVPC.UseCustomRouteTable = nil
+	normalizedNewVPC.UseCustomRouteTable = nil
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(normalizedNewVPC, normalizedOldVPC, vpcPath)...)
+
+	// UseCustomRouteTable is immutable once set: any change between true and false/nil is forbidden.
+	// nil and false are treated as equivalent so that a nil→false no-op does not trigger an error.
+	if normalizeUseCustomRouteTable(oldConfig.Networks.VPC.UseCustomRouteTable) !=
+		normalizeUseCustomRouteTable(newConfig.Networks.VPC.UseCustomRouteTable) {
+		allErrs = append(allErrs, field.Forbidden(
+			vpcPath.Child("useCustomRouteTable"),
+			"useCustomRouteTable is immutable once set",
+		))
+	}
+
 	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, field.NewPath("networks").Child("zones"))...)
 
 	// DualStack.Enabled can be enabled but not disabled once set

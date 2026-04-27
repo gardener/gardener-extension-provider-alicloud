@@ -951,8 +951,7 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>UseCustomRouteTable indicates whether Gardener should create create a custom route table for this shoot.
-This will only take effect if VPC ID is set.</p>
+<p>UseCustomRouteTable indicates whether Gardener should create a custom route table for this shoot.</p>
 </td>
 </tr>
 </tbody>
