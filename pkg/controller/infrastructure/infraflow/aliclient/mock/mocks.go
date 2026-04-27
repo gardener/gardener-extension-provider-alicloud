@@ -260,6 +260,20 @@ func (mr *MockActorMockRecorder) DeleteIpv6Gateway(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteIpv6Gateway", reflect.TypeOf((*MockActor)(nil).DeleteIpv6Gateway), ctx, id)
 }
 
+// DeleteNLB mocks base method.
+func (m *MockActor) DeleteNLB(ctx context.Context, loadBalancerID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteNLB", ctx, loadBalancerID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteNLB indicates an expected call of DeleteNLB.
+func (mr *MockActorMockRecorder) DeleteNLB(ctx, loadBalancerID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNLB", reflect.TypeOf((*MockActor)(nil).DeleteNLB), ctx, loadBalancerID)
+}
+
 // DeleteNatGateway mocks base method.
 func (m *MockActor) DeleteNatGateway(ctx context.Context, id string) error {
 	m.ctrl.T.Helper()
@@ -429,6 +443,21 @@ func (m *MockActor) FindIpv6GatewaysByTags(ctx context.Context, tags aliclient.T
 func (mr *MockActorMockRecorder) FindIpv6GatewaysByTags(ctx, tags any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindIpv6GatewaysByTags", reflect.TypeOf((*MockActor)(nil).FindIpv6GatewaysByTags), ctx, tags)
+}
+
+// FindNLBsByTags mocks base method.
+func (m *MockActor) FindNLBsByTags(ctx context.Context, tags aliclient.Tags) ([]*aliclient.NLBInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindNLBsByTags", ctx, tags)
+	ret0, _ := ret[0].([]*aliclient.NLBInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindNLBsByTags indicates an expected call of FindNLBsByTags.
+func (mr *MockActorMockRecorder) FindNLBsByTags(ctx, tags any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindNLBsByTags", reflect.TypeOf((*MockActor)(nil).FindNLBsByTags), ctx, tags)
 }
 
 // FindNatGatewayByTags mocks base method.
@@ -892,6 +921,20 @@ func (m *MockActor) RevokeSecurityGroupRule(ctx context.Context, sgId, ruleId, d
 func (mr *MockActorMockRecorder) RevokeSecurityGroupRule(ctx, sgId, ruleId, direction any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSecurityGroupRule", reflect.TypeOf((*MockActor)(nil).RevokeSecurityGroupRule), ctx, sgId, ruleId, direction)
+}
+
+// SetNLBDeletionProtection mocks base method.
+func (m *MockActor) SetNLBDeletionProtection(ctx context.Context, loadBalancerID string, enable bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetNLBDeletionProtection", ctx, loadBalancerID, enable)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetNLBDeletionProtection indicates an expected call of SetNLBDeletionProtection.
+func (mr *MockActorMockRecorder) SetNLBDeletionProtection(ctx, loadBalancerID, enable any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetNLBDeletionProtection", reflect.TypeOf((*MockActor)(nil).SetNLBDeletionProtection), ctx, loadBalancerID, enable)
 }
 
 // SetVSwitchIpv6CidrBlock mocks base method.

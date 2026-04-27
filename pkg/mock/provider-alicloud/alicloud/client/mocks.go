@@ -78,6 +78,21 @@ func (mr *MockClientFactoryMockRecorder) NewECSClient(region, accessKeyID, acces
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewECSClient", reflect.TypeOf((*MockClientFactory)(nil).NewECSClient), region, accessKeyID, accessKeySecret)
 }
 
+// NewNLBClient mocks base method.
+func (m *MockClientFactory) NewNLBClient(region, accessKeyID, accessKeySecret string) (client.NLB, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewNLBClient", region, accessKeyID, accessKeySecret)
+	ret0, _ := ret[0].(client.NLB)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewNLBClient indicates an expected call of NewNLBClient.
+func (mr *MockClientFactoryMockRecorder) NewNLBClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewNLBClient", reflect.TypeOf((*MockClientFactory)(nil).NewNLBClient), region, accessKeyID, accessKeySecret)
+}
+
 // NewOSSClient mocks base method.
 func (m *MockClientFactory) NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (client.OSS, error) {
 	m.ctrl.T.Helper()

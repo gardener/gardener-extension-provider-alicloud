@@ -11,6 +11,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/nlb"
 	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
@@ -61,6 +62,7 @@ type ClientFactory interface {
 	NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (OSS, error)
 	NewOSSClientFromSecretRef(ctx context.Context, c client.Client, secretRef *corev1.SecretReference, region string) (OSS, error)
 	NewDNSClient(region, accessKeyID, accessKeySecret string) (DNS, error)
+	NewNLBClient(region, accessKeyID, accessKeySecret string) (NLB, error)
 }
 
 // ecsClient implements the ECS interface.
@@ -126,6 +128,23 @@ type SLB interface {
 	GetFirstVServerGroupName(ctx context.Context, region, loadBalancerID string) (string, error)
 	DeleteLoadBalancer(ctx context.Context, region, loadBalancerID string) error
 	SetLoadBalancerDeleteProtection(ctx context.Context, region, loadBalancerID string, protection bool) error
+}
+
+// nlbClient implements the NLB interface.
+type nlbClient struct {
+	nlb.Client
+}
+
+// NLB is an interface which declares NLB (Network Load Balancer) related methods.
+type NLB interface {
+	// ListTagResources returns NLB resources matching the given tag key/value.
+	ListTagResources(request *nlb.ListTagResourcesRequest) (response *nlb.ListTagResourcesResponse, err error)
+	// GetLoadBalancerAttribute returns the attributes of an NLB instance.
+	GetLoadBalancerAttribute(request *nlb.GetLoadBalancerAttributeRequest) (response *nlb.GetLoadBalancerAttributeResponse, err error)
+	// UpdateLoadBalancerProtection enables or disables deletion protection on an NLB instance.
+	UpdateLoadBalancerProtection(request *nlb.UpdateLoadBalancerProtectionRequest) (response *nlb.UpdateLoadBalancerProtectionResponse, err error)
+	// DeleteLoadBalancer deletes the NLB instance with the given ID.
+	DeleteLoadBalancer(request *nlb.DeleteLoadBalancerRequest) (response *nlb.DeleteLoadBalancerResponse, err error)
 }
 
 // vpcClient implements the VPC interface.

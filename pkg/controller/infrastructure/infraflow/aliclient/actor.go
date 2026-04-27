@@ -14,6 +14,7 @@ import (
 	alierrors "github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/nlb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -99,11 +100,19 @@ type Actor interface {
 
 	SetVSwitchIpv6CidrBlock(ctx context.Context, vSwitchId string, ipv6CidrBlock int) error
 	GetVSwitchIpv6CidrBlock(ctx context.Context, vSwitchId string) (string, error)
+
+	// FindNLBsByTags returns NLB instances matching the given tags.
+	FindNLBsByTags(ctx context.Context, tags Tags) ([]*NLBInfo, error)
+	// SetNLBDeletionProtection enables or disables deletion protection on an NLB instance.
+	SetNLBDeletionProtection(ctx context.Context, loadBalancerID string, enable bool) error
+	// DeleteNLB deletes the NLB instance with the given ID and waits until it is gone.
+	DeleteNLB(ctx context.Context, loadBalancerID string) error
 }
 
 type actor struct {
 	vpcClient    alicloudclient.VPC
 	ecsClient    alicloudclient.ECS
+	nlbClient    alicloudclient.NLB
 	Logger       logr.Logger
 	PollInterval time.Duration
 }
@@ -121,9 +130,14 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 	if err != nil {
 		return nil, err
 	}
+	nlbClient, err := clientFactory.NewNLBClient(region, accessKeyID, secretAccessKey)
+	if err != nil {
+		return nil, err
+	}
 	return &actor{
 		vpcClient:    vpcClient,
 		ecsClient:    ecsClient,
+		nlbClient:    nlbClient,
 		Logger:       log.Log.WithName("alicloud-client"),
 		PollInterval: 5 * time.Second,
 	}, nil
@@ -1971,4 +1985,111 @@ func (c *actor) GetVSwitchIpv6CidrBlock(_ context.Context, vSwitchId string) (st
 		return "", fmt.Errorf("vswitch %s not found", vSwitchId)
 	}
 	return vsw.Ipv6CidrBlock, nil
+}
+
+func (c *actor) FindNLBsByTags(_ context.Context, tags Tags) ([]*NLBInfo, error) {
+	req := nlb.CreateListTagResourcesRequest()
+	req.ResourceType = "loadbalancer"
+	var reqTags []nlb.ListTagResourcesTag
+	for k, v := range tags {
+		reqTags = append(reqTags, nlb.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTags
+
+	idList, err := c.listNlbTagResources(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*NLBInfo
+	for _, id := range idList {
+		info, err := c.getNLB(id)
+		if err != nil {
+			return nil, err
+		}
+		if info != nil {
+			result = append(result, info)
+		}
+	}
+	return result, nil
+}
+
+func (c *actor) listNlbTagResources(req *nlb.ListTagResourcesRequest) ([]string, error) {
+	var idList []string
+
+	respList, err := page_call(c.nlbClient.ListTagResources, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var theList []nlb.TagResultModelList
+	for _, resp := range respList {
+		theList = append(theList, resp.TagResources...)
+	}
+	for _, item := range theList {
+		if !contains(idList, item.ResourceId) {
+			idList = append(idList, item.ResourceId)
+		}
+	}
+
+	return idList, nil
+}
+
+func (c *actor) getNLB(id string) (*NLBInfo, error) {
+	req := nlb.CreateGetLoadBalancerAttributeRequest()
+	req.LoadBalancerId = id
+	resp, err := callApi(c.nlbClient.GetLoadBalancerAttribute, req)
+	if err != nil {
+		if serverErr, ok := err.(*alierrors.ServerError); ok {
+			ec := serverErr.ErrorCode()
+			if ec == "ResourceNotFound.loadBalancer" || ec == "ResourceNotFound.LoadBalancer" {
+				return nil, nil
+			}
+		}
+		return nil, err
+	}
+	if resp.LoadBalancerId == "" {
+		return nil, nil
+	}
+	return fromNLB(resp), nil
+}
+
+func fromNLB(resp *nlb.GetLoadBalancerAttributeResponse) *NLBInfo {
+	status := resp.LoadBalancerStatus
+	return &NLBInfo{
+		LoadBalancerId: resp.LoadBalancerId,
+		Name:           resp.LoadBalancerName,
+		VpcId:          resp.VpcId,
+		Status:         &status,
+	}
+}
+
+func (c *actor) SetNLBDeletionProtection(_ context.Context, loadBalancerID string, enable bool) error {
+	req := nlb.CreateUpdateLoadBalancerProtectionRequest()
+	req.LoadBalancerId = loadBalancerID
+	req.DeletionProtectionEnabled = requests.NewBoolean(enable)
+	_, err := callApi(c.nlbClient.UpdateLoadBalancerProtection, req)
+	return err
+}
+
+func (c *actor) DeleteNLB(ctx context.Context, loadBalancerID string) error {
+	current, err := c.getNLB(loadBalancerID)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return nil
+	}
+	req := nlb.CreateDeleteLoadBalancerRequest()
+	req.LoadBalancerId = loadBalancerID
+	if _, err := callApi(c.nlbClient.DeleteLoadBalancer, req); err != nil {
+		return err
+	}
+	return wait.PollUntilContextCancel(ctx, c.PollInterval, false, func(_ context.Context) (bool, error) {
+		info, err := c.getNLB(loadBalancerID)
+		if err != nil {
+			return false, err
+		}
+		return info == nil, nil
+	})
 }

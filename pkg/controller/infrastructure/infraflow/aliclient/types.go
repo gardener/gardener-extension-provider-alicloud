@@ -129,3 +129,11 @@ type IPv6Gateway struct {
 	VpcId         string
 	Status        *string
 }
+
+// NLBInfo is the struct for an NLB (Network Load Balancer) instance
+type NLBInfo struct {
+	LoadBalancerId string
+	Name           string
+	VpcId          string
+	Status         *string
+}
