@@ -1623,8 +1623,16 @@ func (c *actor) DeleteRouteTable(ctx context.Context, id string) error {
 	}
 	req := vpc.CreateDeleteRouteTableRequest()
 	req.RouteTableId = id
-	_, err = callApi(c.vpcClient.DeleteRouteTable, req)
-	return err
+	if _, err = callApi(c.vpcClient.DeleteRouteTable, req); err != nil {
+		return err
+	}
+	return wait.PollUntilContextCancel(ctx, c.PollInterval, false, func(_ context.Context) (bool, error) {
+		rt, err := c.GetRouteTable(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		return rt == nil, nil
+	})
 }
 
 func (c *actor) AssociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error {

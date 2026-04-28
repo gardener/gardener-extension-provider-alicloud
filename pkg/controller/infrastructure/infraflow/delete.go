@@ -38,14 +38,14 @@ func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 		c.deleteSecurityGroup,
 		Timeout(defaultTimeout))
 
-	deleteRouteTable := c.AddTask(g, "delete route table",
-		c.deleteRouteTable,
-		DoIf(c.useCustomRouteTable()), Timeout(defaultTimeout), Dependencies(deleteZones))
-
 	deleteIpv6Gateway := c.AddTask(g, "delete ipv6 gateway",
 		c.deleteIpv6Gateway,
 		DoIf(c.dualStackEnabled() && c.config.Networks.VPC.ID == nil), Timeout(defaultLongTimeout),
-		Dependencies(deleteRouteTable))
+		Dependencies(deleteZones))
+
+	deleteRouteTable := c.AddTask(g, "delete route table",
+		c.deleteRouteTable,
+		DoIf(c.useCustomRouteTable()), Timeout(defaultTimeout), Dependencies(deleteZones, deleteIpv6Gateway))
 
 	_ = c.AddTask(g, "delete VPC",
 		c.deleteVpc,
