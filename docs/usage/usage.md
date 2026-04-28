@@ -70,6 +70,15 @@ Please make sure the provided credentials have the correct privileges. You can u
           },
           {
               "Action": [
+                  "nlb:*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                  "*"
+              ]
+          },
+          {
+              "Action": [
                   "ram:GetRole",
                   "ram:CreateRole",
                   "ram:CreateServiceLinkedRole"
@@ -103,14 +112,18 @@ An example `InfrastructureConfig` for the Alicloud extension looks as follows:
 ```yaml
 apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
 kind: InfrastructureConfig
+# dualStack:
+#   enabled: true
 networks:
   vpc: # specify either 'id' or 'cidr'
   # id: my-vpc
     cidr: 10.250.0.0/16
   # gardenerManagedNATGateway: true
+  # useCustomRouteTable: true
   zones:
   - name: eu-central-1a
     workers: 10.250.1.0/24
+  # ipv6CidrBlock: 0
   # natGateway:
     # eipAllocationID: eip-ufxsdg122elmszcg
 ```
@@ -146,6 +159,108 @@ If provided, no new Elastic IP will be created and, instead, the Elastic IP spec
 
 ⚠️ If you change this field for an already existing infrastructure then it will disrupt egress traffic while Alicloud applies this change, because the NAT gateway must be recreated with the new Elastic IP association.
 Also, please note that the existing Elastic IP will be permanently deleted if it was earlier created by the Alicloud extension.
+
+## Custom Route Table (`networks.vpc.useCustomRouteTable`)
+
+`networks.vpc.useCustomRouteTable` defaults to `false` (or `nil`, which is equivalent). Setting it to `true` instructs Gardener to create a dedicated route table for this shoot instead of using the VPC's system default route table. All shoot VSwitches will be associated with this custom route table.
+
+Gardener adds the following routes to the custom route table:
+* `0.0.0.0/0 → NatGateway` — default IPv4 egress route.
+* `::/0 → IPv6Gateway` — default IPv6 egress route (only when `dualStack.enabled: true`).
+
+This feature works regardless of whether the VPC is Gardener-managed or user-provided.
+
+**Immutability:** Once set to `true`, `useCustomRouteTable` cannot be changed back to `false` or removed. Attempting to do so on an existing shoot will be rejected by admission validation.
+
+**CCM integration:** The route table ID is written to `InfrastructureStatus.VPC.routeTableID` and forwarded to the Cloud Controller Manager as `routeTableIDS`, so CCM can manage pod-to-node routes in the correct table.
+
+## Dual-Stack Support (`dualStack`)
+
+`dualStack.enabled` defaults to `false`. Setting `dualStack.enabled: true` at the top level of `InfrastructureConfig` enables dual-stack for the shoot so that you can create dual-stacked NLB services in the shoot. This causes Gardener to:
+
+* Enable IPv6 on the VPC (Gardener-managed VPC only).
+* Ensure an IPv6 Gateway exists in the VPC.
+* Assign a `/64` IPv6 CIDR to each shoot VSwitch.
+* Add a `::/0 → IPv6Gateway` route (to the system default route table, or to the custom route table when `useCustomRouteTable: true`).
+
+**Prerequisites — Region support:** Dual-stack requires Alibaba Cloud NLB (Network Load Balancer) support in the region. Supported regions are:
+
+`cn-hangzhou`, `cn-beijing`, `cn-shenzhen`, `cn-shanghai`, `cn-qingdao`, `cn-zhangjiakou`, `cn-chengdu`, `cn-guangzhou`, `cn-hongkong`, `cn-heyuan`, `cn-wulanchabu`, `ap-southeast-7`, `ap-southeast-6`, `ap-southeast-1`, `ap-northeast-1`, `ap-northeast-2`, `ap-southeast-3`, `ap-southeast-5`, `eu-central-1`, `eu-west-1`, `us-east-1`, `us-west-1`, `na-south-1`
+
+### Gardener-managed VPC (`networks.vpc.cidr`)
+
+When Gardener creates the VPC, it will automatically enable IPv6 on the VPC and create an IPv6 Gateway.
+
+**`networks.zones[].ipv6CidrBlock` is required** for every zone in this case. Each zone contains one VSwitch, and `ipv6CidrBlock` specifies which `/64` subnet from the VPC's `/56` IPv6 CIDR block is assigned to that zone's VSwitch. The value is an integer in the range **0–255**. For example, if the VPC IPv6 CIDR is `2408:xxxx::/56`, then setting `ipv6CidrBlock: 0` on a zone assigns `2408:xxxx:0::/64` to that zone's VSwitch, and `ipv6CidrBlock: 1` assigns `2408:xxxx:1::/64` to another zone's VSwitch.
+
+Values must be **unique across all zones** in the same shoot. 
+
+### User-provided VPC (`networks.vpc.id`)
+
+Before enable dual-stack, you must enable IPv6 on the VPC and ensure an IPv6 Gateway exists:
+
+* When you enable IPv6 on a VPC through the **Alibaba Cloud console**, an IPv6 Gateway is **created automatically**. The console also offers the option to enable IPv6 on all existing VSwitches in the VPC at the same time (assigning each a `/64` CIDR).
+* Gardener validates at shoot reconcile time that the VPC has IPv6 enabled and that an IPv6 Gateway exists. If either is missing, the shoot reconcile will fail with a descriptive error.
+
+**`networks.zones[].ipv6CidrBlock` is optional** for user-provided VPCs. The behavior depends on whether a value is provided:
+
+* **Omitted:** Gardener will not attempt to assign an IPv6 CIDR to the VSwitch. If the VSwitch already has an IPv6 CIDR (e.g., assigned via the Alibaba Cloud console), it will be used as-is. However, if the VSwitch does not yet have an IPv6 CIDR, reconciliation will fail with an error — in that case you must set `ipv6CidrBlock` to a valid value (0–255) so that Gardener can assign one.
+* **Set to an integer 0–255:** Gardener will attempt to assign the corresponding `/64` subnet to the VSwitch, when the VSwitch does not yet have an IPv6 CIDR.
+
+**Important notes for user-provided VPCs:**
+* If a VSwitch already has an IPv6 CIDR assigned, Gardener will **not** overwrite it — the `ipv6CidrBlock` setting has no effect in that case.
+* If the target `/64` subnet is already occupied by another VSwitch in the VPC, the API call will fail. Change `ipv6CidrBlock` to a different value and trigger reconciliation.
+* When multiple shoots share the same VPC, plan your `ipv6CidrBlock` values carefully to avoid conflicts. Each VSwitch in the VPC can hold only one `/64` IPv6 CIDR.
+* Once `ipv6CidrBlock` is set for a zone, it cannot be removed (set back to `nil`). It can be changed to a different integer value.
+
+**Immutability:** Once `dualStack.enabled: true` is set, it cannot be changed back to `false`. This is enforced by admission validation.
+
+### Creating Dual-Stack NLB Services
+
+Once dual-stack is enabled, the Cloud Controller Manager can provision **DualStack NLB (Network Load Balancer)** services in the shoot cluster. Refer to the [Alibaba Cloud NLB annotations guide](https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/configure-nlb-instances-by-using-annotations) for the full list of supported annotations.
+
+**Zone requirement:** Alibaba Cloud requires an NLB instance to span at least **two VSwitches in different NLB-supported zones**. Before creating an NLB service, verify that the shoot's infrastructure contains at least two zones. If not, add additional zones to `networks.zones` in the `InfrastructureConfig` and reconcile the shoot first.
+
+The VSwitch IDs and their corresponding zones are available in the shoot's infrastructure status, which can be found in the shoot's control plane namespace on the seed cluster.
+
+### Example: Gardener-managed VPC with dual-stack and custom route table
+
+```yaml
+apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+kind: InfrastructureConfig
+dualStack:
+  enabled: true
+networks:
+  vpc:
+    cidr: 10.250.0.0/16
+    useCustomRouteTable: true
+  zones:
+  - name: cn-hangzhou-i
+    workers: 10.250.0.0/24
+    ipv6CidrBlock: 0
+  - name: cn-hangzhou-j
+    workers: 10.250.1.0/24
+    ipv6CidrBlock: 1
+```
+
+### Example: User-provided VPC with dual-stack
+
+```yaml
+apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+kind: InfrastructureConfig
+dualStack:
+  enabled: true
+networks:
+  vpc:
+    id: vpc-xxxxxxxxxxxxxxx
+  zones:
+  - name: cn-hangzhou-i
+    workers: 10.250.0.0/24
+    # ipv6CidrBlock: 0   # optional; omit if VSwitches already have IPv6 CIDRs
+  - name: cn-hangzhou-j
+    workers: 10.250.1.0/24
+    # ipv6CidrBlock: 1
+```
 
 ## `ControlPlaneConfig`
 
