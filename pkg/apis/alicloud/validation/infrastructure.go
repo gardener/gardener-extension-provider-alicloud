@@ -124,15 +124,12 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 
 	// DualStack validation
 	if infra.DualStack != nil && infra.DualStack.Enabled {
-		isManagedVPC := infra.Networks.VPC.ID == nil
 		seen := sets.New[int]()
 		for i, zone := range infra.Networks.Zones {
 			zonePath := networksPath.Child("zones").Index(i).Child("ipv6CidrBlock")
 			if zone.Ipv6CidrBlock == nil {
-				if isManagedVPC {
-					allErrs = append(allErrs, field.Required(zonePath,
-						"ipv6CidrBlock is required when dualStack.enabled is true and VPC is managed by Gardener"))
-				}
+				allErrs = append(allErrs, field.Required(zonePath,
+					"ipv6CidrBlock is required when dualStack.enabled is true"))
 			} else {
 				v := *zone.Ipv6CidrBlock
 				if v < 0 || v > 255 {

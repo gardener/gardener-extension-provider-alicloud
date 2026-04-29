@@ -202,15 +202,11 @@ Before enable dual-stack, you must enable IPv6 on the VPC and ensure an IPv6 Gat
 * When you enable IPv6 on a VPC through the **Alibaba Cloud console**, an IPv6 Gateway is **created automatically**. The console also offers the option to enable IPv6 on all existing VSwitches in the VPC at the same time (assigning each a `/64` CIDR). **We strongly recommend against using this bulk-enable option.** If a VSwitch already has an IPv6 CIDR assigned, Gardener will not overwrite it, which means any `ipv6CidrBlock` value you specify in the shoot will have no effect. More importantly, the Alibaba Cloud console assigns subnet indices arbitrarily, giving you no visibility or control over which `/64` block each VSwitch receives. Since a VPC's `/56` IPv6 CIDR provides only 256 non-overlapping `/64` subnets (indices 0–255), careful planning is essential — especially when multiple shoots share the same VPC. Instead, leave the VSwitch IPv6 upgrade to Gardener and control the assignment explicitly via `ipv6CidrBlock`.
 * Gardener validates at shoot reconcile time that the VPC has IPv6 enabled and that an IPv6 Gateway exists. If either is missing, the shoot reconcile will fail with a descriptive error. If the VPC was enabled for IPv6 via means other than the Alibaba Cloud console (which normally creates the IPv6 Gateway automatically), you may need to create the IPv6 Gateway manually. Note that each VPC can have at most one IPv6 Gateway.
 
-**`networks.zones[].ipv6CidrBlock` is optional** for user-provided VPCs. The behavior depends on whether a value is provided:
-
-* **Omitted:** Gardener will not attempt to assign an IPv6 CIDR to the VSwitch. If the VSwitch already has an IPv6 CIDR (e.g., assigned via the Alibaba Cloud console), it will be used as-is. However, if the VSwitch does not yet have an IPv6 CIDR, reconciliation will fail with an error — in that case you must set `ipv6CidrBlock` to a valid value (0–255) so that Gardener can assign one.
-* **Set to an integer 0–255:** Gardener will attempt to assign the corresponding `/64` subnet to the VSwitch, when the VSwitch does not yet have an IPv6 CIDR.
+**`networks.zones[].ipv6CidrBlock` is required** for every zone regardless of whether the VPC is Gardener-managed or user-provided. The value is an integer in the range **0–255** that selects the `/64` subnet to assign to that zone's VSwitch. If the VSwitch already has an IPv6 CIDR assigned (e.g., via the Alibaba Cloud console), Gardener will **not** overwrite it and the value is effectively a no-op for that VSwitch — but it must still be provided.
 
 **Important notes for user-provided VPCs:**
-* If a VSwitch already has an IPv6 CIDR assigned, Gardener will **not** overwrite it — the `ipv6CidrBlock` setting has no effect in that case.
 * If the target `/64` subnet is already occupied by another VSwitch in the VPC, the API call will fail. Change `ipv6CidrBlock` to a different value and trigger reconciliation.
-* When multiple shoots share the same VPC, plan your `ipv6CidrBlock` values carefully to avoid conflicts. Each VSwitch in the VPC can hold only one `/64` IPv6 CIDR.
+* When multiple shoots share the same VPC, plan your `ipv6CidrBlock` values carefully to avoid conflicts. Each VSwitch in the VPC can hold only one `/64` IPv6 CIDR, and there are only 256 available slots (0–255) per VPC.
 * Once `ipv6CidrBlock` is set for a zone, it cannot be removed (set back to `nil`). It can be changed to a different integer value.
 
 **Immutability:** Once `dualStack.enabled: true` is set, it cannot be changed back to `false`. This is enforced by admission validation.
@@ -222,6 +218,33 @@ Once dual-stack is enabled, the Cloud Controller Manager can provision **DualSta
 **Zone requirement:** Alibaba Cloud requires an NLB instance to span at least **two VSwitches in different NLB-supported zones**. Before creating an NLB service, verify that the shoot's infrastructure contains at least two zones. If not, add additional zones to `networks.zones` in the `InfrastructureConfig` and reconcile the shoot first.
 
 The VSwitch IDs and their corresponding zones are available in the shoot's infrastructure status, which can be found in the shoot's control plane namespace on the seed cluster.
+
+The following is an example of a dual-stack NLB Service. Replace the `zone-maps` annotation values with the actual zone names and VSwitch IDs from the shoot's infrastructure status:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nlb-service
+  annotations:
+    # Required: map each zone to its VSwitch ID (at least two zones).
+    # Obtain zone names and VSwitch IDs from the shoot's infrastructure status.
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-zone-maps: "cn-hangzhou-i:vsw-aaaaaaaaaaaaaaaa,cn-hangzhou-j:vsw-bbbbbbbbbbbbbbbb"
+    # Optional: set IP version to DualStack (IPv4 + IPv6).
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-ip-version: DualStack
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-ipv6-address-type: internet
+spec:
+  type: LoadBalancer
+  # Required: select NLB instead of the default SLB.
+  loadBalancerClass: alibabacloud.com/nlb
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 80
+  selector:
+    app: my-app
+```
 
 ### Example: Gardener-managed VPC with dual-stack and custom route table
 
@@ -256,10 +279,10 @@ networks:
   zones:
   - name: cn-hangzhou-i
     workers: 10.250.0.0/24
-    # ipv6CidrBlock: 0   # optional; omit if VSwitches already have IPv6 CIDRs
+    ipv6CidrBlock: 0
   - name: cn-hangzhou-j
     workers: 10.250.1.0/24
-    # ipv6CidrBlock: 1
+    ipv6CidrBlock: 1
 ```
 
 ## `ControlPlaneConfig`

@@ -282,14 +282,19 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				// unrelated CIDR/zone errors. Assertions below are scoped to the specific field
 				// under test to avoid false failures from those unrelated errors.
 
-				It("should allow omitting ipv6CidrBlock when dualStack.enabled=true", func() {
+				It("should require ipv6CidrBlock for every zone when dualStack.enabled=true and user-provided VPC", func() {
 					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
 					// no Ipv6CidrBlock set
 
 					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
-					Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type": Equal(field.ErrorTypeRequired),
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":  Equal(field.ErrorTypeRequired),
+						"Field": Equal("networks.zones[0].ipv6CidrBlock"),
+					}))))
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":  Equal(field.ErrorTypeRequired),
+						"Field": Equal("networks.zones[1].ipv6CidrBlock"),
 					}))))
 				})
 
