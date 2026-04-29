@@ -199,8 +199,8 @@ Values must be **unique across all zones** in the same shoot.
 
 Before enable dual-stack, you must enable IPv6 on the VPC and ensure an IPv6 Gateway exists:
 
-* When you enable IPv6 on a VPC through the **Alibaba Cloud console**, an IPv6 Gateway is **created automatically**. The console also offers the option to enable IPv6 on all existing VSwitches in the VPC at the same time (assigning each a `/64` CIDR).
-* Gardener validates at shoot reconcile time that the VPC has IPv6 enabled and that an IPv6 Gateway exists. If either is missing, the shoot reconcile will fail with a descriptive error.
+* When you enable IPv6 on a VPC through the **Alibaba Cloud console**, an IPv6 Gateway is **created automatically**. The console also offers the option to enable IPv6 on all existing VSwitches in the VPC at the same time (assigning each a `/64` CIDR). **We strongly recommend against using this bulk-enable option.** If a VSwitch already has an IPv6 CIDR assigned, Gardener will not overwrite it, which means any `ipv6CidrBlock` value you specify in the shoot will have no effect. More importantly, the Alibaba Cloud console assigns subnet indices arbitrarily, giving you no visibility or control over which `/64` block each VSwitch receives. Since a VPC's `/56` IPv6 CIDR provides only 256 non-overlapping `/64` subnets (indices 0–255), careful planning is essential — especially when multiple shoots share the same VPC. Instead, leave the VSwitch IPv6 upgrade to Gardener and control the assignment explicitly via `ipv6CidrBlock`.
+* Gardener validates at shoot reconcile time that the VPC has IPv6 enabled and that an IPv6 Gateway exists. If either is missing, the shoot reconcile will fail with a descriptive error. If the VPC was enabled for IPv6 via means other than the Alibaba Cloud console (which normally creates the IPv6 Gateway automatically), you may need to create the IPv6 Gateway manually. Note that each VPC can have at most one IPv6 Gateway.
 
 **`networks.zones[].ipv6CidrBlock` is optional** for user-provided VPCs. The behavior depends on whether a value is provided:
 
