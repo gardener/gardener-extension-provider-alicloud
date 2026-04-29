@@ -210,10 +210,12 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 		}
 	}
 
-	// Clean up NLB instances created by CCM (tagged with ack.aliyun.com=<namespace>).
-	if err := a.cleanupNLBs(ctx, infra, shootCloudProviderCredentials); err != nil {
-		return err
-	}
+	// NLB cleanup is currently disabled: deleting NLB instances requires additional RAM permissions
+	// that may not be present on existing shoots. The underlying implementation is retained for
+	// future use once the permission requirements are communicated to users.
+	// if err := a.cleanupNLBs(ctx, infra, shootCloudProviderCredentials); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
