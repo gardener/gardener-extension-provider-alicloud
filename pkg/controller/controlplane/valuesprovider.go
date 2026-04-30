@@ -286,6 +286,8 @@ type cloudConfig struct {
 
 		AccessKeyID     string `json:"accessKeyID"`
 		AccessKeySecret string `json:"accessKeySecret"`
+
+		RouteTableIDS string `json:"routeTableIDS,omitempty"`
 	}
 }
 
@@ -338,6 +340,11 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 	cfg.Global.AccessKeyID = base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeyID))
 	cfg.Global.AccessKeySecret = base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret))
 	cfg.Global.Region = cp.Spec.Region
+
+	// Set route table ID so the CCM uses this specific table instead of auto-discovering
+	if infraStatus.VPC.RouteTableID != "" {
+		cfg.Global.RouteTableIDS = infraStatus.VPC.RouteTableID
+	}
 
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {
