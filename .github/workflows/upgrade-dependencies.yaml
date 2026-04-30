@@ -7,7 +7,7 @@ on:
 jobs:
   upgrade-pullrequests:
     if: ${{ github.repository_owner == 'gardener' }}
-    uses: gardener/cc-utils/.github/workflows/upgrade-dependencies.yaml@master
+    uses: gardener/cc-utils/.github/workflows/upgrade-dependencies.yaml@v1
     permissions:
       contents: read
       id-token: write
