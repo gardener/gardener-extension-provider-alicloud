@@ -161,7 +161,8 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 	allErrs := field.ErrorList{}
 
 	vpcPath := field.NewPath("networks").Child("vpc")
-	// UseCustomRouteTable is a one-way switch: nil/false → true is allowed, but true → false/nil is forbidden.
+	// UseCustomRouteTable is fully immutable once set: any change (nil/false → true, true → false/nil) is forbidden.
+	// The only permitted no-op is nil ↔ false, which are treated as equivalent.
 	// Strip UseCustomRouteTable from both sides before the whole-struct comparison so that the
 	// general immutability check does not fire on it, then enforce the one-way rule separately.
 	normalizedOldVPC := oldConfig.Networks.VPC
