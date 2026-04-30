@@ -94,8 +94,8 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-
-		machineImages = helper.AppendMachineImage(machineImages, *machineImage)
+		machineImages = helper.EnsureUniformMachineImages(machineImages, w.cluster.CloudProfile.Spec.MachineCapabilities)
+		machineImages = helper.AppendMachineImage(machineImages, *machineImage, w.cluster.CloudProfile.Spec.MachineCapabilities)
 
 		disks, err := computeDisks(w.cluster.Shoot.Status.TechnicalID, pool)
 		if err != nil {

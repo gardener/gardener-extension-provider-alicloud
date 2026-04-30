@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"k8s.io/utils/ptr"
 
@@ -48,17 +49,34 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 	}
 
 	if !encrypted {
-		machineImageID, err := helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
-		if err == nil {
-			return &api.MachineImage{
-				Name:      name,
-				Version:   version,
-				ID:        machineImageID,
-				Encrypted: ptr.To(encrypted),
-			}, nil
+		if len(w.cluster.CloudProfile.Spec.MachineCapabilities) > 0 {
+			machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(w.cluster.CloudProfile.Spec.MachineTypes, workerPool.MachineType)
+			if machineTypeFromCloudProfile == nil {
+				return nil, fmt.Errorf("machine type %q not found in cloud profile %q", workerPool.MachineType, w.cluster.CloudProfile.Name)
+			}
+
+			imageFlavor, err := helper.FindImageInCloudProfileFlavor(w.cloudProfileConfig, name, version, region, machineTypeFromCloudProfile.Capabilities, w.cluster.CloudProfile.Spec.MachineCapabilities)
+			if err == nil {
+				return &api.MachineImage{
+					Name:         name,
+					Version:      version,
+					ID:           imageFlavor.Regions[0].ID,
+					Encrypted:    ptr.To(encrypted),
+					Capabilities: imageFlavor.Capabilities,
+				}, nil
+			}
+		} else {
+			machineImageID, err := helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
+			if err == nil {
+				return &api.MachineImage{
+					Name:      name,
+					Version:   version,
+					ID:        machineImageID,
+					Encrypted: ptr.To(encrypted),
+				}, nil
+			}
 		}
 	}
-
 	machineImage, err := helper.FindMachineImage(infraStatus.MachineImages, name, version, encrypted)
 	if err != nil {
 		opt := "unencrypted"
@@ -67,6 +85,7 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 		}
 		return nil, worker.ErrorMachineImageNotFound(name, version, opt)
 	}
+	machineImage = helper.UniformSingleMachineImage(machineImage, w.cluster.CloudProfile.Spec.MachineCapabilities)
 
 	return machineImage, nil
 }
