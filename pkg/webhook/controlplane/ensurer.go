@@ -14,7 +14,6 @@ import (
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/gardener/gardener/pkg/component/nodemanagement/machinecontrollermanager"
-	versionutils "github.com/gardener/gardener/pkg/utils/version"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -73,26 +72,6 @@ func (e *ensurer) EnsureMachineControllerManagerVPA(_ context.Context, _ gcontex
 	return nil
 }
 
-// EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
-	ps := &newObj.Spec.Template.Spec
-
-	cluster, err := gctx.GetCluster(ctx)
-	if err != nil {
-		return err
-	}
-
-	k8sVersion, err := semver.NewVersion(cluster.Shoot.Spec.Kubernetes.Version)
-	if err != nil {
-		return err
-	}
-
-	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c, k8sVersion)
-	}
-	return nil
-}
-
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeControllerManagerDeployment(_ context.Context, _ gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
 	ps := &newObj.Spec.Template.Spec
@@ -100,16 +79,6 @@ func (e *ensurer) EnsureKubeControllerManagerDeployment(_ context.Context, _ gco
 		ensureKubeControllerManagerCommandLineArgs(c)
 	}
 	return nil
-}
-
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, k8sVersion *semver.Version) {
-	// Ensure CSI-related admission plugins
-	if versionutils.ConstraintK8sLess131.Check(k8sVersion) {
-		c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--enable-admission-plugins=",
-			"PersistentVolumeLabel", ",")
-		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--disable-admission-plugins=",
-			"PersistentVolumeLabel", ",")
-	}
 }
 
 func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
