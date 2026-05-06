@@ -283,13 +283,12 @@ func UniformSingleMachineImage(img *api.MachineImage, definitions []gardencorev1
 		if len(img.Capabilities) == 0 {
 			// image is already legacy format
 			return img
-		} else {
-			return &api.MachineImage{
-				Name:      img.Name,
-				Version:   img.Version,
-				ID:        img.ID,
-				Encrypted: img.Encrypted,
-			}
+		}
+		return &api.MachineImage{
+			Name:      img.Name,
+			Version:   img.Version,
+			ID:        img.ID,
+			Encrypted: img.Encrypted,
 		}
 	}
 
@@ -297,13 +296,12 @@ func UniformSingleMachineImage(img *api.MachineImage, definitions []gardencorev1
 	if len(img.Capabilities) > 0 {
 		// image is already in the new format with Capabilities
 		return img
-	} else {
-		return &api.MachineImage{
-			Name:         img.Name,
-			Version:      img.Version,
-			ID:           img.ID,
-			Encrypted:    img.Encrypted,
-			Capabilities: gardencorev1beta1.Capabilities{v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64}},
-		}
+	}
+	return &api.MachineImage{
+		Name:         img.Name,
+		Version:      img.Version,
+		ID:           img.ID,
+		Encrypted:    img.Encrypted,
+		Capabilities: gardencorev1beta1.Capabilities{v1beta1constants.ArchitectureName: []string{v1beta1constants.ArchitectureAMD64}},
 	}
 }

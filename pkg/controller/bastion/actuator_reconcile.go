@@ -73,8 +73,15 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 		return errors.New("image not found")
 	}
 
-	// image architecture is returned as "X86" instead of "X86_64"
-	imageArchitecture := strings.ToUpper((strings.Split(imageInfo.Images.Image[0].Architecture, "_")[0]))
+	// image architecture is returned as "X86" instead of "X86_64", "ARM" instead of "arm64", etc
+	arch := imageInfo.Images.Image[0].Architecture
+	imageArchitecture := strings.ToUpper((strings.Split(arch, "_")[0]))
+	switch strings.ToLower(arch) {
+	case "x86_64", "amd64":
+		imageArchitecture = "X86"
+	case "arm64", "aarch64":
+		imageArchitecture = "ARM"
+	}
 
 	instanceType, err := aliCloudECSClient.ListAllInstanceType()
 	if err != nil {
