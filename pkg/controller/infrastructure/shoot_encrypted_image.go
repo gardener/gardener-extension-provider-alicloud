@@ -177,14 +177,13 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 			Encrypted:    ptr.To(true),
 			Capabilities: imageFlavor.Capabilities,
 		}, nil
-	} else {
-		return &apisalicloud.MachineImage{
-			Name:      worker.Machine.Image.Name,
-			Version:   *worker.Machine.Image.Version,
-			ID:        encryptedImageID,
-			Encrypted: ptr.To(true),
-		}, nil
 	}
+	return &apisalicloud.MachineImage{
+		Name:      worker.Machine.Image.Name,
+		Version:   *worker.Machine.Image.Version,
+		ID:        encryptedImageID,
+		Encrypted: ptr.To(true),
+	}, nil
 }
 
 func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, log logr.Logger, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootECSClient alicloudclient.ECS, shootCloudProviderAccountID string, cluster *extensioncontroller.Cluster) (*apisalicloud.MachineImage, error) {
@@ -230,14 +229,12 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 			Encrypted:    ptr.To(false),
 			Capabilities: imageFlavor.Capabilities,
 		}, nil
-	} else {
-		return &apisalicloud.MachineImage{
-			Name:      worker.Machine.Image.Name,
-			Version:   *worker.Machine.Image.Version,
-			ID:        imageID,
-			Encrypted: ptr.To(false),
-		}, nil
 	}
+	return &apisalicloud.MachineImage{
+		Name:    worker.Machine.Image.Name,
+		Version: *worker.Machine.Image.Version,
+		ID:      imageID,
+	}, nil
 }
 
 func (a *actuator) makeImageVisibleForShoot(ctx context.Context, log logr.Logger, shootECSClient alicloudclient.ECS, region, imageID, shootAccountID string) error {

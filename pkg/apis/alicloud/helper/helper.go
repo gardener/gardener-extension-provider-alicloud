@@ -264,6 +264,7 @@ func EnsureUniformMachineImages(images []api.MachineImage, definitions []gardenc
 			// image is already in the new format with Capabilities
 			uniformMachineImages = AppendMachineImage(uniformMachineImages, img, definitions)
 		} else {
+			// default capability: architecture amd64
 			uniformMachineImages = AppendMachineImage(uniformMachineImages, api.MachineImage{
 				Name:         img.Name,
 				Version:      img.Version,
@@ -297,6 +298,7 @@ func UniformSingleMachineImage(img *api.MachineImage, definitions []gardencorev1
 		// image is already in the new format with Capabilities
 		return img
 	}
+	// default capability: architecture amd64
 	return &api.MachineImage{
 		Name:         img.Name,
 		Version:      img.Version,

@@ -222,11 +222,6 @@ var _ = Describe("CloudProfileConfig validation", func() {
 				})
 
 				errorList := ValidateCloudProfileConfig(cloudProfileConfig, machineImages, capabilityDefinitions, fldPath)
-				// Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				// 	"Type":   Equal(field.ErrorTypeForbidden),
-				// 	"Field":  fieldMatcher,
-				// 	"Detail": ContainSubstring("must not be set as CloudProfile"),
-				// }))))
 				if isCapabilitiesCloudProfile {
 					Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
 						"Type":   Equal(field.ErrorTypeForbidden),

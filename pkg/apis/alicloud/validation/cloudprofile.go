@@ -222,7 +222,7 @@ func validateImageFlavorMapping(machineImage core.MachineImage, version core.Mac
 			}
 		}
 	} else if len(imageVersion.Regions) > 0 {
-		// Old format: validate against regions with architecture
+		// Old format: validate against regions with architecture, only amd64
 		availableArchitectures := []string{v1beta1constants.ArchitectureAMD64}
 
 		// For each expected capability flavor, check if the architecture capability is available in regions
