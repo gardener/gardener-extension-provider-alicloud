@@ -37,7 +37,7 @@ func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 	deleteSecurityGroup := c.AddTask(g, "delete security group",
 		c.deleteSecurityGroup,
 		Timeout(defaultTimeout))
-
+	// only delete Ipv6Gateway for managed VPC
 	deleteIpv6Gateway := c.AddTask(g, "delete ipv6 gateway",
 		c.deleteIpv6Gateway,
 		DoIf(c.dualStackEnabled() && c.config.Networks.VPC.ID == nil), Timeout(defaultLongTimeout),

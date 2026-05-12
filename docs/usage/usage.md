@@ -170,7 +170,7 @@ Gardener adds the following routes to the custom route table:
 
 This feature works regardless of whether the VPC is Gardener-managed or user-provided.
 
-**Immutability:** Once set to `true`, `useCustomRouteTable` cannot be changed back to `false` or removed. Attempting to do so on an existing shoot will be rejected by admission validation.
+**Immutability:** `useCustomRouteTable` can only be set when created new shoot and cannot be changed or removed. Attempting to do so on an existing shoot will be rejected by admission validation.
 
 **CCM integration:** The route table ID is written to `InfrastructureStatus.VPC.routeTableID` and forwarded to the Cloud Controller Manager as `routeTableIDS`, so CCM can manage pod-to-node routes in the correct table.
 
@@ -207,7 +207,7 @@ Before enable dual-stack, you must enable IPv6 on the VPC and ensure an IPv6 Gat
 **Important notes for user-provided VPCs:**
 * If the target `/64` subnet is already occupied by another VSwitch in the VPC, the API call will fail. Change `ipv6CidrBlock` to a different value and trigger reconciliation.
 * When multiple shoots share the same VPC, plan your `ipv6CidrBlock` values carefully to avoid conflicts. Each VSwitch in the VPC can hold only one `/64` IPv6 CIDR, and there are only 256 available slots (0–255) per VPC.
-* Once `ipv6CidrBlock` is set for a zone, it cannot be removed (set back to `nil`). It can be changed to a different integer value.
+* Once `ipv6CidrBlock` is set for a zone, it cannot be removed (set back to `nil`). It can be changed to a different integer value when prev value is wrong, and will not take effict if the vswitch already have a `/64` CIDR.
 
 **Immutability:** Once `dualStack.enabled: true` is set, it cannot be changed back to `false`. This is enforced by admission validation.
 

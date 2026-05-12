@@ -25,7 +25,7 @@ type VPC struct {
 	VpcId         string
 	CidrBlock     string
 	Status        *string
-	Ipv6CidrBlock string // VPC 的 IPv6 CIDR（如 "2408:xxxx::/56"），空表示未启用
+	Ipv6CidrBlock string // IPv6 CIDR for VPC (like "2408:xxxx::/56"), empty for not enabled
 }
 
 // VSwitch is the struct for a vswitch object
@@ -37,7 +37,7 @@ type VSwitch struct {
 	CidrBlock     string
 	ZoneId        string
 	Status        *string
-	Ipv6CidrBlock string // vswitch 的 IPv6 CIDR（如 "2408:xxxx:0:N::/64"），空表示未配置
+	Ipv6CidrBlock string // IPv6 CIDR for vswitch (like "2408:xxxx:0:N::/64"), empty for not enabled
 }
 
 // NatGateway is the struct for a nat gateway object

@@ -1713,9 +1713,7 @@ func (c *actor) DeleteRouteEntry(ctx context.Context, routeTableId string, entry
 		return nil
 	}
 	req := vpc.CreateDeleteRouteEntryRequest()
-	// req.RouteTableId = routeTableId
 	req.RouteEntryId = entry.RouteEntryId
-	// req.DestinationCidrBlock = entry.DestinationCidrBlock
 	req.NextHopId = entry.NextHopId
 	_, err = callApi(c.vpcClient.DeleteRouteEntry, req)
 	if err != nil {
@@ -1976,12 +1974,14 @@ func (c *actor) DeleteIpv6Gateway(ctx context.Context, id string) error {
 	})
 }
 
-func (c *actor) SetVSwitchIpv6CidrBlock(_ context.Context, vSwitchId string, ipv6CidrBlock int) error {
+func (c *actor) SetVSwitchIpv6CidrBlock(ctx context.Context, vSwitchId string, ipv6CidrBlock int) error {
 	req := vpc.CreateModifyVSwitchAttributeRequest()
 	req.VSwitchId = vSwitchId
 	req.Ipv6CidrBlock = requests.NewInteger(ipv6CidrBlock)
-	_, err := callApi(c.vpcClient.ModifyVSwitchAttribute, req)
-	return err
+	if _, err := callApi(c.vpcClient.ModifyVSwitchAttribute, req); err != nil {
+		return err
+	}
+	return c.waitVSwitchAvailable(ctx, vSwitchId)
 }
 
 func (c *actor) GetVSwitchIpv6CidrBlock(_ context.Context, vSwitchId string) (string, error) {
