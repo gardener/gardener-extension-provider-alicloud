@@ -258,7 +258,10 @@ func (d *dnsClient) getDomainRecords(ctx context.Context, domainName, rr, record
 			return nil, err
 		}
 		for _, record := range resp.DomainRecords.Record {
-			records[record.Value] = record
+			// RRKeyWord is a fuzzy/substring match, so we must filter for exact RR match
+			if record.RR == rr {
+				records[record.Value] = record
+			}
 		}
 		if resp.PageNumber*int64(pageSize) >= resp.TotalCount {
 			break
