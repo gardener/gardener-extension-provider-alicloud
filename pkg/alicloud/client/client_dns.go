@@ -41,6 +41,7 @@ func (f *clientFactory) NewDNSClient(region, accessKeyID, accessKeySecret string
 	if err != nil {
 		return nil, err
 	}
+	client.AppendUserAgent("application", "gardener-extension-provider-alicloud")
 
 	return &dnsClient{
 		Client:                 *client,
@@ -258,7 +259,11 @@ func (d *dnsClient) getDomainRecords(ctx context.Context, domainName, rr, record
 			return nil, err
 		}
 		for _, record := range resp.DomainRecords.Record {
-			records[record.Value] = record
+			// The check is required to keep only records whose RR exactly matches the requested host part.
+			// DescribeDomainRecords is queried with a keyword-style filter, so the API response can still include records that are not the exact target entry
+			if record.RR == rr {
+				records[record.Value] = record
+			}
 		}
 		if resp.PageNumber*int64(pageSize) >= resp.TotalCount {
 			break
