@@ -44,6 +44,10 @@ const (
 	ZoneNATGWElasticIPAddress = "NATGatewayElasticIPAddress"
 	// IdentifierNodesSecurityGroup is the key for the id of the nodes security group
 	IdentifierNodesSecurityGroup = "NodesSecurityGroup"
+	// IdentifierIPV6Gateway is the key for the id of ipv6gateway
+	IdentifierIPV6Gateway = "IPV6Gateway"
+	// IdentifierRouteTable is the key for the id of the custom route table
+	IdentifierRouteTable = "RouteTable"
 
 	// IdentifierZoneSuffix is the key for the suffix used for a zone
 	IdentifierZoneSuffix = "Suffix"
@@ -117,6 +121,15 @@ func (c *FlowContext) hasVPC() bool {
 
 func (c *FlowContext) hasNatGateway() bool {
 	return !c.state.IsAlreadyDeleted(IdentifierNatGateway)
+}
+
+func (c *FlowContext) useCustomRouteTable() bool {
+	return c.config.Networks.VPC.UseCustomRouteTable != nil &&
+		*c.config.Networks.VPC.UseCustomRouteTable
+}
+
+func (c *FlowContext) dualStackEnabled() bool {
+	return c.config.DualStack != nil && c.config.DualStack.Enabled
 }
 
 func (c *FlowContext) commonTagsWithSuffix(suffix string) aliclient.Tags {

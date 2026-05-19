@@ -37,12 +37,81 @@ func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 	deleteSecurityGroup := c.AddTask(g, "delete security group",
 		c.deleteSecurityGroup,
 		Timeout(defaultTimeout))
+	// only delete Ipv6Gateway for managed VPC
+	deleteIpv6Gateway := c.AddTask(g, "delete ipv6 gateway",
+		c.deleteIpv6Gateway,
+		DoIf(c.dualStackEnabled() && c.config.Networks.VPC.ID == nil), Timeout(defaultLongTimeout),
+		Dependencies(deleteZones))
+
+	deleteRouteTable := c.AddTask(g, "delete route table",
+		c.deleteRouteTable,
+		DoIf(c.useCustomRouteTable()), Timeout(defaultTimeout), Dependencies(deleteZones, deleteIpv6Gateway))
 
 	_ = c.AddTask(g, "delete VPC",
 		c.deleteVpc,
-		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout), Dependencies(deleteZones, deleteSecurityGroup))
+		DoIf(deleteVPC && c.hasVPC()), Timeout(defaultTimeout), Dependencies(deleteZones, deleteSecurityGroup, deleteRouteTable, deleteIpv6Gateway))
 
 	return g
+}
+
+func (c *FlowContext) deleteIpv6Gateway(ctx context.Context) error {
+	if c.state.IsAlreadyDeleted(IdentifierIPV6Gateway) {
+		return nil
+	}
+	log := c.LogFromContext(ctx)
+	current, err := findExisting(ctx, c.state.Get(IdentifierIPV6Gateway), c.commonTagsWithSuffix("ipv6gw"),
+		c.actor.GetIpv6Gateway, c.actor.FindIpv6GatewaysByTags)
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		log.Info("deleting IPv6 gateway ...", "Ipv6GatewayId", current.Ipv6GatewayId)
+		if err := c.actor.DeleteIpv6Gateway(ctx, current.Ipv6GatewayId); err != nil {
+			return err
+		}
+	}
+	c.state.SetAsDeleted(IdentifierIPV6Gateway)
+	return c.PersistState(ctx, true)
+}
+
+func (c *FlowContext) deleteRouteTable(ctx context.Context) error {
+	if c.state.IsAlreadyDeleted(IdentifierRouteTable) {
+		return nil
+	}
+	log := c.LogFromContext(ctx)
+	current, err := findExisting(ctx, c.state.Get(IdentifierRouteTable), c.commonTagsWithSuffix("rt"),
+		c.actor.GetRouteTable, c.actor.FindRouteTablesByTags)
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		// 1. Unassociate any remaining vswitches (defensive cleanup after deleteZones)
+		for _, vswId := range current.VSwitchIds {
+			if err := c.actor.UnassociateRouteTable(ctx, current.RouteTableId, vswId); err != nil {
+				return err
+			}
+		}
+
+		// 2. Delete all custom route entries
+		entries, err := c.actor.ListRouteEntriesByRouteTable(ctx, current.RouteTableId)
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			log.Info("deleting route entry ...", "RouteEntryId", entry.RouteEntryId, "Dest", entry.DestinationCidrBlock)
+			if err := c.actor.DeleteRouteEntry(ctx, current.RouteTableId, entry); err != nil {
+				return err
+			}
+		}
+
+		// 3. Delete the route table itself
+		log.Info("deleting route table ...", "RouteTableId", current.RouteTableId)
+		if err := c.actor.DeleteRouteTable(ctx, current.RouteTableId); err != nil {
+			return err
+		}
+	}
+	c.state.SetAsDeleted(IdentifierRouteTable)
+	return c.PersistState(ctx, true)
 }
 
 func (c *FlowContext) deleteSecurityGroup(ctx context.Context) error {

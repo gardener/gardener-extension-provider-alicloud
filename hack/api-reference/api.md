@@ -205,6 +205,19 @@ string
 </tr>
 <tr>
 <td>
+<code>dualStack</code></br>
+<em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.DualStack">
+DualStack
+</a>
+</em>
+</td>
+<td>
+<p>DualStack specifies whether dual-stack or IPv4-only should be supported.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>networks</code></br>
 <em>
 <a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.Networks">
@@ -326,6 +339,36 @@ map[string]bool
 <td>
 <em>(Optional)</em>
 <p>FeatureGates contains information about enabled feature gates.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.DualStack">DualStack
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.InfrastructureConfig">InfrastructureConfig</a>)
+</p>
+<p>
+<p>DualStack specifies whether dual-stack or IPv4-only should be supported.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>enabled</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Enabled specifies if dual-stack is enabled or not.</p>
 </td>
 </tr>
 </tbody>
@@ -899,6 +942,18 @@ bool
 This will only take effect if VPC ID is set.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>useCustomRouteTable</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UseCustomRouteTable indicates whether Gardener should create a custom route table for this shoot.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.VPCStatus">VPCStatus
@@ -953,6 +1008,19 @@ string
 </td>
 <td>
 <p>SecurityGroups is a list of security groups.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>routeTableID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RouteTableID is the ID of the custom route table created for this shoot cluster.
+This will only take effect if vpc.useCustomRouteTable is set true.</p>
 </td>
 </tr>
 </tbody>
@@ -1060,6 +1128,19 @@ string
 </td>
 <td>
 <p>Workers specifies the worker CIDR to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ipv6CidrBlock</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ipv6CidrBlock specifies the worker ipv6 CIDR block to use 0-255.
+This will only take effect if dualStack.enabled is true.</p>
 </td>
 </tr>
 <tr>

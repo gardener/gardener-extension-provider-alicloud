@@ -403,12 +403,46 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if c.dualStackEnabled() {
+			zone := c.getZoneConfig(desired.ZoneId)
+			if zone == nil || zone.Ipv6CidrBlock == nil {
+				return fmt.Errorf("zone %s: ipv6CidrBlock is required when dualStack is enabled", desired.ZoneId)
+			}
+			if err := c.actor.SetVSwitchIpv6CidrBlock(ctx, created.VSwitchId, *zone.Ipv6CidrBlock); err != nil {
+				return fmt.Errorf("failed to set IPv6 CIDR block for vswitch %s: %w", created.VSwitchId, err)
+			}
+			ipv6Cidr, err := c.actor.GetVSwitchIpv6CidrBlock(ctx, created.VSwitchId)
+			if err != nil {
+				return err
+			}
+			log.Info("vswitch IPv6 CIDR set", "VSwitchId", created.VSwitchId, "ipv6CidrBlock", ipv6Cidr)
+		}
 	}
 	for _, vsw := range toBeChecked {
 		c.state.GetChild(ChildIdZones).GetChild(vsw.current.ZoneId).Set(IdentifierZoneVSwitch, vsw.current.VSwitchId)
 		_, err = c.updater.UpdateVSwitch(ctx, vsw.desired, vsw.current)
 		if err != nil {
 			return err
+		}
+		if c.dualStackEnabled() {
+			currentIpv6, err := c.actor.GetVSwitchIpv6CidrBlock(ctx, vsw.current.VSwitchId)
+			if err != nil {
+				return err
+			}
+			if currentIpv6 == "" {
+				zone := c.getZoneConfig(vsw.current.ZoneId)
+				if zone == nil || zone.Ipv6CidrBlock == nil {
+					return fmt.Errorf("zone %s: ipv6CidrBlock is required when dualStack is enabled", vsw.current.ZoneId)
+				}
+				if err := c.actor.SetVSwitchIpv6CidrBlock(ctx, vsw.current.VSwitchId, *zone.Ipv6CidrBlock); err != nil {
+					return fmt.Errorf("failed to set IPv6 CIDR block for vswitch %s: %w", vsw.current.VSwitchId, err)
+				}
+				currentIpv6, err = c.actor.GetVSwitchIpv6CidrBlock(ctx, vsw.current.VSwitchId)
+				if err != nil {
+					return err
+				}
+			}
+			log.Info("vswitch IPv6 CIDR", "VSwitchId", vsw.current.VSwitchId, "ipv6CidrBlock", currentIpv6)
 		}
 	}
 
@@ -651,6 +685,13 @@ func (c *FlowContext) deleteVSwitch(vsw *aliclient.VSwitch) flow.TaskFn {
 	return func(ctx context.Context) error {
 		log := c.LogFromContext(ctx)
 		log.Info("deleting vswitch ...", "VSwitchId", vsw.VSwitchId)
+
+		// Unassociate from custom route table before deletion (idempotent, ignore errors)
+		if c.useCustomRouteTable() {
+			if routeTableId := c.state.Get(IdentifierRouteTable); routeTableId != nil {
+				_ = c.actor.UnassociateRouteTable(ctx, *routeTableId, vsw.VSwitchId)
+			}
+		}
 
 		if err := c.actor.DeleteVSwitch(ctx, vsw.VSwitchId); err != nil {
 			return err

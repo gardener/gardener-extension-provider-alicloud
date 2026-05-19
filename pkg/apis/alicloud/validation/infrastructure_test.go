@@ -59,7 +59,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid invalid VPC CIDRs", func() {
 				infrastructureConfig.Networks.VPC.CIDR = &invalidCIDR
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -71,7 +71,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid invalid workers CIDR", func() {
 				infrastructureConfig.Networks.Zones[0].Workers = invalidCIDR
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -83,7 +83,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid workers CIDR which are not in Nodes CIDR", func() {
 				infrastructureConfig.Networks.Zones[0].Workers = "1.1.1.1/32"
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -101,7 +101,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				networking.Nodes = &notOverlappingCIDR
 				infrastructureConfig.Networks.Zones[0].Workers = notOverlappingCIDR
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -120,7 +120,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid Pod CIDR to overlap with VPC CIDR", func() {
 				networking.Pods = ptr.To("10.0.0.1/32")
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -131,7 +131,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			It("should forbid Services CIDR to overlap with VPC CIDR", func() {
 				networking.Services = ptr.To("10.0.0.1/32")
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
 				Expect(errorList).To(ConsistOfFields(Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -153,7 +153,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				infrastructureConfig.Networks.Zones[0].Workers = "10.250.3.8/24"
 				infrastructureConfig.Networks.VPC = apisalicloud.VPC{CIDR: &vpcCIDR}
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
 				Expect(errorList).To(HaveLen(2))
 				Expect(errorList).To(ConsistOfFields(Fields{
@@ -173,22 +173,276 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					EIPAllocationID: &ipAllocID,
 				}
 
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should allow specifying valid config", func() {
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should allow specifying valid config with podsCIDR=nil and servicesCIDR=nil", func() {
 				networking.Pods = nil
 				networking.Services = nil
-				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking)
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 				Expect(errorList).To(BeEmpty())
 			})
 
+		})
+
+		Context("dualStack", func() {
+			var vpcID = "vpc-12345678"
+
+			Context("Gardener-managed VPC (no VPC.ID)", func() {
+				It("should require ipv6CidrBlock for every zone when dualStack.enabled=true", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					// zones have no Ipv6CidrBlock
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(ContainElements(
+						PointTo(MatchFields(IgnoreExtras, Fields{
+							"Type":  Equal(field.ErrorTypeRequired),
+							"Field": Equal("networks.zones[0].ipv6CidrBlock"),
+						})),
+						PointTo(MatchFields(IgnoreExtras, Fields{
+							"Type":  Equal(field.ErrorTypeRequired),
+							"Field": Equal("networks.zones[1].ipv6CidrBlock"),
+						})),
+					))
+				})
+
+				It("should pass when all zones have valid ipv6CidrBlock", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidr0 := 0
+					cidr1 := 1
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr0
+					infrastructureConfig.Networks.Zones[1].Ipv6CidrBlock = &cidr1
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(BeEmpty())
+				})
+
+				It("should forbid ipv6CidrBlock out of range (>255)", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidr0 := 256
+					cidr1 := 1
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr0
+					infrastructureConfig.Networks.Zones[1].Ipv6CidrBlock = &cidr1
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(field.ErrorTypeInvalid),
+						"Field":  Equal("networks.zones[0].ipv6CidrBlock"),
+						"Detail": ContainSubstring("must be in range 0-255"),
+					}))))
+				})
+
+				It("should forbid ipv6CidrBlock out of range (<0)", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidrNeg := -1
+					cidr1 := 1
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidrNeg
+					infrastructureConfig.Networks.Zones[1].Ipv6CidrBlock = &cidr1
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(field.ErrorTypeInvalid),
+						"Field":  Equal("networks.zones[0].ipv6CidrBlock"),
+						"Detail": ContainSubstring("must be in range 0-255"),
+					}))))
+				})
+
+				It("should forbid duplicate ipv6CidrBlock across zones", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidr := 5
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr
+					infrastructureConfig.Networks.Zones[1].Ipv6CidrBlock = &cidr
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(field.ErrorTypeInvalid),
+						"Field":  Equal("networks.zones[1].ipv6CidrBlock"),
+						"Detail": ContainSubstring("must be unique across zones"),
+					}))))
+				})
+			})
+
+			Context("user-provided VPC (VPC.ID set)", func() {
+				BeforeEach(func() {
+					infrastructureConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID}
+				})
+
+				// Note: with a bare VPC.ID and no CIDR, ValidateInfrastructureConfig will produce
+				// unrelated CIDR/zone errors. Assertions below are scoped to the specific field
+				// under test to avoid false failures from those unrelated errors.
+
+				It("should require ipv6CidrBlock for every zone when dualStack.enabled=true and user-provided VPC", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					// no Ipv6CidrBlock set
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":  Equal(field.ErrorTypeRequired),
+						"Field": Equal("networks.zones[0].ipv6CidrBlock"),
+					}))))
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":  Equal(field.ErrorTypeRequired),
+						"Field": Equal("networks.zones[1].ipv6CidrBlock"),
+					}))))
+				})
+
+				It("should pass when zones have valid ipv6CidrBlock", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidr0 := 10
+					cidr1 := 20
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr0
+					infrastructureConfig.Networks.Zones[1].Ipv6CidrBlock = &cidr1
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(BeEmpty())
+				})
+
+				It("should forbid out-of-range ipv6CidrBlock even with user VPC", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidrBig := 300
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidrBig
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(field.ErrorTypeInvalid),
+						"Field":  Equal("networks.zones[0].ipv6CidrBlock"),
+						"Detail": ContainSubstring("must be in range 0-255"),
+					}))))
+				})
+
+				It("should forbid duplicate ipv6CidrBlock even with user VPC", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidr := 7
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr
+					infrastructureConfig.Networks.Zones[1].Ipv6CidrBlock = &cidr
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(field.ErrorTypeInvalid),
+						"Field":  Equal("networks.zones[1].ipv6CidrBlock"),
+						"Detail": ContainSubstring("must be unique across zones"),
+					}))))
+				})
+			})
+
+			Context("DualStack disabled", func() {
+				It("should pass without ipv6CidrBlock when dualStack is nil", func() {
+					// infrastructureConfig.DualStack is nil by default
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+					Expect(errorList).To(BeEmpty())
+				})
+
+				It("should pass without ipv6CidrBlock when dualStack.enabled=false", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: false}
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(BeEmpty())
+				})
+
+				It("should pass with ipv6CidrBlock set even when dualStack is disabled", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: false}
+					cidr := 5
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(BeEmpty())
+				})
+			})
+
+			Context("NLB region check", func() {
+				BeforeEach(func() {
+					cidr0 := 0
+					cidr1 := 1
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr0
+					infrastructureConfig.Networks.Zones[1].Ipv6CidrBlock = &cidr1
+				})
+
+				It("should forbid dualStack in a region that does not support NLB", func() {
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "ap-southeast-99")
+
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":  Equal(field.ErrorTypeInvalid),
+						"Field": Equal("region"),
+					}))))
+				})
+
+				It("should allow dualStack in a region that supports NLB", func() {
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(BeEmpty())
+				})
+
+				It("should allow dualStack in another supported NLB region", func() {
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "eu-central-1")
+
+					Expect(errorList).To(BeEmpty())
+				})
+			})
+		})
+
+		Context("useCustomRouteTable", func() {
+			var vpcID = "vpc-12345678"
+
+			// Note: VPC is replaced wholesale in these tests, which may produce unrelated
+			// CIDR/zone validation errors. Assertions are scoped to the useCustomRouteTable
+			// field only so that unrelated errors do not cause false failures.
+
+			It("should allow useCustomRouteTable=true when vpc.id is not set", func() {
+				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
+					CIDR:                &vpc,
+					UseCustomRouteTable: ptr.To(true),
+				}
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Field": Equal("networks.vpc.useCustomRouteTable"),
+				}))))
+			})
+
+			It("should allow useCustomRouteTable=true when vpc.id is set", func() {
+				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
+					ID:                  &vpcID,
+					UseCustomRouteTable: ptr.To(true),
+				}
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Field": Equal("networks.vpc.useCustomRouteTable"),
+				}))))
+			})
+
+			It("should allow useCustomRouteTable=false when vpc.id is not set", func() {
+				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
+					CIDR:                &vpc,
+					UseCustomRouteTable: ptr.To(false),
+				}
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Field": Equal("networks.vpc.useCustomRouteTable"),
+				}))))
+			})
 		})
 	})
 
@@ -263,6 +517,185 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
 
 			Expect(errorList).To(BeEmpty())
+		})
+
+		Context("dualStack immutability", func() {
+			It("should allow enabling dualStack (false -> true)", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.DualStack = &apisalicloud.DualStack{Enabled: false}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should allow enabling dualStack (nil -> true)", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				// DualStack is nil by default
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should forbid disabling dualStack (true -> false)", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.DualStack = &apisalicloud.DualStack{Enabled: false}
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("dualStack"),
+				}))))
+			})
+
+			It("should forbid disabling dualStack (true -> nil)", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.DualStack = nil
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("dualStack"),
+				}))))
+			})
+		})
+
+		Context("ipv6CidrBlock mutability", func() {
+			It("should allow setting ipv6CidrBlock for the first time (nil -> value)", func() {
+				newConfig := infrastructureConfig.DeepCopy()
+				cidr := 5
+				newConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr
+
+				errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newConfig)
+
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should allow changing ipv6CidrBlock once set (value -> new value)", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				cidrOld := 1
+				oldConfig.Networks.Zones[0].Ipv6CidrBlock = &cidrOld
+
+				newConfig := oldConfig.DeepCopy()
+				cidrNew := 2
+				newConfig.Networks.Zones[0].Ipv6CidrBlock = &cidrNew
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should forbid removing ipv6CidrBlock once set (value -> nil)", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				cidrOld := 3
+				oldConfig.Networks.Zones[0].Ipv6CidrBlock = &cidrOld
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.Zones[0].Ipv6CidrBlock = nil
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("networks.zones[0].ipv6CidrBlock"),
+					"Detail": ContainSubstring("cannot be removed once set"),
+				}))))
+			})
+		})
+
+		Context("useCustomRouteTable immutability", func() {
+			var vpcID = "vpc-12345678"
+
+			It("should forbid changing useCustomRouteTable from nil to true", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(true)
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeForbidden),
+					"Field":  Equal("networks.vpc.useCustomRouteTable"),
+					"Detail": ContainSubstring("useCustomRouteTable can only be set at shoot creation time and cannot be changed afterwards"),
+				}))))
+			})
+
+			It("should forbid changing useCustomRouteTable from false to true", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID, UseCustomRouteTable: ptr.To(false)}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(true)
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeForbidden),
+					"Field":  Equal("networks.vpc.useCustomRouteTable"),
+					"Detail": ContainSubstring("useCustomRouteTable can only be set at shoot creation time and cannot be changed afterwards"),
+				}))))
+			})
+
+			It("should forbid changing useCustomRouteTable from true to false", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID, UseCustomRouteTable: ptr.To(true)}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(false)
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeForbidden),
+					"Field":  Equal("networks.vpc.useCustomRouteTable"),
+					"Detail": ContainSubstring("useCustomRouteTable can only be set at shoot creation time and cannot be changed afterwards"),
+				}))))
+			})
+
+			It("should forbid changing useCustomRouteTable from true to nil", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID, UseCustomRouteTable: ptr.To(true)}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = nil
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeForbidden),
+					"Field":  Equal("networks.vpc.useCustomRouteTable"),
+					"Detail": ContainSubstring("useCustomRouteTable can only be set at shoot creation time and cannot be changed afterwards"),
+				}))))
+			})
+
+			It("should allow nil to false transition (semantically equivalent)", func() {
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.VPC = apisalicloud.VPC{ID: &vpcID}
+
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(false)
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+
+				Expect(errorList).To(BeEmpty())
+			})
 		})
 	})
 })
