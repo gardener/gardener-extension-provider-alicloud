@@ -1,4 +1,4 @@
-# [Gardener Extension for Alicloud provider](https://gardener.cloud)
+# Gardener Extension for Alicloud provider
 
 [![REUSE status](https://api.reuse.software/badge/github.com/gardener/gardener-extension-provider-alicloud)](https://api.reuse.software/info/github.com/gardener/gardener-extension-provider-alicloud)
 [![Build](https://github.com/gardener/gardener-extension-provider-alicloud/actions/workflows/non-release.yaml/badge.svg)](https://github.com/gardener/gardener-extension-provider-alicloud/actions/workflows/non-release.yaml)
