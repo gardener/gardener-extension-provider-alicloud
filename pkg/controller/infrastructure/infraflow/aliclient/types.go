@@ -86,6 +86,15 @@ type SecurityGroup struct {
 	Rules           []*SecurityGroupRule
 }
 
+// RouteTable is the struct for a route table object
+type RouteTable struct {
+	Tags
+	Name         string
+	RouteTableId string
+	VpcId        string
+	Status       *string
+}
+
 // SecurityGroupRule is the struct for a SecurityGroupRule object
 type SecurityGroupRule struct {
 	SecurityGroupRuleId string

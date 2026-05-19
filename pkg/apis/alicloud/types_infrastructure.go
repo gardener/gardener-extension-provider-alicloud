@@ -49,6 +49,8 @@ type VPCStatus struct {
 	VSwitches []VSwitch
 	// SecurityGroups is a list of security groups.
 	SecurityGroups []SecurityGroup
+	// RouteTableID is the ID of the custom route table created for this shoot cluster.
+	RouteTableID string
 }
 
 // Purpose is a purpose of a subnet.

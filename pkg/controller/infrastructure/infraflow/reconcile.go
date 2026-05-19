@@ -7,6 +7,7 @@ package infraflow
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gardener/gardener/pkg/utils/flow"
@@ -45,9 +46,13 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		c.ensureVSwitches,
 		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
+	ensureRouteTable := c.AddTask(g, "ensure route table",
+		c.ensureRouteTable,
+		Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
+
 	ensureNatGateway := c.AddTask(g, "ensure natgateway",
 		c.ensureNatGateway,
-		Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
+		Timeout(defaultLongTimeout), Dependencies(ensureRouteTable))
 
 	_ = c.AddTask(g, "ensure zones",
 		c.ensureZones,
@@ -378,4 +383,65 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 
 func getZoneName(item *aliclient.VSwitch) string {
 	return item.ZoneId
+}
+
+func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	vpcId := c.state.Get(IdentifierVPC)
+	if vpcId == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
+
+	desired := &aliclient.RouteTable{
+		Tags:  c.commonTagsWithSuffix("rt"),
+		Name:  c.namespace + "-rt",
+		VpcId: *vpcId,
+	}
+
+	current, err := findExisting(ctx, c.state.Get(IdentifierRouteTable), c.commonTagsWithSuffix("rt"),
+		c.actor.GetRouteTable, c.actor.FindRouteTablesByTags)
+	if err != nil {
+		return err
+	}
+
+	if current == nil {
+		log.Info("creating custom route table ...")
+		created, err := c.actor.CreateRouteTable(ctx, desired)
+		if err != nil {
+			return fmt.Errorf("create RouteTable failed: %w", err)
+		}
+		if created == nil {
+			return fmt.Errorf("create RouteTable failed")
+		}
+		current = created
+		// Tag the new route table
+		if err := c.actor.CreateTags(ctx, []string{current.RouteTableId}, desired.Tags, "ROUTETABLE"); err != nil {
+			return fmt.Errorf("failed to tag route table: %w", err)
+		}
+	}
+
+	c.state.Set(IdentifierRouteTable, current.RouteTableId)
+
+	// Associate all VSwitches of this shoot with the custom route table
+	vswitchIds := c.getAllVSwitchids()
+	for _, vswitchId := range vswitchIds {
+		if err := c.actor.AssociateRouteTable(ctx, current.RouteTableId, vswitchId); err != nil {
+			// Ignore "already associated" errors
+			if !isAlreadyAssociatedError(err) {
+				return fmt.Errorf("failed to associate route table %s with vswitch %s: %w", current.RouteTableId, vswitchId, err)
+			}
+		}
+	}
+
+	return c.PersistState(ctx, true)
+}
+
+func isAlreadyAssociatedError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := err.Error()
+	return strings.Contains(errMsg, "bindError") ||
+		strings.Contains(errMsg, "IncorrectRouteTableStatus") ||
+		strings.Contains(errMsg, "AlreadyAssociated")
 }
