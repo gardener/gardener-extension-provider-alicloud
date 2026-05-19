@@ -633,7 +633,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":   Equal(field.ErrorTypeForbidden),
 					"Field":  Equal("networks.vpc.useCustomRouteTable"),
-					"Detail": ContainSubstring("useCustomRouteTable is immutable once set"),
+					"Detail": ContainSubstring("useCustomRouteTable can only be set at shoot creation time and cannot be changed afterwards"),
 				}))))
 			})
 
@@ -649,7 +649,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":   Equal(field.ErrorTypeForbidden),
 					"Field":  Equal("networks.vpc.useCustomRouteTable"),
-					"Detail": ContainSubstring("useCustomRouteTable is immutable once set"),
+					"Detail": ContainSubstring("useCustomRouteTable can only be set at shoot creation time and cannot be changed afterwards"),
 				}))))
 			})
 
@@ -665,7 +665,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":   Equal(field.ErrorTypeForbidden),
 					"Field":  Equal("networks.vpc.useCustomRouteTable"),
-					"Detail": ContainSubstring("useCustomRouteTable is immutable once set"),
+					"Detail": ContainSubstring("useCustomRouteTable can only be set at shoot creation time and cannot be changed afterwards"),
 				}))))
 			})
 
@@ -681,7 +681,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":   Equal(field.ErrorTypeForbidden),
 					"Field":  Equal("networks.vpc.useCustomRouteTable"),
-					"Detail": ContainSubstring("useCustomRouteTable is immutable once set"),
+					"Detail": ContainSubstring("useCustomRouteTable can only be set at shoot creation time and cannot be changed afterwards"),
 				}))))
 			})
 

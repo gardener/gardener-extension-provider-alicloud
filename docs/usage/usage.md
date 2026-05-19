@@ -162,7 +162,7 @@ Also, please note that the existing Elastic IP will be permanently deleted if it
 
 ## Custom Route Table (`networks.vpc.useCustomRouteTable`)
 
-`networks.vpc.useCustomRouteTable` defaults to `false` (or `nil`, which is equivalent). Setting it to `true` instructs Gardener to create a dedicated route table for this shoot instead of using the VPC's system default route table. All shoot VSwitches will be associated with this custom route table.
+`networks.vpc.useCustomRouteTable` defaults to `false` (or `nil`, which is equivalent). It can only be specified at shoot **creation time** — any attempt to change it on an existing shoot is rejected by admission validation, regardless of direction. When set to `true`, Gardener creates a dedicated route table for this shoot instead of using the VPC's system default route table. All shoot VSwitches will be associated with this custom route table.
 
 Gardener adds the following routes to the custom route table:
 * `0.0.0.0/0 → NatGateway` — default IPv4 egress route.
@@ -170,7 +170,7 @@ Gardener adds the following routes to the custom route table:
 
 This feature works regardless of whether the VPC is Gardener-managed or user-provided.
 
-**Immutability:** `useCustomRouteTable` can only be set when created new shoot and cannot be changed or removed. Attempting to do so on an existing shoot will be rejected by admission validation.
+**Immutability:** `useCustomRouteTable` can only be set at shoot creation time and cannot be changed or removed afterwards. Attempting to modify it on an existing shoot will be rejected by admission validation.
 
 **CCM integration:** The route table ID is written to `InfrastructureStatus.VPC.routeTableID` and forwarded to the Cloud Controller Manager as `routeTableIDS`, so CCM can manage pod-to-node routes in the correct table.
 

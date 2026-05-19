@@ -161,23 +161,23 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 	allErrs := field.ErrorList{}
 
 	vpcPath := field.NewPath("networks").Child("vpc")
-	// UseCustomRouteTable is fully immutable once set: any change (nil/false → true, true → false/nil) is forbidden.
-	// The only permitted no-op is nil ↔ false, which are treated as equivalent.
+	// UseCustomRouteTable can only be specified at shoot creation time; any change after creation is forbidden.
+	// This includes both enabling (nil/false → true) and disabling (true → false/nil).
+	// nil and false are treated as equivalent (both mean "disabled"), so a nil↔false no-op is permitted.
 	// Strip UseCustomRouteTable from both sides before the whole-struct comparison so that the
-	// general immutability check does not fire on it, then enforce the one-way rule separately.
+	// general immutability check does not fire on it, then enforce the creation-time-only rule separately.
 	normalizedOldVPC := oldConfig.Networks.VPC
 	normalizedNewVPC := newConfig.Networks.VPC
 	normalizedOldVPC.UseCustomRouteTable = nil
 	normalizedNewVPC.UseCustomRouteTable = nil
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(normalizedNewVPC, normalizedOldVPC, vpcPath)...)
 
-	// UseCustomRouteTable is immutable once set: any change between true and false/nil is forbidden.
-	// nil and false are treated as equivalent so that a nil→false no-op does not trigger an error.
+	// Any change in effective value (nil/false ↔ true in either direction) is forbidden after creation.
 	if normalizeUseCustomRouteTable(oldConfig.Networks.VPC.UseCustomRouteTable) !=
 		normalizeUseCustomRouteTable(newConfig.Networks.VPC.UseCustomRouteTable) {
 		allErrs = append(allErrs, field.Forbidden(
 			vpcPath.Child("useCustomRouteTable"),
-			"useCustomRouteTable is immutable once set",
+			"useCustomRouteTable can only be set at shoot creation time and cannot be changed afterwards",
 		))
 	}
 
