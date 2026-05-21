@@ -113,6 +113,18 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 		allErrs = append(allErrs, vpcCIDR.ValidateNotOverlap(pods, services)...)
 	}
 
+	// When useCustomRouteTable is enabled with a user-provided VPC, gardenerManagedNATGateway must be true.
+	// This ensures each shoot manages its own NAT Gateway, preventing a multi-shoot VPC scenario where
+	// one shoot's cleanup deletes a shared NAT Gateway that other shoots in the same VPC depend on.
+	if infra.Networks.VPC.ID != nil &&
+		infra.Networks.VPC.UseCustomRouteTable != nil && *infra.Networks.VPC.UseCustomRouteTable &&
+		(infra.Networks.VPC.GardenerManagedNATGateway == nil || !*infra.Networks.VPC.GardenerManagedNATGateway) {
+		allErrs = append(allErrs, field.Required(
+			networksPath.Child("vpc", "gardenerManagedNATGateway"),
+			"gardenerManagedNATGateway must be true when useCustomRouteTable is enabled with a user-provided VPC",
+		))
+	}
+
 	// make sure that VPC cidrs don't overlap with each other
 	allErrs = append(allErrs, cidrvalidation.ValidateCIDROverlap(cidrs, false)...)
 	if pods != nil {

@@ -170,6 +170,8 @@ Gardener adds the following routes to the custom route table:
 
 This feature works regardless of whether the VPC is Gardener-managed or user-provided.
 
+**User-provided VPC requirement:** When `useCustomRouteTable: true` is combined with a user-provided VPC (`networks.vpc.id`), `networks.vpc.gardenerManagedNATGateway` must also be set to `true`. This ensures each shoot manages its own NAT Gateway, preventing a multi-shoot VPC scenario where one shoot's cleanup inadvertently deletes a shared NAT Gateway that other shoots in the same VPC depend on.
+
 **Immutability:** `useCustomRouteTable` can only be set at shoot creation time and cannot be changed or removed afterwards. Attempting to modify it on an existing shoot will be rejected by admission validation.
 
 **CCM integration:** The route table ID is written to `InfrastructureStatus.VPC.routeTableID` and forwarded to the Cloud Controller Manager as `routeTableIDS`, so CCM can manage pod-to-node routes in the correct table.

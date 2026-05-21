@@ -418,7 +418,21 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				}))))
 			})
 
-			It("should allow useCustomRouteTable=true when vpc.id is set", func() {
+			It("should allow useCustomRouteTable=true when vpc.id is set and gardenerManagedNATGateway=true", func() {
+				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
+					ID:                        &vpcID,
+					UseCustomRouteTable:       ptr.To(true),
+					GardenerManagedNATGateway: ptr.To(true),
+				}
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Field": Equal("networks.vpc.gardenerManagedNATGateway"),
+				}))))
+			})
+
+			It("should forbid useCustomRouteTable=true when vpc.id is set and gardenerManagedNATGateway is not set", func() {
 				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
 					ID:                  &vpcID,
 					UseCustomRouteTable: ptr.To(true),
@@ -426,8 +440,26 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
-				Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Field": Equal("networks.vpc.useCustomRouteTable"),
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeRequired),
+					"Field":  Equal("networks.vpc.gardenerManagedNATGateway"),
+					"Detail": ContainSubstring("gardenerManagedNATGateway must be true when useCustomRouteTable is enabled with a user-provided VPC"),
+				}))))
+			})
+
+			It("should forbid useCustomRouteTable=true when vpc.id is set and gardenerManagedNATGateway=false", func() {
+				infrastructureConfig.Networks.VPC = apisalicloud.VPC{
+					ID:                        &vpcID,
+					UseCustomRouteTable:       ptr.To(true),
+					GardenerManagedNATGateway: ptr.To(false),
+				}
+
+				errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeRequired),
+					"Field":  Equal("networks.vpc.gardenerManagedNATGateway"),
+					"Detail": ContainSubstring("gardenerManagedNATGateway must be true when useCustomRouteTable is enabled with a user-provided VPC"),
 				}))))
 			})
 
