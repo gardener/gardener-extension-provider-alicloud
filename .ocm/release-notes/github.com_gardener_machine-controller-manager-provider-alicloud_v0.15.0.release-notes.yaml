@@ -1,0 +1,24 @@
+ocm:
+  component_name: github.com/gardener/machine-controller-manager-provider-alicloud
+  component_version: v0.15.0
+release_notes:
+- audience: operator
+  author:
+    hostname: github.com
+    type: githubUser
+    username: aaronfern
+  category: improvement
+  contents: Unneeded callback removed from release job
+  mimetype: text/markdown
+  reference: '[#135](https://github.com/gardener/machine-controller-manager-provider-alicloud/pull/135)'
+  type: standard
+- audience: operator
+  author:
+    hostname: github.com
+    type: githubUser
+    username: takoverflow
+  category: other
+  contents: Golang version used is now upgraded to `1.26.2`
+  mimetype: text/markdown
+  reference: '[#142](https://github.com/gardener/machine-controller-manager-provider-alicloud/pull/142)'
+  type: standard
