@@ -48,6 +48,7 @@ type Actor interface {
 	DeleteNatGateway(ctx context.Context, id string) error
 	ListNatGatewaysByVSwitchInVPC(ctx context.Context, vpcId string, vswitchIds []string) ([]*NatGateway, error)
 	ListNatGatewaysByVPC(ctx context.Context, vpcId string) ([]*NatGateway, error)
+	GetNatGatewayTags(ctx context.Context, ids []string) (map[string]Tags, error)
 
 	CreateEIP(ctx context.Context, eip *EIP) (*EIP, error)
 	GetEIP(ctx context.Context, id string) (*EIP, error)
@@ -858,6 +859,33 @@ func (c *actor) FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGate
 		return nil, err
 	}
 	return c.ListNatGateways(ctx, idList)
+}
+
+// GetNatGatewayTags returns the tags for the given NAT Gateway IDs via ListTagResources.
+// DescribeNatGateways does not return tag data, so this separate call is required.
+func (c *actor) GetNatGatewayTags(_ context.Context, ids []string) (map[string]Tags, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "NATGATEWAY"
+	req.ResourceId = &ids
+
+	respList, err := page_call(c.vpcClient.ListTagResources, req)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]Tags)
+	for _, resp := range respList {
+		for _, item := range resp.TagResources.TagResource {
+			if _, ok := result[item.ResourceId]; !ok {
+				result[item.ResourceId] = Tags{}
+			}
+			result[item.ResourceId][item.TagKey] = item.TagValue
+		}
+	}
+	return result, nil
 }
 
 func (c *actor) DeleteVSwitch(ctx context.Context, id string) error {

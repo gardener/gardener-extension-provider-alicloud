@@ -157,6 +157,7 @@ var _ = Describe("ConfigValidator", func() {
 	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but no natgateway found in the vpc", func() {
 		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
 		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(nil, nil)
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(ConsistOfFields(Fields{
@@ -169,27 +170,48 @@ var _ = Describe("ConfigValidator", func() {
 	It("should forbid when provide vpc id and gardenerManagedNATGateway is false or null but more than one natgateway in the vpc", func() {
 		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
 		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{
-			&aliclient.NatGateway{},
-			&aliclient.NatGateway{},
+			{NatGatewayId: "ngw-1"},
+			{NatGatewayId: "ngw-2"},
+		}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{
+			"ngw-1": {},
+			"ngw-2": {},
 		}, nil)
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(ConsistOfFields(Fields{
 			"Type":   Equal(field.ErrorTypeInvalid),
 			"Field":  Equal("networks.vpc.id"),
-			"Detail": Equal("more than one natgateway found"),
+			"Detail": Equal("more than one user natgateway found"),
 		}))
+	})
+
+	It("should filter out Gardener-managed NAT Gateways from other shoots when checking user NatGateway", func() {
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{
+			{NatGatewayId: "ngw-user"},
+			{NatGatewayId: "ngw-other-shoot"},
+		}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{
+			"ngw-user":        {},
+			"ngw-other-shoot": {"kubernetes.io/cluster/other-ns": "1"},
+		}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(BeEmpty())
 	})
 
 	It("should succeed when provide vpc exist and natgateway exist", func() {
 		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
 		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{
-			&aliclient.NatGateway{},
+			{NatGatewayId: "ngw-1"},
+		}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{
+			"ngw-1": {},
 		}, nil)
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(BeEmpty())
-
 	})
 
 	It("should forbid when provide eip id but call get EIP failed", func() {

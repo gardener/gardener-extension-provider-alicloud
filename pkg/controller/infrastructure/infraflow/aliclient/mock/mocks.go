@@ -655,6 +655,21 @@ func (mr *MockActorMockRecorder) GetNatGateway(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNatGateway", reflect.TypeOf((*MockActor)(nil).GetNatGateway), ctx, id)
 }
 
+// GetNatGatewayTags mocks base method.
+func (m *MockActor) GetNatGatewayTags(ctx context.Context, ids []string) (map[string]aliclient.Tags, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNatGatewayTags", ctx, ids)
+	ret0, _ := ret[0].(map[string]aliclient.Tags)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNatGatewayTags indicates an expected call of GetNatGatewayTags.
+func (mr *MockActorMockRecorder) GetNatGatewayTags(ctx, ids any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNatGatewayTags", reflect.TypeOf((*MockActor)(nil).GetNatGatewayTags), ctx, ids)
+}
+
 // GetRouteTable mocks base method.
 func (m *MockActor) GetRouteTable(ctx context.Context, id string) (*aliclient.RouteTable, error) {
 	m.ctrl.T.Helper()

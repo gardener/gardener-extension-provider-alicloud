@@ -115,12 +115,30 @@ func (c *configValidator) validateVPC(ctx context.Context, actor aliclient.Actor
 			allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateVPC FindNatGatewayByVPC %s failed: %+v", vpcID, err)))
 			return allErrs
 		}
-		if len(gw_list) == 0 {
+		// DescribeNatGateways does not return tag data, so fetch tags separately to identify
+		// NAT Gateways managed by other Gardener shoots (tagged kubernetes.io/cluster/<namespace>).
+		var gwIds []string
+		for _, gw := range gw_list {
+			gwIds = append(gwIds, gw.NatGatewayId)
+		}
+		gwTags, err := actor.GetNatGatewayTags(ctx, gwIds)
+		if err != nil {
+			allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateVPC GetNatGatewayTags %s failed: %+v", vpcID, err)))
+			return allErrs
+		}
+		var userGwList []*aliclient.NatGateway
+		for _, gw := range gw_list {
+			tags := gwTags[gw.NatGatewayId]
+			if !isGardenerManagedNatGateway(tags) {
+				userGwList = append(userGwList, gw)
+			}
+		}
+		if len(userGwList) == 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath, vpcID, "no user natgateway found"))
 			return allErrs
 		}
-		if len(gw_list) > 1 {
-			allErrs = append(allErrs, field.Invalid(fldPath, vpcID, "more than one natgateway found"))
+		if len(userGwList) > 1 {
+			allErrs = append(allErrs, field.Invalid(fldPath, vpcID, "more than one user natgateway found"))
 			return allErrs
 		}
 	}
@@ -187,4 +205,15 @@ func (c *configValidator) validateVpcIPv6(ctx context.Context, actor aliclient.A
 			"VPC does not have an IPv6 Gateway; please create one before using dualStack"))
 	}
 	return allErrs
+}
+
+// isGardenerManagedNatGateway returns true if the tags contain a kubernetes.io/cluster/
+// key, indicating the NAT Gateway was created by a Gardener shoot rather than provided by the user.
+func isGardenerManagedNatGateway(tags aliclient.Tags) bool {
+	for k := range tags {
+		if strings.HasPrefix(k, "kubernetes.io/cluster/") {
+			return true
+		}
+	}
+	return false
 }

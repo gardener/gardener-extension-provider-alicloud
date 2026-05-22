@@ -371,8 +371,15 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// Filter out VSwitches owned by other shoots to prevent accidental reuse in a shared VPC.
+	var filteredVpcVsw []*aliclient.VSwitch
+	for _, vsw := range vpc_vsw {
+		if !c.isOwnedByAnotherShoot(vsw.Tags) {
+			filteredVpcVsw = append(filteredVpcVsw, vsw)
+		}
+	}
 
-	toBeDeleted, toBeCreated, toBeChecked := diffByID_Ex(desired, current, vpc_vsw, func(item *aliclient.VSwitch) string {
+	toBeDeleted, toBeCreated, toBeChecked := diffByID_Ex(desired, current, filteredVpcVsw, func(item *aliclient.VSwitch) string {
 		return item.ZoneId + "-" + item.CidrBlock
 	})
 

@@ -336,14 +336,48 @@ func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
 	if vpcID == nil {
 		return fmt.Errorf("IdentifierVPC is nil")
 	}
-	gw, err := c.actor.FindNatGatewayByVPC(ctx, *vpcID)
+
+	// If we already recorded a NatGateway ID, verify it still exists and reuse it.
+	if storedID := c.state.Get(IdentifierNatGateway); storedID != nil {
+		gw, err := c.actor.GetNatGateway(ctx, *storedID)
+		if err != nil {
+			return fmt.Errorf("get existing NatGateway %s failed: %w", *storedID, err)
+		}
+		if gw != nil {
+			log.Info("reusing recorded NatGateway", "natGatewayId", *storedID)
+			c.state.Set(IdentifierNatGateway, *storedID)
+			return c.PersistState(ctx, true)
+		}
+		log.Info("recorded NatGateway no longer exists, searching VPC", "natGatewayId", *storedID)
+	}
+
+	// Search the VPC for a user-provided NAT gateway, filtering out any that were
+	// created by other Gardener shoots (identified by a kubernetes.io/cluster/ tag).
+	gwList, err := c.actor.ListNatGatewaysByVPC(ctx, *vpcID)
 	if err != nil {
-		return fmt.Errorf("find NatGateway failed %w", err)
+		return fmt.Errorf("find NatGateway failed: %w", err)
 	}
-	if gw == nil {
-		return fmt.Errorf("ExistingNatGateway not found")
+	var gwIDs []string
+	for _, gw := range gwList {
+		gwIDs = append(gwIDs, gw.NatGatewayId)
 	}
-	c.state.Set(IdentifierNatGateway, gw.NatGatewayId)
+	gwTags, err := c.actor.GetNatGatewayTags(ctx, gwIDs)
+	if err != nil {
+		return fmt.Errorf("get NatGateway tags failed: %w", err)
+	}
+	var userGwList []*aliclient.NatGateway
+	for _, gw := range gwList {
+		if !c.isOwnedByAnotherShoot(gwTags[gw.NatGatewayId]) {
+			userGwList = append(userGwList, gw)
+		}
+	}
+	if len(userGwList) == 0 {
+		return fmt.Errorf("no user-managed NatGateway found in VPC %s", *vpcID)
+	}
+	if len(userGwList) > 1 {
+		return fmt.Errorf("more than one user-managed NatGateway found in VPC %s", *vpcID)
+	}
+	c.state.Set(IdentifierNatGateway, userGwList[0].NatGatewayId)
 	return c.PersistState(ctx, true)
 }
 
