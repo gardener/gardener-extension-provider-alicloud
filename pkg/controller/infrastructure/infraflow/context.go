@@ -130,7 +130,8 @@ func (c *FlowContext) useCustomRouteTable() bool {
 
 // isOwnedByAnotherShoot returns true if the given tags contain a kubernetes.io/cluster/ tag
 // that belongs to a different shoot namespace. Used to exclude resources created by other
-// shoots sharing the same user-provided VPC.
+// shoots sharing the same user-provided VPC, while still allowing reuse of resources owned
+// by the current shoot (e.g. VSwitches).
 func (c *FlowContext) isOwnedByAnotherShoot(tags aliclient.Tags) bool {
 	ourClusterTag := c.tagKeyCluster()
 	for k := range tags {

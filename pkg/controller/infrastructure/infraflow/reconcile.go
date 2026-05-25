@@ -367,7 +367,7 @@ func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
 	}
 	var userGwList []*aliclient.NatGateway
 	for _, gw := range gwList {
-		if !c.isOwnedByAnotherShoot(gwTags[gw.NatGatewayId]) {
+		if !aliclient.IsGardenerManaged(gwTags[gw.NatGatewayId]) {
 			userGwList = append(userGwList, gw)
 		}
 	}

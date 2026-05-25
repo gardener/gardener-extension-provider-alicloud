@@ -129,7 +129,7 @@ func (c *configValidator) validateVPC(ctx context.Context, actor aliclient.Actor
 		var userGwList []*aliclient.NatGateway
 		for _, gw := range gw_list {
 			tags := gwTags[gw.NatGatewayId]
-			if !isGardenerManagedNatGateway(tags) {
+			if !aliclient.IsGardenerManaged(tags) {
 				userGwList = append(userGwList, gw)
 			}
 		}
@@ -207,13 +207,3 @@ func (c *configValidator) validateVpcIPv6(ctx context.Context, actor aliclient.A
 	return allErrs
 }
 
-// isGardenerManagedNatGateway returns true if the tags contain a kubernetes.io/cluster/
-// key, indicating the NAT Gateway was created by a Gardener shoot rather than provided by the user.
-func isGardenerManagedNatGateway(tags aliclient.Tags) bool {
-	for k := range tags {
-		if strings.HasPrefix(k, "kubernetes.io/cluster/") {
-			return true
-		}
-	}
-	return false
-}
