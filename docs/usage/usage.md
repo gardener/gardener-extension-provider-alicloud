@@ -176,6 +176,28 @@ This feature works regardless of whether the VPC is Gardener-managed or user-pro
 
 **CCM integration:** The route table ID is written to `InfrastructureStatus.VPC.routeTableID` and forwarded to the Cloud Controller Manager as `routeTableIDS`, so CCM can manage pod-to-node routes in the correct table.
 
+### Multiple Shoots Sharing a User-Provided VPC
+
+The custom route table feature is what makes it practical to run multiple shoots in the same user-provided VPC. Without it, all shoots would compete over the VPC's single system route table, where only one NAT Gateway can hold the `0.0.0.0/0` default route. With each shoot owning a dedicated route table, routing is fully isolated regardless of how many shoots share the VPC.
+
+**Recommended pattern — the only supported multi-shoot configuration with Gardener-managed NAT Gateways:**
+
+Each shoot must set both:
+```yaml
+networks:
+  vpc:
+    id: <shared-vpc-id>
+    gardenerManagedNATGateway: true
+    useCustomRouteTable: true
+```
+
+This gives every shoot:
+- Its own managed NAT Gateway, tagged with the shoot's `kubernetes.io/cluster/<namespace>` tag.
+- Its own custom route table with a `0.0.0.0/0 → own NAT Gateway` entry (and `::/0 → IPv6 Gateway` when dual-stack is enabled).
+- Full isolation: deleting one shoot removes only its own NAT Gateway and route table without affecting any other shoot in the VPC.
+
+**Note:** `useCustomRouteTable` can only be set at shoot creation time and cannot be changed afterwards. Plan the configuration before creating the shoot.
+
 ## Dual-Stack Support (`dualStack`)
 
 `dualStack.enabled` defaults to `false`. Setting `dualStack.enabled: true` at the top level of `InfrastructureConfig` enables dual-stack for the shoot so that you can create dual-stacked NLB services in the shoot. This causes Gardener to:
