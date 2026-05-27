@@ -196,7 +196,11 @@ This gives every shoot:
 - Its own custom route table with a `0.0.0.0/0 → own NAT Gateway` entry (and `::/0 → IPv6 Gateway` when dual-stack is enabled).
 - Full isolation: deleting one shoot removes only its own NAT Gateway and route table without affecting any other shoot in the VPC.
 
+**Enforcement:** When creating a new shoot into a user-provided VPC that already contains other Gardener-managed shoots, if `gardenerManagedNATGateway: true` is set, the infrastructure validator will also require `useCustomRouteTable: true`. This prevents a new Gardener-managed NAT Gateway from being stranded outside the system route table. This check runs only at creation time and is skipped during subsequent reconciles.
+
 **Note:** `useCustomRouteTable` can only be set at shoot creation time and cannot be changed afterwards. Plan the configuration before creating the shoot.
+
+**VSwitch CIDR planning:** Ensure that the worker CIDRs configured in `networks.zones[].workers` do not overlap with the CIDR of any existing VSwitch in the shared VPC. Overlapping CIDRs will cause VSwitch creation to fail.
 
 ## Dual-Stack Support (`dualStack`)
 

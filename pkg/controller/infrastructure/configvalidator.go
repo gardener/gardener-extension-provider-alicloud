@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -73,6 +74,11 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		if config.DualStack != nil && config.DualStack.Enabled {
 			logger.Info("Validating VPC IPv6 support for dualStack")
 			allErrs = append(allErrs, c.validateVpcIPv6(ctx, actor, *config.Networks.VPC.ID, field.NewPath("networks", "vpc", "id"))...)
+		}
+
+		if infra.Status.LastOperation != nil && infra.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeCreate {
+			logger.Info("Validating multi-shoot VPC sharing constraints for new shoot")
+			allErrs = append(allErrs, c.validateMultiShootVPC(ctx, actor, *config.Networks.VPC.ID, infra.Namespace, config.Networks.VPC.GardenerManagedNATGateway, config.Networks.VPC.UseCustomRouteTable, field.NewPath("networks", "vpc"))...)
 		}
 	}
 	if createManagedNATGateway {
@@ -207,3 +213,39 @@ func (c *configValidator) validateVpcIPv6(ctx context.Context, actor aliclient.A
 	return allErrs
 }
 
+func (c *configValidator) validateMultiShootVPC(ctx context.Context, actor aliclient.Actor, vpcID string, namespace string, gardenerManagedNATGateway *bool, useCustomRouteTable *bool, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	vswitches, err := actor.FindVSwitchesByVPC(ctx, vpcID)
+	if err != nil {
+		allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateMultiShootVPC FindVSwitchesByVPC %s failed: %+v", vpcID, err)))
+		return allErrs
+	}
+
+	ownClusterTagKey := fmt.Sprintf("kubernetes.io/cluster/%s", namespace)
+	hasOtherShoot := false
+	for _, vsw := range vswitches {
+		for k := range vsw.Tags {
+			if strings.HasPrefix(k, "kubernetes.io/cluster/") && k != ownClusterTagKey {
+				hasOtherShoot = true
+				break
+			}
+		}
+		if hasOtherShoot {
+			break
+		}
+	}
+
+	if hasOtherShoot {
+		if gardenerManagedNATGateway != nil && *gardenerManagedNATGateway {
+			if useCustomRouteTable == nil || !*useCustomRouteTable {
+				allErrs = append(allErrs, field.Required(
+					fldPath.Child("useCustomRouteTable"),
+					"useCustomRouteTable must be true when gardenerManagedNATGateway is true and the VPC already contains other Gardener-managed shoots",
+				))
+			}
+		}
+	}
+
+	return allErrs
+}

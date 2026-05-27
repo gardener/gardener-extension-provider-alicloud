@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
@@ -209,6 +210,84 @@ var _ = Describe("ConfigValidator", func() {
 		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{
 			"ngw-1": {},
 		}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(BeEmpty())
+	})
+
+	It("should forbid when gardenerManagedNATGateway is true and another shoot exists in the VPC but useCustomRouteTable is not set", func() {
+		infra.Status.LastOperation = &gardencorev1beta1.LastOperation{Type: gardencorev1beta1.LastOperationTypeCreate}
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+			Networks: apisalicloud.Networks{
+				VPC: apisalicloud.VPC{
+					ID:                        ptr.To(vpcID),
+					GardenerManagedNATGateway: ptr.To(true),
+					UseCustomRouteTable:       ptr.To(false),
+				},
+				Zones: []apisalicloud.Zone{
+					{Name: "zone_1"},
+				},
+			},
+		})
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{
+			{VSwitchId: "vsw-other", Tags: aliclient.Tags{"kubernetes.io/cluster/other-shoot": "1"}},
+		}, nil)
+		actor.EXPECT().ListEnhanhcedNatGatewayAvailableZones(ctx, region).Return([]string{"zone_1", "zone_2"}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+			"Type":  Equal(field.ErrorTypeRequired),
+			"Field": Equal("networks.vpc.useCustomRouteTable"),
+		}))))
+	})
+
+	It("should succeed when creating a shoot in a shared VPC with both gardenerManagedNATGateway and useCustomRouteTable set", func() {
+		infra.Status.LastOperation = &gardencorev1beta1.LastOperation{Type: gardencorev1beta1.LastOperationTypeCreate}
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+			Networks: apisalicloud.Networks{
+				VPC: apisalicloud.VPC{
+					ID:                        ptr.To(vpcID),
+					GardenerManagedNATGateway: ptr.To(true),
+					UseCustomRouteTable:       ptr.To(true),
+				},
+				Zones: []apisalicloud.Zone{
+					{Name: "zone_1"},
+				},
+			},
+		})
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{
+			{VSwitchId: "vsw-other", Tags: aliclient.Tags{"kubernetes.io/cluster/other-shoot": "1"}},
+		}, nil)
+		actor.EXPECT().ListEnhanhcedNatGatewayAvailableZones(ctx, region).Return([]string{"zone_1", "zone_2"}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(BeEmpty())
+	})
+
+	It("should not be tripped by own VSwitches when retrying a failed create", func() {
+		infra.Status.LastOperation = &gardencorev1beta1.LastOperation{
+			Type:  gardencorev1beta1.LastOperationTypeCreate,
+			State: gardencorev1beta1.LastOperationStateError,
+		}
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{{NatGatewayId: "ngw-1"}}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{"ngw-1": {}}, nil)
+		actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{
+			{VSwitchId: "vsw-own", Tags: aliclient.Tags{fmt.Sprintf("kubernetes.io/cluster/%s", namespace): "1"}},
+		}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(BeEmpty())
+	})
+
+	It("should skip multi-shoot check when LastOperation.Type is Reconcile", func() {
+		infra.Status.LastOperation = &gardencorev1beta1.LastOperation{Type: gardencorev1beta1.LastOperationTypeReconcile}
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{{NatGatewayId: "ngw-1"}}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{"ngw-1": {}}, nil)
+		// FindVSwitchesByVPC must NOT be called for reconcile operations
 
 		errorList := cv.Validate(ctx, infra)
 		Expect(errorList).To(BeEmpty())

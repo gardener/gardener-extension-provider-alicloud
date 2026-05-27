@@ -371,10 +371,12 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// Filter out VSwitches owned by other shoots to prevent accidental reuse in a shared VPC.
+	// Only reuse VSwitches whose name starts with this shoot's namespace prefix.
+	// This covers crash-recovery (VSwitch created but tag not yet written) while
+	// excluding user-created VSwitches that happen to share the same zone+CIDR.
 	var filteredVpcVsw []*aliclient.VSwitch
 	for _, vsw := range vpc_vsw {
-		if !c.isOwnedByAnotherShoot(vsw.Tags) {
+		if strings.HasPrefix(vsw.Name, c.namespace+"-") {
 			filteredVpcVsw = append(filteredVpcVsw, vsw)
 		}
 	}
