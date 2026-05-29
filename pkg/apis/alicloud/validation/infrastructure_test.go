@@ -195,22 +195,24 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			var vpcID = "vpc-12345678"
 
 			Context("Gardener-managed VPC (no VPC.ID)", func() {
-				It("should require ipv6CidrBlock for every zone when dualStack.enabled=true", func() {
+				It("should pass when all zones omit ipv6CidrBlock (defaults to zone index)", func() {
 					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
-					// zones have no Ipv6CidrBlock
+					// no Ipv6CidrBlock set; defaults are 0 and 1 — no conflict
 
 					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
-					Expect(errorList).To(ContainElements(
-						PointTo(MatchFields(IgnoreExtras, Fields{
-							"Type":  Equal(field.ErrorTypeRequired),
-							"Field": Equal("networks.zones[0].ipv6CidrBlock"),
-						})),
-						PointTo(MatchFields(IgnoreExtras, Fields{
-							"Type":  Equal(field.ErrorTypeRequired),
-							"Field": Equal("networks.zones[1].ipv6CidrBlock"),
-						})),
-					))
+					Expect(errorList).To(BeEmpty())
+				})
+
+				It("should pass when some zones omit ipv6CidrBlock and there is no conflict with explicit values", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidr5 := 5
+					// zone[0] explicit=5, zone[1] nil → default index=1; no conflict
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr5
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(BeEmpty())
 				})
 
 				It("should pass when all zones have valid ipv6CidrBlock", func() {
@@ -223,6 +225,36 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
 
 					Expect(errorList).To(BeEmpty())
+				})
+
+				It("should forbid when default index conflicts with an explicit value (zone[1] explicit=0 clashes with zone[0] default=0)", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidr0 := 0
+					// zone[0] nil → default 0; zone[1] explicit=0 → conflict
+					infrastructureConfig.Networks.Zones[1].Ipv6CidrBlock = &cidr0
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(field.ErrorTypeInvalid),
+						"Field":  Equal("networks.zones[1].ipv6CidrBlock"),
+						"Detail": ContainSubstring("must be unique across zones"),
+					}))))
+				})
+
+				It("should forbid when default index conflicts with explicit value on a later zone (zone[0] explicit=1 clashes with zone[1] default=1)", func() {
+					infrastructureConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					cidr1 := 1
+					// zone[0] explicit=1; zone[1] nil → default index=1 → conflict
+					infrastructureConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr1
+
+					errorList := ValidateInfrastructureConfig(infrastructureConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(field.ErrorTypeInvalid),
+						"Field":  Equal("networks.zones[1].ipv6CidrBlock"),
+						"Detail": ContainSubstring("default ipv6CidrBlock"),
+					}))))
 				})
 
 				It("should forbid ipv6CidrBlock out of range (>255)", func() {

@@ -219,9 +219,11 @@ This gives every shoot:
 
 When Gardener creates the VPC, it will automatically enable IPv6 on the VPC and create an IPv6 Gateway.
 
-**`networks.zones[].ipv6CidrBlock` is required** for every zone in this case. Each zone contains one VSwitch, and `ipv6CidrBlock` specifies which `/64` subnet from the VPC's `/56` IPv6 CIDR block is assigned to that zone's VSwitch. The value is an integer in the range **0–255**. For example, if the VPC IPv6 CIDR is `2408:xxxx::/56`, then setting `ipv6CidrBlock: 0` on a zone assigns `2408:xxxx:0::/64` to that zone's VSwitch, and `ipv6CidrBlock: 1` assigns `2408:xxxx:1::/64` to another zone's VSwitch.
+`networks.zones[].ipv6CidrBlock` is **optional** for Gardener-managed VPC. Each zone contains one VSwitch, and `ipv6CidrBlock` specifies which `/64` subnet from the VPC's `/56` IPv6 CIDR block is assigned to that zone's VSwitch. The value is an integer in the range **0–255**. For example, if the VPC IPv6 CIDR is `2408:xxxx::/56`, then setting `ipv6CidrBlock: 0` on a zone assigns `2408:xxxx:0::/64` to that zone's VSwitch, and `ipv6CidrBlock: 1` assigns `2408:xxxx:1::/64` to another zone's VSwitch.
 
-Values must be **unique across all zones** in the same shoot. 
+If `ipv6CidrBlock` is omitted for a zone, Gardener uses the zone's **array index** in `networks.zones` as the default value (first zone → 0, second zone → 1, and so on). Since zones can only be appended (not reordered), this default is stable across reconciliation cycles.
+
+Effective values — whether explicit or defaulted from the array index — must be **unique across all zones**. If you mix explicit and omitted values, admission validates that no default index collides with an explicit value in another zone and reports an error if it does.
 
 ### User-provided VPC (`networks.vpc.id`)
 
@@ -230,7 +232,7 @@ Before enable dual-stack, you must enable IPv6 on the VPC and ensure an IPv6 Gat
 * When you enable IPv6 on a VPC through the **Alibaba Cloud console**, an IPv6 Gateway is **created automatically**. The console also offers the option to enable IPv6 on all existing VSwitches in the VPC at the same time (assigning each a `/64` CIDR). **We strongly recommend against using this bulk-enable option.** If a VSwitch already has an IPv6 CIDR assigned, Gardener will not overwrite it, which means any `ipv6CidrBlock` value you specify in the shoot will have no effect. More importantly, the Alibaba Cloud console assigns subnet indices arbitrarily, giving you no visibility or control over which `/64` block each VSwitch receives. Since a VPC's `/56` IPv6 CIDR provides only 256 non-overlapping `/64` subnets (indices 0–255), careful planning is essential — especially when multiple shoots share the same VPC. Instead, leave the VSwitch IPv6 upgrade to Gardener and control the assignment explicitly via `ipv6CidrBlock`.
 * Gardener validates at shoot reconcile time that the VPC has IPv6 enabled and that an IPv6 Gateway exists. If either is missing, the shoot reconcile will fail with a descriptive error. If the VPC was enabled for IPv6 via means other than the Alibaba Cloud console (which normally creates the IPv6 Gateway automatically), you may need to create the IPv6 Gateway manually. Note that each VPC can have at most one IPv6 Gateway.
 
-**`networks.zones[].ipv6CidrBlock` is required** for every zone regardless of whether the VPC is Gardener-managed or user-provided. The value is an integer in the range **0–255** that selects the `/64` subnet to assign to that zone's VSwitch. If the VSwitch already has an IPv6 CIDR assigned (e.g., via the Alibaba Cloud console), Gardener will **not** overwrite it and the value is effectively a no-op for that VSwitch — but it must still be provided.
+**`networks.zones[].ipv6CidrBlock` is required** for every zone when using a user-provided VPC. The value is an integer in the range **0–255** that selects the `/64` subnet to assign to that zone's VSwitch. If the VSwitch already has an IPv6 CIDR assigned (e.g., via the Alibaba Cloud console), Gardener will **not** overwrite it and the value is effectively a no-op for that VSwitch — but it must still be provided.
 
 **Important notes for user-provided VPCs:**
 * If the target `/64` subnet is already occupied by another VSwitch in the VPC, the API call will fail. Change `ipv6CidrBlock` to a different value and trigger reconciliation.

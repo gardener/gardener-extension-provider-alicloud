@@ -136,32 +136,46 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 
 	// DualStack validation
 	if infra.DualStack != nil && infra.DualStack.Enabled {
-		seen := sets.New[int]()
-		for i, zone := range infra.Networks.Zones {
-			zonePath := networksPath.Child("zones").Index(i).Child("ipv6CidrBlock")
-			if zone.Ipv6CidrBlock == nil {
-				allErrs = append(allErrs, field.Required(zonePath,
-					"ipv6CidrBlock is required when dualStack.enabled is true"))
-			} else {
-				v := *zone.Ipv6CidrBlock
-				if v < 0 || v > 255 {
-					allErrs = append(allErrs, field.Invalid(zonePath, v,
-						"ipv6CidrBlock must be in range 0-255"))
-				} else if seen.Has(v) {
-					allErrs = append(allErrs, field.Invalid(zonePath, v,
-						"ipv6CidrBlock must be unique across zones"))
-				} else {
-					seen.Insert(v)
-				}
-			}
-		}
-
-		// NLB region check
+		// NLB region check applies to both VPC types
 		if !nlbSupportedRegions.Has(region) {
 			allErrs = append(allErrs, field.Invalid(
 				field.NewPath("region"), region,
 				fmt.Sprintf("region %s does not support NLB which is required for dualStack; supported regions: %s",
 					region, strings.Join(sets.List(nlbSupportedRegions), ", "))))
+		}
+
+		isUserVPC := infra.Networks.VPC.ID != nil
+		seen := sets.New[int]()
+		for i, zone := range infra.Networks.Zones {
+			zonePath := networksPath.Child("zones").Index(i).Child("ipv6CidrBlock")
+			var effective int
+			if zone.Ipv6CidrBlock == nil {
+				if isUserVPC {
+					allErrs = append(allErrs, field.Required(zonePath,
+						"ipv6CidrBlock is required when dualStack.enabled is true and using a user-provided VPC"))
+					continue
+				}
+				// Gardener-managed VPC: default to the zone's array index
+				effective = i
+			} else {
+				effective = *zone.Ipv6CidrBlock
+				if effective < 0 || effective > 255 {
+					allErrs = append(allErrs, field.Invalid(zonePath, effective,
+						"ipv6CidrBlock must be in range 0-255"))
+					continue
+				}
+			}
+			if seen.Has(effective) {
+				if zone.Ipv6CidrBlock == nil {
+					allErrs = append(allErrs, field.Invalid(zonePath, effective,
+						fmt.Sprintf("default ipv6CidrBlock (zone index %d) conflicts with another zone; set ipv6CidrBlock explicitly to resolve", effective)))
+				} else {
+					allErrs = append(allErrs, field.Invalid(zonePath, effective,
+						"ipv6CidrBlock must be unique across zones"))
+				}
+			} else {
+				seen.Insert(effective)
+			}
 		}
 	}
 
