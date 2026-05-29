@@ -371,8 +371,17 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// Only reuse VSwitches whose name starts with this shoot's namespace prefix.
+	// This covers crash-recovery (VSwitch created but tag not yet written) while
+	// excluding user-created VSwitches that happen to share the same zone+CIDR.
+	var filteredVpcVsw []*aliclient.VSwitch
+	for _, vsw := range vpc_vsw {
+		if strings.HasPrefix(vsw.Name, c.namespace+"-") {
+			filteredVpcVsw = append(filteredVpcVsw, vsw)
+		}
+	}
 
-	toBeDeleted, toBeCreated, toBeChecked := diffByID_Ex(desired, current, vpc_vsw, func(item *aliclient.VSwitch) string {
+	toBeDeleted, toBeCreated, toBeChecked := diffByID_Ex(desired, current, filteredVpcVsw, func(item *aliclient.VSwitch) string {
 		return item.ZoneId + "-" + item.CidrBlock
 	})
 
@@ -403,12 +412,46 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if c.dualStackEnabled() {
+			ipv6CidrBlock, err := c.getEffectiveIpv6CidrBlock(desired.ZoneId)
+			if err != nil {
+				return fmt.Errorf("failed to determine IPv6 CIDR block for newly created vswitch %s in zone %s: %w", created.VSwitchId, desired.ZoneId, err)
+			}
+			if err := c.actor.SetVSwitchIpv6CidrBlock(ctx, created.VSwitchId, ipv6CidrBlock); err != nil {
+				return fmt.Errorf("failed to set IPv6 CIDR block for vswitch %s: %w", created.VSwitchId, err)
+			}
+			ipv6Cidr, err := c.actor.GetVSwitchIpv6CidrBlock(ctx, created.VSwitchId)
+			if err != nil {
+				return err
+			}
+			log.Info("vswitch IPv6 CIDR set", "VSwitchId", created.VSwitchId, "ipv6CidrBlock", ipv6Cidr)
+		}
 	}
 	for _, vsw := range toBeChecked {
 		c.state.GetChild(ChildIdZones).GetChild(vsw.current.ZoneId).Set(IdentifierZoneVSwitch, vsw.current.VSwitchId)
 		_, err = c.updater.UpdateVSwitch(ctx, vsw.desired, vsw.current)
 		if err != nil {
 			return err
+		}
+		if c.dualStackEnabled() {
+			currentIpv6, err := c.actor.GetVSwitchIpv6CidrBlock(ctx, vsw.current.VSwitchId)
+			if err != nil {
+				return err
+			}
+			if currentIpv6 == "" {
+				ipv6CidrBlock, err := c.getEffectiveIpv6CidrBlock(vsw.current.ZoneId)
+				if err != nil {
+					return fmt.Errorf("failed to determine IPv6 CIDR block for existing vswitch %s in zone %s: %w", vsw.current.VSwitchId, vsw.current.ZoneId, err)
+				}
+				if err := c.actor.SetVSwitchIpv6CidrBlock(ctx, vsw.current.VSwitchId, ipv6CidrBlock); err != nil {
+					return fmt.Errorf("failed to set IPv6 CIDR block for vswitch %s: %w", vsw.current.VSwitchId, err)
+				}
+				currentIpv6, err = c.actor.GetVSwitchIpv6CidrBlock(ctx, vsw.current.VSwitchId)
+				if err != nil {
+					return err
+				}
+			}
+			log.Info("vswitch IPv6 CIDR", "VSwitchId", vsw.current.VSwitchId, "ipv6CidrBlock", currentIpv6)
 		}
 	}
 
@@ -651,6 +694,13 @@ func (c *FlowContext) deleteVSwitch(vsw *aliclient.VSwitch) flow.TaskFn {
 	return func(ctx context.Context) error {
 		log := c.LogFromContext(ctx)
 		log.Info("deleting vswitch ...", "VSwitchId", vsw.VSwitchId)
+
+		// Unassociate from custom route table before deletion (idempotent, ignore errors)
+		if c.useCustomRouteTable() {
+			if routeTableId := c.state.Get(IdentifierRouteTable); routeTableId != nil {
+				_ = c.actor.UnassociateRouteTable(ctx, *routeTableId, vsw.VSwitchId)
+			}
+		}
 
 		if err := c.actor.DeleteVSwitch(ctx, vsw.VSwitchId); err != nil {
 			return err

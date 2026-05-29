@@ -28,6 +28,7 @@ import (
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
+	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 )
 
 // StatusTypeMeta is the TypeMeta of InfrastructureStatus.
@@ -206,6 +207,36 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	// NLB cleanup is currently disabled: deleting NLB instances requires additional RAM permissions
+	// that may not be present on existing shoots. The underlying implementation is retained for
+	// future use once the permission requirements are communicated to users.
+	// if err := a.cleanupNLBs(ctx, infra, shootCloudProviderCredentials); err != nil {
+	// 	return err
+	// }
+
+	return nil
+}
+
+func (a *actuator) cleanupNLBs(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, credentials *alicloud.Credentials) error {
+	actor, err := aliclient.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
+	if err != nil {
+		return err
+	}
+
+	nlbInfos, err := actor.FindNLBsByTags(ctx, aliclient.Tags{"ack.aliyun.com": infra.Namespace})
+	if err != nil {
+		return err
+	}
+
+	for _, info := range nlbInfos {
+		if err := actor.SetNLBDeletionProtection(ctx, info.LoadBalancerId, false); err != nil {
+			return err
+		}
+		if err := actor.DeleteNLB(ctx, info.LoadBalancerId); err != nil {
+			return err
 		}
 	}
 	return nil

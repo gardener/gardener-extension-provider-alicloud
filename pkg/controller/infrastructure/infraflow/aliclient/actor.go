@@ -14,6 +14,7 @@ import (
 	alierrors "github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/nlb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -47,6 +48,7 @@ type Actor interface {
 	DeleteNatGateway(ctx context.Context, id string) error
 	ListNatGatewaysByVSwitchInVPC(ctx context.Context, vpcId string, vswitchIds []string) ([]*NatGateway, error)
 	ListNatGatewaysByVPC(ctx context.Context, vpcId string) ([]*NatGateway, error)
+	GetNatGatewayTags(ctx context.Context, ids []string) (map[string]Tags, error)
 
 	CreateEIP(ctx context.Context, eip *EIP) (*EIP, error)
 	GetEIP(ctx context.Context, id string) (*EIP, error)
@@ -74,11 +76,44 @@ type Actor interface {
 
 	AuthorizeSecurityGroupRule(ctx context.Context, sgId string, rule SecurityGroupRule) error
 	RevokeSecurityGroupRule(ctx context.Context, sgId, ruleId, direction string) error
+
+	CreateRouteTable(ctx context.Context, rt *RouteTable) (*RouteTable, error)
+	GetRouteTable(ctx context.Context, id string) (*RouteTable, error)
+	FindRouteTablesByTags(ctx context.Context, tags Tags) ([]*RouteTable, error)
+	DeleteRouteTable(ctx context.Context, id string) error
+
+	AssociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error
+	UnassociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error
+
+	CreateRouteEntry(ctx context.Context, routeTableId string, entry *RouteEntry) (*RouteEntry, error)
+	DeleteRouteEntry(ctx context.Context, routeTableId string, entry *RouteEntry) error
+	FindRouteEntryByDest(ctx context.Context, routeTableId, destCidrBlock string) (*RouteEntry, error)
+	ListRouteEntriesByRouteTable(ctx context.Context, routeTableId string) ([]*RouteEntry, error)
+
+	EnableVpcIpv6(ctx context.Context, vpcId string) error
+	GetVpcIpv6Info(ctx context.Context, vpcId string) (string, error)
+
+	CreateIpv6Gateway(ctx context.Context, gw *IPv6Gateway) (*IPv6Gateway, error)
+	GetIpv6Gateway(ctx context.Context, id string) (*IPv6Gateway, error)
+	FindIpv6GatewayByVPC(ctx context.Context, vpcId string) (*IPv6Gateway, error)
+	FindIpv6GatewaysByTags(ctx context.Context, tags Tags) ([]*IPv6Gateway, error)
+	DeleteIpv6Gateway(ctx context.Context, id string) error
+
+	SetVSwitchIpv6CidrBlock(ctx context.Context, vSwitchId string, ipv6CidrBlock int) error
+	GetVSwitchIpv6CidrBlock(ctx context.Context, vSwitchId string) (string, error)
+
+	// FindNLBsByTags returns NLB instances matching the given tags.
+	FindNLBsByTags(ctx context.Context, tags Tags) ([]*NLBInfo, error)
+	// SetNLBDeletionProtection enables or disables deletion protection on an NLB instance.
+	SetNLBDeletionProtection(ctx context.Context, loadBalancerID string, enable bool) error
+	// DeleteNLB deletes the NLB instance with the given ID and waits until it is gone.
+	DeleteNLB(ctx context.Context, loadBalancerID string) error
 }
 
 type actor struct {
 	vpcClient    alicloudclient.VPC
 	ecsClient    alicloudclient.ECS
+	nlbClient    alicloudclient.NLB
 	Logger       logr.Logger
 	PollInterval time.Duration
 }
@@ -96,9 +131,14 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 	if err != nil {
 		return nil, err
 	}
+	nlbClient, err := clientFactory.NewNLBClient(region, accessKeyID, secretAccessKey)
+	if err != nil {
+		return nil, err
+	}
 	return &actor{
 		vpcClient:    vpcClient,
 		ecsClient:    ecsClient,
+		nlbClient:    nlbClient,
 		Logger:       log.Log.WithName("alicloud-client"),
 		PollInterval: 5 * time.Second,
 	}, nil
@@ -135,6 +175,7 @@ func (c *actor) getResourceClass(resourceType string) string {
 		"VpnGateWay",
 		"NATGATEWAY",
 		"COMMONBANDWIDTHPACKAGE",
+		"IPV6GATEWAY",
 	}
 	ecs_resourceType_list := []string{
 		"instance",
@@ -820,6 +861,33 @@ func (c *actor) FindNatGatewayByTags(ctx context.Context, tags Tags) ([]*NatGate
 	return c.ListNatGateways(ctx, idList)
 }
 
+// GetNatGatewayTags returns the tags for the given NAT Gateway IDs via ListTagResources.
+// DescribeNatGateways does not return tag data, so this separate call is required.
+func (c *actor) GetNatGatewayTags(_ context.Context, ids []string) (map[string]Tags, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "NATGATEWAY"
+	req.ResourceId = &ids
+
+	respList, err := page_call(c.vpcClient.ListTagResources, req)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]Tags)
+	for _, resp := range respList {
+		for _, item := range resp.TagResources.TagResource {
+			if _, ok := result[item.ResourceId]; !ok {
+				result[item.ResourceId] = Tags{}
+			}
+			result[item.ResourceId][item.TagKey] = item.TagValue
+		}
+	}
+	return result, nil
+}
+
 func (c *actor) DeleteVSwitch(ctx context.Context, id string) error {
 	current, err := c.GetVSwitch(ctx, id)
 	if err != nil {
@@ -1264,12 +1332,13 @@ func (c *actor) fromSecurityGroup(item ecs.SecurityGroup) (*SecurityGroup, error
 
 func (c *actor) fromVSwitch(item vpc.VSwitch) (*VSwitch, error) {
 	vswitch := &VSwitch{
-		Name:      item.VSwitchName,
-		VpcId:     &item.VpcId,
-		ZoneId:    item.ZoneId,
-		CidrBlock: item.CidrBlock,
-		Status:    &item.Status,
-		VSwitchId: item.VSwitchId,
+		Name:          item.VSwitchName,
+		VpcId:         &item.VpcId,
+		ZoneId:        item.ZoneId,
+		CidrBlock:     item.CidrBlock,
+		Status:        &item.Status,
+		VSwitchId:     item.VSwitchId,
+		Ipv6CidrBlock: item.Ipv6CidrBlock,
 	}
 	tags := Tags{}
 	for _, t := range item.Tags.Tag {
@@ -1333,21 +1402,21 @@ func (c *actor) fromEip(item vpc.EipAddress) (*EIP, error) {
 }
 
 func (c *actor) fromVpc(item vpc.Vpc) (*VPC, error) {
-	vpc := &VPC{
-		Name:  item.VpcName,
-		VpcId: item.VpcId,
-
-		CidrBlock: item.CidrBlock,
-		Status:    &item.Status,
+	v := &VPC{
+		Name:          item.VpcName,
+		VpcId:         item.VpcId,
+		CidrBlock:     item.CidrBlock,
+		Status:        &item.Status,
+		Ipv6CidrBlock: item.Ipv6CidrBlock,
 	}
 
 	tags := Tags{}
 	for _, t := range item.Tags.Tag {
 		tags[t.Key] = t.Value
 	}
-	vpc.Tags = tags
+	v.Tags = tags
 
-	return vpc, nil
+	return v, nil
 }
 
 func listByIds[RESP any](geter func(id string) (*RESP, error), ids []string) ([]*RESP, error) {
@@ -1398,10 +1467,13 @@ func page_call[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) 
 		"DescribeNatGatewaysRequest",
 		"DescribeEipAddressesRequest",
 		"DescribeSnatTableEntriesRequest",
+		"DescribeRouteTableListRequest",
+		"DescribeIpv6GatewaysRequest",
 	}
 	type2_req_type_name_list := []string{
 		"ListTagResourcesRequest",
 		"DescribeSecurityGroupsRequest",
+		"DescribeRouteEntryListRequest",
 	}
 
 	reqTypeName := reflect.ValueOf(req).Elem().Type().Name()
@@ -1498,4 +1570,562 @@ func contains(elems []string, elem string) bool {
 		}
 	}
 	return false
+}
+
+func (c *actor) CreateRouteTable(ctx context.Context, rt *RouteTable) (*RouteTable, error) {
+	req := vpc.CreateCreateRouteTableRequest()
+	req.VpcId = rt.VpcId
+	req.RouteTableName = rt.Name
+
+	resp, err := callApi(c.vpcClient.CreateRouteTable, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *RouteTable
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+		created, err = c.GetRouteTable(ctx, resp.RouteTableId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
+func (c *actor) GetRouteTable(_ context.Context, id string) (*RouteTable, error) {
+	return c.getRouteTable(id)
+}
+
+func (c *actor) getRouteTable(id string) (*RouteTable, error) {
+	req := vpc.CreateDescribeRouteTableListRequest()
+	req.RouteTableId = id
+	resp, err := c.describeRouteTableList(req)
+	return single(resp, err)
+}
+
+func (c *actor) FindRouteTablesByTags(ctx context.Context, tags Tags) ([]*RouteTable, error) {
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "ROUTETABLE"
+
+	var reqTag []vpc.ListTagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, vpc.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	idList, err := c.listVpcTagResources(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*RouteTable
+	for _, id := range idList {
+		rt, err := c.getRouteTable(id)
+		if err != nil {
+			return nil, err
+		}
+		if rt != nil {
+			result = append(result, rt)
+		}
+	}
+	return result, nil
+}
+
+func (c *actor) DeleteRouteTable(ctx context.Context, id string) error {
+	current, err := c.GetRouteTable(ctx, id)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return nil
+	}
+	req := vpc.CreateDeleteRouteTableRequest()
+	req.RouteTableId = id
+	if _, err = callApi(c.vpcClient.DeleteRouteTable, req); err != nil {
+		return err
+	}
+	return wait.PollUntilContextCancel(ctx, c.PollInterval, false, func(_ context.Context) (bool, error) {
+		rt, err := c.GetRouteTable(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		return rt == nil, nil
+	})
+}
+
+func (c *actor) AssociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error {
+	req := vpc.CreateAssociateRouteTableRequest()
+	req.RouteTableId = routeTableId
+	req.VSwitchId = vSwitchId
+	if _, err := callApi(c.vpcClient.AssociateRouteTable, req); err != nil {
+		return err
+	}
+	// Wait for the vswitch to return to Available before the caller attempts
+	// further operations (e.g. CreateRouteEntry) that require a stable vswitch.
+	return c.waitVSwitchAvailable(ctx, vSwitchId)
+}
+
+func (c *actor) UnassociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error {
+	req := vpc.CreateUnassociateRouteTableRequest()
+	req.RouteTableId = routeTableId
+	req.VSwitchId = vSwitchId
+	if _, err := callApi(c.vpcClient.UnassociateRouteTable, req); err != nil {
+		return err
+	}
+	return c.waitVSwitchAvailable(ctx, vSwitchId)
+}
+
+// waitVSwitchAvailable polls until the vswitch reaches Status="Available".
+func (c *actor) waitVSwitchAvailable(ctx context.Context, vSwitchId string) error {
+	return wait.PollUntilContextCancel(ctx, c.PollInterval, false, func(_ context.Context) (bool, error) {
+		vsw, err := c.getVSwitch(vSwitchId)
+		if err != nil {
+			return false, err
+		}
+		if vsw == nil {
+			return false, fmt.Errorf("vswitch %s not found while waiting for Available", vSwitchId)
+		}
+		return *vsw.Status == "Available", nil
+	})
+}
+
+func (c *actor) CreateRouteEntry(ctx context.Context, routeTableId string, entry *RouteEntry) (*RouteEntry, error) {
+	req := vpc.CreateCreateRouteEntryRequest()
+	req.RouteTableId = routeTableId
+	req.DestinationCidrBlock = entry.DestinationCidrBlock
+	req.NextHopId = entry.NextHopId
+	req.NextHopType = entry.NextHopType
+	req.RouteEntryName = entry.Name
+
+	resp, err := callApi(c.vpcClient.CreateRouteEntry, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *RouteEntry
+	err = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+		created, err = c.getRouteEntry(routeTableId, resp.RouteEntryId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		if *created.Status != "Available" {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
+func (c *actor) DeleteRouteEntry(ctx context.Context, routeTableId string, entry *RouteEntry) error {
+	current, err := c.getRouteEntry(routeTableId, entry.RouteEntryId)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return nil
+	}
+	req := vpc.CreateDeleteRouteEntryRequest()
+	req.RouteEntryId = entry.RouteEntryId
+	req.NextHopId = entry.NextHopId
+	_, err = callApi(c.vpcClient.DeleteRouteEntry, req)
+	if err != nil {
+		return err
+	}
+	return wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(_ context.Context) (bool, error) {
+		found, err := c.getRouteEntry(routeTableId, entry.RouteEntryId)
+		if err != nil {
+			return false, err
+		}
+		return found == nil, nil
+	})
+}
+
+func (c *actor) getRouteEntry(routeTableId, routeEntryId string) (*RouteEntry, error) {
+	req := vpc.CreateDescribeRouteEntryListRequest()
+	req.RouteTableId = routeTableId
+	req.RouteEntryId = routeEntryId
+	req.RouteEntryType = "Custom"
+	resp, err := c.describeRouteEntryList(req)
+	return single(resp, err)
+}
+
+func (c *actor) FindRouteEntryByDest(_ context.Context, routeTableId, destCidrBlock string) (*RouteEntry, error) {
+	req := vpc.CreateDescribeRouteEntryListRequest()
+	req.RouteTableId = routeTableId
+	req.DestinationCidrBlock = destCidrBlock
+	req.RouteEntryType = "Custom"
+	resp, err := c.describeRouteEntryList(req)
+	return single(resp, err)
+}
+
+func (c *actor) ListRouteEntriesByRouteTable(_ context.Context, routeTableId string) ([]*RouteEntry, error) {
+	req := vpc.CreateDescribeRouteEntryListRequest()
+	req.RouteTableId = routeTableId
+	req.RouteEntryType = "Custom"
+	return c.describeRouteEntryList(req)
+}
+
+func (c *actor) describeRouteTableList(req *vpc.DescribeRouteTableListRequest) ([]*RouteTable, error) {
+	var rtList []*RouteTable
+
+	respList, err := page_call(c.vpcClient.DescribeRouteTableList, req)
+	if err != nil {
+		return nil, err
+	}
+	var theList []vpc.RouterTableListType
+	for _, resp := range respList {
+		theList = append(theList, resp.RouterTableList.RouterTableListType...)
+	}
+	for _, item := range theList {
+		rt := c.fromRouteTable(item)
+		if rt != nil {
+			rtList = append(rtList, rt)
+		}
+	}
+	return rtList, nil
+}
+
+func (c *actor) fromRouteTable(item vpc.RouterTableListType) *RouteTable {
+	status := item.Status
+	rt := &RouteTable{
+		Name:         item.RouteTableName,
+		RouteTableId: item.RouteTableId,
+		VpcId:        item.VpcId,
+		Status:       &status,
+		VSwitchIds:   item.VSwitchIds.VSwitchId,
+	}
+	tags := Tags{}
+	for _, t := range item.Tags.Tag {
+		tags[t.Key] = t.Value
+	}
+	rt.Tags = tags
+	return rt
+}
+
+func (c *actor) describeRouteEntryList(req *vpc.DescribeRouteEntryListRequest) ([]*RouteEntry, error) {
+	var entryList []*RouteEntry
+
+	respList, err := page_call(c.vpcClient.DescribeRouteEntryList, req)
+	if err != nil {
+		return nil, err
+	}
+	var theList []vpc.RouteEntry
+	for _, resp := range respList {
+		theList = append(theList, resp.RouteEntrys.RouteEntry...)
+	}
+	for _, item := range theList {
+		entry := c.fromRouteEntry(item)
+		if entry != nil {
+			entryList = append(entryList, entry)
+		}
+	}
+	return entryList, nil
+}
+
+func (c *actor) fromRouteEntry(item vpc.RouteEntry) *RouteEntry {
+	status := item.Status
+	nextHopId := item.InstanceId
+	if len(item.NextHops.NextHop) > 0 {
+		nextHopId = item.NextHops.NextHop[0].NextHopId
+	}
+	return &RouteEntry{
+		RouteEntryId:         item.RouteEntryId,
+		RouteTableId:         item.RouteTableId,
+		Name:                 item.RouteEntryName,
+		DestinationCidrBlock: item.DestinationCidrBlock,
+		NextHopType:          item.NextHopType,
+		NextHopId:            nextHopId,
+		Status:               &status,
+	}
+}
+
+func (c *actor) EnableVpcIpv6(ctx context.Context, vpcId string) error {
+	req := vpc.CreateModifyVpcAttributeRequest()
+	req.VpcId = vpcId
+	req.EnableIPv6 = requests.NewBoolean(true)
+	if _, err := callApi(c.vpcClient.ModifyVpcAttribute, req); err != nil {
+		return err
+	}
+	// Poll until VPC has an IPv6 CIDR
+	return wait.PollUntilContextCancel(ctx, c.PollInterval, false, func(_ context.Context) (bool, error) {
+		cidr, err := c.GetVpcIpv6Info(ctx, vpcId)
+		if err != nil {
+			return false, err
+		}
+		return cidr != "", nil
+	})
+}
+
+func (c *actor) GetVpcIpv6Info(_ context.Context, vpcId string) (string, error) {
+	v, err := c.getVpc(vpcId)
+	if err != nil {
+		return "", err
+	}
+	if v == nil {
+		return "", fmt.Errorf("VPC %s not found", vpcId)
+	}
+	return v.Ipv6CidrBlock, nil
+}
+
+func (c *actor) CreateIpv6Gateway(ctx context.Context, gw *IPv6Gateway) (*IPv6Gateway, error) {
+	req := vpc.CreateCreateIpv6GatewayRequest()
+	req.VpcId = gw.VpcId
+	req.Name = gw.Name
+	resp, err := callApi(c.vpcClient.CreateIpv6Gateway, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var created *IPv6Gateway
+	err = wait.PollUntilContextCancel(ctx, c.PollInterval, false, func(_ context.Context) (bool, error) {
+		created, err = c.getIpv6Gateway(resp.Ipv6GatewayId)
+		if err != nil {
+			return false, err
+		}
+		if created == nil {
+			return false, nil
+		}
+		return *created.Status == "Available", nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
+func (c *actor) GetIpv6Gateway(_ context.Context, id string) (*IPv6Gateway, error) {
+	return c.getIpv6Gateway(id)
+}
+
+func (c *actor) getIpv6Gateway(id string) (*IPv6Gateway, error) {
+	req := vpc.CreateDescribeIpv6GatewaysRequest()
+	req.Ipv6GatewayId = id
+	resp, err := c.describeIpv6Gateways(req)
+	return single(resp, err)
+}
+
+func (c *actor) FindIpv6GatewayByVPC(_ context.Context, vpcId string) (*IPv6Gateway, error) {
+	req := vpc.CreateDescribeIpv6GatewaysRequest()
+	req.VpcId = vpcId
+	resp, err := c.describeIpv6Gateways(req)
+	return single(resp, err)
+}
+
+func (c *actor) FindIpv6GatewaysByTags(ctx context.Context, tags Tags) ([]*IPv6Gateway, error) {
+	req := vpc.CreateListTagResourcesRequest()
+	req.ResourceType = "IPV6GATEWAY"
+
+	var reqTag []vpc.ListTagResourcesTag
+	for k, v := range tags {
+		reqTag = append(reqTag, vpc.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTag
+
+	idList, err := c.listVpcTagResources(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*IPv6Gateway
+	for _, id := range idList {
+		gw, err := c.getIpv6Gateway(id)
+		if err != nil {
+			return nil, err
+		}
+		if gw != nil {
+			result = append(result, gw)
+		}
+	}
+	return result, nil
+}
+
+func (c *actor) describeIpv6Gateways(req *vpc.DescribeIpv6GatewaysRequest) ([]*IPv6Gateway, error) {
+	var gwList []*IPv6Gateway
+	respList, err := page_call(c.vpcClient.DescribeIpv6Gateways, req)
+	if err != nil {
+		return nil, err
+	}
+	for _, resp := range respList {
+		for _, item := range resp.Ipv6Gateways.Ipv6Gateway {
+			gw := fromIpv6Gateway(item)
+			gwList = append(gwList, gw)
+		}
+	}
+	return gwList, nil
+}
+
+func fromIpv6Gateway(item vpc.Ipv6Gateway) *IPv6Gateway {
+	status := item.Status
+	return &IPv6Gateway{
+		Name:          item.Name,
+		Ipv6GatewayId: item.Ipv6GatewayId,
+		VpcId:         item.VpcId,
+		Status:        &status,
+	}
+}
+
+func (c *actor) DeleteIpv6Gateway(ctx context.Context, id string) error {
+	current, err := c.getIpv6Gateway(id)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return nil
+	}
+	req := vpc.CreateDeleteIpv6GatewayRequest()
+	req.Ipv6GatewayId = id
+	if _, err := callApi(c.vpcClient.DeleteIpv6Gateway, req); err != nil {
+		return err
+	}
+	return wait.PollUntilContextCancel(ctx, c.PollInterval, false, func(_ context.Context) (bool, error) {
+		gw, err := c.getIpv6Gateway(id)
+		if err != nil {
+			return false, err
+		}
+		return gw == nil, nil
+	})
+}
+
+func (c *actor) SetVSwitchIpv6CidrBlock(ctx context.Context, vSwitchId string, ipv6CidrBlock int) error {
+	req := vpc.CreateModifyVSwitchAttributeRequest()
+	req.VSwitchId = vSwitchId
+	req.Ipv6CidrBlock = requests.NewInteger(ipv6CidrBlock)
+	if _, err := callApi(c.vpcClient.ModifyVSwitchAttribute, req); err != nil {
+		return err
+	}
+	return c.waitVSwitchAvailable(ctx, vSwitchId)
+}
+
+func (c *actor) GetVSwitchIpv6CidrBlock(_ context.Context, vSwitchId string) (string, error) {
+	vsw, err := c.getVSwitch(vSwitchId)
+	if err != nil {
+		return "", err
+	}
+	if vsw == nil {
+		return "", fmt.Errorf("vswitch %s not found", vSwitchId)
+	}
+	return vsw.Ipv6CidrBlock, nil
+}
+
+func (c *actor) FindNLBsByTags(_ context.Context, tags Tags) ([]*NLBInfo, error) {
+	req := nlb.CreateListTagResourcesRequest()
+	req.ResourceType = "loadbalancer"
+	var reqTags []nlb.ListTagResourcesTag
+	for k, v := range tags {
+		reqTags = append(reqTags, nlb.ListTagResourcesTag{Key: k, Value: v})
+	}
+	req.Tag = &reqTags
+
+	idList, err := c.listNlbTagResources(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*NLBInfo
+	for _, id := range idList {
+		info, err := c.getNLB(id)
+		if err != nil {
+			return nil, err
+		}
+		if info != nil {
+			result = append(result, info)
+		}
+	}
+	return result, nil
+}
+
+func (c *actor) listNlbTagResources(req *nlb.ListTagResourcesRequest) ([]string, error) {
+	var idList []string
+
+	respList, err := page_call(c.nlbClient.ListTagResources, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var theList []nlb.TagResultModelList
+	for _, resp := range respList {
+		theList = append(theList, resp.TagResources...)
+	}
+	for _, item := range theList {
+		if !contains(idList, item.ResourceId) {
+			idList = append(idList, item.ResourceId)
+		}
+	}
+
+	return idList, nil
+}
+
+func (c *actor) getNLB(id string) (*NLBInfo, error) {
+	req := nlb.CreateGetLoadBalancerAttributeRequest()
+	req.LoadBalancerId = id
+	resp, err := callApi(c.nlbClient.GetLoadBalancerAttribute, req)
+	if err != nil {
+		if serverErr, ok := err.(*alierrors.ServerError); ok {
+			ec := serverErr.ErrorCode()
+			if ec == "ResourceNotFound.loadBalancer" || ec == "ResourceNotFound.LoadBalancer" {
+				return nil, nil
+			}
+		}
+		return nil, err
+	}
+	if resp.LoadBalancerId == "" {
+		return nil, nil
+	}
+	return fromNLB(resp), nil
+}
+
+func fromNLB(resp *nlb.GetLoadBalancerAttributeResponse) *NLBInfo {
+	status := resp.LoadBalancerStatus
+	return &NLBInfo{
+		LoadBalancerId: resp.LoadBalancerId,
+		Name:           resp.LoadBalancerName,
+		VpcId:          resp.VpcId,
+		Status:         &status,
+	}
+}
+
+func (c *actor) SetNLBDeletionProtection(_ context.Context, loadBalancerID string, enable bool) error {
+	req := nlb.CreateUpdateLoadBalancerProtectionRequest()
+	req.LoadBalancerId = loadBalancerID
+	req.DeletionProtectionEnabled = requests.NewBoolean(enable)
+	_, err := callApi(c.nlbClient.UpdateLoadBalancerProtection, req)
+	return err
+}
+
+func (c *actor) DeleteNLB(ctx context.Context, loadBalancerID string) error {
+	current, err := c.getNLB(loadBalancerID)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		return nil
+	}
+	req := nlb.CreateDeleteLoadBalancerRequest()
+	req.LoadBalancerId = loadBalancerID
+	if _, err := callApi(c.nlbClient.DeleteLoadBalancer, req); err != nil {
+		return err
+	}
+	return wait.PollUntilContextCancel(ctx, c.PollInterval, false, func(_ context.Context) (bool, error) {
+		info, err := c.getNLB(loadBalancerID)
+		if err != nil {
+			return false, err
+		}
+		return info == nil, nil
+	})
 }

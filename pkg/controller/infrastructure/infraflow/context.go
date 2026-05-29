@@ -44,6 +44,10 @@ const (
 	ZoneNATGWElasticIPAddress = "NATGatewayElasticIPAddress"
 	// IdentifierNodesSecurityGroup is the key for the id of the nodes security group
 	IdentifierNodesSecurityGroup = "NodesSecurityGroup"
+	// IdentifierIPV6Gateway is the key for the id of ipv6gateway
+	IdentifierIPV6Gateway = "IPV6Gateway"
+	// IdentifierRouteTable is the key for the id of the custom route table
+	IdentifierRouteTable = "RouteTable"
 
 	// IdentifierZoneSuffix is the key for the suffix used for a zone
 	IdentifierZoneSuffix = "Suffix"
@@ -119,6 +123,29 @@ func (c *FlowContext) hasNatGateway() bool {
 	return !c.state.IsAlreadyDeleted(IdentifierNatGateway)
 }
 
+func (c *FlowContext) useCustomRouteTable() bool {
+	return c.config.Networks.VPC.UseCustomRouteTable != nil &&
+		*c.config.Networks.VPC.UseCustomRouteTable
+}
+
+// isOwnedByAnotherShoot returns true if the given tags contain a kubernetes.io/cluster/ tag
+// that belongs to a different shoot namespace. Used to exclude resources created by other
+// shoots sharing the same user-provided VPC, while still allowing reuse of resources owned
+// by the current shoot (e.g. VSwitches).
+func (c *FlowContext) isOwnedByAnotherShoot(tags aliclient.Tags) bool {
+	ourClusterTag := c.tagKeyCluster()
+	for k := range tags {
+		if strings.HasPrefix(k, "kubernetes.io/cluster/") && k != ourClusterTag {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *FlowContext) dualStackEnabled() bool {
+	return c.config.DualStack != nil && c.config.DualStack.Enabled
+}
+
 func (c *FlowContext) commonTagsWithSuffix(suffix string) aliclient.Tags {
 	tags := c.commonTags.Clone()
 	tags[TagKeyName] = fmt.Sprintf("%s-%s", c.namespace, suffix)
@@ -175,4 +202,21 @@ func (c *FlowContext) clusterTags() aliclient.Tags {
 // ExportState is used to export the flatMap data
 func (c *FlowContext) ExportState() shared.FlatMap {
 	return c.state.ExportAsFlatMap()
+}
+
+// getEffectiveIpv6CidrBlock returns the IPv6 /64 subnet index for the given zone.
+// If the zone config has an explicit Ipv6CidrBlock, that value is returned.
+// Otherwise the zone's position index in config.Networks.Zones is used as a default,
+// which is safe for Gardener-managed VPC (user-provided VPC always has non-nil value
+// enforced by admission validation).
+func (c *FlowContext) getEffectiveIpv6CidrBlock(zoneName string) (int, error) {
+	for i, zone := range c.config.Networks.Zones {
+		if zone.Name == zoneName {
+			if zone.Ipv6CidrBlock != nil {
+				return *zone.Ipv6CidrBlock, nil
+			}
+			return i, nil
+		}
+	}
+	return -1, fmt.Errorf("zone %s not found in config", zoneName)
 }

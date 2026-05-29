@@ -7,6 +7,7 @@ package infraflow
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gardener/gardener/pkg/utils/flow"
@@ -45,13 +46,21 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		c.ensureVSwitches,
 		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
+	ensureIpv6Gateway := c.AddTask(g, "ensure ipv6 gateway",
+		c.ensureIpv6Gateway,
+		DoIf(c.dualStackEnabled()), Timeout(defaultLongTimeout), Dependencies(ensureVpc))
+
 	ensureNatGateway := c.AddTask(g, "ensure natgateway",
 		c.ensureNatGateway,
 		Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
 
+	ensureRouteTable := c.AddTask(g, "ensure route table",
+		c.ensureRouteTable,
+		DoIf(c.useCustomRouteTable()), Timeout(defaultTimeout), Dependencies(ensureNatGateway, ensureIpv6Gateway))
+
 	_ = c.AddTask(g, "ensure zones",
 		c.ensureZones,
-		Timeout(defaultLongTimeout), Dependencies(ensureNatGateway))
+		Timeout(defaultLongTimeout), Dependencies(ensureNatGateway, ensureRouteTable))
 
 	return g
 }
@@ -200,6 +209,17 @@ func (c *FlowContext) ensureExistingVpc(ctx context.Context) error {
 		return fmt.Errorf("VPC %s has not been found", vpcID)
 	}
 	c.state.Set(IdentifierVPC, vpcID)
+
+	if c.dualStackEnabled() {
+		ipv6Cidr, err := c.actor.GetVpcIpv6Info(ctx, vpcID)
+		if err != nil {
+			return fmt.Errorf("failed to check IPv6 support for VPC %s: %w", vpcID, err)
+		}
+		if ipv6Cidr == "" {
+			return fmt.Errorf("VPC %s does not have IPv6 enabled; please enable IPv6 on the VPC first", vpcID)
+		}
+	}
+
 	return c.PersistState(ctx, true)
 }
 
@@ -246,7 +266,25 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 			return err
 		}
 	}
-	return c.PersistState(ctx, true)
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
+
+	if c.dualStackEnabled() {
+		vpcId := c.state.Get(IdentifierVPC)
+		ipv6Cidr, err := c.actor.GetVpcIpv6Info(ctx, *vpcId)
+		if err != nil {
+			return fmt.Errorf("failed to check IPv6 support for VPC: %w", err)
+		}
+		if ipv6Cidr == "" {
+			log.Info("enabling IPv6 for VPC ...")
+			if err := c.actor.EnableVpcIpv6(ctx, *vpcId); err != nil {
+				return fmt.Errorf("failed to enable IPv6 on VPC: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (c *FlowContext) collectExistingVSwitches(ctx context.Context) ([]*aliclient.VSwitch, error) {
@@ -298,14 +336,48 @@ func (c *FlowContext) ensureExistingNatGateway(ctx context.Context) error {
 	if vpcID == nil {
 		return fmt.Errorf("IdentifierVPC is nil")
 	}
-	gw, err := c.actor.FindNatGatewayByVPC(ctx, *vpcID)
+
+	// If we already recorded a NatGateway ID, verify it still exists and reuse it.
+	if storedID := c.state.Get(IdentifierNatGateway); storedID != nil {
+		gw, err := c.actor.GetNatGateway(ctx, *storedID)
+		if err != nil {
+			return fmt.Errorf("get existing NatGateway %s failed: %w", *storedID, err)
+		}
+		if gw != nil {
+			log.Info("reusing recorded NatGateway", "natGatewayId", *storedID)
+			c.state.Set(IdentifierNatGateway, *storedID)
+			return c.PersistState(ctx, true)
+		}
+		log.Info("recorded NatGateway no longer exists, searching VPC", "natGatewayId", *storedID)
+	}
+
+	// Search the VPC for a user-provided NAT gateway, filtering out any that were
+	// created by other Gardener shoots (identified by a kubernetes.io/cluster/ tag).
+	gwList, err := c.actor.ListNatGatewaysByVPC(ctx, *vpcID)
 	if err != nil {
-		return fmt.Errorf("find NatGateway failed %w", err)
+		return fmt.Errorf("find NatGateway failed: %w", err)
 	}
-	if gw == nil {
-		return fmt.Errorf("ExistingNatGateway not found")
+	var gwIDs []string
+	for _, gw := range gwList {
+		gwIDs = append(gwIDs, gw.NatGatewayId)
 	}
-	c.state.Set(IdentifierNatGateway, gw.NatGatewayId)
+	gwTags, err := c.actor.GetNatGatewayTags(ctx, gwIDs)
+	if err != nil {
+		return fmt.Errorf("get NatGateway tags failed: %w", err)
+	}
+	var userGwList []*aliclient.NatGateway
+	for _, gw := range gwList {
+		if !aliclient.IsGardenerManaged(gwTags[gw.NatGatewayId]) {
+			userGwList = append(userGwList, gw)
+		}
+	}
+	if len(userGwList) == 0 {
+		return fmt.Errorf("no user-managed NatGateway found in VPC %s", *vpcID)
+	}
+	if len(userGwList) > 1 {
+		return fmt.Errorf("more than one user-managed NatGateway found in VPC %s", *vpcID)
+	}
+	c.state.Set(IdentifierNatGateway, userGwList[0].NatGatewayId)
 	return c.PersistState(ctx, true)
 }
 
@@ -378,4 +450,148 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 
 func getZoneName(item *aliclient.VSwitch) string {
 	return item.ZoneId
+}
+
+func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
+	// need export IdentifierIPV6Gateway for ensureRouteTable to add route entry, call ensureIpv6Gateway no care VPC.ID
+	log := c.LogFromContext(ctx)
+	vpcId := c.state.Get(IdentifierVPC)
+	if vpcId == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
+	desired := &aliclient.IPv6Gateway{
+		Tags:  c.commonTagsWithSuffix("ipv6gw"),
+		Name:  c.namespace + "-ipv6gw",
+		VpcId: *vpcId,
+	}
+	// only one ipv6Gateway is allowed in a VPC, so we find by vpcId
+	current, err := c.actor.FindIpv6GatewayByVPC(ctx, *vpcId)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		if c.config.Networks.VPC.ID != nil {
+			// User-provided VPC: do not create, fail fast
+			return fmt.Errorf("VPC %s does not have an IPv6 Gateway; please create one first", *vpcId)
+		}
+		log.Info("creating IPv6 gateway ...")
+		current, err = c.actor.CreateIpv6Gateway(ctx, desired)
+		if err != nil {
+			return fmt.Errorf("failed to create IPv6 Gateway: %w", err)
+		}
+		c.state.Set(IdentifierIPV6Gateway, current.Ipv6GatewayId)
+		if _, err := c.updater.UpdateIpv6Gateway(ctx, desired, current); err != nil {
+			return err
+		}
+	} else {
+		c.state.Set(IdentifierIPV6Gateway, current.Ipv6GatewayId)
+		// User-provided VPC: Gateway belongs to the user, do not modify tags
+		if c.config.Networks.VPC.ID == nil {
+			if _, err := c.updater.UpdateIpv6Gateway(ctx, desired, current); err != nil {
+				return err
+			}
+		}
+	}
+	return c.PersistState(ctx, true)
+}
+
+func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	vpcId := c.state.Get(IdentifierVPC)
+	natGwId := c.state.Get(IdentifierNatGateway)
+	if vpcId == nil || natGwId == nil {
+		return fmt.Errorf("VPC or NatGateway not ready for route table")
+	}
+
+	desired := &aliclient.RouteTable{
+		Tags:  c.commonTagsWithSuffix("rt"),
+		Name:  c.namespace + "-rt",
+		VpcId: *vpcId,
+	}
+	current, err := findExisting(ctx, c.state.Get(IdentifierRouteTable), desired.Tags,
+		c.actor.GetRouteTable, c.actor.FindRouteTablesByTags)
+	if err != nil {
+		return err
+	}
+	if current == nil {
+		log.Info("creating custom route table ...")
+		current, err = c.actor.CreateRouteTable(ctx, desired)
+		if err != nil {
+			return err
+		}
+	}
+	c.state.Set(IdentifierRouteTable, current.RouteTableId)
+	if _, err := c.updater.UpdateRouteTable(ctx, desired, current); err != nil {
+		return err
+	}
+
+	if err := c.PersistState(ctx, true); err != nil {
+		return err
+	}
+
+	// Ensure default route 0.0.0.0/0 → NatGateway
+	if err := c.ensureRouteEntry(ctx, current.RouteTableId, &aliclient.RouteEntry{
+		DestinationCidrBlock: "0.0.0.0/0",
+		NextHopType:          "NatGateway",
+		NextHopId:            *natGwId,
+		Name:                 c.namespace + "-rt-default",
+	}); err != nil {
+		return err
+	}
+
+	// Ensure ::/0 → IPv6Gateway when dualStack is enabled
+	if c.dualStackEnabled() {
+		ipv6GwId := c.state.Get(IdentifierIPV6Gateway)
+		if ipv6GwId == nil {
+			return fmt.Errorf("IdentifierIPV6Gateway is nil")
+		}
+		if err := c.ensureRouteEntry(ctx, current.RouteTableId, &aliclient.RouteEntry{
+			DestinationCidrBlock: "::/0",
+			NextHopType:          "IPv6Gateway",
+			NextHopId:            *ipv6GwId,
+			Name:                 c.namespace + "-rt-ipv6",
+		}); err != nil {
+			return err
+		}
+	}
+
+	// Associate all vswitches that are not yet bound to this route table
+	for _, vswId := range c.getAllVSwitchids() {
+		if !contains(current.VSwitchIds, vswId) {
+			if err := c.actor.AssociateRouteTable(ctx, current.RouteTableId, vswId); err != nil {
+				if !isAlreadyAssociatedError(err) {
+					return fmt.Errorf("failed to associate route table %s with vswitch %s: %w", current.RouteTableId, vswId, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (c *FlowContext) ensureRouteEntry(ctx context.Context, routeTableId string, desired *aliclient.RouteEntry) error {
+	current, err := c.actor.FindRouteEntryByDest(ctx, routeTableId, desired.DestinationCidrBlock)
+	if err != nil {
+		return err
+	}
+	if current != nil {
+		if current.NextHopId == desired.NextHopId {
+			return nil // already correct, idempotent
+		}
+		// Same destination but different next-hop: delete and recreate
+		if err := c.actor.DeleteRouteEntry(ctx, routeTableId, current); err != nil {
+			return err
+		}
+	}
+	_, err = c.actor.CreateRouteEntry(ctx, routeTableId, desired)
+	return err
+}
+
+func isAlreadyAssociatedError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := err.Error()
+	return strings.Contains(errMsg, "bindError") ||
+		strings.Contains(errMsg, "IncorrectRouteTableStatus") ||
+		strings.Contains(errMsg, "AlreadyAssociated")
 }

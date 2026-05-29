@@ -15,6 +15,9 @@ import (
 type InfrastructureConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// DualStack specifies whether dual-stack or IPv4-only should be supported.
+	DualStack *DualStack `json:"dualStack,omitempty"`
+
 	// Networks specifies the networks for an infrastructure.
 	Networks Networks `json:"networks"`
 }
@@ -40,6 +43,9 @@ type VPC struct {
 	// This will only take effect if VPC ID is set.
 	// +optional
 	GardenerManagedNATGateway *bool `json:"gardenerManagedNATGateway,omitempty"`
+	// UseCustomRouteTable indicates whether Gardener should create a custom route table for this shoot.
+	// +optional
+	UseCustomRouteTable *bool `json:"useCustomRouteTable,omitempty"`
 }
 
 // VPCStatus contains output information about the VPC.
@@ -50,6 +56,10 @@ type VPCStatus struct {
 	VSwitches []VSwitch `json:"vswitches"`
 	// SecurityGroups is a list of security groups.
 	SecurityGroups []SecurityGroup `json:"securityGroups"`
+	// RouteTableID is the ID of the custom route table created for this shoot cluster.
+	// This will only take effect if vpc.useCustomRouteTable is set true.
+	// +optional
+	RouteTableID string `json:"routeTableID,omitempty"`
 }
 
 // Purpose is a purpose of a subnet.
@@ -89,6 +99,10 @@ type Zone struct {
 	Worker string `json:"worker"`
 	// Workers specifies the worker CIDR to use.
 	Workers string `json:"workers"`
+	// Ipv6CidrBlock specifies the worker ipv6 CIDR block to use 0-255.
+	// This will only take effect if dualStack.enabled is true.
+	// +optional
+	Ipv6CidrBlock *int `json:"ipv6CidrBlock,omitempty"`
 	// NatGatewayConfig specifies configuration for the NAT gateway in this zone.
 	// +optional
 	NatGateway *NatGatewayConfig `json:"natGateway,omitempty"`
@@ -121,4 +135,10 @@ type InfrastructureStatus struct {
 	// the used versions in the provider status to ensure reconciliation is possible.
 	// +optional
 	MachineImages []MachineImage `json:"machineImages,omitempty"`
+}
+
+// DualStack specifies whether dual-stack or IPv4-only should be supported.
+type DualStack struct {
+	// Enabled specifies if dual-stack is enabled or not.
+	Enabled bool `json:"enabled"`
 }

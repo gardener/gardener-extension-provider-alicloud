@@ -11,6 +11,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/nlb"
 	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
@@ -61,6 +62,7 @@ type ClientFactory interface {
 	NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (OSS, error)
 	NewOSSClientFromSecretRef(ctx context.Context, c client.Client, secretRef *corev1.SecretReference, region string) (OSS, error)
 	NewDNSClient(region, accessKeyID, accessKeySecret string) (DNS, error)
+	NewNLBClient(region, accessKeyID, accessKeySecret string) (NLB, error)
 }
 
 // ecsClient implements the ECS interface.
@@ -128,6 +130,23 @@ type SLB interface {
 	SetLoadBalancerDeleteProtection(ctx context.Context, region, loadBalancerID string, protection bool) error
 }
 
+// nlbClient implements the NLB interface.
+type nlbClient struct {
+	nlb.Client
+}
+
+// NLB is an interface which declares NLB (Network Load Balancer) related methods.
+type NLB interface {
+	// ListTagResources returns NLB resources matching the given tag key/value.
+	ListTagResources(request *nlb.ListTagResourcesRequest) (response *nlb.ListTagResourcesResponse, err error)
+	// GetLoadBalancerAttribute returns the attributes of an NLB instance.
+	GetLoadBalancerAttribute(request *nlb.GetLoadBalancerAttributeRequest) (response *nlb.GetLoadBalancerAttributeResponse, err error)
+	// UpdateLoadBalancerProtection enables or disables deletion protection on an NLB instance.
+	UpdateLoadBalancerProtection(request *nlb.UpdateLoadBalancerProtectionRequest) (response *nlb.UpdateLoadBalancerProtectionResponse, err error)
+	// DeleteLoadBalancer deletes the NLB instance with the given ID.
+	DeleteLoadBalancer(request *nlb.DeleteLoadBalancerRequest) (response *nlb.DeleteLoadBalancerResponse, err error)
+}
+
 // vpcClient implements the VPC interface.
 type vpcClient struct {
 	vpc.Client
@@ -168,6 +187,21 @@ type VPC interface {
 	UnassociateEipAddress(request *vpc.UnassociateEipAddressRequest) (response *vpc.UnassociateEipAddressResponse, err error)
 	CreateSnatEntry(request *vpc.CreateSnatEntryRequest) (response *vpc.CreateSnatEntryResponse, err error)
 	DeleteSnatEntry(request *vpc.DeleteSnatEntryRequest) (response *vpc.DeleteSnatEntryResponse, err error)
+
+	CreateRouteTable(request *vpc.CreateRouteTableRequest) (response *vpc.CreateRouteTableResponse, err error)
+	DescribeRouteTableList(request *vpc.DescribeRouteTableListRequest) (response *vpc.DescribeRouteTableListResponse, err error)
+	DeleteRouteTable(request *vpc.DeleteRouteTableRequest) (response *vpc.DeleteRouteTableResponse, err error)
+	AssociateRouteTable(request *vpc.AssociateRouteTableRequest) (response *vpc.AssociateRouteTableResponse, err error)
+	UnassociateRouteTable(request *vpc.UnassociateRouteTableRequest) (response *vpc.UnassociateRouteTableResponse, err error)
+	CreateRouteEntry(request *vpc.CreateRouteEntryRequest) (response *vpc.CreateRouteEntryResponse, err error)
+	DeleteRouteEntry(request *vpc.DeleteRouteEntryRequest) (response *vpc.DeleteRouteEntryResponse, err error)
+	DescribeRouteEntryList(request *vpc.DescribeRouteEntryListRequest) (response *vpc.DescribeRouteEntryListResponse, err error)
+
+	ModifyVpcAttribute(request *vpc.ModifyVpcAttributeRequest) (response *vpc.ModifyVpcAttributeResponse, err error)
+	CreateIpv6Gateway(request *vpc.CreateIpv6GatewayRequest) (response *vpc.CreateIpv6GatewayResponse, err error)
+	DescribeIpv6Gateways(request *vpc.DescribeIpv6GatewaysRequest) (response *vpc.DescribeIpv6GatewaysResponse, err error)
+	DeleteIpv6Gateway(request *vpc.DeleteIpv6GatewayRequest) (response *vpc.DeleteIpv6GatewayResponse, err error)
+	ModifyVSwitchAttribute(request *vpc.ModifyVSwitchAttributeRequest) (response *vpc.ModifyVSwitchAttributeResponse, err error)
 }
 
 // ramClient implements the RAM interface.

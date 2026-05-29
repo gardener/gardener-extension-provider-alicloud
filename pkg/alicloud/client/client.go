@@ -16,6 +16,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/nlb"
 	ram "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
@@ -769,6 +770,18 @@ func (f *clientFactory) NewRAMClient(region, accessKeyID, accessKeySecret string
 	}
 
 	return &ramClient{
+		*client,
+	}, nil
+}
+
+// NewNLBClient creates a new NLB client with given region, accessKeyID, and accessKeySecret.
+func (f *clientFactory) NewNLBClient(region, accessKeyID, accessKeySecret string) (NLB, error) {
+	client, err := nlb.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &nlbClient{
 		*client,
 	}, nil
 }

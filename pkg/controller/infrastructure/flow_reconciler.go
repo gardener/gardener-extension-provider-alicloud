@@ -272,6 +272,9 @@ func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, sta
 			ID:        vpcID,
 			VSwitches: vswitches,
 		}
+		if routeTableID := state.Data[infraflow.IdentifierRouteTable]; shared.IsValidValue(routeTableID) {
+			status.VPC.RouteTableID = routeTableID
+		}
 		if groupID := state.Data[infraflow.IdentifierNodesSecurityGroup]; shared.IsValidValue(groupID) {
 			status.VPC.SecurityGroups = []aliv1alpha1.SecurityGroup{
 				{
