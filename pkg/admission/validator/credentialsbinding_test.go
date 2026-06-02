@@ -12,8 +12,8 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/security"
+	testutils "github.com/gardener/gardener/pkg/utils/test"
 	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
-	mockmanager "github.com/gardener/gardener/third_party/mock/controller-runtime/manager"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -35,7 +35,7 @@ var _ = Describe("CredentialsBinding validator", func() {
 			credentialsBindingValidator extensionswebhook.Validator
 
 			ctrl      *gomock.Controller
-			mgr       *mockmanager.MockManager
+			mgr       *testutils.FakeManager
 			apiReader *mockclient.MockReader
 
 			ctx                = context.TODO()
@@ -47,10 +47,8 @@ var _ = Describe("CredentialsBinding validator", func() {
 		BeforeEach(func() {
 			ctrl = gomock.NewController(GinkgoT())
 
-			mgr = mockmanager.NewMockManager(ctrl)
-
 			apiReader = mockclient.NewMockReader(ctrl)
-			mgr.EXPECT().GetAPIReader().Return(apiReader)
+			mgr = &testutils.FakeManager{APIReader: apiReader}
 
 			credentialsBindingValidator = validator.NewCredentialsBindingValidator(mgr)
 

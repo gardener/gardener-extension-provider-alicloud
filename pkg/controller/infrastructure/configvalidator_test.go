@@ -12,9 +12,9 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	testutils "github.com/gardener/gardener/pkg/utils/test"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
-	mockmanager "github.com/gardener/gardener/third_party/mock/controller-runtime/manager"
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -59,7 +59,7 @@ var _ = Describe("ConfigValidator", func() {
 		infra       *extensionsv1alpha1.Infrastructure
 		secret      *corev1.Secret
 
-		mgr *mockmanager.MockManager
+		mgr *testutils.FakeManager
 	)
 
 	BeforeEach(func() {
@@ -67,7 +67,7 @@ var _ = Describe("ConfigValidator", func() {
 		c = mockclient.NewMockClient(ctrl)
 		ctx = context.TODO()
 		logger = log.Log.WithName("test")
-		mgr = mockmanager.NewMockManager(ctrl)
+		mgr = &testutils.FakeManager{Client: c}
 
 		actorFactor = mockaliclient.NewMockFactory(ctrl)
 		actor = mockaliclient.NewMockActor(ctrl)
@@ -111,7 +111,6 @@ var _ = Describe("ConfigValidator", func() {
 			},
 		}
 
-		mgr.EXPECT().GetClient().Return(c)
 		c.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
 			func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
 				*obj = *secret
