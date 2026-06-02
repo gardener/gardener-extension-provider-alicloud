@@ -1,6 +1,6 @@
 module github.com/gardener/gardener-extension-provider-alicloud
 
-go 1.25.9
+go 1.26.2
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
@@ -11,7 +11,7 @@ require (
 	github.com/gardener/etcd-druid/api v0.36.3
 	github.com/gardener/gardener v1.143.1
 	github.com/gardener/gardener/pkg/apis v1.143.1
-	github.com/gardener/machine-controller-manager v0.61.3
+	github.com/gardener/machine-controller-manager v0.62.0
 	github.com/go-logr/logr v1.4.3
 	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/onsi/gomega v1.41.0
