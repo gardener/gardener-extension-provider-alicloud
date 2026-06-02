@@ -11,7 +11,7 @@ import (
 	"regexp"
 
 	"github.com/gardener/gardener/pkg/apis/core"
-	corehelper "github.com/gardener/gardener/pkg/apis/core/helper"
+	corehelper "github.com/gardener/gardener/pkg/api/core/helper"
 	validationutils "github.com/gardener/gardener/pkg/utils/validation"
 	cidrvalidation "github.com/gardener/gardener/pkg/utils/validation/cidr"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
