@@ -10,8 +10,8 @@ import (
 	"reflect"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorehelper "github.com/gardener/gardener/pkg/api/core/helper"
+	"github.com/gardener/gardener/pkg/apis/core"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
