@@ -190,12 +190,6 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 		return errList.ToAggregate()
 	}
 
-	if infraConfig != nil && infraConfig.Networks.VPC.ID != nil {
-		if err := s.validateVSwitchCIDRConflict(ctx, shoot, *infraConfig.Networks.VPC.ID, infraConfig.Networks.Zones, 0); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
