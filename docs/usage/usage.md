@@ -247,7 +247,7 @@ Once dual-stack is enabled, the Cloud Controller Manager can provision **DualSta
 
 **Zone requirement:** Alibaba Cloud requires an NLB instance to span at least **two VSwitches in different NLB-supported zones**. Before creating an NLB service, verify that the shoot's infrastructure contains at least two zones. If not, add additional zones to `networks.zones` in the `InfrastructureConfig` and reconcile the shoot first.
 
-*Note:* Alibaba Cloud supports **Single Zone** instances via a privilege quota (which is disabled by default). You can apply for this privilege through the [NLB Quotas](https://www.alibabacloud.com/help/en/slb/network-load-balancer/user-guide/nlb-quotas) page. Once the application is approved, you will be able to create an NLB instance in a single zone.
+*Note:* Alibaba Cloud supports **Single Zone** instances via a privilege quota (which is disabled by default) . You can apply for this privilege through the [NLB Quotas](https://www.alibabacloud.com/help/en/slb/network-load-balancer/user-guide/nlb-quotas) page. Once the application is approved, you will be able to create an NLB instance in a single zone.
 
 The VSwitch IDs and their corresponding zones are available in the shoot's infrastructure status, which can be found in the shoot's control plane namespace on the seed cluster.
 
