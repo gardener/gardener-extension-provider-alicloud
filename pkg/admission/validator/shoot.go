@@ -13,7 +13,7 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorehelper "github.com/gardener/gardener/pkg/apis/core/helper"
-	"github.com/gardener/gardener/pkg/apis/security"
+	securityv1alpha1 "github.com/gardener/gardener/pkg/apis/security/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -255,7 +255,7 @@ func (s *shoot) getCredentials(ctx context.Context, shoot *core.Shoot) (*provide
 		secretRef = secretBinding.SecretRef
 
 	case shoot.Spec.CredentialsBindingName != nil:
-		credentialsBinding := &security.CredentialsBinding{}
+		credentialsBinding := &securityv1alpha1.CredentialsBinding{}
 		if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.CredentialsBindingName}, credentialsBinding); err != nil {
 			return nil, err
 		}
