@@ -7,19 +7,24 @@ package validator
 import (
 	"context"
 	"fmt"
+	"net"
 	"reflect"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorehelper "github.com/gardener/gardener/pkg/apis/core/helper"
+	securityv1alpha1 "github.com/gardener/gardener/pkg/apis/security/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	provideralicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 )
 
 var (
@@ -36,12 +41,26 @@ func NewShootValidator(mgr manager.Manager) extensionswebhook.Validator {
 	return &shoot{
 		decoder:        serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
 		lenientDecoder: serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
+		apiReader:      mgr.GetAPIReader(),
+		newActorFn:     aliclient.NewActor,
+	}
+}
+
+// NewShootValidatorWithActorFn creates a shoot validator with a custom actor constructor, for testing.
+func NewShootValidatorWithActorFn(mgr manager.Manager, fn func(accessKeyID, secretAccessKey, region string) (aliclient.Actor, error)) extensionswebhook.Validator {
+	return &shoot{
+		decoder:        serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
+		lenientDecoder: serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
+		apiReader:      mgr.GetAPIReader(),
+		newActorFn:     fn,
 	}
 }
 
 type shoot struct {
 	decoder        runtime.Decoder
 	lenientDecoder runtime.Decoder
+	apiReader      client.Reader
+	newActorFn     func(accessKeyID, secretAccessKey, region string) (aliclient.Actor, error)
 }
 
 // Validate validates the given shoot object.
@@ -128,7 +147,22 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 		return errList.ToAggregate()
 	}
 
-	return s.validateShoot(ctx, shoot, infraConfig, cpConfig)
+	if err := s.validateShoot(ctx, shoot, infraConfig, cpConfig); err != nil {
+		return err
+	}
+
+	// Only check newly added zones against existing vswitches in the VPC.
+	if infraConfig != nil && infraConfig.Networks.VPC.ID != nil {
+		newZones := infraConfig.Networks.Zones
+		oldZones := oldInfraConfig.Networks.Zones
+		if len(newZones) > len(oldZones) {
+			if err := s.validateVSwitchCIDRConflict(ctx, shoot, *infraConfig.Networks.VPC.ID, newZones[len(oldZones):], len(oldZones)); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) error {
@@ -157,4 +191,86 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 	}
 
 	return nil
+}
+
+// validateVSwitchCIDRConflict queries all existing vswitches in the given VPC and checks whether
+// any of the supplied zones' worker CIDRs overlap with an existing vswitch's CIDR block.
+// startIndex is the position of zonesToCheck[0] within the full zones slice, used for correct field paths.
+func (s *shoot) validateVSwitchCIDRConflict(ctx context.Context, shoot *core.Shoot, vpcID string, zonesToCheck []alicloud.Zone, startIndex int) error {
+	credentials, err := s.getCredentials(ctx, shoot)
+	if err != nil {
+		return field.InternalError(infraConfigFldPath, fmt.Errorf("could not get Alicloud credentials: %w", err))
+	}
+
+	actor, err := s.newActorFn(credentials.AccessKeyID, credentials.AccessKeySecret, shoot.Spec.Region)
+	if err != nil {
+		return field.InternalError(infraConfigFldPath, fmt.Errorf("could not create Alicloud client: %w", err))
+	}
+
+	existingVSwitches, err := actor.FindVSwitchesByVPC(ctx, vpcID)
+	if err != nil {
+		return field.InternalError(infraConfigFldPath, fmt.Errorf("could not list vswitches in VPC %s: %w", vpcID, err))
+	}
+
+	allErrs := field.ErrorList{}
+	zonesPath := field.NewPath("networks", "zones")
+	for i, zone := range zonesToCheck {
+		workerCIDR := zone.Workers
+		if workerCIDR == "" {
+			workerCIDR = zone.Worker
+		}
+		if workerCIDR == "" {
+			continue
+		}
+		fldPath := zonesPath.Index(startIndex + i).Child("workers")
+		_, netA, err := net.ParseCIDR(workerCIDR)
+		if err != nil {
+			continue
+		}
+		for _, vsw := range existingVSwitches {
+			_, netB, err := net.ParseCIDR(vsw.CidrBlock)
+			if err != nil {
+				continue
+			}
+			if netA.Contains(netB.IP) || netB.Contains(netA.IP) {
+				allErrs = append(allErrs, field.Invalid(fldPath, workerCIDR,
+					fmt.Sprintf("conflicts with existing vswitch %s (%s) in VPC %s", vsw.VSwitchId, vsw.CidrBlock, vpcID)))
+			}
+		}
+	}
+	return allErrs.ToAggregate()
+}
+
+// getCredentials retrieves Alicloud credentials from the secret referenced by the shoot's
+// SecretBinding or CredentialsBinding.
+func (s *shoot) getCredentials(ctx context.Context, shoot *core.Shoot) (*provideralicloud.Credentials, error) {
+	var secretRef corev1.SecretReference
+
+	switch {
+	case shoot.Spec.SecretBindingName != nil:
+		secretBinding := &core.SecretBinding{}
+		if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.SecretBindingName}, secretBinding); err != nil {
+			return nil, err
+		}
+		secretRef = secretBinding.SecretRef
+
+	case shoot.Spec.CredentialsBindingName != nil:
+		credentialsBinding := &securityv1alpha1.CredentialsBinding{}
+		if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.CredentialsBindingName}, credentialsBinding); err != nil {
+			return nil, err
+		}
+		secretRef = corev1.SecretReference{
+			Namespace: credentialsBinding.CredentialsRef.Namespace,
+			Name:      credentialsBinding.CredentialsRef.Name,
+		}
+
+	default:
+		return nil, fmt.Errorf("shoot has neither secretBindingName nor credentialsBindingName")
+	}
+
+	secret := &corev1.Secret{}
+	if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: secretRef.Namespace, Name: secretRef.Name}, secret); err != nil {
+		return nil, err
+	}
+	return provideralicloud.ReadSecretCredentials(secret, false)
 }
