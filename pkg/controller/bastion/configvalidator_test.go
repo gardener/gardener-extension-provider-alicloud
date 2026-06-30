@@ -11,9 +11,9 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/extensions"
+	testutils "github.com/gardener/gardener/pkg/utils/test"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
-	mockmanager "github.com/gardener/gardener/third_party/mock/controller-runtime/manager"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gstruct "github.com/onsi/gomega/gstruct"
@@ -44,7 +44,7 @@ var _ = Describe("ConfigValidator", func() {
 	var (
 		ctrl                  *gomock.Controller
 		c                     *mockclient.MockClient
-		mgr                   *mockmanager.MockManager
+		mgr                   *testutils.FakeManager
 		alicloudClientFactory *mockalicloudclient.MockClientFactory
 		ecsClient             *mockalicloudclient.MockECS
 		vpcClient             *mockalicloudclient.MockVPC
@@ -67,8 +67,7 @@ var _ = Describe("ConfigValidator", func() {
 		vpcClient = mockalicloudclient.NewMockVPC(ctrl)
 		ctx = context.TODO()
 
-		mgr = mockmanager.NewMockManager(ctrl)
-		mgr.EXPECT().GetClient().Return(c)
+		mgr = &testutils.FakeManager{Client: c}
 
 		cv = NewConfigValidator(mgr, alicloudClientFactory)
 

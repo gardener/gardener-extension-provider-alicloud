@@ -4,27 +4,20 @@
 <a href="#alicloud.provider.extensions.gardener.cloud%2fv1alpha1">alicloud.provider.extensions.gardener.cloud/v1alpha1</a>
 </li>
 </ul>
+
 <h2 id="alicloud.provider.extensions.gardener.cloud/v1alpha1">alicloud.provider.extensions.gardener.cloud/v1alpha1</h2>
 <p>
-<p>Package v1alpha1 contains the AliCloud provider API resources.</p>
+
 </p>
-Resource Types:
-<ul><li>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.BackupBucketConfig">BackupBucketConfig</a>
-</li><li>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.CloudProfileConfig">CloudProfileConfig</a>
-</li><li>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.ControlPlaneConfig">ControlPlaneConfig</a>
-</li><li>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.InfrastructureConfig">InfrastructureConfig</a>
-</li><li>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.WorkerStatus">WorkerStatus</a>
-</li></ul>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.BackupBucketConfig">BackupBucketConfig
+
+<h3 id="backupbucketconfig">BackupBucketConfig
 </h3>
+
+
 <p>
-<p>BackupBucketConfig represents the configuration for a backup bucket.</p>
+BackupBucketConfig represents the configuration for a backup bucket.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -33,30 +26,12 @@ Resource Types:
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>
-<code>apiVersion</code></br>
-string</td>
-<td>
-<code>
-alicloud.provider.extensions.gardener.cloud/v1alpha1
-</code>
-</td>
-</tr>
-<tr>
-<td>
-<code>kind</code></br>
-string
-</td>
-<td><code>BackupBucketConfig</code></td>
-</tr>
+
 <tr>
 <td>
 <code>immutability</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.ImmutableConfig">
-ImmutableConfig
-</a>
+<a href="#immutableconfig">ImmutableConfig</a>
 </em>
 </td>
 <td>
@@ -64,14 +39,23 @@ ImmutableConfig
 <p>Immutability defines the immutability configuration for the backup bucket.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.CloudProfileConfig">CloudProfileConfig
+
+
+<h3 id="csi">CSI
 </h3>
+
+
 <p>
-<p>CloudProfileConfig contains provider-specific configuration that is embedded into Gardener&rsquo;s <code>CloudProfile</code>
-resource.</p>
+(<em>Appears on:</em><a href="#controlplaneconfig">ControlPlaneConfig</a>)
 </p>
+
+<p>
+CSI is csi components configuration.
+</p>
+
 <table>
 <thead>
 <tr>
@@ -80,44 +64,104 @@ resource.</p>
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
-<code>apiVersion</code></br>
-string</td>
+<code>enableADController</code></br>
+<em>
+boolean
+</em>
+</td>
 <td>
-<code>
-alicloud.provider.extensions.gardener.cloud/v1alpha1
-</code>
+<em>(Optional)</em>
+<p>EnableADController enables disks to be attached/detached from controller server of CSI Plugin.</p>
 </td>
 </tr>
+
+</tbody>
+</table>
+
+
+<h3 id="cloudcontrollermanagerconfig">CloudControllerManagerConfig
+</h3>
+
+
+<p>
+(<em>Appears on:</em><a href="#controlplaneconfig">ControlPlaneConfig</a>)
+</p>
+
+<p>
+CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+
 <tr>
 <td>
-<code>kind</code></br>
-string
+<code>featureGates</code></br>
+<em>
+object (keys:string, values:boolean)
+</em>
 </td>
-<td><code>CloudProfileConfig</code></td>
+<td>
+<em>(Optional)</em>
+<p>FeatureGates contains information about enabled feature gates.</p>
+</td>
 </tr>
+
+</tbody>
+</table>
+
+
+<h3 id="cloudprofileconfig">CloudProfileConfig
+</h3>
+
+
+<p>
+CloudProfileConfig contains provider-specific configuration that is embedded into Gardener's `CloudProfile`
+resource.
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+
 <tr>
 <td>
 <code>machineImages</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImages">
-[]MachineImages
-</a>
+<a href="#machineimages">MachineImages</a> array
 </em>
 </td>
 <td>
-<p>MachineImages is the list of machine images that are understood by the controller. It maps
-logical names and versions to provider-specific identifiers.</p>
+<p>MachineImages is the list of machine images that are understood by the controller. It maps<br />logical names and versions to provider-specific identifiers.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.ControlPlaneConfig">ControlPlaneConfig
+
+
+<h3 id="controlplaneconfig">ControlPlaneConfig
 </h3>
+
+
 <p>
-<p>ControlPlaneConfig contains configuration settings for the control plane.</p>
+ControlPlaneConfig contains configuration settings for the control plane.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -126,30 +170,12 @@ logical names and versions to provider-specific identifiers.</p>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>
-<code>apiVersion</code></br>
-string</td>
-<td>
-<code>
-alicloud.provider.extensions.gardener.cloud/v1alpha1
-</code>
-</td>
-</tr>
-<tr>
-<td>
-<code>kind</code></br>
-string
-</td>
-<td><code>ControlPlaneConfig</code></td>
-</tr>
+
 <tr>
 <td>
 <code>cloudControllerManager</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.CloudControllerManagerConfig">
-CloudControllerManagerConfig
-</a>
+<a href="#cloudcontrollermanagerconfig">CloudControllerManagerConfig</a>
 </em>
 </td>
 <td>
@@ -161,9 +187,7 @@ CloudControllerManagerConfig
 <td>
 <code>csi</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.CSI">
-CSI
-</a>
+<a href="#csi">CSI</a>
 </em>
 </td>
 <td>
@@ -171,13 +195,23 @@ CSI
 <p>CSI is the config for CSI plugin components.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.InfrastructureConfig">InfrastructureConfig
+
+
+<h3 id="dualstack">DualStack
 </h3>
+
+
 <p>
-<p>InfrastructureConfig infrastructure configuration resource</p>
+(<em>Appears on:</em><a href="#infrastructureconfig">InfrastructureConfig</a>)
 </p>
+
+<p>
+DualStack specifies whether dual-stack or IPv4-only should be supported.
+</p>
+
 <table>
 <thead>
 <tr>
@@ -186,30 +220,104 @@ CSI
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
-<code>apiVersion</code></br>
-string</td>
+<code>enabled</code></br>
+<em>
+boolean
+</em>
+</td>
 <td>
-<code>
-alicloud.provider.extensions.gardener.cloud/v1alpha1
-</code>
+<p>Enabled specifies if dual-stack is enabled or not.</p>
+</td>
+</tr>
+
+</tbody>
+</table>
+
+
+<h3 id="immutableconfig">ImmutableConfig
+</h3>
+
+
+<p>
+(<em>Appears on:</em><a href="#backupbucketconfig">BackupBucketConfig</a>)
+</p>
+
+<p>
+ImmutableConfig represents the immutability configuration for a backup bucket.
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+<td>
+<code>retentionType</code></br>
+<em>
+<a href="#retentiontype">RetentionType</a>
+</em>
+</td>
+<td>
+<p>RetentionType specifies the type of retention for the backup bucket.<br />Currently allowed value is:<br />- "bucket": retention policy applies on the entire bucket.</p>
 </td>
 </tr>
 <tr>
 <td>
-<code>kind</code></br>
-string
+<code>retentionPeriod</code></br>
+<em>
+integer
+</em>
 </td>
-<td><code>InfrastructureConfig</code></td>
+<td>
+<p>RetentionPeriod specifies the immutability retention period for the backup bucket.<br />Alicloud only supports immutability duration in days, therefore this field must be set as integer.<br />The minimum retention period is 1 day.</p>
+</td>
 </tr>
+<tr>
+<td>
+<code>locked</code></br>
+<em>
+boolean
+</em>
+</td>
+<td>
+<p>Locked indicates whether the immutable retention policy is locked for the backup bucket.<br />If set to true, the retention policy can't be removed and retention period can't be reduced.</p>
+</td>
+</tr>
+
+</tbody>
+</table>
+
+
+<h3 id="infrastructureconfig">InfrastructureConfig
+</h3>
+
+
+<p>
+InfrastructureConfig infrastructure configuration resource
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+
 <tr>
 <td>
 <code>dualStack</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.DualStack">
-DualStack
-</a>
+<a href="#dualstack">DualStack</a>
 </em>
 </td>
 <td>
@@ -220,22 +328,26 @@ DualStack
 <td>
 <code>networks</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.Networks">
-Networks
-</a>
+<a href="#networks">Networks</a>
 </em>
 </td>
 <td>
 <p>Networks specifies the networks for an infrastructure.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.WorkerStatus">WorkerStatus
+
+
+<h3 id="infrastructurestatus">InfrastructureStatus
 </h3>
+
+
 <p>
-<p>WorkerStatus contains information about created worker resources.</p>
+InfrastructureStatus contains information about created infrastructure resources.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -244,217 +356,16 @@ Networks
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>
-<code>apiVersion</code></br>
-string</td>
-<td>
-<code>
-alicloud.provider.extensions.gardener.cloud/v1alpha1
-</code>
-</td>
-</tr>
-<tr>
-<td>
-<code>kind</code></br>
-string
-</td>
-<td><code>WorkerStatus</code></td>
-</tr>
-<tr>
-<td>
-<code>machineImages</code></br>
-<em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImage">
-[]MachineImage
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>MachineImages is a list of machine images that have been used in this worker. Usually, the extension controller
-gets the mapping from name/version to the provider-specific machine image data in its componentconfig. However, if
-a version that is still in use gets removed from this componentconfig it cannot reconcile anymore existing <code>Worker</code>
-resources that are still using this version. Hence, it stores the used versions in the provider status to ensure
-reconciliation is possible.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.CSI">CSI
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.ControlPlaneConfig">ControlPlaneConfig</a>)
-</p>
-<p>
-<p>CSI is csi components configuration.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>enableADController</code></br>
-<em>
-bool
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>EnableADController enables disks to be attached/detached from controller server of CSI Plugin.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.CloudControllerManagerConfig">CloudControllerManagerConfig
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.ControlPlaneConfig">ControlPlaneConfig</a>)
-</p>
-<p>
-<p>CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>featureGates</code></br>
-<em>
-map[string]bool
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>FeatureGates contains information about enabled feature gates.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.DualStack">DualStack
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.InfrastructureConfig">InfrastructureConfig</a>)
-</p>
-<p>
-<p>DualStack specifies whether dual-stack or IPv4-only should be supported.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>enabled</code></br>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>Enabled specifies if dual-stack is enabled or not.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.ImmutableConfig">ImmutableConfig
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.BackupBucketConfig">BackupBucketConfig</a>)
-</p>
-<p>
-<p>ImmutableConfig represents the immutability configuration for a backup bucket.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>retentionType</code></br>
-<em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.RetentionType">
-RetentionType
-</a>
-</em>
-</td>
-<td>
-<p>RetentionType specifies the type of retention for the backup bucket.
-Currently allowed value is:
-- &ldquo;bucket&rdquo;: retention policy applies on the entire bucket.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>retentionPeriod</code></br>
-<em>
-int
-</em>
-</td>
-<td>
-<p>RetentionPeriod specifies the immutability retention period for the backup bucket.
-Alicloud only supports immutability duration in days, therefore this field must be set as integer.
-The minimum retention period is 1 day.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>locked</code></br>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>Locked indicates whether the immutable retention policy is locked for the backup bucket.
-If set to true, the retention policy can&rsquo;t be removed and retention period can&rsquo;t be reduced.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.InfrastructureStatus">InfrastructureStatus
-</h3>
-<p>
-<p>InfrastructureStatus contains information about created infrastructure resources.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
+
 <tr>
 <td>
 <code>vpc</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.VPCStatus">
-VPCStatus
-</a>
+<a href="#vpcstatus">VPCStatus</a>
 </em>
 </td>
 <td>
+<p></p>
 </td>
 </tr>
 <tr>
@@ -465,40 +376,38 @@ string
 </em>
 </td>
 <td>
-<p>KeyPairName is the key pair name.</p>
-<p>Deprecated: the field should not be used anymore as the SSH key pair is no longer generated by terraform.</p>
+<p>KeyPairName is the key pair name.<br />Deprecated: the field should not be used anymore as the SSH key pair is no longer generated by terraform.</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>machineImages</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImage">
-[]MachineImage
-</a>
+<a href="#machineimage">MachineImage</a> array
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>MachineImages is a list of machine images that have been used in this infrastructure. Usually, the extension controller
-gets the mapping from name/version to the provider-specific machine image data in its componentconfig. However, if
-a version that is still in use gets removed from this componentconfig and Shoot&rsquo;s access to the this version is revoked,
-it cannot reconcile anymore existing <code>Infrastructure</code> resources that are still using this version. Hence, it stores
-the used versions in the provider status to ensure reconciliation is possible.</p>
+<p>MachineImages is a list of machine images that have been used in this infrastructure. Usually, the extension controller<br />gets the mapping from name/version to the provider-specific machine image data in its componentconfig. However, if<br />a version that is still in use gets removed from this componentconfig and Shoot's access to the this version is revoked,<br />it cannot reconcile anymore existing `Infrastructure` resources that are still using this version. Hence, it stores<br />the used versions in the provider status to ensure reconciliation is possible.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImage">MachineImage
+
+
+<h3 id="machineimage">MachineImage
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.WorkerStatus">WorkerStatus</a>, 
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.InfrastructureStatus">InfrastructureStatus</a>)
+(<em>Appears on:</em><a href="#infrastructurestatus">InfrastructureStatus</a>, <a href="#workerstatus">WorkerStatus</a>)
 </p>
+
 <p>
-<p>MachineImage is a mapping from logical names and versions to provider-specific machine image data.</p>
+MachineImage is a mapping from logical names and versions to provider-specific machine image data.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -507,6 +416,7 @@ the used versions in the provider status to ensure reconciliation is possible.</
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>name</code></br>
@@ -544,7 +454,7 @@ string
 <td>
 <code>encrypted</code></br>
 <em>
-bool
+boolean
 </em>
 </td>
 <td>
@@ -556,24 +466,30 @@ bool
 <td>
 <code>capabilities</code></br>
 <em>
-github.com/gardener/gardener/pkg/apis/core/v1beta1.Capabilities
+<a href="#capabilities">Capabilities</a>
 </em>
 </td>
 <td>
 <p>Capabilities of the machine image.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageFlavor">MachineImageFlavor
+
+
+<h3 id="machineimageflavor">MachineImageFlavor
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageVersion">MachineImageVersion</a>)
+(<em>Appears on:</em><a href="#machineimageversion">MachineImageVersion</a>)
 </p>
+
 <p>
-<p>MachineImageFlavor groups all RegionIDMappings for a specific set of capabilities.</p>
+MachineImageFlavor groups all RegionIDMappings for a specific set of capabilities.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -582,13 +498,12 @@ github.com/gardener/gardener/pkg/apis/core/v1beta1.Capabilities
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>regions</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.RegionIDMapping">
-[]RegionIDMapping
-</a>
+<a href="#regionidmapping">RegionIDMapping</a> array
 </em>
 </td>
 <td>
@@ -599,24 +514,30 @@ github.com/gardener/gardener/pkg/apis/core/v1beta1.Capabilities
 <td>
 <code>capabilities</code></br>
 <em>
-github.com/gardener/gardener/pkg/apis/core/v1beta1.Capabilities
+<a href="#capabilities">Capabilities</a>
 </em>
 </td>
 <td>
 <p>Capabilities that are supported by the machine image IDs in this set.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageVersion">MachineImageVersion
+
+
+<h3 id="machineimageversion">MachineImageVersion
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImages">MachineImages</a>)
+(<em>Appears on:</em><a href="#machineimages">MachineImages</a>)
 </p>
+
 <p>
-<p>MachineImageVersion contains a version and a provider-specific identifier.</p>
+MachineImageVersion contains a version and a provider-specific identifier.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -625,6 +546,7 @@ github.com/gardener/gardener/pkg/apis/core/v1beta1.Capabilities
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>version</code></br>
@@ -640,40 +562,41 @@ string
 <td>
 <code>regions</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.RegionIDMapping">
-[]RegionIDMapping
-</a>
+<a href="#regionidmapping">RegionIDMapping</a> array
 </em>
 </td>
 <td>
-<p>TODO add &ldquo;// deprecated&rdquo; once cloudprofiles are migrated to use CapabilityFlavors
-Regions is a mapping to the correct ID for the machine image in the supported regions.</p>
+<p>Regions is a mapping to the correct ID for the machine image in the supported regions.</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>capabilityFlavors</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageFlavor">
-[]MachineImageFlavor
-</a>
+<a href="#machineimageflavor">MachineImageFlavor</a> array
 </em>
 </td>
 <td>
 <p>CapabilityFlavors is grouping of region machine image IDs by capabilities.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImages">MachineImages
+
+
+<h3 id="machineimages">MachineImages
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.CloudProfileConfig">CloudProfileConfig</a>)
+(<em>Appears on:</em><a href="#cloudprofileconfig">CloudProfileConfig</a>)
 </p>
+
 <p>
-<p>MachineImages is a mapping from logical names and versions to provider-specific identifiers.</p>
+MachineImages is a mapping from logical names and versions to provider-specific identifiers.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -682,6 +605,7 @@ Regions is a mapping to the correct ID for the machine image in the supported re
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>name</code></br>
@@ -697,26 +621,30 @@ string
 <td>
 <code>versions</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageVersion">
-[]MachineImageVersion
-</a>
+<a href="#machineimageversion">MachineImageVersion</a> array
 </em>
 </td>
 <td>
 <p>Versions contains versions and a provider-specific identifier.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.NatGatewayConfig">NatGatewayConfig
+
+
+<h3 id="natgatewayconfig">NatGatewayConfig
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.Zone">Zone</a>)
+(<em>Appears on:</em><a href="#zone">Zone</a>)
 </p>
+
 <p>
-<p>NatGatewayConfig specifies configuration for the NAT gateway in this zone.</p>
+NatGatewayConfig specifies configuration for the NAT gateway in this zone.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -725,6 +653,7 @@ string
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>eipAllocationID</code></br>
@@ -737,17 +666,23 @@ string
 <p>EIPAllocationID specifies the EIP id to bind on NatGateway.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.Networks">Networks
+
+
+<h3 id="networks">Networks
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.InfrastructureConfig">InfrastructureConfig</a>)
+(<em>Appears on:</em><a href="#infrastructureconfig">InfrastructureConfig</a>)
 </p>
+
 <p>
-<p>Networks specifies the networks for an infrastructure.</p>
+Networks specifies the networks for an infrastructure.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -756,13 +691,12 @@ string
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>vpc</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.VPC">
-VPC
-</a>
+<a href="#vpc">VPC</a>
 </em>
 </td>
 <td>
@@ -773,37 +707,44 @@ VPC
 <td>
 <code>zones</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.Zone">
-[]Zone
-</a>
+<a href="#zone">Zone</a> array
 </em>
 </td>
 <td>
 <p>Zones are the network zones for an infrastructure.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.Purpose">Purpose
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.SecurityGroup">SecurityGroup</a>, 
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.VSwitch">VSwitch</a>)
-</p>
-<p>
-<p>Purpose is a purpose of a subnet.</p>
-</p>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.RegionIDMapping">RegionIDMapping
+
+
+<h3 id="purpose">Purpose
 </h3>
+<p><em>Underlying type: string</em></p>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageFlavor">MachineImageFlavor</a>, 
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.MachineImageVersion">MachineImageVersion</a>)
+(<em>Appears on:</em><a href="#securitygroup">SecurityGroup</a>, <a href="#vswitch">VSwitch</a>)
 </p>
+
 <p>
-<p>RegionIDMapping is a mapping to the correct ID for the machine image in the given region.</p>
+Purpose is a purpose of a subnet.
 </p>
+
+
+<h3 id="regionidmapping">RegionIDMapping
+</h3>
+
+
+<p>
+(<em>Appears on:</em><a href="#machineimageflavor">MachineImageFlavor</a>, <a href="#machineimageversion">MachineImageVersion</a>)
+</p>
+
+<p>
+RegionIDMapping is a mapping to the correct ID for the machine image in the given region.
+</p>
+
 <table>
 <thead>
 <tr>
@@ -812,6 +753,7 @@ VPC
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>name</code></br>
@@ -834,26 +776,37 @@ string
 <p>ID is the id of the image.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.RetentionType">RetentionType
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.ImmutableConfig">ImmutableConfig</a>)
-</p>
-<p>
-<p>RetentionType defines the level at which immutability properties are applied on objects.</p>
-</p>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.SecurityGroup">SecurityGroup
+
+
+<h3 id="retentiontype">RetentionType
 </h3>
+<p><em>Underlying type: string</em></p>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.VPCStatus">VPCStatus</a>)
+(<em>Appears on:</em><a href="#immutableconfig">ImmutableConfig</a>)
 </p>
+
 <p>
-<p>SecurityGroup contains information about a security group.</p>
+RetentionType defines the level at which immutability properties are applied on objects.
 </p>
+
+
+<h3 id="securitygroup">SecurityGroup
+</h3>
+
+
+<p>
+(<em>Appears on:</em><a href="#vpcstatus">VPCStatus</a>)
+</p>
+
+<p>
+SecurityGroup contains information about a security group.
+</p>
+
 <table>
 <thead>
 <tr>
@@ -862,13 +815,12 @@ string
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>purpose</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.Purpose">
-Purpose
-</a>
+<a href="#purpose">Purpose</a>
 </em>
 </td>
 <td>
@@ -886,17 +838,23 @@ string
 <p>ID is the id of the security group.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.VPC">VPC
+
+
+<h3 id="vpc">VPC
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.Networks">Networks</a>)
+(<em>Appears on:</em><a href="#networks">Networks</a>)
 </p>
+
 <p>
-<p>VPC contains information about whether to create a new or use an existing VPC.</p>
+VPC contains information about whether to create a new or use an existing VPC.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -905,6 +863,7 @@ string
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>id</code></br>
@@ -933,20 +892,19 @@ string
 <td>
 <code>gardenerManagedNATGateway</code></br>
 <em>
-bool
+boolean
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>GardenerManagedNATGateway indicates whether Gardener should create NATGateway in the VPC.
-This will only take effect if VPC ID is set.</p>
+<p>GardenerManagedNATGateway indicates whether Gardener should create NATGateway in the VPC.<br />This will only take effect if VPC ID is set.</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>useCustomRouteTable</code></br>
 <em>
-bool
+boolean
 </em>
 </td>
 <td>
@@ -954,17 +912,23 @@ bool
 <p>UseCustomRouteTable indicates whether Gardener should create a custom route table for this shoot.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.VPCStatus">VPCStatus
+
+
+<h3 id="vpcstatus">VPCStatus
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.InfrastructureStatus">InfrastructureStatus</a>)
+(<em>Appears on:</em><a href="#infrastructurestatus">InfrastructureStatus</a>)
 </p>
+
 <p>
-<p>VPCStatus contains output information about the VPC.</p>
+VPCStatus contains output information about the VPC.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -973,6 +937,7 @@ bool
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>id</code></br>
@@ -988,9 +953,7 @@ string
 <td>
 <code>vswitches</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.VSwitch">
-[]VSwitch
-</a>
+<a href="#vswitch">VSwitch</a> array
 </em>
 </td>
 <td>
@@ -1001,9 +964,7 @@ string
 <td>
 <code>securityGroups</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.SecurityGroup">
-[]SecurityGroup
-</a>
+<a href="#securitygroup">SecurityGroup</a> array
 </em>
 </td>
 <td>
@@ -1019,21 +980,26 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>RouteTableID is the ID of the custom route table created for this shoot cluster.
-This will only take effect if vpc.useCustomRouteTable is set true.</p>
+<p>RouteTableID is the ID of the custom route table created for this shoot cluster.<br />This will only take effect if vpc.useCustomRouteTable is set true.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.VSwitch">VSwitch
+
+
+<h3 id="vswitch">VSwitch
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.VPCStatus">VPCStatus</a>)
+(<em>Appears on:</em><a href="#vpcstatus">VPCStatus</a>)
 </p>
+
 <p>
-<p>VSwitch contains information about a vswitch.</p>
+VSwitch contains information about a vswitch.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -1042,13 +1008,12 @@ This will only take effect if vpc.useCustomRouteTable is set true.</p>
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>purpose</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.Purpose">
-Purpose
-</a>
+<a href="#purpose">Purpose</a>
 </em>
 </td>
 <td>
@@ -1077,17 +1042,19 @@ string
 <p>Zone is the name of the zone.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="alicloud.provider.extensions.gardener.cloud/v1alpha1.Zone">Zone
+
+
+<h3 id="workerstatus">WorkerStatus
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.Networks">Networks</a>)
+WorkerStatus contains information about created worker resources.
 </p>
-<p>
-<p>Zone is a zone with a name and worker CIDR.</p>
-</p>
+
 <table>
 <thead>
 <tr>
@@ -1096,6 +1063,45 @@ string
 </tr>
 </thead>
 <tbody>
+
+<tr>
+<td>
+<code>machineImages</code></br>
+<em>
+<a href="#machineimage">MachineImage</a> array
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MachineImages is a list of machine images that have been used in this worker. Usually, the extension controller<br />gets the mapping from name/version to the provider-specific machine image data in its componentconfig. However, if<br />a version that is still in use gets removed from this componentconfig it cannot reconcile anymore existing `Worker`<br />resources that are still using this version. Hence, it stores the used versions in the provider status to ensure<br />reconciliation is possible.</p>
+</td>
+</tr>
+
+</tbody>
+</table>
+
+
+<h3 id="zone">Zone
+</h3>
+
+
+<p>
+(<em>Appears on:</em><a href="#networks">Networks</a>)
+</p>
+
+<p>
+Zone is a zone with a name and worker CIDR.
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+
 <tr>
 <td>
 <code>name</code></br>
@@ -1115,8 +1121,7 @@ string
 </em>
 </td>
 <td>
-<p>Worker specifies the worker CIDR to use.
-Deprecated - use <code>workers</code> instead.</p>
+<p>Worker specifies the worker CIDR to use.<br />Deprecated - use `workers` instead.</p>
 </td>
 </tr>
 <tr>
@@ -1134,22 +1139,19 @@ string
 <td>
 <code>ipv6CidrBlock</code></br>
 <em>
-int
+integer
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Ipv6CidrBlock specifies the worker ipv6 CIDR block to use 0-255.
-This will only take effect if dualStack.enabled is true.</p>
+<p>Ipv6CidrBlock specifies the worker ipv6 CIDR block to use 0-255.<br />This will only take effect if dualStack.enabled is true.</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>natGateway</code></br>
 <em>
-<a href="#alicloud.provider.extensions.gardener.cloud/v1alpha1.NatGatewayConfig">
-NatGatewayConfig
-</a>
+<a href="#natgatewayconfig">NatGatewayConfig</a>
 </em>
 </td>
 <td>
@@ -1157,9 +1159,8 @@ NatGatewayConfig
 <p>NatGatewayConfig specifies configuration for the NAT gateway in this zone.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<hr/>
-<p><em>
-Generated with <a href="https://github.com/ahmetb/gen-crd-api-reference-docs">gen-crd-api-reference-docs</a>
-</em></p>
+
+

@@ -14,9 +14,9 @@ import (
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/controllerutils"
+	testutils "github.com/gardener/gardener/pkg/utils/test"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
-	mockmanager "github.com/gardener/gardener/third_party/mock/controller-runtime/manager"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -63,7 +63,7 @@ var _ = Describe("Mutating Shoot", func() {
 		ctx                   context.Context
 		ctrl                  *gomock.Controller
 		c                     *mockclient.MockClient
-		mgr                   *mockmanager.MockManager
+		mgr                   *testutils.FakeManager
 		scheme                *runtime.Scheme
 		apiReader             *mockclient.MockReader
 		serializer            runtime.Serializer
@@ -87,10 +87,11 @@ var _ = Describe("Mutating Shoot", func() {
 		install.Install(scheme)
 		Expect(controller.AddToScheme(scheme)).To(Succeed())
 
-		mgr = mockmanager.NewMockManager(ctrl)
-		mgr.EXPECT().GetClient().Return(c)
-		mgr.EXPECT().GetScheme().Return(scheme).Times(3)
-		mgr.EXPECT().GetAPIReader().Return(apiReader)
+		mgr = &testutils.FakeManager{
+			Client:    c,
+			Scheme:    scheme,
+			APIReader: apiReader,
+		}
 
 		serializer = json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{})
 		alicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)

@@ -11,8 +11,6 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 )
 
 const (
@@ -25,9 +23,8 @@ var logger = log.Log.WithName("alicloud-mutator-webhook")
 // New creates a new webhook that mutates Shoot and NamespacedCloudProfile resources.
 func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	return extensionswebhook.New(mgr, extensionswebhook.Args{
-		Provider: alicloud.Type,
-		Name:     Name,
-		Path:     MutatorPath,
+		Name: Name,
+		Path: MutatorPath,
 		Mutators: map[extensionswebhook.Mutator][]extensionswebhook.Type{
 			NewShootMutator(mgr):                  {{Obj: &corev1beta1.Shoot{}}},
 			NewNamespacedCloudProfileMutator(mgr): {{Obj: &corev1beta1.NamespacedCloudProfile{}, Subresource: ptr.To("status")}},

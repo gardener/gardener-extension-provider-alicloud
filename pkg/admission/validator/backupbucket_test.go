@@ -9,10 +9,9 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gardencore "github.com/gardener/gardener/pkg/apis/core"
-	mockmanager "github.com/gardener/gardener/third_party/mock/controller-runtime/manager"
+	testutils "github.com/gardener/gardener/pkg/utils/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -26,8 +25,7 @@ var _ = Describe("BackupBucket Validator", func() {
 		var (
 			ctx                   context.Context
 			credentialsRef        *corev1.ObjectReference
-			ctrl                  *gomock.Controller
-			mgr                   *mockmanager.MockManager
+			mgr                   *testutils.FakeManager
 			scheme                *runtime.Scheme
 			backupBucketValidator extensionswebhook.Validator
 		)
@@ -41,14 +39,12 @@ var _ = Describe("BackupBucket Validator", func() {
 				Namespace:  "garden",
 			}
 
-			ctrl = gomock.NewController(GinkgoT())
 			scheme = runtime.NewScheme()
 			Expect(gardencore.AddToScheme(scheme)).To(Succeed())
 			Expect(apisalicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
 			Expect(apisalicloud.AddToScheme(scheme)).To(Succeed())
 
-			mgr = mockmanager.NewMockManager(ctrl)
-			mgr.EXPECT().GetScheme().Return(scheme).AnyTimes()
+			mgr = &testutils.FakeManager{Scheme: scheme}
 
 			backupBucketValidator = validator.NewBackupBucketValidator(mgr)
 		})
