@@ -50,15 +50,17 @@ func (p *cloudProfile) Mutate(_ context.Context, newObj, _ client.Object) error 
 		return fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", profile.Name, err)
 	}
 
-	overwriteMachineImageCapabilityFlavors(profile, specConfig)
+	mutateMachineImageCapabilityFlavors(profile.Spec.MachineImages, specConfig)
 	return nil
 }
 
-// overwriteMachineImageCapabilityFlavors updates the capability flavors of machine images in the CloudProfile
-func overwriteMachineImageCapabilityFlavors(profile *gardencorev1beta1.CloudProfile, config *v1alpha1.CloudProfileConfig) {
+// mutateMachineImageCapabilityFlavors populates capabilityFlavors on the given machineImages
+// slice from the provider config. Used by both CloudProfile and NamespacedCloudProfile mutators.
+func mutateMachineImageCapabilityFlavors(machineImages []gardencorev1beta1.MachineImage, config *v1alpha1.CloudProfileConfig) {
+	// Find the corresponding machine image in the CloudProfile
 	for _, providerMachineImage := range config.MachineImages {
-		// Find the corresponding machine image in the CloudProfile
-		imageIdx := slices.IndexFunc(profile.Spec.MachineImages, func(mi gardencorev1beta1.MachineImage) bool {
+
+		imageIdx := slices.IndexFunc(machineImages, func(mi gardencorev1beta1.MachineImage) bool {
 			return mi.Name == providerMachineImage.Name
 		})
 		if imageIdx == -1 {
@@ -68,7 +70,7 @@ func overwriteMachineImageCapabilityFlavors(profile *gardencorev1beta1.CloudProf
 		// Iterate over versions in the provider's machine image
 		for _, providerVersion := range providerMachineImage.Versions {
 			// Find the corresponding version in the CloudProfile's machine image
-			versionIdx := slices.IndexFunc(profile.Spec.MachineImages[imageIdx].Versions, func(miv gardencorev1beta1.MachineImageVersion) bool {
+			versionIdx := slices.IndexFunc(machineImages[imageIdx].Versions, func(miv gardencorev1beta1.MachineImageVersion) bool {
 				return miv.Version == providerVersion.Version
 			})
 			if versionIdx == -1 {
@@ -78,7 +80,7 @@ func overwriteMachineImageCapabilityFlavors(profile *gardencorev1beta1.CloudProf
 			// Support both new format (capabilityFlavors) and old format (regions with architecture)
 			if len(providerVersion.CapabilityFlavors) > 0 {
 				// New format: use capabilityFlavors directly
-				profile.Spec.MachineImages[imageIdx].Versions[versionIdx].CapabilityFlavors = convertCapabilityFlavors(providerVersion.CapabilityFlavors)
+				machineImages[imageIdx].Versions[versionIdx].CapabilityFlavors = convertCapabilityFlavors(providerVersion.CapabilityFlavors)
 			} else if len(providerVersion.Regions) > 0 {
 				// Old format: only amd64
 				amd64capabilityFlavors := []gardencorev1beta1.MachineImageFlavor{
@@ -88,7 +90,7 @@ func overwriteMachineImageCapabilityFlavors(profile *gardencorev1beta1.CloudProf
 						},
 					},
 				}
-				profile.Spec.MachineImages[imageIdx].Versions[versionIdx].CapabilityFlavors = amd64capabilityFlavors
+				machineImages[imageIdx].Versions[versionIdx].CapabilityFlavors = amd64capabilityFlavors
 			}
 		}
 	}
