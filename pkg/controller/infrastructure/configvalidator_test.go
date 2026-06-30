@@ -426,6 +426,96 @@ var _ = Describe("ConfigValidator", func() {
 		Expect(errorList).To(BeEmpty())
 	})
 
+	It("should skip CIDR conflict check when LastOperation is not Create", func() {
+		infra.Status.LastOperation = &gardencorev1beta1.LastOperation{Type: gardencorev1beta1.LastOperationTypeReconcile}
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+			Networks: apisalicloud.Networks{
+				VPC: apisalicloud.VPC{
+					ID: ptr.To(vpcID),
+				},
+				Zones: []apisalicloud.Zone{{Name: "zone_1", Workers: "192.168.1.0/24"}},
+			},
+		})
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{{NatGatewayId: "ngw-1"}}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{"ngw-1": {}}, nil)
+		// FindVSwitchesByVPC must NOT be called on reconcile
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(BeEmpty())
+	})
+
+	It("should return field.Invalid when a zone worker CIDR conflicts with a foreign vswitch on create", func() {
+		infra.Status.LastOperation = &gardencorev1beta1.LastOperation{Type: gardencorev1beta1.LastOperationTypeCreate}
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+			Networks: apisalicloud.Networks{
+				VPC: apisalicloud.VPC{
+					ID: ptr.To(vpcID),
+				},
+				Zones: []apisalicloud.Zone{{Name: "zone_1", Workers: "192.168.1.0/24"}},
+			},
+		})
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{{NatGatewayId: "ngw-1"}}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{"ngw-1": {}}, nil)
+		actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{
+			{VSwitchId: "vsw-foreign", Name: "user-vsw", CidrBlock: "192.168.1.0/24"},
+		}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+			"Type":   Equal(field.ErrorTypeInvalid),
+			"Field":  Equal("networks.zones[0].workers"),
+			"Detail": ContainSubstring("conflicts with existing vswitch vsw-foreign"),
+		}))))
+	})
+
+	It("should pass when a zone worker CIDR matches only this shoot's own vswitch on create retry", func() {
+		infra.Status.LastOperation = &gardencorev1beta1.LastOperation{
+			Type:  gardencorev1beta1.LastOperationTypeCreate,
+			State: gardencorev1beta1.LastOperationStateError,
+		}
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+			Networks: apisalicloud.Networks{
+				VPC: apisalicloud.VPC{
+					ID: ptr.To(vpcID),
+				},
+				Zones: []apisalicloud.Zone{{Name: "zone_1", Workers: "192.168.1.0/24"}},
+			},
+		})
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{{NatGatewayId: "ngw-1"}}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{"ngw-1": {}}, nil)
+		// vswitch name starts with "<namespace>-" — treated as own, must not trigger conflict
+		actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{
+			{VSwitchId: "vsw-own", Name: namespace + "-zone_1-vsw", CidrBlock: "192.168.1.0/24"},
+		}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(BeEmpty())
+	})
+
+	It("should pass when no foreign vswitches have overlapping CIDRs on create", func() {
+		infra.Status.LastOperation = &gardencorev1beta1.LastOperation{Type: gardencorev1beta1.LastOperationTypeCreate}
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+			Networks: apisalicloud.Networks{
+				VPC: apisalicloud.VPC{
+					ID: ptr.To(vpcID),
+				},
+				Zones: []apisalicloud.Zone{{Name: "zone_1", Workers: "192.168.1.0/24"}},
+			},
+		})
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{{NatGatewayId: "ngw-1"}}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, gomock.Any()).Return(map[string]aliclient.Tags{"ngw-1": {}}, nil)
+		actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{
+			{VSwitchId: "vsw-other", Name: "user-vsw", CidrBlock: "192.168.2.0/24"},
+		}, nil)
+
+		errorList := cv.Validate(ctx, infra)
+		Expect(errorList).To(BeEmpty())
+	})
+
 })
 
 func encode(obj runtime.Object) []byte {

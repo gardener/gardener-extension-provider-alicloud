@@ -7,6 +7,7 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
@@ -19,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 )
@@ -77,8 +79,17 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		}
 
 		if infra.Status.LastOperation != nil && infra.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeCreate {
-			logger.Info("Validating multi-shoot VPC sharing constraints for new shoot")
-			allErrs = append(allErrs, c.validateMultiShootVPC(ctx, actor, *config.Networks.VPC.ID, infra.Namespace, config.Networks.VPC.GardenerManagedNATGateway, config.Networks.VPC.UseCustomRouteTable, field.NewPath("networks", "vpc"))...)
+			vswitches, err := actor.FindVSwitchesByVPC(ctx, *config.Networks.VPC.ID)
+			if err != nil {
+				allErrs = append(allErrs, field.InternalError(field.NewPath("networks", "vpc", "id"),
+					fmt.Errorf("FindVSwitchesByVPC %s failed: %+v", *config.Networks.VPC.ID, err)))
+			} else {
+				logger.Info("Validating multi-shoot VPC sharing constraints for new shoot")
+				allErrs = append(allErrs, c.validateMultiShootVPC(vswitches, infra.Namespace, config.Networks.VPC.GardenerManagedNATGateway, config.Networks.VPC.UseCustomRouteTable, field.NewPath("networks", "vpc"))...)
+
+				logger.Info("Validating vswitch CIDR conflicts for new shoot")
+				allErrs = append(allErrs, c.validateVSwitchCIDRConflict(vswitches, *config.Networks.VPC.ID, infra.Namespace, config.Networks.Zones)...)
+			}
 		}
 	}
 	if createManagedNATGateway {
@@ -213,14 +224,8 @@ func (c *configValidator) validateVpcIPv6(ctx context.Context, actor aliclient.A
 	return allErrs
 }
 
-func (c *configValidator) validateMultiShootVPC(ctx context.Context, actor aliclient.Actor, vpcID string, namespace string, gardenerManagedNATGateway *bool, useCustomRouteTable *bool, fldPath *field.Path) field.ErrorList {
+func (c *configValidator) validateMultiShootVPC(vswitches []*aliclient.VSwitch, namespace string, gardenerManagedNATGateway *bool, useCustomRouteTable *bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-
-	vswitches, err := actor.FindVSwitchesByVPC(ctx, vpcID)
-	if err != nil {
-		allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("validateMultiShootVPC FindVSwitchesByVPC %s failed: %+v", vpcID, err)))
-		return allErrs
-	}
 
 	ownClusterTagKey := fmt.Sprintf("kubernetes.io/cluster/%s", namespace)
 	hasOtherShoot := false
@@ -247,5 +252,49 @@ func (c *configValidator) validateMultiShootVPC(ctx context.Context, actor alicl
 		}
 	}
 
+	return allErrs
+}
+
+// validateVSwitchCIDRConflict checks whether any of the configured zone worker CIDRs overlap with
+// vswitches already existing in the VPC that are not owned by this shoot.
+// Called only on create, but create may be retried after partial failure, so vswitches whose name
+// starts with "<namespace>-" (the naming convention used by this extension) are excluded to avoid
+// false positives on retry.
+func (c *configValidator) validateVSwitchCIDRConflict(vswitches []*aliclient.VSwitch, vpcID string, namespace string, zones []apisalicloud.Zone) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	ownPrefix := namespace + "-"
+	var foreignVSwitches []*aliclient.VSwitch
+	for _, vsw := range vswitches {
+		if !strings.HasPrefix(vsw.Name, ownPrefix) {
+			foreignVSwitches = append(foreignVSwitches, vsw)
+		}
+	}
+
+	zonesPath := field.NewPath("networks", "zones")
+	for i, zone := range zones {
+		workerCIDR := zone.Workers
+		if workerCIDR == "" {
+			workerCIDR = zone.Worker
+		}
+		if workerCIDR == "" {
+			continue
+		}
+		fldPath := zonesPath.Index(i).Child("workers")
+		_, netA, err := net.ParseCIDR(workerCIDR)
+		if err != nil {
+			continue
+		}
+		for _, vsw := range foreignVSwitches {
+			_, netB, err := net.ParseCIDR(vsw.CidrBlock)
+			if err != nil {
+				continue
+			}
+			if netA.Contains(netB.IP) || netB.Contains(netA.IP) {
+				allErrs = append(allErrs, field.Invalid(fldPath, workerCIDR,
+					fmt.Sprintf("conflicts with existing vswitch %s (%s) in VPC %s", vsw.VSwitchId, vsw.CidrBlock, vpcID)))
+			}
+		}
+	}
 	return allErrs
 }
