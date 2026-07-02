@@ -59,7 +59,6 @@ func (p *cloudProfile) Mutate(_ context.Context, newObj, _ client.Object) error 
 func mutateMachineImageCapabilityFlavors(machineImages []gardencorev1beta1.MachineImage, config *v1alpha1.CloudProfileConfig) {
 	// Find the corresponding machine image in the CloudProfile
 	for _, providerMachineImage := range config.MachineImages {
-
 		imageIdx := slices.IndexFunc(machineImages, func(mi gardencorev1beta1.MachineImage) bool {
 			return mi.Name == providerMachineImage.Name
 		})

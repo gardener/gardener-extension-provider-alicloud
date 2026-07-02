@@ -13,7 +13,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/pkg/apis/core"
-	"github.com/gardener/gardener/pkg/apis/security"
+	securityv1alpha1 "github.com/gardener/gardener/pkg/apis/security/v1alpha1"
 	mockclient "github.com/gardener/gardener/third_party/mock/controller-runtime/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -75,7 +75,7 @@ var _ = Describe("shoot.validateVSwitchCIDRConflict", func() {
 
 		s = &shoot{
 			apiReader: apiReader,
-			newActorFn: func(ak, sk, region string) (aliclient.Actor, error) {
+			newActorFn: func(_, _, _ string) (aliclient.Actor, error) {
 				return mockActor, nil
 			},
 		}
@@ -196,7 +196,7 @@ var _ = Describe("shoot.validateVSwitchCIDRConflict", func() {
 			sh.Spec.SecretBindingName = nil
 			sh.Spec.CredentialsBindingName = ptr.To(bindingName)
 
-			credentialsBinding := &security.CredentialsBinding{
+			credentialsBinding := &securityv1alpha1.CredentialsBinding{
 				CredentialsRef: corev1.ObjectReference{
 					APIVersion: corev1.SchemeGroupVersion.String(),
 					Kind:       "Secret",
@@ -205,8 +205,8 @@ var _ = Describe("shoot.validateVSwitchCIDRConflict", func() {
 				},
 			}
 			apiReader.EXPECT().
-				Get(ctx, client.ObjectKey{Namespace: shootNamespace, Name: bindingName}, gomock.AssignableToTypeOf(&security.CredentialsBinding{})).
-				DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *security.CredentialsBinding, _ ...client.GetOption) error {
+				Get(ctx, client.ObjectKey{Namespace: shootNamespace, Name: bindingName}, gomock.AssignableToTypeOf(&securityv1alpha1.CredentialsBinding{})).
+				DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *securityv1alpha1.CredentialsBinding, _ ...client.GetOption) error {
 					*obj = *credentialsBinding
 					return nil
 				})
