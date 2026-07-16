@@ -75,24 +75,79 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 	var (
 		cidrs       = make([]cidrvalidation.CIDR, 0, len(infra.Networks.Zones))
 		workerCIDRs = make([]cidrvalidation.CIDR, 0, len(infra.Networks.Zones))
+		hasBYO      bool
+		hasManaged  bool
 	)
 
 	for i, zone := range infra.Networks.Zones {
-		if zone.Worker != "" {
-			workerPath := networksPath.Child("zones").Index(i).Child("worker")
-			cidrs = append(cidrs, cidrvalidation.NewCIDR(zone.Worker, workerPath))
-			allErrs = append(allErrs, cidrvalidation.ValidateCIDRIsCanonical(workerPath, zone.Worker)...)
-			workerCIDRs = append(workerCIDRs, cidrvalidation.NewCIDR(zone.Worker, workerPath))
+		zonePath := networksPath.Child("zones").Index(i)
+		hasWorkersCIDR := zone.Workers != "" || zone.Worker != ""
+		hasWorkersVSwitchID := zone.WorkersVSwitchID != nil
+
+		// XOR: exactly one of Workers CIDR or WorkersVSwitchID must be set
+		if !hasWorkersCIDR && !hasWorkersVSwitchID {
+			allErrs = append(allErrs, field.Required(zonePath,
+				"must specify either workers (CIDR) or workersVSwitchID"))
+		} else if hasWorkersCIDR && hasWorkersVSwitchID {
+			allErrs = append(allErrs, field.Invalid(zonePath, nil,
+				"workers CIDR and workersVSwitchID are mutually exclusive; specify only one"))
 		}
 
-		if zone.Workers != "" {
-			workerPath := networksPath.Child("zones").Index(i).Child("workers")
-			cidrs = append(cidrs, cidrvalidation.NewCIDR(zone.Workers, workerPath))
-			allErrs = append(allErrs, cidrvalidation.ValidateCIDRIsCanonical(workerPath, zone.Workers)...)
-			workerCIDRs = append(workerCIDRs, cidrvalidation.NewCIDR(zone.Workers, workerPath))
+		if hasWorkersVSwitchID {
+			hasBYO = true
+			// natGateway is incompatible with BYO VSwitch
+			if zone.NatGateway != nil {
+				allErrs = append(allErrs, field.Forbidden(zonePath.Child("natGateway"),
+					"natGateway cannot be set when workersVSwitchID is used"))
+			}
+		} else {
+			hasManaged = true
+			// CIDR validations for Gardener-managed zones
+			if zone.Worker != "" {
+				workerPath := zonePath.Child("worker")
+				cidrs = append(cidrs, cidrvalidation.NewCIDR(zone.Worker, workerPath))
+				allErrs = append(allErrs, cidrvalidation.ValidateCIDRIsCanonical(workerPath, zone.Worker)...)
+				workerCIDRs = append(workerCIDRs, cidrvalidation.NewCIDR(zone.Worker, workerPath))
+			}
+			if zone.Workers != "" {
+				workerPath := zonePath.Child("workers")
+				cidrs = append(cidrs, cidrvalidation.NewCIDR(zone.Workers, workerPath))
+				allErrs = append(allErrs, cidrvalidation.ValidateCIDRIsCanonical(workerPath, zone.Workers)...)
+				workerCIDRs = append(workerCIDRs, cidrvalidation.NewCIDR(zone.Workers, workerPath))
+			}
+			allErrs = append(allErrs, ValidateNatGatewayConfig(zone.NatGateway, zonePath.Child("natGateway"))...)
 		}
+	}
 
-		allErrs = append(allErrs, ValidateNatGatewayConfig(zone.NatGateway, networksPath.Child("zones").Index(i).Child("natGateway"))...)
+	// All zones must use the same mode
+	if hasBYO && hasManaged {
+		allErrs = append(allErrs, field.Forbidden(networksPath.Child("zones"),
+			"all zones must use the same approach: either all workersVSwitchID (BYO) or all workers CIDR (Gardener-managed); mixing is not allowed"))
+	}
+	// isBYOMode is true only when ALL zones are BYO (hasBYO=true, hasManaged=false).
+	// When mixed (both true), the Forbidden error above is the root cause — avoid cascading errors.
+	isBYOMode := hasBYO && !hasManaged
+
+	// BYO VSwitch requires vpc.id and forbids incompatible VPC fields
+	if isBYOMode {
+		if infra.Networks.VPC.ID == nil {
+			allErrs = append(allErrs, field.Required(networksPath.Child("vpc", "id"),
+				"vpc.id is required when workersVSwitchID is set"))
+		}
+		if infra.Networks.VPC.GardenerManagedNATGateway != nil {
+			allErrs = append(allErrs, field.Forbidden(networksPath.Child("vpc", "gardenerManagedNATGateway"),
+				"gardenerManagedNATGateway cannot be set when workersVSwitchID is used"))
+		}
+		if infra.Networks.VPC.UseCustomRouteTable != nil {
+			allErrs = append(allErrs, field.Forbidden(networksPath.Child("vpc", "useCustomRouteTable"),
+				"useCustomRouteTable cannot be set when workersVSwitchID is used"))
+		}
+	}
+
+	// nodesSecurityGroupID requires vpc.id (independent of BYO VSwitch mode)
+	if infra.Networks.NodesSecurityGroupID != nil && infra.Networks.VPC.ID == nil {
+		allErrs = append(allErrs, field.Required(networksPath.Child("vpc", "id"),
+			"vpc.id is required when nodesSecurityGroupID is set"))
 	}
 
 	allErrs = append(allErrs, cidrvalidation.ValidateCIDRParse(cidrs...)...)
@@ -116,7 +171,9 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 	// When useCustomRouteTable is enabled with a user-provided VPC, gardenerManagedNATGateway must be true.
 	// This ensures each shoot manages its own NAT Gateway, preventing a multi-shoot VPC scenario where
 	// one shoot's cleanup deletes a shared NAT Gateway that other shoots in the same VPC depend on.
-	if infra.Networks.VPC.ID != nil &&
+	// Only applies when Gardener manages all subnets (no BYO zones).
+	if !hasBYO &&
+		infra.Networks.VPC.ID != nil &&
 		infra.Networks.VPC.UseCustomRouteTable != nil && *infra.Networks.VPC.UseCustomRouteTable &&
 		(infra.Networks.VPC.GardenerManagedNATGateway == nil || !*infra.Networks.VPC.GardenerManagedNATGateway) {
 		allErrs = append(allErrs, field.Required(
@@ -148,6 +205,13 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 		seen := sets.New[int]()
 		for i, zone := range infra.Networks.Zones {
 			zonePath := networksPath.Child("zones").Index(i).Child("ipv6CidrBlock")
+
+			// In BYO VSwitch mode, ipv6CidrBlock is optional: user pre-configures IPv6 on the VSwitch.
+			// Skip both the Required check and the uniqueness check for BYO zones.
+			if zone.WorkersVSwitchID != nil {
+				continue
+			}
+
 			var effective int
 			if zone.Ipv6CidrBlock == nil {
 				if isUserVPC {
@@ -186,7 +250,9 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.InfrastructureConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	vpcPath := field.NewPath("networks").Child("vpc")
+	networksPath := field.NewPath("networks")
+	vpcPath := networksPath.Child("vpc")
+
 	// UseCustomRouteTable can only be specified at shoot creation time; any change after creation is forbidden.
 	// This includes both enabling (nil/false → true) and disabling (true → false/nil).
 	// nil and false are treated as equivalent (both mean "disabled"), so a nil↔false no-op is permitted.
@@ -207,7 +273,14 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 		))
 	}
 
-	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, field.NewPath("networks").Child("zones"))...)
+	// nodesSecurityGroupID is fully immutable: value must be identical to creation time (nil stays nil, set value stays same)
+	allErrs = append(allErrs, apivalidation.ValidateImmutableField(
+		newConfig.Networks.NodesSecurityGroupID,
+		oldConfig.Networks.NodesSecurityGroupID,
+		networksPath.Child("nodesSecurityGroupID"),
+	)...)
+
+	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, networksPath.Child("zones"))...)
 
 	// DualStack.Enabled can be enabled but not disabled once set
 	oldEnabled := oldConfig.DualStack != nil && oldConfig.DualStack.Enabled
@@ -236,12 +309,34 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 
 	for i := range oldZones {
 		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Name, newZones[i].Name, fldPath.Index(i))...)
-		if isZoneMigratWorkerToWorkers(oldZones[i], newZones[i]) {
-			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Workers, fldPath.Index(i))...)
-		} else {
-			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Workers, newZones[i].Workers, fldPath.Index(i))...)
-			allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Worker, fldPath.Index(i))...)
+
+		oldIsBYO := oldZones[i].WorkersVSwitchID != nil
+		newIsBYO := newZones[i].WorkersVSwitchID != nil
+
+		// switching between BYO and CIDR mode is forbidden
+		if oldIsBYO != newIsBYO {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i),
+				"cannot switch between workersVSwitchID (BYO) and workers CIDR (Gardener-managed) after creation"))
 		}
+
+		// workersVSwitchID is immutable (symmetric with workers CIDR check below)
+		if oldIsBYO {
+			allErrs = append(allErrs, apivalidation.ValidateImmutableField(
+				newZones[i].WorkersVSwitchID,
+				oldZones[i].WorkersVSwitchID,
+				fldPath.Index(i).Child("workersVSwitchID"),
+			)...)
+		}
+
+		if !oldIsBYO {
+			if isZoneMigratWorkerToWorkers(oldZones[i], newZones[i]) {
+				allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Workers, fldPath.Index(i))...)
+			} else {
+				allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Workers, newZones[i].Workers, fldPath.Index(i))...)
+				allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Worker, newZones[i].Worker, fldPath.Index(i))...)
+			}
+		}
+
 		// Ipv6CidrBlock can be changed but not removed once set
 		if oldZones[i].Ipv6CidrBlock != nil && newZones[i].Ipv6CidrBlock == nil {
 			allErrs = append(allErrs, field.Invalid(
@@ -252,7 +347,9 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 	}
 
 	for i, zone := range newZones {
-		allErrs = append(allErrs, ValidateNatGatewayConfig(zone.NatGateway, fldPath.Index(i).Child("natGateway"))...)
+		if zone.WorkersVSwitchID == nil {
+			allErrs = append(allErrs, ValidateNatGatewayConfig(zone.NatGateway, fldPath.Index(i).Child("natGateway"))...)
+		}
 	}
 
 	return allErrs

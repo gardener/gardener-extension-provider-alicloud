@@ -28,6 +28,7 @@ func (c *FlowContext) Delete(ctx context.Context) error {
 
 func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 	deleteVPC := c.config.Networks.VPC.ID == nil
+	isBYO := c.isBYOInfrastructure()
 	g := flow.NewGraph("Alicloud infrastructure destruction")
 
 	deleteZones := c.AddTask(g, "delete vswitch",
@@ -37,15 +38,16 @@ func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 	deleteSecurityGroup := c.AddTask(g, "delete security group",
 		c.deleteSecurityGroup,
 		Timeout(defaultTimeout))
-	// only delete Ipv6Gateway for managed VPC
+
+	// only delete Ipv6Gateway for managed VPC and non-BYO mode
 	deleteIpv6Gateway := c.AddTask(g, "delete ipv6 gateway",
 		c.deleteIpv6Gateway,
-		DoIf(c.dualStackEnabled() && c.config.Networks.VPC.ID == nil), Timeout(defaultLongTimeout),
+		DoIf(!isBYO && c.dualStackEnabled() && c.config.Networks.VPC.ID == nil), Timeout(defaultLongTimeout),
 		Dependencies(deleteZones))
 
 	deleteRouteTable := c.AddTask(g, "delete route table",
 		c.deleteRouteTable,
-		Timeout(defaultTimeout), Dependencies(deleteZones, deleteIpv6Gateway))
+		DoIf(!isBYO), Timeout(defaultTimeout), Dependencies(deleteZones, deleteIpv6Gateway))
 
 	_ = c.AddTask(g, "delete VPC",
 		c.deleteVpc,
@@ -139,6 +141,11 @@ func (c *FlowContext) deleteCustomRouteTable(ctx context.Context) error {
 
 func (c *FlowContext) deleteSecurityGroup(ctx context.Context) error {
 	if c.state.IsAlreadyDeleted(IdentifierNodesSecurityGroup) {
+		return nil
+	}
+	// BYO security group: only clear state, do not revoke rules or delete the resource.
+	if c.config.Networks.NodesSecurityGroupID != nil {
+		c.state.SetAsDeleted(IdentifierNodesSecurityGroup)
 		return nil
 	}
 	log := c.LogFromContext(ctx)

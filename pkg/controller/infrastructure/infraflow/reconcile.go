@@ -33,6 +33,7 @@ func (c *FlowContext) Reconcile(ctx context.Context) error {
 
 func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 	g := flow.NewGraph("Alicloud infrastructure reconcilation")
+	isBYO := c.isBYOInfrastructure()
 
 	ensureVpc := c.AddTask(g, "ensure VPC",
 		c.ensureVpc,
@@ -44,19 +45,19 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 
 	ensureVSwitches := c.AddTask(g, "ensure vswitch",
 		c.ensureVSwitches,
-		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
+		DoIf(!isBYO), Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
 	ensureIpv6Gateway := c.AddTask(g, "ensure ipv6 gateway",
 		c.ensureIpv6Gateway,
-		DoIf(c.dualStackEnabled()), Timeout(defaultLongTimeout), Dependencies(ensureVpc))
+		DoIf(!isBYO && c.dualStackEnabled()), Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
 	ensureNatGateway := c.AddTask(g, "ensure natgateway",
 		c.ensureNatGateway,
-		Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
+		DoIf(!isBYO), Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
 
 	ensureRouteTable := c.AddTask(g, "ensure route table",
 		c.ensureRouteTable,
-		Timeout(defaultTimeout), Dependencies(ensureNatGateway, ensureIpv6Gateway))
+		DoIf(!isBYO), Timeout(defaultTimeout), Dependencies(ensureNatGateway, ensureIpv6Gateway))
 
 	_ = c.AddTask(g, "ensure zones",
 		c.ensureZones,
@@ -66,6 +67,14 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 }
 
 func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
+	// BYO security group: use the user-provided SG directly without creating or managing rules.
+	if c.config.Networks.NodesSecurityGroupID != nil {
+		log := c.LogFromContext(ctx)
+		log.Info("using user-provided nodes security group", "sgID", *c.config.Networks.NodesSecurityGroupID)
+		c.state.Set(IdentifierNodesSecurityGroup, *c.config.Networks.NodesSecurityGroupID)
+		return c.PersistState(ctx, true)
+	}
+
 	vpcId := c.state.Get(IdentifierVPC)
 	if vpcId == nil {
 		return fmt.Errorf("IdentifierVPC is nil")

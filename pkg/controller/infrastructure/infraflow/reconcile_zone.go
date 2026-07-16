@@ -20,6 +20,12 @@ import (
 )
 
 func (c *FlowContext) ensureZones(ctx context.Context) error {
+	// BYO VSwitch mode: store provided VSwitch IDs in state and discover associated route tables.
+	// No VSwitches, NAT Gateways, EIPs, or SNAT entries are created.
+	if c.isBYOInfrastructure() {
+		return c.ensureBYOZones(ctx)
+	}
+
 	log := c.LogFromContext(ctx)
 	log.Info("begin ensure zones")
 	g := flow.NewGraph("Alicloud infrastructure : zones")
@@ -40,6 +46,67 @@ func (c *FlowContext) ensureZones(ctx context.Context) error {
 		return flow.Causes(err)
 	}
 	return nil
+}
+
+// ensureBYOZones handles BYO VSwitch mode: stores the user-provided VSwitch IDs in state
+// and discovers associated route tables for CCM routeTableIDS config.
+// No network resources are created.
+func (c *FlowContext) ensureBYOZones(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	log.Info("BYO infrastructure: storing user-provided VSwitch IDs")
+
+	vpcId := c.state.Get(IdentifierVPC)
+	if vpcId == nil {
+		return fmt.Errorf("IdentifierVPC is nil")
+	}
+
+	// Fetch all route tables once; matching is done per zone below.
+	tables, err := c.actor.ListRouteTablesByVPC(ctx, *vpcId)
+	if err != nil {
+		return fmt.Errorf("failed to list route tables for VPC %s: %w", *vpcId, err)
+	}
+	// Build a reverse map: vSwitchId -> routeTableId for explicitly associated VSwitches.
+	vswToRT := make(map[string]string)
+	var systemRTID string
+	for _, rt := range tables {
+		if rt.RouteTableType == "System" {
+			systemRTID = rt.RouteTableId
+		}
+		for _, vsw := range rt.VSwitchIds {
+			vswToRT[vsw] = rt.RouteTableId
+		}
+	}
+
+	// Store each BYO VSwitch ID in per-zone state and collect associated route tables in zone order.
+	// VSwitches with no explicit association fall back to the VPC System route table.
+	seenRT := sets.New[string]()
+	var rtIDs []string
+	for _, zone := range c.config.Networks.Zones {
+		if zone.WorkersVSwitchID == nil {
+			continue
+		}
+		vswID := *zone.WorkersVSwitchID
+		c.state.GetChild(ChildIdZones).GetChild(zone.Name).Set(IdentifierZoneVSwitch, vswID)
+		log.Info("stored BYO VSwitch", "zone", zone.Name, "vSwitchID", vswID)
+
+		rtID, ok := vswToRT[vswID]
+		if !ok {
+			// No explicit association: VSwitch uses the VPC System route table.
+			rtID = systemRTID
+		}
+		if rtID != "" && !seenRT.Has(rtID) {
+			seenRT.Insert(rtID)
+			rtIDs = append(rtIDs, rtID)
+		}
+	}
+
+	if len(rtIDs) > 0 {
+		// Multiple route tables are supported: CCM's getRouteTables parses comma-separated values.
+		c.state.Set(IdentifierRouteTable, strings.Join(rtIDs, ","))
+		log.Info("stored BYO route tables", "routeTableIDs", strings.Join(rtIDs, ","))
+	}
+
+	return c.PersistState(ctx, true)
 }
 
 func (c *FlowContext) getEipInternetChargeType(ctx context.Context) string {
@@ -719,6 +786,27 @@ func (c *FlowContext) deleteVSwitch(vsw *aliclient.VSwitch) flow.TaskFn {
 }
 
 func (c *FlowContext) deleteZones(ctx context.Context) error {
+	// BYO VSwitch mode: only clear per-zone VSwitch IDs from state.
+	// The VSwitch resources themselves are user-managed and must not be deleted.
+	// Route table state is also cleared (the route table itself is not deleted).
+	if c.isBYOInfrastructure() {
+		log := c.LogFromContext(ctx)
+		log.Info("BYO infrastructure: clearing VSwitch state without deleting resources")
+		child := c.state.GetChild(ChildIdZones)
+		for _, zoneKey := range child.GetChildrenKeys() {
+			zoneChild := child.GetChild(zoneKey)
+			if vswID := zoneChild.Get(IdentifierZoneVSwitch); vswID != nil {
+				log.Info("BYO infrastructure: clearing VSwitch state without deleting resource", "zone", zoneKey, "vSwitchID", *vswID)
+			}
+			zoneChild.SetAsDeleted(IdentifierZoneVSwitch)
+		}
+		if rtID := c.state.Get(IdentifierRouteTable); rtID != nil {
+			log.Info("BYO infrastructure: clearing route table state without deleting resource", "routeTableID", *rtID)
+		}
+		c.state.SetAsDeleted(IdentifierRouteTable)
+		return c.PersistState(ctx, true)
+	}
+
 	current, err := c.collectExistingVSwitches(ctx)
 	if err != nil {
 		return err

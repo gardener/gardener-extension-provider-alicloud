@@ -64,6 +64,8 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		return allErrs
 	}
 
+	isBYOMode := len(config.Networks.Zones) > 0 && config.Networks.Zones[0].WorkersVSwitchID != nil
+
 	// Validate infrastructure config
 	createManagedNATGateway := true
 	if config.Networks.VPC.ID != nil {
@@ -71,7 +73,13 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		if config.Networks.VPC.GardenerManagedNATGateway == nil || !*config.Networks.VPC.GardenerManagedNATGateway {
 			createManagedNATGateway = false
 		}
-		allErrs = append(allErrs, c.validateVPC(ctx, actor, *config.Networks.VPC.ID, !createManagedNATGateway, field.NewPath("networks", "vpc", "id"))...)
+
+		// In BYO mode, skip NAT Gateway existence check: user manages routing
+		if !isBYOMode {
+			allErrs = append(allErrs, c.validateVPC(ctx, actor, *config.Networks.VPC.ID, !createManagedNATGateway, field.NewPath("networks", "vpc", "id"))...)
+		} else {
+			allErrs = append(allErrs, c.validateVPC(ctx, actor, *config.Networks.VPC.ID, false, field.NewPath("networks", "vpc", "id"))...)
+		}
 
 		if config.DualStack != nil && config.DualStack.Enabled {
 			logger.Info("Validating VPC IPv6 support for dualStack")
@@ -84,29 +92,47 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 				allErrs = append(allErrs, field.InternalError(field.NewPath("networks", "vpc", "id"),
 					fmt.Errorf("FindVSwitchesByVPC %s failed: %+v", *config.Networks.VPC.ID, err)))
 			} else {
-				logger.Info("Validating multi-shoot VPC sharing constraints for new shoot")
-				allErrs = append(allErrs, c.validateMultiShootVPC(vswitches, infra.Namespace, config.Networks.VPC.GardenerManagedNATGateway, config.Networks.VPC.UseCustomRouteTable, field.NewPath("networks", "vpc"))...)
+				if !isBYOMode {
+					logger.Info("Validating multi-shoot VPC sharing constraints for new shoot")
+					allErrs = append(allErrs, c.validateMultiShootVPC(vswitches, infra.Namespace, config.Networks.VPC.GardenerManagedNATGateway, config.Networks.VPC.UseCustomRouteTable, field.NewPath("networks", "vpc"))...)
 
-				logger.Info("Validating vswitch CIDR conflicts for new shoot")
-				allErrs = append(allErrs, c.validateVSwitchCIDRConflict(vswitches, *config.Networks.VPC.ID, infra.Namespace, config.Networks.Zones)...)
+					logger.Info("Validating vswitch CIDR conflicts for new shoot")
+					allErrs = append(allErrs, c.validateVSwitchCIDRConflict(vswitches, *config.Networks.VPC.ID, infra.Namespace, config.Networks.Zones)...)
+				}
+
+				// BYO VSwitch validations (Create only)
+				if isBYOMode {
+					logger.Info("Validating BYO vswitch IDs")
+					allErrs = append(allErrs, c.validateBYOVSwitches(ctx, actor, config, *config.Networks.VPC.ID, field.NewPath("networks", "zones"))...)
+				}
+
+				// nodesSecurityGroupID validation (Create only, both BYO and Managed modes)
+				if config.Networks.NodesSecurityGroupID != nil {
+					logger.Info("Validating nodesSecurityGroupID")
+					allErrs = append(allErrs, c.validateNodesSecurityGroup(ctx, actor, *config.Networks.NodesSecurityGroupID, *config.Networks.VPC.ID, field.NewPath("networks", "nodesSecurityGroupID"))...)
+				}
 			}
 		}
 	}
-	if createManagedNATGateway {
+
+	if !isBYOMode && createManagedNATGateway {
 		logger.Info("Validating infrastructure networks.zones[0].name")
 		allErrs = append(allErrs, c.validateEnhancedNatGatewayZone(ctx, actor, config.Networks.Zones[0].Name, infra.Spec.Region, field.NewPath("networks", "zones[0]", "name"))...)
 	}
-	eipIds := sets.New[string]()
-	for _, zone := range config.Networks.Zones {
-		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
-			logger.Info("Validating infrastructure networks.zones[].natGateway.eipAllocationID")
-			fldPath := field.NewPath("networks", "zones[]", "natGateway", "eipAllocationID")
-			eipId := *zone.NatGateway.EIPAllocationID
-			if !eipIds.Has(eipId) {
-				eipIds.Insert(eipId)
-				allErrs = append(allErrs, c.validateEIP(ctx, actor, eipId, fldPath)...)
-			} else {
-				allErrs = append(allErrs, field.Forbidden(fldPath, fmt.Sprintf("Duplicate EIP Allocation ID %s", eipId)))
+
+	if !isBYOMode {
+		eipIds := sets.New[string]()
+		for _, zone := range config.Networks.Zones {
+			if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
+				logger.Info("Validating infrastructure networks.zones[].natGateway.eipAllocationID")
+				fldPath := field.NewPath("networks", "zones[]", "natGateway", "eipAllocationID")
+				eipId := *zone.NatGateway.EIPAllocationID
+				if !eipIds.Has(eipId) {
+					eipIds.Insert(eipId)
+					allErrs = append(allErrs, c.validateEIP(ctx, actor, eipId, fldPath)...)
+				} else {
+					allErrs = append(allErrs, field.Forbidden(fldPath, fmt.Sprintf("Duplicate EIP Allocation ID %s", eipId)))
+				}
 			}
 		}
 	}
@@ -255,7 +281,81 @@ func (c *configValidator) validateMultiShootVPC(vswitches []*aliclient.VSwitch, 
 	return allErrs
 }
 
-// validateVSwitchCIDRConflict checks whether any of the configured zone worker CIDRs overlap with
+// validateBYOVSwitches validates each workersVSwitchID:
+// - must exist in the specified VPC
+// - must be in the zone specified by zone.Name
+// - if dualStack: VSwitch must have IPv6 CIDR configured
+func (c *configValidator) validateBYOVSwitches(ctx context.Context, actor aliclient.Actor, config *apisalicloud.InfrastructureConfig, vpcID string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	for i, zone := range config.Networks.Zones {
+		if zone.WorkersVSwitchID == nil {
+			continue
+		}
+		zonePath := fldPath.Index(i).Child("workersVSwitchID")
+		vswID := *zone.WorkersVSwitchID
+
+		vsw, err := actor.GetVSwitch(ctx, vswID)
+		if err != nil {
+			allErrs = append(allErrs, field.InternalError(zonePath,
+				fmt.Errorf("GetVSwitch %s failed: %+v", vswID, err)))
+			continue
+		}
+		if vsw == nil {
+			allErrs = append(allErrs, field.NotFound(zonePath, vswID))
+			continue
+		}
+
+		// VSwitch must belong to the specified VPC
+		if vsw.VpcId == nil || *vsw.VpcId != vpcID {
+			allErrs = append(allErrs, field.Invalid(zonePath, vswID,
+				fmt.Sprintf("VSwitch does not belong to VPC %s", vpcID)))
+		}
+
+		// VSwitch must be in the zone specified by zone.Name
+		if vsw.ZoneId != zone.Name {
+			allErrs = append(allErrs, field.Invalid(zonePath, vswID,
+				fmt.Sprintf("VSwitch is in zone %s but zone.name specifies %s", vsw.ZoneId, zone.Name)))
+		}
+
+		// dualStack: VSwitch must have IPv6 CIDR pre-configured
+		if config.DualStack != nil && config.DualStack.Enabled {
+			ipv6Cidr, err := actor.GetVSwitchIpv6CidrBlock(ctx, vswID)
+			if err != nil {
+				allErrs = append(allErrs, field.InternalError(zonePath,
+					fmt.Errorf("GetVSwitchIpv6CidrBlock %s failed: %+v", vswID, err)))
+			} else if ipv6Cidr == "" {
+				allErrs = append(allErrs, field.Invalid(zonePath, vswID,
+					"VSwitch does not have IPv6 CIDR configured; please enable IPv6 on the VSwitch before using dualStack"))
+			}
+		}
+	}
+
+	return allErrs
+}
+
+// validateNodesSecurityGroup validates that the specified security group exists in the given VPC.
+func (c *configValidator) validateNodesSecurityGroup(ctx context.Context, actor aliclient.Actor, sgID, vpcID string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	sg, err := actor.GetSecurityGroup(ctx, sgID)
+	if err != nil {
+		allErrs = append(allErrs, field.InternalError(fldPath,
+			fmt.Errorf("GetSecurityGroup %s failed: %+v", sgID, err)))
+		return allErrs
+	}
+	if sg == nil {
+		allErrs = append(allErrs, field.NotFound(fldPath, sgID))
+		return allErrs
+	}
+	if sg.VpcId != vpcID {
+		allErrs = append(allErrs, field.Invalid(fldPath, sgID,
+			fmt.Sprintf("security group does not belong to VPC %s", vpcID)))
+	}
+
+	return allErrs
+}
+
 // vswitches already existing in the VPC that are not owned by this shoot.
 // Called only on create, but create may be retried after partial failure, so vswitches whose name
 // starts with "<namespace>-" (the naming convention used by this extension) are excluded to avoid
