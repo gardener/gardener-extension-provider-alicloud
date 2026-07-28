@@ -74,6 +74,9 @@ func (c *FlowContext) deleteIpv6Gateway(ctx context.Context) error {
 	return c.PersistState(ctx, true)
 }
 
+// deleteRouteTable dispatches to the appropriate route table cleanup handler based on shoot config.
+// For Gardener-managed VPCs without a custom route table, ensureRouteTable never wrote anything to
+// state, so there is nothing to clean up.
 func (c *FlowContext) deleteRouteTable(ctx context.Context) error {
 	if c.state.IsAlreadyDeleted(IdentifierRouteTable) {
 		return nil
@@ -87,9 +90,9 @@ func (c *FlowContext) deleteRouteTable(ctx context.Context) error {
 	return c.deleteCustomRouteTable(ctx)
 }
 
+// deleteSystemRouteTableStateForUserVPC clears the system route table ID from state.
+// The system route table itself is not deleted — it belongs to the user-provided VPC and must outlive the shoot.
 func (c *FlowContext) deleteSystemRouteTableStateForUserVPC(ctx context.Context) error {
-	// The system route table ID was stored in state to inject into CCM.
-	// Clear it without attempting deletion — the system route table must not be deleted.
 	c.state.SetAsDeleted(IdentifierRouteTable)
 	return c.PersistState(ctx, true)
 }

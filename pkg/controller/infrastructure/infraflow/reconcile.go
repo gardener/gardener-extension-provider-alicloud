@@ -495,6 +495,9 @@ func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
 	return c.PersistState(ctx, true)
 }
 
+// ensureRouteTable dispatches to the appropriate route table handler based on shoot config.
+// For Gardener-managed VPCs without a custom route table, nothing to do — CCM auto-discovery works
+// because Gardener controls the VPC and there is always exactly one route table.
 func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
 	if !c.useCustomRouteTable() {
 		if c.config.Networks.VPC.ID == nil {
@@ -505,7 +508,14 @@ func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
 	return c.ensureCustomRouteTable(ctx)
 }
 
+// ensureSystemRouteTableForUserVPC stores the VPC system route table ID in state so it can be
+// injected into the CCM config. This prevents CCM auto-discovery from failing when the VPC
+// contains more than one route table (e.g. another shoot in the same VPC uses a custom route table).
+// The ID is written only once; subsequent reconciles skip the API call.
 func (c *FlowContext) ensureSystemRouteTableForUserVPC(ctx context.Context) error {
+	if c.state.Get(IdentifierRouteTable) != nil {
+		return nil
+	}
 	log := c.LogFromContext(ctx)
 	vpcId := c.config.Networks.VPC.ID
 	tables, err := c.actor.ListRouteTablesByVPC(ctx, *vpcId)
