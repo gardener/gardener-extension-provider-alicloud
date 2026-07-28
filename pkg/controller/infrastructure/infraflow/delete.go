@@ -80,14 +80,21 @@ func (c *FlowContext) deleteRouteTable(ctx context.Context) error {
 	}
 	if !c.useCustomRouteTable() {
 		if c.config.Networks.VPC.ID == nil {
-			// Gardener-managed VPC: ensureRouteTable never stored anything, nothing to clean up.
 			return nil
 		}
-		// User-provided VPC: system route table ID was stored in state to inject into CCM.
-		// Clear it without attempting deletion — the system route table must not be deleted.
-		c.state.SetAsDeleted(IdentifierRouteTable)
-		return c.PersistState(ctx, true)
+		return c.deleteSystemRouteTableStateForUserVPC(ctx)
 	}
+	return c.deleteCustomRouteTable(ctx)
+}
+
+func (c *FlowContext) deleteSystemRouteTableStateForUserVPC(ctx context.Context) error {
+	// The system route table ID was stored in state to inject into CCM.
+	// Clear it without attempting deletion — the system route table must not be deleted.
+	c.state.SetAsDeleted(IdentifierRouteTable)
+	return c.PersistState(ctx, true)
+}
+
+func (c *FlowContext) deleteCustomRouteTable(ctx context.Context) error {
 	log := c.LogFromContext(ctx)
 	current, err := findExisting(ctx, c.state.Get(IdentifierRouteTable), c.commonTagsWithSuffix("rt"),
 		c.actor.GetRouteTable, c.actor.FindRouteTablesByTags)

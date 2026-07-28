@@ -496,32 +496,34 @@ func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
 }
 
 func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
-	log := c.LogFromContext(ctx)
 	if !c.useCustomRouteTable() {
 		if c.config.Networks.VPC.ID == nil {
 			return nil
 		}
-		vpcId := c.config.Networks.VPC.ID
-		// Fetch all route tables once; matching is done per zone below.
-		tables, err := c.actor.ListRouteTablesByVPC(ctx, *vpcId)
-		if err != nil {
-			return fmt.Errorf("failed to list route tables for VPC %s: %w", *vpcId, err)
-		}
-		systemRTID := ""
-		for _, rt := range tables {
-			if rt.RouteTableType == "System" {
-				systemRTID = rt.RouteTableId
-				break
-			}
-		}
-		if systemRTID == "" {
-			return nil
-		}
-		log.Info("stored default route tables", "routeTableIDs", systemRTID)
-		c.state.Set(IdentifierRouteTable, systemRTID)
-		return c.PersistState(ctx, true)
+		return c.ensureSystemRouteTableForUserVPC(ctx)
 	}
+	return c.ensureCustomRouteTable(ctx)
+}
 
+func (c *FlowContext) ensureSystemRouteTableForUserVPC(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	vpcId := c.config.Networks.VPC.ID
+	tables, err := c.actor.ListRouteTablesByVPC(ctx, *vpcId)
+	if err != nil {
+		return fmt.Errorf("failed to list route tables for VPC %s: %w", *vpcId, err)
+	}
+	for _, rt := range tables {
+		if rt.RouteTableType == "System" {
+			log.Info("stored default route table", "routeTableID", rt.RouteTableId)
+			c.state.Set(IdentifierRouteTable, rt.RouteTableId)
+			return c.PersistState(ctx, true)
+		}
+	}
+	return nil
+}
+
+func (c *FlowContext) ensureCustomRouteTable(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
 	vpcId := c.state.Get(IdentifierVPC)
 	natGwId := c.state.Get(IdentifierNatGateway)
 	if vpcId == nil || natGwId == nil {
