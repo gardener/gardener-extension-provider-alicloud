@@ -511,25 +511,39 @@ func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
 // ensureSystemRouteTableForUserVPC stores the VPC system route table ID in state so it can be
 // injected into the CCM config. This prevents CCM auto-discovery from failing when the VPC
 // contains more than one route table (e.g. another shoot in the same VPC uses a custom route table).
-// The ID is written only once; subsequent reconciles skip the API call.
+// If a route table ID is already stored, it is verified against the actual system route table in the
+// VPC — a mismatch returns an error to surface the inconsistency for human intervention.
 func (c *FlowContext) ensureSystemRouteTableForUserVPC(ctx context.Context) error {
-	if c.state.Get(IdentifierRouteTable) != nil {
-		return nil
-	}
 	log := c.LogFromContext(ctx)
+	stored := c.state.Get(IdentifierRouteTable)
+
 	vpcId := c.config.Networks.VPC.ID
 	tables, err := c.actor.ListRouteTablesByVPC(ctx, *vpcId)
 	if err != nil {
 		return fmt.Errorf("failed to list route tables for VPC %s: %w", *vpcId, err)
 	}
+	systemRTID := ""
 	for _, rt := range tables {
 		if rt.RouteTableType == "System" {
-			log.Info("stored default route table", "routeTableID", rt.RouteTableId)
-			c.state.Set(IdentifierRouteTable, rt.RouteTableId)
-			return c.PersistState(ctx, true)
+			systemRTID = rt.RouteTableId
+			break
 		}
 	}
-	return nil
+
+	if stored != nil {
+		if *stored != systemRTID {
+			return fmt.Errorf("stored route table ID %s does not match VPC system route table %s", *stored, systemRTID)
+		}
+		return nil
+	}
+
+	if systemRTID == "" {
+		return nil
+	}
+
+	log.Info("stored default route table", "routeTableID", systemRTID)
+	c.state.Set(IdentifierRouteTable, systemRTID)
+	return c.PersistState(ctx, true)
 }
 
 func (c *FlowContext) ensureCustomRouteTable(ctx context.Context) error {
