@@ -122,7 +122,7 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 			CloudProfile: runtime.RawExtension{
 				Raw: cloudProfileJSON,
 			},
-			Seed: runtime.RawExtension{
+			Seed: &runtime.RawExtension{
 				Raw: []byte("{}"),
 			},
 			Shoot: runtime.RawExtension{

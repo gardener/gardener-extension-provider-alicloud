@@ -129,6 +129,8 @@ var _ = Describe("Machines", func() {
 				maxSurgePool4       intstr.IntOrString
 				maxUnavailablePool4 intstr.IntOrString
 
+				nodeAgentSecretName string
+
 				vswitchZone1 string
 				vswitchZone2 string
 				zone1        string
@@ -238,6 +240,8 @@ var _ = Describe("Machines", func() {
 				priorityPool4 = 50
 				maxSurgePool4 = intstr.FromInt(10)
 				maxUnavailablePool4 = intstr.FromInt(5)
+
+				nodeAgentSecretName = "node-agent-secret"
 
 				vswitchZone1 = "vswitch-acbd1234"
 				vswitchZone2 = "vswitch-4321dbca"
@@ -457,13 +461,14 @@ var _ = Describe("Machines", func() {
 						},
 						Pools: []extensionsv1alpha1.WorkerPool{
 							{
-								Name:           namePool1,
-								Minimum:        minPool1,
-								Maximum:        maxPool1,
-								MaxSurge:       maxSurgePool1,
-								Architecture:   ptr.To(archAMD),
-								MaxUnavailable: maxUnavailablePool1,
-								MachineType:    machineType,
+								Name:                namePool1,
+								Minimum:             minPool1,
+								Maximum:             maxPool1,
+								MaxSurge:            maxSurgePool1,
+								Architecture:        ptr.To(archAMD),
+								MaxUnavailable:      maxUnavailablePool1,
+								MachineType:         machineType,
+								NodeAgentSecretName: &nodeAgentSecretName,
 								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
 									Capacity: nodeCapacity,
 								},
@@ -499,14 +504,15 @@ var _ = Describe("Machines", func() {
 								},
 							},
 							{
-								Name:           namePool2,
-								Minimum:        minPool2,
-								Maximum:        maxPool2,
-								Priority:       ptr.To(priorityPool2),
-								MaxSurge:       maxSurgePool2,
-								MaxUnavailable: maxUnavailablePool2,
-								Architecture:   ptr.To(archARM),
-								MachineType:    machineType,
+								Name:                namePool2,
+								Minimum:             minPool2,
+								Maximum:             maxPool2,
+								Priority:            ptr.To(priorityPool2),
+								MaxSurge:            maxSurgePool2,
+								MaxUnavailable:      maxUnavailablePool2,
+								Architecture:        ptr.To(archARM),
+								MachineType:         machineType,
+								NodeAgentSecretName: &nodeAgentSecretName,
 								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
 									Capacity: nodeCapacity,
 								},
@@ -529,14 +535,15 @@ var _ = Describe("Machines", func() {
 								},
 							},
 							{
-								Name:           namePool3,
-								Minimum:        minPool3,
-								Maximum:        maxPool3,
-								Priority:       ptr.To(priorityPool3),
-								MaxSurge:       maxSurgePool3,
-								MaxUnavailable: maxUnavailablePool3,
-								Architecture:   ptr.To(archARM),
-								MachineType:    machineType,
+								Name:                namePool3,
+								Minimum:             minPool3,
+								Maximum:             maxPool3,
+								Priority:            ptr.To(priorityPool3),
+								MaxSurge:            maxSurgePool3,
+								MaxUnavailable:      maxUnavailablePool3,
+								Architecture:        ptr.To(archARM),
+								MachineType:         machineType,
+								NodeAgentSecretName: &nodeAgentSecretName,
 								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
 									Capacity: nodeCapacity,
 								},
@@ -561,14 +568,15 @@ var _ = Describe("Machines", func() {
 								KubernetesVersion: &shootVersion,
 							},
 							{
-								Name:           namePool4,
-								Minimum:        minPool4,
-								Maximum:        maxPool4,
-								Priority:       ptr.To(priorityPool4),
-								MaxSurge:       maxSurgePool4,
-								MaxUnavailable: maxUnavailablePool4,
-								Architecture:   ptr.To(archARM),
-								MachineType:    machineType,
+								Name:                namePool4,
+								Minimum:             minPool4,
+								Maximum:             maxPool4,
+								Priority:            ptr.To(priorityPool4),
+								MaxSurge:            maxSurgePool4,
+								MaxUnavailable:      maxUnavailablePool4,
+								Architecture:        ptr.To(archARM),
+								MachineType:         machineType,
+								NodeAgentSecretName: &nodeAgentSecretName,
 								NodeTemplate: &extensionsv1alpha1.NodeTemplate{
 									Capacity: nodeCapacity,
 								},
@@ -602,13 +610,13 @@ var _ = Describe("Machines", func() {
 				decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 
 				additionalHashData := []string{fmt.Sprintf("%dGi", dataVolume1Size), dataVolume1Type, strconv.FormatBool(dataVolume1Encrypted), fmt.Sprintf("%dGi", dataVolume2Size), dataVolume2Type, strconv.FormatBool(dataVolume2Encrypted)}
-				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster, additionalHashData, additionalHashData, nil)
+				workerPoolHash1, _ = worker.WorkerPoolHash(w.Spec.Pools[0], cluster, additionalHashData, nil)
 
 				additionalHashDataV2 := []string{"true"}
-				workerPoolHash2, _ = worker.WorkerPoolHash(w.Spec.Pools[1], cluster, additionalHashDataV2, additionalHashDataV2, nil)
+				workerPoolHash2, _ = worker.WorkerPoolHash(w.Spec.Pools[1], cluster, additionalHashDataV2, nil)
 
-				workerPoolHash3, _ = worker.WorkerPoolHash(w.Spec.Pools[2], cluster, nil, nil, nil)
-				workerPoolHash4, _ = worker.WorkerPoolHash(w.Spec.Pools[3], cluster, nil, nil, nil)
+				workerPoolHash3, _ = worker.WorkerPoolHash(w.Spec.Pools[2], cluster, nil, nil)
+				workerPoolHash4, _ = worker.WorkerPoolHash(w.Spec.Pools[3], cluster, nil, nil)
 
 				udScheme := runtime.NewScheme()
 				_ = corev1.AddToScheme(udScheme)
@@ -1029,15 +1037,6 @@ var _ = Describe("Machines", func() {
 				w.Spec.InfrastructureProviderStatus = &runtime.RawExtension{}
 				err := workerDelegate.DeployMachineClasses(ctx)
 				Expect(err).To(HaveOccurred())
-			})
-
-			It("should fail because the version is invalid", func() {
-				clusterWithoutImages.Shoot.Spec.Kubernetes.Version = "invalid"
-				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
-
-				result, err := workerDelegate.GenerateMachineDeployments(ctx)
-				Expect(err).To(HaveOccurred())
-				Expect(result).To(BeNil())
 			})
 
 			It("should fail because the infrastructure status cannot be decoded", func() {

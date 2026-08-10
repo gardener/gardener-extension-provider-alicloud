@@ -85,7 +85,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		zoneLen := int32(len(pool.Zones)) // #nosec: G115
 
 		additionalHashData := computeAdditionalHashData(pool)
-		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, additionalHashData, additionalHashData, nil)
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, additionalHashData, nil)
 		if err != nil {
 			return err
 		}
