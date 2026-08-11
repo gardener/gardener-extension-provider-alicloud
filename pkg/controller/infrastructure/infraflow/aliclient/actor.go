@@ -81,6 +81,8 @@ type Actor interface {
 	GetRouteTable(ctx context.Context, id string) (*RouteTable, error)
 	FindRouteTablesByTags(ctx context.Context, tags Tags) ([]*RouteTable, error)
 	DeleteRouteTable(ctx context.Context, id string) error
+	// ListRouteTablesByVPC returns all route tables in the given VPC.
+	ListRouteTablesByVPC(ctx context.Context, vpcId string) ([]*RouteTable, error)
 
 	AssociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error
 	UnassociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error
@@ -1663,6 +1665,12 @@ func (c *actor) DeleteRouteTable(ctx context.Context, id string) error {
 	})
 }
 
+func (c *actor) ListRouteTablesByVPC(_ context.Context, vpcId string) ([]*RouteTable, error) {
+	req := vpc.CreateDescribeRouteTableListRequest()
+	req.VpcId = vpcId
+	return c.describeRouteTableList(req)
+}
+
 func (c *actor) AssociateRouteTable(ctx context.Context, routeTableId, vSwitchId string) error {
 	req := vpc.CreateAssociateRouteTableRequest()
 	req.RouteTableId = routeTableId
@@ -1804,11 +1812,12 @@ func (c *actor) describeRouteTableList(req *vpc.DescribeRouteTableListRequest) (
 func (c *actor) fromRouteTable(item vpc.RouterTableListType) *RouteTable {
 	status := item.Status
 	rt := &RouteTable{
-		Name:         item.RouteTableName,
-		RouteTableId: item.RouteTableId,
-		VpcId:        item.VpcId,
-		Status:       &status,
-		VSwitchIds:   item.VSwitchIds.VSwitchId,
+		Name:           item.RouteTableName,
+		RouteTableId:   item.RouteTableId,
+		VpcId:          item.VpcId,
+		RouteTableType: item.RouteTableType,
+		Status:         &status,
+		VSwitchIds:     item.VSwitchIds.VSwitchId,
 	}
 	tags := Tags{}
 	for _, t := range item.Tags.Tag {

@@ -100,14 +100,17 @@ type SecurityGroupRule struct {
 	Direction           string
 }
 
-// RouteTable is the struct for a custom route table object
+// RouteTable is the struct for a route table object.
+// RouteTableType is "System" for the VPC default route table, "Custom" for user-created ones.
+// The System route table's VSwitchIds is always empty — unassociated VSwitches use it implicitly.
 type RouteTable struct {
 	Tags
-	Name         string
-	RouteTableId string
-	VpcId        string
-	VSwitchIds   []string
-	Status       *string
+	Name           string
+	RouteTableId   string
+	VpcId          string
+	RouteTableType string // "System" or "Custom"
+	VSwitchIds     []string
+	Status         *string
 }
 
 // RouteEntry is the struct for a route entry in a route table

@@ -865,6 +865,21 @@ func (mr *MockActorMockRecorder) ListRouteEntriesByRouteTable(ctx, routeTableId 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRouteEntriesByRouteTable", reflect.TypeOf((*MockActor)(nil).ListRouteEntriesByRouteTable), ctx, routeTableId)
 }
 
+// ListRouteTablesByVPC mocks base method.
+func (m *MockActor) ListRouteTablesByVPC(ctx context.Context, vpcId string) ([]*aliclient.RouteTable, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListRouteTablesByVPC", ctx, vpcId)
+	ret0, _ := ret[0].([]*aliclient.RouteTable)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListRouteTablesByVPC indicates an expected call of ListRouteTablesByVPC.
+func (mr *MockActorMockRecorder) ListRouteTablesByVPC(ctx, vpcId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRouteTablesByVPC", reflect.TypeOf((*MockActor)(nil).ListRouteTablesByVPC), ctx, vpcId)
+}
+
 // ListSecurityGroups mocks base method.
 func (m *MockActor) ListSecurityGroups(ctx context.Context, ids []string) ([]*aliclient.SecurityGroup, error) {
 	m.ctrl.T.Helper()

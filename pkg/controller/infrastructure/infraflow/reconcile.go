@@ -56,7 +56,7 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 
 	ensureRouteTable := c.AddTask(g, "ensure route table",
 		c.ensureRouteTable,
-		DoIf(c.useCustomRouteTable()), Timeout(defaultTimeout), Dependencies(ensureNatGateway, ensureIpv6Gateway))
+		Timeout(defaultTimeout), Dependencies(ensureNatGateway, ensureIpv6Gateway))
 
 	_ = c.AddTask(g, "ensure zones",
 		c.ensureZones,
@@ -495,7 +495,58 @@ func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
 	return c.PersistState(ctx, true)
 }
 
+// ensureRouteTable dispatches to the appropriate route table handler based on shoot config.
+// For Gardener-managed VPCs without a custom route table, nothing to do — CCM auto-discovery works
+// because Gardener controls the VPC and there is always exactly one route table.
 func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
+	if !c.useCustomRouteTable() {
+		if c.config.Networks.VPC.ID == nil {
+			return nil
+		}
+		return c.ensureSystemRouteTableForUserVPC(ctx)
+	}
+	return c.ensureCustomRouteTable(ctx)
+}
+
+// ensureSystemRouteTableForUserVPC stores the VPC system route table ID in state so it can be
+// injected into the CCM config. This prevents CCM auto-discovery from failing when the VPC
+// contains more than one route table (e.g. another shoot in the same VPC uses a custom route table).
+// If a route table ID is already stored, it is verified against the actual system route table in the
+// VPC — a mismatch returns an error to surface the inconsistency for human intervention.
+func (c *FlowContext) ensureSystemRouteTableForUserVPC(ctx context.Context) error {
+	log := c.LogFromContext(ctx)
+	stored := c.state.Get(IdentifierRouteTable)
+
+	vpcId := c.config.Networks.VPC.ID
+	tables, err := c.actor.ListRouteTablesByVPC(ctx, *vpcId)
+	if err != nil {
+		return fmt.Errorf("failed to list route tables for VPC %s: %w", *vpcId, err)
+	}
+	systemRTID := ""
+	for _, rt := range tables {
+		if rt.RouteTableType == "System" {
+			systemRTID = rt.RouteTableId
+			break
+		}
+	}
+
+	if stored != nil {
+		if *stored != systemRTID {
+			return fmt.Errorf("stored route table ID %s does not match VPC system route table %s", *stored, systemRTID)
+		}
+		return nil
+	}
+
+	if systemRTID == "" {
+		return nil
+	}
+
+	log.Info("stored default route table", "routeTableID", systemRTID)
+	c.state.Set(IdentifierRouteTable, systemRTID)
+	return c.PersistState(ctx, true)
+}
+
+func (c *FlowContext) ensureCustomRouteTable(ctx context.Context) error {
 	log := c.LogFromContext(ctx)
 	vpcId := c.state.Get(IdentifierVPC)
 	natGwId := c.state.Get(IdentifierNatGateway)
