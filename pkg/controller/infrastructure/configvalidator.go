@@ -86,6 +86,13 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 			allErrs = append(allErrs, c.validateVpcIPv6(ctx, actor, *config.Networks.VPC.ID, field.NewPath("networks", "vpc", "id"))...)
 		}
 
+		// BYO VSwitch validations run on every reconcile so that a deleted VSwitch is detected promptly.
+		// WorkersVSwitchID can be updated when the old VSwitch is gone, so blocking reconcile here is recoverable.
+		if isBYOMode {
+			logger.Info("Validating BYO vswitch IDs")
+			allErrs = append(allErrs, c.validateBYOVSwitches(ctx, actor, config, *config.Networks.VPC.ID, field.NewPath("networks", "zones"))...)
+		}
+
 		if infra.Status.LastOperation != nil && infra.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeCreate {
 			vswitches, err := actor.FindVSwitchesByVPC(ctx, *config.Networks.VPC.ID)
 			if err != nil {
@@ -100,13 +107,7 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 					allErrs = append(allErrs, c.validateVSwitchCIDRConflict(vswitches, *config.Networks.VPC.ID, infra.Namespace, config.Networks.Zones)...)
 				}
 
-				// BYO VSwitch validations (Create only)
-				if isBYOMode {
-					logger.Info("Validating BYO vswitch IDs")
-					allErrs = append(allErrs, c.validateBYOVSwitches(ctx, actor, config, *config.Networks.VPC.ID, field.NewPath("networks", "zones"))...)
-				}
-
-				// nodesSecurityGroupID validation (Create only, both BYO and Managed modes)
+				// nodesSecurityGroupID is immutable; validate only on create
 				if config.Networks.NodesSecurityGroupID != nil {
 					logger.Info("Validating nodesSecurityGroupID")
 					allErrs = append(allErrs, c.validateNodesSecurityGroup(ctx, actor, *config.Networks.NodesSecurityGroupID, *config.Networks.VPC.ID, field.NewPath("networks", "nodesSecurityGroupID"))...)

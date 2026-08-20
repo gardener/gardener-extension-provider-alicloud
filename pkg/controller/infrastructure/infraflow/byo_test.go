@@ -174,7 +174,7 @@ var _ = Describe("BYO infrastructure", func() {
 			fc, _ := newBYOTestContext(ctrl, config, shared.FlatMap{
 				// Zone VSwitch state stored by ensureBYOZones
 				"Zones/cn-hangzhou-a/" + IdentifierZoneVSwitch: "vsw-aaa",
-				IdentifierRouteTable:                            "rt-1",
+				IdentifierRouteTable:                           "rt-1",
 				// VPC state required to satisfy isBYOInfrastructure check (via config)
 				IdentifierVPC: "vpc-123",
 			})

@@ -6,6 +6,7 @@ package validation
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/gardener/gardener/pkg/apis/core"
@@ -247,7 +248,9 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 }
 
 // ValidateInfrastructureConfigUpdate validates a InfrastructureConfig object.
-func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.InfrastructureConfig) field.ErrorList {
+// workers is the list of shoot worker pools; used to determine whether a BYO zone is referenced.
+// goneVSwitches is the list of old WorkersVSwitchIDs confirmed absent in Alicloud (caller's responsibility to populate via API).
+func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.InfrastructureConfig, workers []core.Worker, goneVSwitches []string) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	networksPath := field.NewPath("networks")
@@ -280,7 +283,7 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 		networksPath.Child("nodesSecurityGroupID"),
 	)...)
 
-	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, networksPath.Child("zones"))...)
+	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, workers, goneVSwitches, networksPath.Child("zones"))...)
 
 	// DualStack.Enabled can be enabled but not disabled once set
 	oldEnabled := oldConfig.DualStack != nil && oldConfig.DualStack.Enabled
@@ -299,7 +302,9 @@ func normalizeUseCustomRouteTable(v *bool) bool {
 }
 
 // ValidateNetworkZonesConfig validates a Zone slice.
-func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath *field.Path) field.ErrorList {
+// A BYO WorkersVSwitchID change is permitted when either the zone has never been referenced by any
+// worker pool, or the old VSwitch is confirmed absent in Alicloud (provided via goneVSwitches).
+func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, workers []core.Worker, goneVSwitches []string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(newZones) < len(oldZones) {
@@ -319,13 +324,21 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 				"cannot switch between workersVSwitchID (BYO) and workers CIDR (Gardener-managed) after creation"))
 		}
 
-		// workersVSwitchID is immutable (symmetric with workers CIDR check below)
 		if oldIsBYO {
-			allErrs = append(allErrs, apivalidation.ValidateImmutableField(
-				newZones[i].WorkersVSwitchID,
-				oldZones[i].WorkersVSwitchID,
-				fldPath.Index(i).Child("workersVSwitchID"),
-			)...)
+			needImmutable := true
+			if !ZoneReferencedByWorkers(oldZones[i].Name, workers) {
+				needImmutable = false
+			}
+			if slices.Contains(goneVSwitches, *oldZones[i].WorkersVSwitchID) {
+				needImmutable = false
+			}
+			if needImmutable {
+				allErrs = append(allErrs, apivalidation.ValidateImmutableField(
+					newZones[i].WorkersVSwitchID,
+					oldZones[i].WorkersVSwitchID,
+					fldPath.Index(i).Child("workersVSwitchID"),
+				)...)
+			}
 		}
 
 		if !oldIsBYO {
@@ -353,6 +366,18 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, fldPath 
 	}
 
 	return allErrs
+}
+
+// ZoneReferencedByWorkers reports whether zoneName appears in any worker pool's Zones list.
+func ZoneReferencedByWorkers(zoneName string, workers []core.Worker) bool {
+	for _, w := range workers {
+		for _, z := range w.Zones {
+			if z == zoneName {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // check if migrate from worker to workers
