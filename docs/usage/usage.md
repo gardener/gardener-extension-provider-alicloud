@@ -561,3 +561,7 @@ spec:
 > [!Note]
 > For Alicloud OSS, if the retention policy is not locked within 24 hours of its creation, the policy becomes invalid.
 > Moreover, retention period can only be extended when retention policy is locked.
+
+## Bring Your Own Infrastructure
+
+Gardener supports using pre-existing Alibaba Cloud VSwitches and Security Groups instead of creating and managing them automatically. See [Bring Your Own Infrastructure](./bring-your-own-infrastructure.md) for details.
