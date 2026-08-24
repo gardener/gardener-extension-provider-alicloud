@@ -17,6 +17,9 @@ The VSwitch and Security Group fields are independent. You may use only `workers
 
 ## Prerequisites
 
+> [!WARNING]
+> Verify all resource IDs carefully before creating the shoot. The VSwitch ID, Security Group ID, and VPC ID are validated at reconcile time, not at creation time. If a wrong ID is provided and the zone is already referenced by a worker pool, the `workersVSwitchID` field becomes immutable and cannot be corrected without deleting and recreating the shoot. Ensure every ID is correct, belongs to the right VPC, and is in the right availability zone before submitting the shoot manifest.
+
 ### 1. VPC
 
 Use an existing VPC or create one. Note its ID — you will need it in the shoot's `infrastructureConfig`.
