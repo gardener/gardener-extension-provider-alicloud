@@ -329,6 +329,7 @@ outer:
 	return current, nil
 }
 
+// ensureNatGateway creates or reconciles the NAT Gateway. Not called for BYO shoots.
 func (c *FlowContext) ensureNatGateway(ctx context.Context) error {
 	createNatGateway := c.config.Networks.VPC.ID == nil || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
 
@@ -461,6 +462,7 @@ func getZoneName(item *aliclient.VSwitch) string {
 	return item.ZoneId
 }
 
+// ensureIpv6Gateway creates or reconciles the IPv6 Gateway. Not called for BYO shoots or when dualStack is disabled.
 func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
 	// need export IdentifierIPV6Gateway for ensureRouteTable to add route entry, call ensureIpv6Gateway no care VPC.ID
 	log := c.LogFromContext(ctx)
@@ -507,6 +509,7 @@ func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
 // ensureRouteTable dispatches to the appropriate route table handler based on shoot config.
 // For Gardener-managed VPCs without a custom route table, nothing to do — CCM auto-discovery works
 // because Gardener controls the VPC and there is always exactly one route table.
+// Not called for BYO shoots; route table discovery for BYO is handled by ensureBYOZones.
 func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
 	if !c.useCustomRouteTable() {
 		if c.config.Networks.VPC.ID == nil {

@@ -56,6 +56,7 @@ func (c *FlowContext) buildDeleteGraph() *flow.Graph {
 	return g
 }
 
+// deleteIpv6Gateway deletes the Gardener-managed IPv6 Gateway. Not called for BYO shoots, non-dualStack shoots, or user-provided VPCs.
 func (c *FlowContext) deleteIpv6Gateway(ctx context.Context) error {
 	if c.state.IsAlreadyDeleted(IdentifierIPV6Gateway) {
 		return nil
@@ -78,7 +79,7 @@ func (c *FlowContext) deleteIpv6Gateway(ctx context.Context) error {
 
 // deleteRouteTable dispatches to the appropriate route table cleanup handler based on shoot config.
 // For Gardener-managed VPCs without a custom route table, ensureRouteTable never wrote anything to
-// state, so there is nothing to clean up.
+// state, so there is nothing to clean up. Not called for BYO shoots.
 func (c *FlowContext) deleteRouteTable(ctx context.Context) error {
 	if !c.useCustomRouteTable() {
 		if c.config.Networks.VPC.ID == nil {

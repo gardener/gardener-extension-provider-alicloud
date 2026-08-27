@@ -50,6 +50,7 @@ func (c *FlowContext) ensureZones(ctx context.Context) error {
 
 // ensureBYOZones handles BYO VSwitch mode: stores the user-provided VSwitch IDs in state
 // and discovers associated route tables for CCM routeTableIDS config.
+// ensureBYOZones records user-provided VSwitch IDs and discovers their associated route tables.
 // No network resources are created.
 func (c *FlowContext) ensureBYOZones(ctx context.Context) error {
 	log := c.LogFromContext(ctx)
@@ -400,6 +401,7 @@ func (c *FlowContext) ensureElasticIP(zoneName, eipIntenetChargeType string) flo
 	}
 }
 
+// ensureVSwitches creates and reconciles Gardener-managed VSwitches. Not called for BYO shoots.
 func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	vpcId := c.state.Get(IdentifierVPC)
 	if vpcId == nil {
