@@ -2,15 +2,38 @@
 
 Gardener normally creates and manages all network resources for a shoot cluster. When network resources are provisioned centrally — for example by a platform team — you can provide a pre-existing VPC, VSwitches, and Security Groups instead.
 
-Three fields in `InfrastructureConfig` support this:
+## Infrastructure Provisioning Modes
+
+Gardener supports two ways to use a pre-existing VPC. The key difference is whether Gardener manages the subnets inside the VPC.
+
+| | User-provided VPC | Full BYO (this document) |
+|---|---|---|
+| VPC | User provides | User provides |
+| VSwitches | Gardener creates per zone | User provides per zone (`workersVSwitchID`) |
+| Security Group | Gardener creates; optionally user provides via `nodesSecurityGroupID` | Gardener creates; optionally user provides via `nodesSecurityGroupID` |
+| NAT Gateway | User provides unique NGW, or Gardener creates with `gardenerManagedNATGateway: true` | User provides |
+| Route table | Gardener uses system default RT, or creates custom RT with `useCustomRouteTable: true` | VSwitch's associated RT (user-managed) |
+| CCM pod routes | Written into system default RT or Gardener-created custom RT | Written into VSwitch's associated RT |
+| Gardener role | Creates and manages VSwitches, SG; optionally manages NGW and route table | Read-only; validates BYO resources on every reconcile |
+
+The presence of `workersVSwitchID` is what determines the mode. `nodesSecurityGroupID` is orthogonal — it can be combined with either mode and only controls whether Gardener or the user manages the Security Group.
+
+**User-provided VPC** is configured via `networks.vpc.id` + per-zone `workers` CIDR. Gardener still creates subnets and optionally a NAT Gateway. When `gardenerManagedNATGateway: false` (the default), you must ensure the VPC contains exactly one NAT Gateway whose default route is already configured in the route table that the shoot will use. Setting only `nodesSecurityGroupID` without `workersVSwitchID` also puts the shoot in this mode — all user-provided VPC requirements apply.
+
+**Full BYO** (described in this document) is configured via `networks.vpc.id` + per-zone `workersVSwitchID`. Gardener treats all BYO resources as read-only and performs no environment setup. You are responsible for the complete network environment before creating the shoot.
+
+> [!WARNING]
+> In Full BYO mode, Gardener does not create or modify any network resources. You must ensure before creating the shoot that each VSwitch exists in the correct zone and VPC, that a NAT Gateway or equivalent egress path is in place, and that the route table associated with each VSwitch is correctly configured. Incorrect or incomplete environment setup is only detected at reconcile time, not at shoot creation.
+
+Three fields in `InfrastructureConfig` support Full BYO:
 
 | Field | Scope | Description |
 |---|---|---|
-| `networks.vpc.id` | Cluster-wide | ID of the pre-existing VPC; required when using BYO VSwitches |
+| `networks.vpc.id` | Cluster-wide | ID of the pre-existing VPC; required when using BYO VSwitches or a BYO Security Group |
 | `networks.zones[].workersVSwitchID` | Per-zone | Pre-existing VSwitch for worker nodes in that zone |
 | `networks.nodesSecurityGroupID` | Cluster-wide | Pre-existing Security Group attached to all worker nodes |
 
-The VSwitch and Security Group fields are independent. You may use only `workersVSwitchID`, only `nodesSecurityGroupID`, or both. `networks.vpc.id` is required when `workersVSwitchID` is used.
+The VSwitch and Security Group fields are independent. You may use only `workersVSwitchID`, only `nodesSecurityGroupID`, or both. `networks.vpc.id` is required whenever either field is set — the VSwitch and Security Group must both reside in that VPC.
 
 > [!NOTE]
 > When `workersVSwitchID` is set, all zones must use it. Mixing BYO zones and Gardener-managed zones in the same shoot is not allowed.
@@ -53,7 +76,7 @@ If you want to manage the worker node Security Group yourself:
    | TCP | 30000–32767 | `0.0.0.0/0` | NodePort services |
    | TCP | All (except 23, 514) | VPC CIDR | Intra-VPC node communication |
    | UDP | All (except 23, 514) | VPC CIDR | Intra-VPC node communication |
-   | ALL | All | Pods CIDR | Pod-to-node traffic (non-overlay networking) |
+   | ALL | All | Pods CIDR | Pod-to-node traffic |
 
    **Outbound rules:** None required — Alibaba Cloud allows all outbound traffic by default.
 
@@ -82,7 +105,7 @@ networks:
 
 **Constraints:**
 
-- `networks.vpc.id` is **required** when `workersVSwitchID` is used.
+- `networks.vpc.id` is **required** when `workersVSwitchID` or `nodesSecurityGroupID` is set.
 - `networks.vpc.cidr` must not be set — it is mutually exclusive with `vpc.id`.
 - `networks.vpc.gardenerManagedNATGateway` must not be set in BYO mode.
 - `networks.vpc.useCustomRouteTable` must not be set in BYO mode.
@@ -164,47 +187,36 @@ If any check fails, the reconcile is blocked with a descriptive error until the 
 
 ## Route Tables and CCM Behavior
 
-On every reconcile, Gardener discovers the route table associated with each BYO VSwitch (custom route table if one is explicitly associated, otherwise the VPC system route table). The discovered route table ID is stored in the shoot's infrastructure status and forwarded to the Cloud Controller Manager as `routeTableIDS`.
+On every reconcile, Gardener discovers the route table associated with each BYO VSwitch (custom route table if one is explicitly associated, otherwise the VPC system route table). The discovered route table ID is stored in the shoot's infrastructure status and forwarded to the Cloud Controller Manager.
 
-### Non-overlay networking (default for Calico, Cilium)
-
-CCM's route controller writes one route entry per worker node into the route table:
+CCM's route controller writes one route entry per worker node into the route table regardless of whether overlay networking is enabled:
 
 ```
 destination: <node pod CIDR>  →  next-hop: <node IP>
 ```
 
-Routes are added when nodes join and removed when nodes leave. Do not manually manage these entries.
+Routes are added when nodes join and removed when nodes leave. In overlay mode these routes are redundant but are still written. Do not manually manage these entries.
 
 > [!WARNING]
 > When the shoot is deleted, Gardener removes its internal state but does **not** delete the pod CIDR routes that CCM wrote into your route table. Routes whose target node has already been terminated become blackhole entries. After shoot deletion, manually remove all routes with destinations within the shoot's pod CIDR from the route table.
 
 > [!NOTE]
-> Each BYO VSwitch should be dedicated to a single shoot. If multiple shoots use the same VSwitch and thus the same route table, their pod CIDRs must not overlap — overlapping pod CIDRs cause the CCMs to mutually delete each other's node routes, breaking cluster networking.
+> Each BYO VSwitch should be dedicated to a single shoot. If multiple shoots use the same VSwitch and thus the same route table, their pod CIDRs must not overlap — overlapping pod CIDRs cause the CCMs to mutually delete each other's node routes. This applies regardless of whether overlay networking is enabled.
 
-### Overlay networking
+## VSwitch ID Immutability
 
-When overlay networking is enabled, pod-to-pod traffic is encapsulated by the CNI. The CCM route controller is not used and no pod CIDR routes are written into your route table.
+`workersVSwitchID` is immutable once the zone is referenced by a worker pool. Plan VSwitch assignments carefully before creating the shoot — the ID cannot be changed under normal circumstances.
 
-## Updating VSwitch IDs
-
-`workersVSwitchID` is immutable under normal operation. Changing it is a **last-resort recovery measure** and should only be done when necessary. Two situations allow the change:
+The only exceptions where a change is allowed are:
 
 | Situation | Condition |
 |---|---|
 | The zone has never been used by any worker pool | The zone does not appear in any `spec.provider.workers[].zones` |
 | The old VSwitch no longer exists in Alibaba Cloud | The admission webhook confirms the old VSwitch ID is absent before allowing the change |
 
-### Recovery when a VSwitch is accidentally deleted
+These exceptions exist solely as a recovery path and are not intended for routine reconfiguration.
 
-1. In the Alibaba Cloud console, create a new VSwitch in the same VPC and availability zone. Where possible, associate it with the same route table as the old VSwitch to avoid routing changes.
-2. Update the shoot's `InfrastructureConfig`: set `zones[i].workersVSwitchID` to the new VSwitch ID.
-3. The admission webhook calls the Alibaba Cloud API to confirm the old VSwitch is gone and allows the update.
-
-> [!WARNING]
-> Changing `workersVSwitchID` may change the route table Gardener associates with that zone if the new VSwitch is associated with a different route table. Verify that the route table association is correct for your network topology.
-
-## Limitations
+## Constraints
 
 - **No migration from managed to BYO.** A shoot created with `workers` CIDR zones cannot be converted to BYO mode. This is enforced by admission validation.
 - **All zones must use the same mode.** Either all zones use `workersVSwitchID` or all zones use `workers` CIDR. Partial BYO is not allowed.
@@ -216,7 +228,7 @@ When overlay networking is enabled, pod-to-pod traffic is encapsulated by the CN
 > [!WARNING]
 > BYO infrastructure support (`workersVSwitchID`, `nodesSecurityGroupID`) was introduced in a specific version of this extension. Rolling back to an older version on a landscape with active BYO shoots has the following effects:
 >
-> - Every reconcile of a BYO shoot fails immediately with an internal protection error. No infrastructure is modified or deleted.
+> - Every reconcile of a BYO shoot fails with an error. No infrastructure is modified or deleted.
 > - The older admission webhook rejects any shoot updates, since it requires a `workers` CIDR that BYO zones do not have.
 > - Existing nodes and workloads continue running — only infrastructure reconciliation and shoot updates are blocked.
 >
