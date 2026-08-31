@@ -152,6 +152,9 @@ var _ = Describe("ValuesProvider", func() {
 				},
 				"enableADController": true,
 			},
+			"calico-mutating-admission-policy": map[string]interface{}{
+				"enabled": false,
+			},
 		}
 
 		csi = config.CSI{}
@@ -284,11 +287,88 @@ var _ = Describe("ValuesProvider", func() {
 		})
 
 		It("should return correct control plane shoot chart values", func() {
-			// Call GetControlPlaneShootChartValues method and check the result
 			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneShootChartValues))
 		})
+
+		DescribeTable("calico-mutating-admission-policy values",
+			func(networkingType *string, providerConfigRaw []byte, k8sVersion string, kubeAPIServer *gardencorev1beta1.KubeAPIServerConfig, expectedPolicyValues map[string]interface{}) {
+				cluster.Shoot.Spec.Networking.Type = networkingType
+				if providerConfigRaw != nil {
+					cluster.Shoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{Raw: providerConfigRaw}
+				}
+				cluster.Shoot.Spec.Kubernetes.Version = k8sVersion
+				cluster.Shoot.Spec.Kubernetes.KubeAPIServer = kubeAPIServer
+
+				values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(values).To(HaveKeyWithValue("calico-mutating-admission-policy", expectedPolicyValues))
+			},
+			Entry("overlay enabled (default, no providerConfig) → policy disabled",
+				ptr.To("calico"),
+				nil,
+				"1.36.0",
+				nil,
+				map[string]interface{}{"enabled": false},
+			),
+			Entry("overlay disabled, networking type not calico → policy disabled",
+				ptr.To("cilium"),
+				[]byte(`{"overlay":{"enabled":false}}`),
+				"1.36.0",
+				nil,
+				map[string]interface{}{"enabled": false},
+			),
+			Entry("overlay disabled, calico, K8s >= 1.36 → policy enabled with apiVersion v1",
+				ptr.To("calico"),
+				[]byte(`{"overlay":{"enabled":false}}`),
+				"1.36.0",
+				nil,
+				map[string]interface{}{"enabled": true, "apiVersion": "v1"},
+			),
+			Entry("overlay disabled, calico, K8s 1.34, feature gate + runtime config v1beta1 → policy enabled with apiVersion v1beta1",
+				ptr.To("calico"),
+				[]byte(`{"overlay":{"enabled":false}}`),
+				"1.34.0",
+				&gardencorev1beta1.KubeAPIServerConfig{
+					KubernetesConfig: gardencorev1beta1.KubernetesConfig{
+						FeatureGates: map[string]bool{"MutatingAdmissionPolicy": true},
+					},
+					RuntimeConfig: map[string]bool{"admissionregistration.k8s.io/v1beta1": true},
+				},
+				map[string]interface{}{"enabled": true, "apiVersion": "v1beta1"},
+			),
+			Entry("overlay disabled, calico, K8s 1.32, feature gate + runtime config v1alpha1 → policy enabled with apiVersion v1alpha1",
+				ptr.To("calico"),
+				[]byte(`{"overlay":{"enabled":false}}`),
+				"1.32.0",
+				&gardencorev1beta1.KubeAPIServerConfig{
+					KubernetesConfig: gardencorev1beta1.KubernetesConfig{
+						FeatureGates: map[string]bool{"MutatingAdmissionPolicy": true},
+					},
+					RuntimeConfig: map[string]bool{"admissionregistration.k8s.io/v1alpha1": true},
+				},
+				map[string]interface{}{"enabled": true, "apiVersion": "v1alpha1"},
+			),
+			Entry("overlay disabled, calico, K8s 1.34, feature gate missing → policy disabled",
+				ptr.To("calico"),
+				[]byte(`{"overlay":{"enabled":false}}`),
+				"1.34.0",
+				nil,
+				map[string]interface{}{"enabled": false},
+			),
+			Entry("overlay disabled, calico, K8s 1.34, feature gate present but runtime config missing → policy disabled",
+				ptr.To("calico"),
+				[]byte(`{"overlay":{"enabled":false}}`),
+				"1.34.0",
+				&gardencorev1beta1.KubeAPIServerConfig{
+					KubernetesConfig: gardencorev1beta1.KubernetesConfig{
+						FeatureGates: map[string]bool{"MutatingAdmissionPolicy": true},
+					},
+				},
+				map[string]interface{}{"enabled": false},
+			),
+		)
 	})
 })
 

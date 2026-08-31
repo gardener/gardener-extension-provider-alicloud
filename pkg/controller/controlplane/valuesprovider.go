@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	extensionssecretmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
@@ -22,7 +23,10 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	secretutils "github.com/gardener/gardener/pkg/utils/secrets"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
+	versionutils "github.com/gardener/gardener/pkg/utils/version"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	admissionregistrationv1alpha1 "k8s.io/api/admissionregistration/v1alpha1"
+	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -40,6 +44,7 @@ import (
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/config"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/utils/networking"
 )
 
 // Object names
@@ -131,6 +136,17 @@ var controlPlaneShootChart = &chart.Chart{
 			Objects: []*chart.Object{
 				{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
 				{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
+			},
+		},
+		{
+			Name: "calico-mutating-admission-policy",
+			Objects: []*chart.Object{
+				{Type: &admissionregistrationv1alpha1.MutatingAdmissionPolicy{}, Name: "block-calico-network-unavailable"},
+				{Type: &admissionregistrationv1alpha1.MutatingAdmissionPolicyBinding{}, Name: "block-calico-network-unavailable-binding"},
+				{Type: &admissionregistrationv1beta1.MutatingAdmissionPolicy{}, Name: "block-calico-network-unavailable"},
+				{Type: &admissionregistrationv1beta1.MutatingAdmissionPolicyBinding{}, Name: "block-calico-network-unavailable-binding"},
+				// TODO: Add admissionregistrationv1.MutatingAdmissionPolicy and admissionregistrationv1.MutatingAdmissionPolicyBinding
+				// cleanup entries once confirmed working (MutatingAdmissionPolicy graduates to v1 in K8s 1.36).
 			},
 		},
 		{
@@ -253,7 +269,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
-	_ *extensionscontroller.Cluster,
+	cluster *extensionscontroller.Cluster,
 	_ secretsmanager.Reader,
 	_ map[string]string,
 ) (map[string]interface{}, error) {
@@ -269,7 +285,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cpConfig, credentials)
+	return vp.getControlPlaneShootChartValues(cpConfig, credentials, cluster)
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.
@@ -415,8 +431,20 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 func (vp *valuesProvider) getControlPlaneShootChartValues(
 	cpConfig *apisalicloud.ControlPlaneConfig,
 	credentials *alicloud.Credentials,
-
+	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
+	overlayEnabled, err := networking.IsOverlayEnabled(cluster.Shoot.Spec.Networking)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine if overlay is enabled: %w", err)
+	}
+
+	mutatingAdmissionPolicyEnabled := !overlayEnabled && isUsingCalico(cluster) && isMutatingAdmissionPolicyEnabled(cluster)
+
+	calicoMutatingAdmissionPolicyValues := map[string]interface{}{"enabled": mutatingAdmissionPolicyEnabled}
+	if mutatingAdmissionPolicyEnabled {
+		calicoMutatingAdmissionPolicyValues["apiVersion"] = mutatingAdmissionPolicyAPIVersion(cluster)
+	}
+
 	values := map[string]interface{}{
 		"csi-alicloud": map[string]interface{}{
 			"credential": map[string]interface{}{
@@ -424,9 +452,65 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 			},
 			"enableADController": vp.enableCSIADController(cpConfig),
 		},
+		"calico-mutating-admission-policy": calicoMutatingAdmissionPolicyValues,
 	}
 
 	return values, nil
+}
+
+func isUsingCalico(cluster *extensionscontroller.Cluster) bool {
+	return cluster.Shoot.Spec.Networking != nil &&
+		cluster.Shoot.Spec.Networking.Type != nil &&
+		*cluster.Shoot.Spec.Networking.Type == "calico"
+}
+
+func isMutatingAdmissionPolicyEnabled(cluster *extensionscontroller.Cluster) bool {
+	k8sVersion, err := semver.NewVersion(cluster.Shoot.Spec.Kubernetes.Version)
+	if err != nil {
+		return false
+	}
+
+	if versionutils.ConstraintK8sGreaterEqual136.Check(k8sVersion) {
+		return true
+	}
+
+	if cluster.Shoot.Spec.Kubernetes.KubeAPIServer == nil ||
+		cluster.Shoot.Spec.Kubernetes.KubeAPIServer.FeatureGates == nil {
+		return false
+	}
+
+	if enabled, ok := cluster.Shoot.Spec.Kubernetes.KubeAPIServer.FeatureGates["MutatingAdmissionPolicy"]; !ok || !enabled {
+		return false
+	}
+
+	if cluster.Shoot.Spec.Kubernetes.KubeAPIServer.RuntimeConfig == nil {
+		return false
+	}
+
+	rc := cluster.Shoot.Spec.Kubernetes.KubeAPIServer.RuntimeConfig
+
+	if versionutils.ConstraintK8sGreaterEqual134.Check(k8sVersion) {
+		return rc["admissionregistration.k8s.io/v1beta1"]
+	}
+
+	return rc["admissionregistration.k8s.io/v1alpha1"]
+}
+
+func mutatingAdmissionPolicyAPIVersion(cluster *extensionscontroller.Cluster) string {
+	k8sVersion, err := semver.NewVersion(cluster.Shoot.Spec.Kubernetes.Version)
+	if err != nil {
+		return "v1alpha1"
+	}
+
+	if versionutils.ConstraintK8sGreaterEqual136.Check(k8sVersion) {
+		return "v1"
+	}
+
+	if versionutils.ConstraintK8sGreaterEqual134.Check(k8sVersion) {
+		return "v1beta1"
+	}
+
+	return "v1alpha1"
 }
 
 func cleanupSeedLegacyCSISnapshotValidation(
