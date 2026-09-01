@@ -67,7 +67,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddO
 	}
 
 	return controlplane.Add(mgr, controlplane.AddArgs{
-		Actuator:          genericActuator,
+		Actuator:          NewActuator(mgr, genericActuator),
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Type:              alicloud.Type,
