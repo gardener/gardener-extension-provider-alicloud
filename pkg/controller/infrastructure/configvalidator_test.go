@@ -512,6 +512,223 @@ var _ = Describe("ConfigValidator", func() {
 		Expect(errorList).To(BeEmpty())
 	})
 
+	Context("BYO VSwitch", func() {
+		const (
+			vswID0 = "vsw-workers-a"
+			vswID1 = "vsw-workers-b"
+			sgID   = "sg-byo-nodes"
+		)
+
+		BeforeEach(func() {
+			infra.Status.LastOperation = &gardencorev1beta1.LastOperation{Type: gardencorev1beta1.LastOperationTypeCreate}
+			infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+				Networks: apisalicloud.Networks{
+					VPC: apisalicloud.VPC{ID: ptr.To(vpcID)},
+					Zones: []apisalicloud.Zone{
+						{Name: "zone_1", WorkersVSwitchID: ptr.To(vswID0)},
+						{Name: "zone_2", WorkersVSwitchID: ptr.To(vswID1)},
+					},
+				},
+			})
+		})
+
+		It("should succeed with valid BYO VSwitches", func() {
+			actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+			actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+				VSwitchId: vswID0, VpcId: ptr.To(vpcID), ZoneId: "zone_1",
+			}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID1).Return(&aliclient.VSwitch{
+				VSwitchId: vswID1, VpcId: ptr.To(vpcID), ZoneId: "zone_2",
+			}, nil)
+
+			Expect(cv.Validate(ctx, infra)).To(BeEmpty())
+		})
+
+		It("should forbid when VSwitch does not exist", func() {
+			actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+			actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID0).Return(nil, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID1).Return(&aliclient.VSwitch{
+				VSwitchId: vswID1, VpcId: ptr.To(vpcID), ZoneId: "zone_2",
+			}, nil)
+
+			errorList := cv.Validate(ctx, infra)
+			Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":  Equal(field.ErrorTypeNotFound),
+				"Field": Equal("networks.zones[0].workersVSwitchID"),
+			}))))
+		})
+
+		It("should forbid when VSwitch belongs to a different VPC", func() {
+			actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+			actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+				VSwitchId: vswID0, VpcId: ptr.To("vpc-other"), ZoneId: "zone_1",
+			}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID1).Return(&aliclient.VSwitch{
+				VSwitchId: vswID1, VpcId: ptr.To(vpcID), ZoneId: "zone_2",
+			}, nil)
+
+			errorList := cv.Validate(ctx, infra)
+			Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":   Equal(field.ErrorTypeInvalid),
+				"Field":  Equal("networks.zones[0].workersVSwitchID"),
+				"Detail": ContainSubstring("does not belong to VPC"),
+			}))))
+		})
+
+		It("should forbid when VSwitch is in a different zone than zone.name", func() {
+			actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+			actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+				VSwitchId: vswID0, VpcId: ptr.To(vpcID), ZoneId: "zone_99",
+			}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID1).Return(&aliclient.VSwitch{
+				VSwitchId: vswID1, VpcId: ptr.To(vpcID), ZoneId: "zone_2",
+			}, nil)
+
+			errorList := cv.Validate(ctx, infra)
+			Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":   Equal(field.ErrorTypeInvalid),
+				"Field":  Equal("networks.zones[0].workersVSwitchID"),
+				"Detail": ContainSubstring("zone_99"),
+			}))))
+		})
+
+		It("should skip NAT Gateway check in BYO mode", func() {
+			// ListNatGatewaysByVPC must NOT be called
+			actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+			actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+				VSwitchId: vswID0, VpcId: ptr.To(vpcID), ZoneId: "zone_1",
+			}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID1).Return(&aliclient.VSwitch{
+				VSwitchId: vswID1, VpcId: ptr.To(vpcID), ZoneId: "zone_2",
+			}, nil)
+
+			Expect(cv.Validate(ctx, infra)).To(BeEmpty())
+		})
+
+		It("should skip CIDR conflict check in BYO mode", func() {
+			// validateVSwitchCIDRConflict must NOT be triggered for BYO zones
+			actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+			actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{
+				{VSwitchId: "vsw-foreign", Name: "foreign", CidrBlock: "10.0.0.0/8"},
+			}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+				VSwitchId: vswID0, VpcId: ptr.To(vpcID), ZoneId: "zone_1",
+			}, nil)
+			actor.EXPECT().GetVSwitch(ctx, vswID1).Return(&aliclient.VSwitch{
+				VSwitchId: vswID1, VpcId: ptr.To(vpcID), ZoneId: "zone_2",
+			}, nil)
+
+			Expect(cv.Validate(ctx, infra)).To(BeEmpty())
+		})
+
+		Context("BYO VSwitch + nodesSecurityGroupID", func() {
+			BeforeEach(func() {
+				infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC:                  apisalicloud.VPC{ID: ptr.To(vpcID)},
+						NodesSecurityGroupID: ptr.To(sgID),
+						Zones: []apisalicloud.Zone{
+							{Name: "zone_1", WorkersVSwitchID: ptr.To(vswID0)},
+						},
+					},
+				})
+			})
+
+			It("should succeed when security group exists and belongs to VPC", func() {
+				actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+				actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{}, nil)
+				actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+					VSwitchId: vswID0, VpcId: ptr.To(vpcID), ZoneId: "zone_1",
+				}, nil)
+				actor.EXPECT().GetSecurityGroup(ctx, sgID).Return(&aliclient.SecurityGroup{
+					SecurityGroupId: sgID, VpcId: vpcID,
+				}, nil)
+
+				Expect(cv.Validate(ctx, infra)).To(BeEmpty())
+			})
+
+			It("should forbid when security group does not exist", func() {
+				actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+				actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{}, nil)
+				actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+					VSwitchId: vswID0, VpcId: ptr.To(vpcID), ZoneId: "zone_1",
+				}, nil)
+				actor.EXPECT().GetSecurityGroup(ctx, sgID).Return(nil, nil)
+
+				errorList := cv.Validate(ctx, infra)
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeNotFound),
+					"Field": Equal("networks.nodesSecurityGroupID"),
+				}))))
+			})
+
+			It("should forbid when security group belongs to a different VPC", func() {
+				actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+				actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{}, nil)
+				actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+					VSwitchId: vswID0, VpcId: ptr.To(vpcID), ZoneId: "zone_1",
+				}, nil)
+				actor.EXPECT().GetSecurityGroup(ctx, sgID).Return(&aliclient.SecurityGroup{
+					SecurityGroupId: sgID, VpcId: "vpc-other",
+				}, nil)
+
+				errorList := cv.Validate(ctx, infra)
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("networks.nodesSecurityGroupID"),
+					"Detail": ContainSubstring("does not belong to VPC"),
+				}))))
+			})
+		})
+
+		Context("BYO VSwitch + dualStack", func() {
+			BeforeEach(func() {
+				infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{
+					DualStack: &apisalicloud.DualStack{Enabled: true},
+					Networks: apisalicloud.Networks{
+						VPC: apisalicloud.VPC{ID: ptr.To(vpcID)},
+						Zones: []apisalicloud.Zone{
+							{Name: "zone_1", WorkersVSwitchID: ptr.To(vswID0)},
+						},
+					},
+				})
+				// VPC IPv6 check required for dualStack
+				actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{}, nil)
+				actor.EXPECT().FindVSwitchesByVPC(ctx, vpcID).Return([]*aliclient.VSwitch{}, nil)
+				actor.EXPECT().GetVpcIpv6Info(ctx, vpcID).Return("2408:xxxx::/56", nil)
+				actor.EXPECT().FindIpv6GatewayByVPC(ctx, vpcID).Return(&aliclient.IPv6Gateway{Ipv6GatewayId: "ipv6gw-1"}, nil)
+			})
+
+			It("should succeed when VSwitch has IPv6 CIDR configured", func() {
+				actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+					VSwitchId: vswID0, VpcId: ptr.To(vpcID), ZoneId: "zone_1",
+				}, nil)
+				actor.EXPECT().GetVSwitchIpv6CidrBlock(ctx, vswID0).Return("2408:xxxx:0:1::/64", nil)
+
+				Expect(cv.Validate(ctx, infra)).To(BeEmpty())
+			})
+
+			It("should forbid when VSwitch has no IPv6 CIDR", func() {
+				actor.EXPECT().GetVSwitch(ctx, vswID0).Return(&aliclient.VSwitch{
+					VSwitchId: vswID0, VpcId: ptr.To(vpcID), ZoneId: "zone_1",
+				}, nil)
+				actor.EXPECT().GetVSwitchIpv6CidrBlock(ctx, vswID0).Return("", nil)
+
+				errorList := cv.Validate(ctx, infra)
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("networks.zones[0].workersVSwitchID"),
+					"Detail": ContainSubstring("IPv6 CIDR"),
+				}))))
+			})
+		})
+	})
+
 })
 
 func encode(obj runtime.Object) []byte {

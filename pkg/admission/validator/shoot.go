@@ -134,7 +134,11 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 	}
 
 	if !reflect.DeepEqual(oldInfraConfig, infraConfig) {
-		if errList := alicloudvalidation.ValidateInfrastructureConfigUpdate(oldInfraConfig, infraConfig); len(errList) != 0 {
+		goneVSwitches, err := s.computeGoneVSwitches(ctx, shoot, oldInfraConfig, infraConfig)
+		if err != nil {
+			return err
+		}
+		if errList := alicloudvalidation.ValidateInfrastructureConfigUpdate(oldInfraConfig, infraConfig, shoot.Spec.Provider.Workers, goneVSwitches); len(errList) != 0 {
 			return errList.ToAggregate()
 		}
 	}
@@ -191,6 +195,63 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 	}
 
 	return nil
+}
+
+// computeGoneVSwitches calls the Alicloud API to check which old WorkersVSwitchIDs no longer exist,
+// returning their IDs as a set. Only zones where WorkersVSwitchID changed are checked.
+// Returns fail-closed: API errors are surfaced as field.InternalError.
+func (s *shoot) computeGoneVSwitches(ctx context.Context, shoot *core.Shoot, oldConfig, newConfig *alicloud.InfrastructureConfig) ([]string, error) {
+	var gone []string
+	zonesPath := infraConfigFldPath.Child("networks", "zones")
+
+	// Zones are append-only (ValidateNetworkZonesConfig forbids removal), so oldConfig and newConfig
+	// zones share the same indices — iterating oldConfig and accessing newConfig[i] is safe.
+	type vswCheck struct {
+		zoneIdx      int
+		oldVSwitchID string
+	}
+	var checks []vswCheck
+	for i := range oldConfig.Networks.Zones {
+		if i >= len(newConfig.Networks.Zones) {
+			break
+		}
+		oldZone, newZone := oldConfig.Networks.Zones[i], newConfig.Networks.Zones[i]
+		if oldZone.WorkersVSwitchID == nil || newZone.WorkersVSwitchID == nil {
+			continue
+		}
+		if *oldZone.WorkersVSwitchID == *newZone.WorkersVSwitchID {
+			continue
+		}
+		checks = append(checks, vswCheck{i, *oldZone.WorkersVSwitchID})
+	}
+	if len(checks) == 0 {
+		return gone, nil
+	}
+
+	credentials, err := s.getCredentials(ctx, shoot)
+	if err != nil {
+		return nil, field.InternalError(infraConfigFldPath,
+			fmt.Errorf("could not get credentials for BYO VSwitch check: %w", err))
+	}
+	actor, err := s.newActorFn(credentials.AccessKeyID, credentials.AccessKeySecret, shoot.Spec.Region)
+	if err != nil {
+		return nil, field.InternalError(infraConfigFldPath,
+			fmt.Errorf("could not create Alicloud actor for BYO VSwitch check: %w", err))
+	}
+
+	for _, c := range checks {
+		vsw, err := actor.GetVSwitch(ctx, c.oldVSwitchID)
+		if err != nil {
+			return nil, field.InternalError(
+				zonesPath.Index(c.zoneIdx).Child("workersVSwitchID"),
+				fmt.Errorf("GetVSwitch %s failed: %w", c.oldVSwitchID, err))
+		}
+		if vsw == nil {
+			gone = append(gone, c.oldVSwitchID)
+		}
+	}
+
+	return gone, nil
 }
 
 // validateVSwitchCIDRConflict queries all existing vswitches in the given VPC and checks whether

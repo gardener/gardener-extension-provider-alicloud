@@ -512,7 +512,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 	Describe("#ValidateInfrastructureConfigUpdate", func() {
 		It("should return no errors for an unchanged config", func() {
-			Expect(ValidateInfrastructureConfigUpdate(infrastructureConfig, infrastructureConfig)).To(BeEmpty())
+			Expect(ValidateInfrastructureConfigUpdate(infrastructureConfig, infrastructureConfig, nil, nil)).To(BeEmpty())
 		})
 
 		It("should return no errors for migrate zone worker to workers", func() {
@@ -520,7 +520,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			tmpvalue := oldInfrastructureConfig.Networks.Zones[0].Worker
 			oldInfrastructureConfig.Networks.Zones[0].Worker = oldInfrastructureConfig.Networks.Zones[0].Workers
 			oldInfrastructureConfig.Networks.Zones[0].Workers = tmpvalue
-			Expect(ValidateInfrastructureConfigUpdate(oldInfrastructureConfig, infrastructureConfig)).To(BeEmpty())
+			Expect(ValidateInfrastructureConfigUpdate(oldInfrastructureConfig, infrastructureConfig, nil, nil)).To(BeEmpty())
 		})
 
 		It("should forbid changing the VPC section", func() {
@@ -528,7 +528,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			newCIDR := "1.2.3.4/5"
 			newInfrastructureConfig.Networks.VPC.CIDR = &newCIDR
 
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, nil, nil)
 
 			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
 				"Type":  Equal(field.ErrorTypeInvalid),
@@ -540,7 +540,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			newInfrastructureConfig := infrastructureConfig.DeepCopy()
 			newInfrastructureConfig.Networks.Zones[0].Workers = "10.225.3.0/24"
 
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, nil, nil)
 
 			Expect(errorList).To(HaveLen(1))
 			Expect(errorList).To(ConsistOfFields(Fields{
@@ -552,7 +552,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 		It("should forbid removing zone in zones section", func() {
 			newInfrastructureConfig := infrastructureConfig.DeepCopy()
 			newInfrastructureConfig.Networks.Zones = newInfrastructureConfig.Networks.Zones[1:]
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, nil, nil)
 
 			Expect(errorList).To(HaveLen(1))
 			Expect(errorList).To(ConsistOfFields(Fields{
@@ -567,7 +567,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				Name:    "zone3",
 				Workers: "10.250.4.0/24",
 			})
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, nil, nil)
 
 			Expect(errorList).To(BeEmpty())
 		})
@@ -578,7 +578,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			newInfrastructureConfig.Networks.Zones[0].NatGateway = &apisalicloud.NatGatewayConfig{
 				EIPAllocationID: &ipAllocID,
 			}
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, nil, nil)
 
 			Expect(errorList).To(BeEmpty())
 		})
@@ -591,7 +591,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(BeEmpty())
 			})
@@ -603,7 +603,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(BeEmpty())
 			})
@@ -615,7 +615,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.DualStack = &apisalicloud.DualStack{Enabled: false}
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":  Equal(field.ErrorTypeForbidden),
@@ -630,7 +630,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.DualStack = nil
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":  Equal(field.ErrorTypeForbidden),
@@ -645,7 +645,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				cidr := 5
 				newConfig.Networks.Zones[0].Ipv6CidrBlock = &cidr
 
-				errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(BeEmpty())
 			})
@@ -659,7 +659,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				cidrNew := 2
 				newConfig.Networks.Zones[0].Ipv6CidrBlock = &cidrNew
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(BeEmpty())
 			})
@@ -672,7 +672,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.Networks.Zones[0].Ipv6CidrBlock = nil
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":   Equal(field.ErrorTypeInvalid),
@@ -692,7 +692,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(true)
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":   Equal(field.ErrorTypeForbidden),
@@ -708,7 +708,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(true)
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":   Equal(field.ErrorTypeForbidden),
@@ -724,7 +724,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(false)
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":   Equal(field.ErrorTypeForbidden),
@@ -740,7 +740,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.Networks.VPC.UseCustomRouteTable = nil
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
 				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":   Equal(field.ErrorTypeForbidden),
@@ -756,8 +756,385 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				newConfig := oldConfig.DeepCopy()
 				newConfig.Networks.VPC.UseCustomRouteTable = ptr.To(false)
 
-				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig)
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
 
+				Expect(errorList).To(BeEmpty())
+			})
+		})
+	})
+
+	Describe("BYO (Bring Your Own Infrastructure)", func() {
+		var vpcID = "vpc-byo12345"
+
+		Context("#ValidateInfrastructureConfig — BYO VSwitch", func() {
+			var byoConfig *apisalicloud.InfrastructureConfig
+
+			BeforeEach(func() {
+				vswID0 := "vsw-aaa"
+				vswID1 := "vsw-bbb"
+				byoConfig = &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC: apisalicloud.VPC{ID: &vpcID},
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", WorkersVSwitchID: &vswID0},
+							{Name: "zone2", WorkersVSwitchID: &vswID1},
+						},
+					},
+				}
+			})
+
+			It("should allow valid BYO VSwitch config", func() {
+				errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should allow BYO VSwitch with nodesSecurityGroupID", func() {
+				sgID := "sg-abc"
+				byoConfig.Networks.NodesSecurityGroupID = &sgID
+				errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should require vpc.id when workersVSwitchID is set", func() {
+				byoConfig.Networks.VPC = apisalicloud.VPC{CIDR: &vpc}
+
+				errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("networks.vpc.id"),
+				}))))
+			})
+
+			It("should forbid gardenerManagedNATGateway when workersVSwitchID is set", func() {
+				byoConfig.Networks.VPC.GardenerManagedNATGateway = ptr.To(true)
+
+				errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("networks.vpc.gardenerManagedNATGateway"),
+				}))))
+			})
+
+			It("should forbid useCustomRouteTable when workersVSwitchID is set", func() {
+				byoConfig.Networks.VPC.UseCustomRouteTable = ptr.To(true)
+
+				errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("networks.vpc.useCustomRouteTable"),
+				}))))
+			})
+
+			It("should forbid natGateway on a BYO zone", func() {
+				eipID := "eip-abc"
+				byoConfig.Networks.Zones[0].NatGateway = &apisalicloud.NatGatewayConfig{EIPAllocationID: &eipID}
+
+				errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("networks.zones[0].natGateway"),
+				}))))
+			})
+
+			It("should forbid mixing BYO and CIDR zones", func() {
+				byoConfig.Networks.Zones[1].WorkersVSwitchID = nil
+				byoConfig.Networks.Zones[1].Workers = "10.250.4.0/24"
+
+				errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("networks.zones"),
+				}))))
+			})
+
+			It("should forbid setting both workers CIDR and workersVSwitchID on same zone", func() {
+				byoConfig.Networks.Zones[0].Workers = "10.250.3.0/24"
+
+				errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("networks.zones[0]"),
+				}))))
+			})
+
+			It("should forbid zone with neither workers CIDR nor workersVSwitchID", func() {
+				byoConfig.Networks.Zones[0].WorkersVSwitchID = nil
+
+				errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("networks.zones[0]"),
+				}))))
+			})
+
+			Context("dualStack + BYO VSwitch", func() {
+				It("should allow omitting ipv6CidrBlock for BYO zones (user pre-configures IPv6 on VSwitch)", func() {
+					byoConfig.DualStack = &apisalicloud.DualStack{Enabled: true}
+					// no Ipv6CidrBlock set — should be optional for BYO zones
+
+					errorList := ValidateInfrastructureConfig(byoConfig, &networking, "cn-hangzhou")
+
+					Expect(errorList).NotTo(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":  Equal(field.ErrorTypeRequired),
+						"Field": ContainSubstring("ipv6CidrBlock"),
+					}))))
+				})
+			})
+		})
+
+		Context("#ValidateInfrastructureConfig — nodesSecurityGroupID", func() {
+			It("should allow nodesSecurityGroupID with vpc.id", func() {
+				sgID := "sg-abc"
+				config := &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC:                  apisalicloud.VPC{ID: &vpcID},
+						NodesSecurityGroupID: &sgID,
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", Workers: "10.250.3.0/24"},
+						},
+					},
+				}
+				errorList := ValidateInfrastructureConfig(config, &networking, "cn-hangzhou")
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should require vpc.id when nodesSecurityGroupID is set", func() {
+				sgID := "sg-abc"
+				config := &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC:                  apisalicloud.VPC{CIDR: &vpc},
+						NodesSecurityGroupID: &sgID,
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", Workers: "10.250.3.0/24"},
+						},
+					},
+				}
+				errorList := ValidateInfrastructureConfig(config, &networking, "cn-hangzhou")
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("networks.vpc.id"),
+				}))))
+			})
+		})
+
+		Context("#ValidateInfrastructureConfigUpdate — BYO immutability", func() {
+			It("should forbid changing workersVSwitchID when zone is referenced by a worker pool", func() {
+				vswID := "vsw-aaa"
+				vswIDNew := "vsw-bbb"
+				oldConfig := &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC: apisalicloud.VPC{ID: &vpcID},
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", WorkersVSwitchID: &vswID},
+						},
+					},
+				}
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.Zones[0].WorkersVSwitchID = &vswIDNew
+				workers := []core.Worker{{Zones: []string{"zone1"}}}
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, workers, nil)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("networks.zones[0].workersVSwitchID"),
+				}))))
+			})
+
+			It("should forbid switching from CIDR to workersVSwitchID", func() {
+				vswID := "vsw-aaa"
+				oldConfig := infrastructureConfig.DeepCopy()
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.Zones[0].Workers = ""
+				newConfig.Networks.Zones[0].WorkersVSwitchID = &vswID
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("networks.zones[0]"),
+				}))))
+			})
+
+			It("should forbid switching from workersVSwitchID to CIDR", func() {
+				vswID := "vsw-aaa"
+				oldConfig := &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC: apisalicloud.VPC{ID: &vpcID},
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", WorkersVSwitchID: &vswID},
+						},
+					},
+				}
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.Zones[0].WorkersVSwitchID = nil
+				newConfig.Networks.Zones[0].Workers = "10.250.3.0/24"
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("networks.zones[0]"),
+				}))))
+			})
+
+			It("should allow workersVSwitchID unchanged", func() {
+				vswID := "vsw-aaa"
+				config := &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC: apisalicloud.VPC{ID: &vpcID},
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", WorkersVSwitchID: &vswID},
+						},
+					},
+				}
+				errorList := ValidateInfrastructureConfigUpdate(config, config.DeepCopy(), nil, nil)
+				Expect(errorList).To(BeEmpty())
+			})
+
+			// condition 1: zone not referenced by any worker pool → allow change without API call
+			It("should allow changing workersVSwitchID when zone is not referenced by any worker pool", func() {
+				vswID := "vsw-aaa"
+				vswIDNew := "vsw-bbb"
+				oldConfig := &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC: apisalicloud.VPC{ID: &vpcID},
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", WorkersVSwitchID: &vswID},
+						},
+					},
+				}
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.Zones[0].WorkersVSwitchID = &vswIDNew
+				// workers slice exists but none references zone1
+				workers := []core.Worker{{Zones: []string{"zone2"}}}
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, workers, nil)
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should allow changing workersVSwitchID when zone is not in any worker pool (nil workers)", func() {
+				vswID := "vsw-aaa"
+				vswIDNew := "vsw-bbb"
+				oldConfig := &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC: apisalicloud.VPC{ID: &vpcID},
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", WorkersVSwitchID: &vswID},
+						},
+					},
+				}
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.Zones[0].WorkersVSwitchID = &vswIDNew
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
+				Expect(errorList).To(BeEmpty())
+			})
+
+			// condition 2: old VSwitch confirmed absent → allow change even when zone has active workers
+			It("should allow changing workersVSwitchID when old VSwitch is in goneVSwitches", func() {
+				vswID := "vsw-deleted"
+				vswIDNew := "vsw-new"
+				oldConfig := &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC: apisalicloud.VPC{ID: &vpcID},
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", WorkersVSwitchID: &vswID},
+						},
+					},
+				}
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.Zones[0].WorkersVSwitchID = &vswIDNew
+				workers := []core.Worker{{Zones: []string{"zone1"}}}
+				goneVSwitches := []string{"vsw-deleted"}
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, workers, goneVSwitches)
+				Expect(errorList).To(BeEmpty())
+			})
+
+			// mixed zones: one zone's VSwitch change allowed (condition 2), another rejected
+			It("should enforce per-zone immutability independently in multi-zone config", func() {
+				vswA := "vsw-deleted"
+				vswANew := "vsw-new"
+				vswB := "vsw-still-exists"
+				vswBNew := "vsw-other"
+				oldConfig := &apisalicloud.InfrastructureConfig{
+					Networks: apisalicloud.Networks{
+						VPC: apisalicloud.VPC{ID: &vpcID},
+						Zones: []apisalicloud.Zone{
+							{Name: "zone1", WorkersVSwitchID: &vswA},
+							{Name: "zone2", WorkersVSwitchID: &vswB},
+						},
+					},
+				}
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.Zones[0].WorkersVSwitchID = &vswANew
+				newConfig.Networks.Zones[1].WorkersVSwitchID = &vswBNew
+				workers := []core.Worker{{Zones: []string{"zone1", "zone2"}}}
+				// only zone1's old VSwitch is gone
+				goneVSwitches := []string{"vsw-deleted"}
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, workers, goneVSwitches)
+				// zone1 allowed (condition 2), zone2 rejected (both conditions fail)
+				Expect(errorList).To(HaveLen(1))
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("networks.zones[1].workersVSwitchID"),
+				}))))
+			})
+
+			It("should forbid changing nodesSecurityGroupID", func() {
+				sgID := "sg-old"
+				sgIDNew := "sg-new"
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.NodesSecurityGroupID = &sgID
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.NodesSecurityGroupID = &sgIDNew
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("networks.nodesSecurityGroupID"),
+				}))))
+			})
+
+			It("should forbid removing nodesSecurityGroupID once set", func() {
+				sgID := "sg-abc"
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.NodesSecurityGroupID = &sgID
+				newConfig := oldConfig.DeepCopy()
+				newConfig.Networks.NodesSecurityGroupID = nil
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("networks.nodesSecurityGroupID"),
+				}))))
+			})
+
+			It("should allow nodesSecurityGroupID unchanged", func() {
+				sgID := "sg-abc"
+				oldConfig := infrastructureConfig.DeepCopy()
+				oldConfig.Networks.NodesSecurityGroupID = &sgID
+				newConfig := oldConfig.DeepCopy()
+
+				errorList := ValidateInfrastructureConfigUpdate(oldConfig, newConfig, nil, nil)
+
+				Expect(errorList).To(BeEmpty())
+			})
+
+			It("should allow nodesSecurityGroupID nil -> nil", func() {
+				errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, infrastructureConfig.DeepCopy(), nil, nil)
 				Expect(errorList).To(BeEmpty())
 			})
 		})
