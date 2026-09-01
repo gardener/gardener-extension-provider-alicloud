@@ -21,7 +21,7 @@ images:
 - name: csi-attacher
   sourceRepository: https://github.com/kubernetes-csi/external-attacher
   repository: registry.k8s.io/sig-storage/csi-attacher
-  tag: v4.10.0
+  tag: v4.12.0
   labels:
   - name: 'gardener.cloud/cve-categorisation'
     value:
@@ -34,7 +34,7 @@ images:
 - name: csi-node-driver-registrar
   sourceRepository: https://github.com/kubernetes-csi/node-driver-registrar
   repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
-  tag: v2.15.0
+  tag: v2.17.0
   labels:
   - name: 'gardener.cloud/cve-categorisation'
     value:
@@ -60,7 +60,7 @@ images:
 - name: csi-snapshotter
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
   repository: registry.k8s.io/sig-storage/csi-snapshotter
-  tag: v8.4.0
+  tag: v8.6.0
   labels:
   - name: 'gardener.cloud/cve-categorisation'
     value:
@@ -73,7 +73,7 @@ images:
 - name: csi-snapshot-controller
   sourceRepository: github.com/kubernetes-csi/external-snapshotter
   repository: registry.k8s.io/sig-storage/snapshot-controller
-  tag: v8.4.0
+  tag: v8.6.0
   labels:
   - name: 'gardener.cloud/cve-categorisation'
     value:
@@ -99,7 +99,7 @@ images:
 - name: csi-plugin-alicloud
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
-  tag: v1.34.3
+  tag: v1.36.2
   labels:
   - name: 'cloud.gardener.cnudie/responsibles'
     value:
@@ -110,11 +110,11 @@ images:
 - name: csi-plugin-alicloud-init
   sourceRepository: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver
   repository: registry.eu-central-1.aliyuncs.com/acs/csi-plugin
-  tag: v1.34.3-init
+  tag: v1.36.2-init
 - name: csi-liveness-probe
   sourceRepository: github.com/kubernetes-csi/livenessprobe
   repository: registry.k8s.io/sig-storage/livenessprobe
-  tag: v2.17.0
+  tag: v2.19.0
   labels:
   - name: 'gardener.cloud/cve-categorisation'
     value:
