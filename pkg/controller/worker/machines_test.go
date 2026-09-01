@@ -1181,6 +1181,44 @@ var _ = Describe("Machines", func() {
 				Expect(result[1].ClusterAutoscalerAnnotations[extensionsv1alpha1.ScaleDownUnreadyTimeAnnotation]).To(Equal("3m0s"))
 				Expect(result[1].ClusterAutoscalerAnnotations[extensionsv1alpha1.ScaleDownUtilizationThresholdAnnotation]).To(Equal("0.6"))
 			})
+
+			It("should distribute autoPreserveFailedMachineMax across zones", func() {
+				w.Spec.Pools[0].MachineControllerManagerSettings = &gardencorev1beta1.MachineControllerManagerSettings{
+					AutoPreserveFailedMachineMax: new(int32(4)),
+				}
+				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
+
+				result, err := workerDelegate.GenerateMachineDeployments(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).NotTo(BeNil())
+				Expect(result[0].AutoPreserveFailedMachineMax).To(Equal(int32(2)))
+				Expect(result[1].AutoPreserveFailedMachineMax).To(Equal(int32(2)))
+			})
+
+			It("should set autoPreserveFailedMachineMax to 0 per zone when machineControllerManagerSettings is nil", func() {
+				w.Spec.Pools[0].MachineControllerManagerSettings = nil
+				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
+
+				result, err := workerDelegate.GenerateMachineDeployments(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).NotTo(BeNil())
+				Expect(result[0].AutoPreserveFailedMachineMax).To(Equal(int32(0)))
+				Expect(result[1].AutoPreserveFailedMachineMax).To(Equal(int32(0)))
+			})
+
+			It("should set autoPreserveFailedMachineMax to 0 per zone when autoPreserveFailedMachineMax is nil", func() {
+				w.Spec.Pools[0].MachineControllerManagerSettings = &gardencorev1beta1.MachineControllerManagerSettings{
+					AutoPreserveFailedMachineMax: nil,
+				}
+				workerDelegate, _ = NewWorkerDelegate(c, decoder, scheme, chartApplier, "", w, cluster)
+
+				result, err := workerDelegate.GenerateMachineDeployments(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).NotTo(BeNil())
+				Expect(result[0].AutoPreserveFailedMachineMax).To(Equal(int32(0)))
+				Expect(result[1].AutoPreserveFailedMachineMax).To(Equal(int32(0)))
+			})
+
 		},
 			Entry("with capabilities", true),
 			Entry("without capabilities", false),
