@@ -195,6 +195,18 @@ ControlPlaneConfig contains configuration settings for the control plane.
 <p>CSI is the config for CSI plugin components.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>storage</code></br>
+<em>
+<a href="#storage">Storage</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Storage contains configuration for the default StorageClass and VolumeSnapshotClass.</p>
+</td>
+</tr>
 
 </tbody>
 </table>
@@ -836,6 +848,56 @@ string
 </td>
 <td>
 <p>ID is the id of the security group.</p>
+</td>
+</tr>
+
+</tbody>
+</table>
+
+
+<h3 id="storage">Storage
+</h3>
+
+
+<p>
+(<em>Appears on:</em><a href="#controlplaneconfig">ControlPlaneConfig</a>)
+</p>
+
+<p>
+Storage contains configuration for the default StorageClass and VolumeSnapshotClass.
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+<td>
+<code>managedDefaultStorageClass</code></br>
+<em>
+boolean
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ManagedDefaultStorageClass controls if the 'default' StorageClass is marked as default.<br />Defaults to true.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>managedDefaultVolumeSnapshotClass</code></br>
+<em>
+boolean
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ManagedDefaultVolumeSnapshotClass controls if the 'default' VolumeSnapshotClass is marked as default.<br />Defaults to true.</p>
 </td>
 </tr>
 
