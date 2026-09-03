@@ -19,6 +19,10 @@ type ControlPlaneConfig struct {
 
 	// CSI is the config for CSI plugin components.
 	CSI *CSI
+
+	// Storage contains configuration for the default StorageClass and VolumeSnapshotClass.
+	// +optional
+	Storage *Storage
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
@@ -31,4 +35,14 @@ type CloudControllerManagerConfig struct {
 type CSI struct {
 	// EnableADController enables disks to be attached/detached from controller server of CSI Plugin.
 	EnableADController *bool
+}
+
+// Storage contains configuration for the default StorageClass and VolumeSnapshotClass.
+type Storage struct {
+	// ManagedDefaultStorageClass controls if the 'default' StorageClass is marked as default.
+	// Defaults to true.
+	ManagedDefaultStorageClass *bool
+	// ManagedDefaultVolumeSnapshotClass controls if the 'default' VolumeSnapshotClass is marked as default.
+	// Defaults to true.
+	ManagedDefaultVolumeSnapshotClass *bool
 }

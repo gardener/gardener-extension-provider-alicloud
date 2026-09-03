@@ -429,6 +429,35 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 	return values, nil
 }
 
+// GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
+func (vp *valuesProvider) GetStorageClassesChartValues(
+	_ context.Context,
+	cp *extensionsv1alpha1.ControlPlane,
+	_ *extensionscontroller.Cluster,
+) (map[string]interface{}, error) {
+	managedDefaultStorageClass := true
+	managedDefaultVolumeSnapshotClass := true
+
+	if cp.Spec.ProviderConfig != nil {
+		cpConfig := &apisalicloud.ControlPlaneConfig{}
+		if _, _, err := vp.decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
+			return nil, fmt.Errorf("could not decode providerConfig of controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
+		}
+
+		if cpConfig.Storage != nil && cpConfig.Storage.ManagedDefaultStorageClass != nil {
+			managedDefaultStorageClass = *cpConfig.Storage.ManagedDefaultStorageClass
+		}
+		if cpConfig.Storage != nil && cpConfig.Storage.ManagedDefaultVolumeSnapshotClass != nil {
+			managedDefaultVolumeSnapshotClass = *cpConfig.Storage.ManagedDefaultVolumeSnapshotClass
+		}
+	}
+
+	return map[string]interface{}{
+		"managedDefaultStorageClass":        managedDefaultStorageClass,
+		"managedDefaultVolumeSnapshotClass": managedDefaultVolumeSnapshotClass,
+	}, nil
+}
+
 func cleanupSeedLegacyCSISnapshotValidation(
 	ctx context.Context,
 	client client.Client,

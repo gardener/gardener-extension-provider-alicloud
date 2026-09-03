@@ -290,6 +290,82 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(values).To(Equal(controlPlaneShootChartValues))
 		})
 	})
+
+	Describe("#GetStorageClassesChartValues", func() {
+		It("should return defaults when Storage is not set", func() {
+			values, err := vp.GetStorageClassesChartValues(context.TODO(), cp, cluster)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(Equal(map[string]interface{}{
+				"managedDefaultStorageClass":        true,
+				"managedDefaultVolumeSnapshotClass": true,
+			}))
+		})
+
+		It("should return false for managedDefaultStorageClass when set to false", func() {
+			cpWithStorage := cp.DeepCopy()
+			cpWithStorage.Spec.ProviderConfig = &runtime.RawExtension{
+				Raw: encode(&apisalicloud.ControlPlaneConfig{
+					Storage: &apisalicloud.Storage{
+						ManagedDefaultStorageClass:        ptr.To(false),
+						ManagedDefaultVolumeSnapshotClass: ptr.To(true),
+					},
+				}),
+			}
+			values, err := vp.GetStorageClassesChartValues(context.TODO(), cpWithStorage, cluster)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(Equal(map[string]interface{}{
+				"managedDefaultStorageClass":        false,
+				"managedDefaultVolumeSnapshotClass": true,
+			}))
+		})
+
+		It("should return false for managedDefaultVolumeSnapshotClass when set to false", func() {
+			cpWithStorage := cp.DeepCopy()
+			cpWithStorage.Spec.ProviderConfig = &runtime.RawExtension{
+				Raw: encode(&apisalicloud.ControlPlaneConfig{
+					Storage: &apisalicloud.Storage{
+						ManagedDefaultStorageClass:        ptr.To(true),
+						ManagedDefaultVolumeSnapshotClass: ptr.To(false),
+					},
+				}),
+			}
+			values, err := vp.GetStorageClassesChartValues(context.TODO(), cpWithStorage, cluster)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(Equal(map[string]interface{}{
+				"managedDefaultStorageClass":        true,
+				"managedDefaultVolumeSnapshotClass": false,
+			}))
+		})
+
+		It("should return false for both when both set to false", func() {
+			cpWithStorage := cp.DeepCopy()
+			cpWithStorage.Spec.ProviderConfig = &runtime.RawExtension{
+				Raw: encode(&apisalicloud.ControlPlaneConfig{
+					Storage: &apisalicloud.Storage{
+						ManagedDefaultStorageClass:        ptr.To(false),
+						ManagedDefaultVolumeSnapshotClass: ptr.To(false),
+					},
+				}),
+			}
+			values, err := vp.GetStorageClassesChartValues(context.TODO(), cpWithStorage, cluster)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(Equal(map[string]interface{}{
+				"managedDefaultStorageClass":        false,
+				"managedDefaultVolumeSnapshotClass": false,
+			}))
+		})
+
+		It("should return defaults when providerConfig is nil", func() {
+			cpNilConfig := cp.DeepCopy()
+			cpNilConfig.Spec.ProviderConfig = nil
+			values, err := vp.GetStorageClassesChartValues(context.TODO(), cpNilConfig, cluster)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(Equal(map[string]interface{}{
+				"managedDefaultStorageClass":        true,
+				"managedDefaultVolumeSnapshotClass": true,
+			}))
+		})
+	})
 })
 
 func encode(obj runtime.Object) []byte {
