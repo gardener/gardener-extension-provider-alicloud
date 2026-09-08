@@ -407,13 +407,44 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 		return err
 	}
 	if current == nil {
-		if stored_ngwId == nil {
-			ngw_in_vsw_list, err := c.actor.ListNatGatewaysByVSwitchInVPC(ctx, *vpcId, desired.AvailableVSwitches)
-			if err != nil {
-				return err
+		ngwList, err := c.actor.ListNatGatewaysByVSwitchInVPC(ctx, *vpcId, desired.AvailableVSwitches)
+		if err != nil {
+			return err
+		}
+		if stored_ngwId != nil {
+			for _, ngw := range ngwList {
+				if ngw.NatGatewayId == *stored_ngwId {
+					current = ngw
+					break
+				}
 			}
-			if len(ngw_in_vsw_list) > 0 {
-				current = ngw_in_vsw_list[0]
+			if current == nil {
+				if len(ngwList) == 0 {
+					return fmt.Errorf("recorded NatGateway %s not found via ID, tags, or VSwitch lookup; "+
+						"if manually deleted, clear IdentifierNatGateway from state to allow recreation", *stored_ngwId)
+				}
+				selected, err := c.selectNatGatewayByRouteTable(ctx, *vpcId, ngwList)
+				if err != nil {
+					return err
+				}
+				log.Info("recorded NatGateway not found, adopting via route table cross-validation",
+					"recorded", *stored_ngwId, "adopted", selected.NatGatewayId)
+				current = selected
+			}
+		} else {
+			switch len(ngwList) {
+			case 0:
+				// no candidates, proceed to creation below
+			case 1:
+				current = ngwList[0]
+			default:
+				selected, err := c.selectNatGatewayByRouteTable(ctx, *vpcId, ngwList)
+				if err != nil {
+					return err
+				}
+				log.Info("multiple NatGateways found in VSwitch, adopting via route table cross-validation",
+					"count", len(ngwList), "adopted", selected.NatGatewayId)
+				current = selected
 			}
 		}
 	}
@@ -496,16 +527,45 @@ func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
 }
 
 // ensureRouteTable dispatches to the appropriate route table handler based on shoot config.
-// For Gardener-managed VPCs without a custom route table, nothing to do — CCM auto-discovery works
-// because Gardener controls the VPC and there is always exactly one route table.
 func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
 	if !c.useCustomRouteTable() {
 		if c.config.Networks.VPC.ID == nil {
-			return nil
+			return c.ensureSystemRouteTableForManagedVPC(ctx)
 		}
 		return c.ensureSystemRouteTableForUserVPC(ctx)
 	}
 	return c.ensureCustomRouteTable(ctx)
+}
+
+// ensureSystemRouteTableForManagedVPC actively ensures the VPC system route table has a
+// 0.0.0.0/0 → NatGateway entry. Gardener owns this VPC so it is safe to write the route.
+// The route table ID is not persisted to state to avoid injecting it into CCM config —
+// CCM auto-discovers the route table in Gardener-managed VPCs where there is always exactly one.
+func (c *FlowContext) ensureSystemRouteTableForManagedVPC(ctx context.Context) error {
+	vpcId := c.state.Get(IdentifierVPC)
+	natGwId := c.state.Get(IdentifierNatGateway)
+	if vpcId == nil || natGwId == nil {
+		return fmt.Errorf("VPC or NatGateway not ready for route table")
+	}
+	tables, err := c.actor.ListRouteTablesByVPC(ctx, *vpcId)
+	if err != nil {
+		return fmt.Errorf("failed to list route tables for VPC %s: %w", *vpcId, err)
+	}
+	var systemRTID string
+	for _, rt := range tables {
+		if rt.RouteTableType == "System" {
+			systemRTID = rt.RouteTableId
+			break
+		}
+	}
+	if systemRTID == "" {
+		return fmt.Errorf("no system route table found in VPC %s", *vpcId)
+	}
+	return c.ensureRouteEntry(ctx, systemRTID, &aliclient.RouteEntry{
+		DestinationCidrBlock: "0.0.0.0/0",
+		NextHopType:          "NatGateway",
+		NextHopId:            *natGwId,
+	})
 }
 
 // ensureSystemRouteTableForUserVPC stores the VPC system route table ID in state so it can be
@@ -534,16 +594,41 @@ func (c *FlowContext) ensureSystemRouteTableForUserVPC(ctx context.Context) erro
 		if *stored != systemRTID {
 			return fmt.Errorf("stored route table ID %s does not match VPC system route table %s", *stored, systemRTID)
 		}
-		return nil
+	} else {
+		if systemRTID == "" {
+			return nil
+		}
+		log.Info("stored default route table", "routeTableID", systemRTID)
+		c.state.Set(IdentifierRouteTable, systemRTID)
+		if err := c.PersistState(ctx, true); err != nil {
+			return err
+		}
 	}
 
-	if systemRTID == "" {
-		return nil
+	// When Gardener manages the NAT Gateway in a user-provided VPC, the system route table's
+	// 0.0.0.0/0 entry must point to Gardener's NAT Gateway. Gardener does not own this route
+	// table, so it only validates — it never adds or modifies route entries.
+	if c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway {
+		natGwId := c.state.Get(IdentifierNatGateway)
+		if natGwId == nil {
+			return fmt.Errorf("IdentifierNatGateway is nil")
+		}
+		entry, err := c.actor.FindRouteEntryByDest(ctx, systemRTID, "0.0.0.0/0")
+		if err != nil {
+			return fmt.Errorf("failed to check default route in system route table %s: %w", systemRTID, err)
+		}
+		if entry == nil {
+			log.Info("WARNING: system route table has no 0.0.0.0/0 default route; "+
+				"please manually add a route entry with destination 0.0.0.0/0 pointing to NatGateway "+*natGwId,
+				"routeTableID", systemRTID, "natGatewayID", *natGwId)
+		} else if entry.NextHopId != *natGwId {
+			log.Info("WARNING: system route table has a conflicting 0.0.0.0/0 route; "+
+				"please manually update the route to point to NatGateway "+*natGwId,
+				"routeTableID", systemRTID, "currentNextHop", entry.NextHopId, "expectedNextHop", *natGwId)
+		}
 	}
 
-	log.Info("stored default route table", "routeTableID", systemRTID)
-	c.state.Set(IdentifierRouteTable, systemRTID)
-	return c.PersistState(ctx, true)
+	return nil
 }
 
 func (c *FlowContext) ensureCustomRouteTable(ctx context.Context) error {
@@ -645,4 +730,46 @@ func isAlreadyAssociatedError(err error) bool {
 	return strings.Contains(errMsg, "bindError") ||
 		strings.Contains(errMsg, "IncorrectRouteTableStatus") ||
 		strings.Contains(errMsg, "AlreadyAssociated")
+}
+
+// selectNatGatewayByRouteTable picks the correct NAT Gateway from a list of candidates by
+// cross-referencing the VPC system route table's 0.0.0.0/0 entry. Used when multiple NAT
+// Gateways are found and the stored ID is absent or no longer matches any of them.
+// When UseCustomRouteTable=true the first candidate is returned directly, because
+// ensureCustomRouteTable will fix the route entry regardless.
+func (c *FlowContext) selectNatGatewayByRouteTable(ctx context.Context, vpcId string, candidates []*aliclient.NatGateway) (*aliclient.NatGateway, error) {
+	if c.useCustomRouteTable() {
+		return candidates[0], nil
+	}
+	tables, err := c.actor.ListRouteTablesByVPC(ctx, vpcId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list route tables for VPC %s: %w", vpcId, err)
+	}
+	var systemRTID string
+	for _, rt := range tables {
+		if rt.RouteTableType == "System" {
+			systemRTID = rt.RouteTableId
+			break
+		}
+	}
+	if systemRTID == "" {
+		return nil, fmt.Errorf("no system route table found in VPC %s", vpcId)
+	}
+	entry, err := c.actor.FindRouteEntryByDest(ctx, systemRTID, "0.0.0.0/0")
+	if err != nil {
+		return nil, fmt.Errorf("failed to find default route in system route table %s: %w", systemRTID, err)
+	}
+	if entry != nil {
+		for _, ngw := range candidates {
+			if ngw.NatGatewayId == entry.NextHopId {
+				return ngw, nil
+			}
+		}
+	}
+	var ids []string
+	for _, ngw := range candidates {
+		ids = append(ids, ngw.NatGatewayId)
+	}
+	return nil, fmt.Errorf("no candidate NatGateway matches the 0.0.0.0/0 route in system route table %s; "+
+		"manual intervention required to remove orphan NatGateways: %s", systemRTID, strings.Join(ids, ", "))
 }
