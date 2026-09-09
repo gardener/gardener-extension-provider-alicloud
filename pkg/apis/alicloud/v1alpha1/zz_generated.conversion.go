@@ -569,6 +569,7 @@ func autoConvert_v1alpha1_Networks_To_alicloud_Networks(in *Networks, out *alicl
 		return err
 	}
 	out.Zones = *(*[]alicloud.Zone)(unsafe.Pointer(&in.Zones))
+	out.NodesSecurityGroupID = (*string)(unsafe.Pointer(in.NodesSecurityGroupID))
 	return nil
 }
 
@@ -582,6 +583,7 @@ func autoConvert_alicloud_Networks_To_v1alpha1_Networks(in *alicloud.Networks, o
 		return err
 	}
 	out.Zones = *(*[]Zone)(unsafe.Pointer(&in.Zones))
+	out.NodesSecurityGroupID = (*string)(unsafe.Pointer(in.NodesSecurityGroupID))
 	return nil
 }
 
@@ -734,6 +736,7 @@ func autoConvert_v1alpha1_Zone_To_alicloud_Zone(in *Zone, out *alicloud.Zone, s 
 	out.Name = in.Name
 	out.Worker = in.Worker
 	out.Workers = in.Workers
+	out.WorkersVSwitchID = (*string)(unsafe.Pointer(in.WorkersVSwitchID))
 	out.Ipv6CidrBlock = (*int)(unsafe.Pointer(in.Ipv6CidrBlock))
 	out.NatGateway = (*alicloud.NatGatewayConfig)(unsafe.Pointer(in.NatGateway))
 	return nil
@@ -748,6 +751,7 @@ func autoConvert_alicloud_Zone_To_v1alpha1_Zone(in *alicloud.Zone, out *Zone, s 
 	out.Name = in.Name
 	out.Worker = in.Worker
 	out.Workers = in.Workers
+	out.WorkersVSwitchID = (*string)(unsafe.Pointer(in.WorkersVSwitchID))
 	out.Ipv6CidrBlock = (*int)(unsafe.Pointer(in.Ipv6CidrBlock))
 	out.NatGateway = (*NatGatewayConfig)(unsafe.Pointer(in.NatGateway))
 	return nil

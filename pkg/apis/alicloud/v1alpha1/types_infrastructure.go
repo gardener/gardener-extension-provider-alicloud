@@ -29,6 +29,13 @@ type Networks struct {
 
 	// Zones are the network zones for an infrastructure.
 	Zones []Zone `json:"zones"`
+
+	// NodesSecurityGroupID optionally specifies an existing security group ID for worker nodes.
+	// When set, Gardener will not create a nodes security group and will not manage any security
+	// group rules. The user is fully responsible for rule correctness.
+	// Requires vpc.id to be set. Immutable after creation.
+	// +optional
+	NodesSecurityGroupID *string `json:"nodesSecurityGroupID,omitempty"`
 }
 
 // VPC contains information about whether to create a new or use an existing VPC.
@@ -98,12 +105,21 @@ type Zone struct {
 	// Deprecated - use `workers` instead.
 	Worker string `json:"worker"`
 	// Workers specifies the worker CIDR to use.
+	// Mutually exclusive with WorkersVSwitchID.
 	Workers string `json:"workers"`
+	// WorkersVSwitchID specifies an existing VSwitch ID for worker nodes.
+	// When set, Gardener will not create a VSwitch, NAT Gateway, EIP, or SNAT entries.
+	// Mutually exclusive with Workers CIDR.
+	// Requires vpc.id to be set. Immutable after creation.
+	// +optional
+	WorkersVSwitchID *string `json:"workersVSwitchID,omitempty"`
 	// Ipv6CidrBlock specifies the worker ipv6 CIDR block to use 0-255.
 	// This will only take effect if dualStack.enabled is true.
+	// Not required when WorkersVSwitchID is set (user pre-configures IPv6 on the VSwitch).
 	// +optional
 	Ipv6CidrBlock *int `json:"ipv6CidrBlock,omitempty"`
-	// NatGatewayConfig specifies configuration for the NAT gateway in this zone.
+	// NatGateway specifies configuration for the NAT gateway in this zone.
+	// Forbidden when WorkersVSwitchID is set.
 	// +optional
 	NatGateway *NatGatewayConfig `json:"natGateway,omitempty"`
 }

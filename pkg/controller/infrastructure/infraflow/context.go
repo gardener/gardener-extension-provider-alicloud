@@ -146,6 +146,12 @@ func (c *FlowContext) dualStackEnabled() bool {
 	return c.config.DualStack != nil && c.config.DualStack.Enabled
 }
 
+// isBYOInfrastructure returns true if all zones use workersVSwitchID (BYO VSwitch mode).
+// Validation ensures all zones use the same approach, so checking the first zone suffices.
+func (c *FlowContext) isBYOInfrastructure() bool {
+	return len(c.config.Networks.Zones) > 0 && c.config.Networks.Zones[0].WorkersVSwitchID != nil
+}
+
 func (c *FlowContext) commonTagsWithSuffix(suffix string) aliclient.Tags {
 	tags := c.commonTags.Clone()
 	tags[TagKeyName] = fmt.Sprintf("%s-%s", c.namespace, suffix)

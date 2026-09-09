@@ -33,6 +33,7 @@ func (c *FlowContext) Reconcile(ctx context.Context) error {
 
 func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 	g := flow.NewGraph("Alicloud infrastructure reconcilation")
+	isBYO := c.isBYOInfrastructure()
 
 	ensureVpc := c.AddTask(g, "ensure VPC",
 		c.ensureVpc,
@@ -44,19 +45,19 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 
 	ensureVSwitches := c.AddTask(g, "ensure vswitch",
 		c.ensureVSwitches,
-		Timeout(defaultLongTimeout), Dependencies(ensureVpc))
+		DoIf(!isBYO), Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
 	ensureIpv6Gateway := c.AddTask(g, "ensure ipv6 gateway",
 		c.ensureIpv6Gateway,
-		DoIf(c.dualStackEnabled()), Timeout(defaultLongTimeout), Dependencies(ensureVpc))
+		DoIf(!isBYO && c.dualStackEnabled()), Timeout(defaultLongTimeout), Dependencies(ensureVpc))
 
 	ensureNatGateway := c.AddTask(g, "ensure natgateway",
 		c.ensureNatGateway,
-		Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
+		DoIf(!isBYO), Timeout(defaultLongTimeout), Dependencies(ensureVSwitches))
 
 	ensureRouteTable := c.AddTask(g, "ensure route table",
 		c.ensureRouteTable,
-		Timeout(defaultTimeout), Dependencies(ensureNatGateway, ensureIpv6Gateway))
+		DoIf(!isBYO), Timeout(defaultTimeout), Dependencies(ensureNatGateway, ensureIpv6Gateway))
 
 	_ = c.AddTask(g, "ensure zones",
 		c.ensureZones,
@@ -66,6 +67,14 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 }
 
 func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
+	// BYO security group: use the user-provided SG directly without creating or managing rules.
+	if c.config.Networks.NodesSecurityGroupID != nil {
+		log := c.LogFromContext(ctx)
+		log.Info("using user-provided nodes security group", "sgID", *c.config.Networks.NodesSecurityGroupID)
+		c.state.Set(IdentifierNodesSecurityGroup, *c.config.Networks.NodesSecurityGroupID)
+		return c.PersistState(ctx, true)
+	}
+
 	vpcId := c.state.Get(IdentifierVPC)
 	if vpcId == nil {
 		return fmt.Errorf("IdentifierVPC is nil")
@@ -320,6 +329,7 @@ outer:
 	return current, nil
 }
 
+// ensureNatGateway creates or reconciles the NAT Gateway. Not called for BYO shoots.
 func (c *FlowContext) ensureNatGateway(ctx context.Context) error {
 	createNatGateway := c.config.Networks.VPC.ID == nil || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
 
@@ -452,6 +462,7 @@ func getZoneName(item *aliclient.VSwitch) string {
 	return item.ZoneId
 }
 
+// ensureIpv6Gateway creates or reconciles the IPv6 Gateway. Not called for BYO shoots or when dualStack is disabled.
 func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
 	// need export IdentifierIPV6Gateway for ensureRouteTable to add route entry, call ensureIpv6Gateway no care VPC.ID
 	log := c.LogFromContext(ctx)
@@ -498,6 +509,7 @@ func (c *FlowContext) ensureIpv6Gateway(ctx context.Context) error {
 // ensureRouteTable dispatches to the appropriate route table handler based on shoot config.
 // For Gardener-managed VPCs without a custom route table, nothing to do — CCM auto-discovery works
 // because Gardener controls the VPC and there is always exactly one route table.
+// Not called for BYO shoots; route table discovery for BYO is handled by ensureBYOZones.
 func (c *FlowContext) ensureRouteTable(ctx context.Context) error {
 	if !c.useCustomRouteTable() {
 		if c.config.Networks.VPC.ID == nil {

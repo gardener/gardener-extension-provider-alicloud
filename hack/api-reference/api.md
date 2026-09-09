@@ -714,6 +714,18 @@ Networks specifies the networks for an infrastructure.
 <p>Zones are the network zones for an infrastructure.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nodesSecurityGroupID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodesSecurityGroupID optionally specifies an existing security group ID for worker nodes.<br />When set, Gardener will not create a nodes security group and will not manage any security<br />group rules. The user is fully responsible for rule correctness.<br />Requires vpc.id to be set. Immutable after creation.</p>
+</td>
+</tr>
 
 </tbody>
 </table>
@@ -1132,7 +1144,19 @@ string
 </em>
 </td>
 <td>
-<p>Workers specifies the worker CIDR to use.</p>
+<p>Workers specifies the worker CIDR to use.<br />Mutually exclusive with WorkersVSwitchID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>workersVSwitchID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>WorkersVSwitchID specifies an existing VSwitch ID for worker nodes.<br />When set, Gardener will not create a VSwitch, NAT Gateway, EIP, or SNAT entries.<br />Mutually exclusive with Workers CIDR.<br />Requires vpc.id to be set. Immutable after creation.</p>
 </td>
 </tr>
 <tr>
@@ -1144,7 +1168,7 @@ integer
 </td>
 <td>
 <em>(Optional)</em>
-<p>Ipv6CidrBlock specifies the worker ipv6 CIDR block to use 0-255.<br />This will only take effect if dualStack.enabled is true.</p>
+<p>Ipv6CidrBlock specifies the worker ipv6 CIDR block to use 0-255.<br />This will only take effect if dualStack.enabled is true.<br />Not required when WorkersVSwitchID is set (user pre-configures IPv6 on the VSwitch).</p>
 </td>
 </tr>
 <tr>
@@ -1156,7 +1180,7 @@ integer
 </td>
 <td>
 <em>(Optional)</em>
-<p>NatGatewayConfig specifies configuration for the NAT gateway in this zone.</p>
+<p>NatGateway specifies configuration for the NAT gateway in this zone.<br />Forbidden when WorkersVSwitchID is set.</p>
 </td>
 </tr>
 

@@ -202,6 +202,20 @@ var _ = Describe("Infrastructure tests", func() {
 
 	})
 
+	Context("with BYO VSwitch and security group", func() {
+		It("should successfully create and delete without touching user-provided resources (flow)", func() {
+			ids := prepareBYOResources(ctx, clientFactory, *region, availabilityZone)
+			framework.AddCleanupAction(func() {
+				cleanupBYOResources(ctx, clientFactory, ids)
+			})
+
+			providerConfig := newBYOProviderConfig(ids, availabilityZone)
+
+			err := runBYOTest(ctx, log, c, providerConfig, decoder, clientFactory, ids)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
 	Context("with invalid credentials", func() {
 		It("should fail creation but succeed deletion (flow)", func() {
 			providerConfig := newProviderConfig(&alicloudv1alpha1.VPC{
@@ -292,13 +306,21 @@ var _ = Describe("Infrastructure tests", func() {
 	})
 })
 
-func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
+func runTestBase(
+	ctx context.Context,
+	logger logr.Logger,
+	c client.Client,
+	providerConfig *alicloudv1alpha1.InfrastructureConfig,
+	decoder runtime.Decoder,
+	clientFactory alicloudclient.ClientFactory,
+	onCreated func(alicloudclient.ClientFactory, *extensionsv1alpha1.Infrastructure, *alicloudv1alpha1.InfrastructureStatus) error,
+	onDeleted func(alicloudclient.ClientFactory),
+) error {
 	var (
-		namespace                 *corev1.Namespace
-		cluster                   *extensionsv1alpha1.Cluster
-		infra                     *extensionsv1alpha1.Infrastructure
-		infrastructureIdentifiers infrastructureIdentifiers
-		err                       error
+		namespace *corev1.Namespace
+		cluster   *extensionsv1alpha1.Cluster
+		infra     *extensionsv1alpha1.Infrastructure
+		err       error
 	)
 
 	framework.AddCleanupAction(func() {
@@ -324,7 +346,7 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 		Expect(err).NotTo(HaveOccurred())
 
 		By("verify infrastructure deletion")
-		verifyDeletion(clientFactory, infrastructureIdentifiers)
+		onDeleted(clientFactory)
 	}()
 
 	By("create namespace for test execution")
@@ -410,7 +432,9 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 	}
 
 	By("verify infrastructure creation")
-	infrastructureIdentifiers = verifyCreation(clientFactory, infra, providerStatus, providerConfig)
+	if err := onCreated(clientFactory, infra, providerStatus); err != nil {
+		return err
+	}
 
 	oldState := infra.Status.State
 	By("drop state for testing recover")
@@ -463,6 +487,19 @@ func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerC
 	}
 
 	return nil
+}
+
+func runTest(ctx context.Context, logger logr.Logger, c client.Client, providerConfig *alicloudv1alpha1.InfrastructureConfig, decoder runtime.Decoder, clientFactory alicloudclient.ClientFactory) error {
+	var ids infrastructureIdentifiers
+	return runTestBase(ctx, logger, c, providerConfig, decoder, clientFactory,
+		func(cf alicloudclient.ClientFactory, infra *extensionsv1alpha1.Infrastructure, status *alicloudv1alpha1.InfrastructureStatus) error {
+			ids = verifyCreation(cf, infra, status, providerConfig)
+			return nil
+		},
+		func(cf alicloudclient.ClientFactory) {
+			verifyDeletion(cf, ids)
+		},
+	)
 }
 
 func EqualInfrastructureStatus(expected *alicloudv1alpha1.InfrastructureStatus) gomegatypes.GomegaMatcher {
