@@ -498,6 +498,7 @@ func isMutatingAdmissionPolicyEnabled(cluster *extensionscontroller.Cluster) boo
 		return false
 	}
 
+	// For K8s >= 1.36, MutatingAdmissionPolicy is GA (locked on, cannot be disabled).
 	if versionutils.ConstraintK8sGreaterEqual136.Check(k8sVersion) {
 		return true
 	}
@@ -517,10 +518,13 @@ func isMutatingAdmissionPolicyEnabled(cluster *extensionscontroller.Cluster) boo
 
 	rc := cluster.Shoot.Spec.Kubernetes.KubeAPIServer.RuntimeConfig
 
+	// For K8s >= 1.34 and < 1.36, MutatingAdmissionPolicy is in beta but disabled by default.
+	// Users must explicitly enable the feature gate and opt in via RuntimeConfig.
 	if versionutils.ConstraintK8sGreaterEqual134.Check(k8sVersion) {
 		return rc["admissionregistration.k8s.io/v1beta1"]
 	}
 
+	// For K8s < 1.34, MutatingAdmissionPolicy is only available via v1alpha1.
 	return rc["admissionregistration.k8s.io/v1alpha1"]
 }
 
@@ -530,10 +534,12 @@ func mutatingAdmissionPolicyAPIVersion(cluster *extensionscontroller.Cluster) st
 		return "v1alpha1"
 	}
 
+	// For K8s >= 1.36, MutatingAdmissionPolicy is GA.
 	if versionutils.ConstraintK8sGreaterEqual136.Check(k8sVersion) {
 		return "v1"
 	}
 
+	// For K8s >= 1.34, MutatingAdmissionPolicy is beta.
 	if versionutils.ConstraintK8sGreaterEqual134.Check(k8sVersion) {
 		return "v1beta1"
 	}
