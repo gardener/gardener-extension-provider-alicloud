@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	securityv1alpha1constants "github.com/gardener/gardener/pkg/apis/security/v1alpha1/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,6 +20,26 @@ type Credentials struct {
 	AccessKeyID     string
 	AccessKeySecret string
 	CredentialsFile string
+}
+
+// AuthConfig holds credentials for either static AK/SK or workload identity mode.
+// Exactly one of AccessKey or WorkloadIdentity is set.
+type AuthConfig struct {
+	AccessKey        *AccessKey
+	WorkloadIdentity *WorkloadIdentityAuth
+}
+
+// AccessKey holds static Alicloud access key credentials.
+type AccessKey struct {
+	ID     string
+	Secret string
+}
+
+// WorkloadIdentityAuth holds the data needed to exchange a JWT token for temporary STS credentials via RRSA.
+type WorkloadIdentityAuth struct {
+	OIDCProviderARN string
+	RoleARN         string
+	Token           []byte
 }
 
 const (
@@ -101,4 +122,33 @@ func getSecretDataValue(secret *corev1.Secret, key string, altKey *string) ([]by
 		}
 	}
 	return nil, false
+}
+
+// ReadAuthConfig reads an AuthConfig from the given secret.
+// If the secret contains accessKeyID it returns AK/SK mode; otherwise it expects a workload identity token.
+func ReadAuthConfig(secret *corev1.Secret) (*AuthConfig, error) {
+	if secret.Data == nil {
+		return nil, fmt.Errorf("secret %s/%s has no data section", secret.Namespace, secret.Name)
+	}
+
+	if akID, ok := secret.Data[AccessKeyID]; ok {
+		akSecret, ok := secret.Data[AccessKeySecret]
+		if !ok {
+			return nil, fmt.Errorf("secret %s/%s has accessKeyID but no accessKeySecret", secret.Namespace, secret.Name)
+		}
+		return &AuthConfig{AccessKey: &AccessKey{
+			ID:     string(akID),
+			Secret: string(akSecret),
+		}}, nil
+	}
+
+	token, ok := secret.Data[securityv1alpha1constants.DataKeyToken]
+	if !ok {
+		return nil, fmt.Errorf("secret %s/%s has neither accessKeyID nor workload identity token", secret.Namespace, secret.Name)
+	}
+	return &AuthConfig{WorkloadIdentity: &WorkloadIdentityAuth{
+		OIDCProviderARN: string(secret.Data[OIDCProviderARNKey]),
+		RoleARN:         string(secret.Data[RoleARNKey]),
+		Token:           token,
+	}}, nil
 }
