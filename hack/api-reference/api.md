@@ -1155,6 +1155,50 @@ WorkerStatus contains information about created worker resources.
 </table>
 
 
+<h3 id="workloadidentityconfig">WorkloadIdentityConfig
+</h3>
+
+
+<p>
+WorkloadIdentityConfig contains the configuration for a workload identity.
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+<td>
+<code>oidcProviderARN</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OIDCProviderARN is the ARN of the OIDC identity provider registered in Alicloud RAM.<br />Format: acs:ram::<accountID>:oidc-provider/<name></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleARN</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RoleARN is the ARN of the RAM role to be assumed via STS AssumeRoleWithOIDC.<br />Format: acs:ram::<accountID>:role/<name></p>
+</td>
+</tr>
+
+</tbody>
+</table>
+
+
 <h3 id="zone">Zone
 </h3>
 
