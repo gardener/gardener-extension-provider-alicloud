@@ -59,6 +59,12 @@ rules:
   - patch
   - update
   - delete
+- apiGroups:
+  - security.gardener.cloud
+  resources:
+  - workloadidentities
+  verbs:
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
