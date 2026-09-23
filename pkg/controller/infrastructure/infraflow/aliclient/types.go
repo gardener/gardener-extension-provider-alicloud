@@ -4,10 +4,16 @@
 
 package aliclient
 
+import (
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+)
+
 // Factory creates instances of Interface.
 type Factory interface {
-	// NewClient creates a new instance of Actor for the given alicloud credentials and region.
+	// NewActor creates a new instance of Actor for the given alicloud credentials and region.
 	NewActor(accessKeyID, secretAccessKey, region string) (Actor, error)
+	// NewActorFromAuthConfig creates a new instance of Actor from an AuthConfig (static AK or workload identity).
+	NewActorFromAuthConfig(auth alicloud.AuthConfig, region, sessionName string) (Actor, error)
 }
 
 // FactoryFunc is a function that implements Factory.
@@ -16,6 +22,15 @@ type FactoryFunc func(accessKeyID, secretAccessKey, region string) (Actor, error
 // NewActor creates a new instance of Actor for the given Alicloud credentials and region.
 func (f FactoryFunc) NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 	return f(accessKeyID, secretAccessKey, region)
+}
+
+// NewActorFromAuthConfig implements Factory for the static-AK path by delegating to the standalone
+// NewActorFromAuthConfig function; WI path is also supported that way.
+func (f FactoryFunc) NewActorFromAuthConfig(auth alicloud.AuthConfig, region, sessionName string) (Actor, error) {
+	if auth.AccessKey != nil {
+		return f(auth.AccessKey.ID, auth.AccessKey.Secret, region)
+	}
+	return NewActorFromAuthConfig(auth, region, sessionName)
 }
 
 // VPC is the struct for a vpc object

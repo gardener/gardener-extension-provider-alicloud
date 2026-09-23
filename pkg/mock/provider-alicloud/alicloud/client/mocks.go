@@ -17,6 +17,7 @@ import (
 	resourcemanager "github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	vpc "github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	oss "github.com/aliyun/aliyun-oss-go-sdk/oss"
+	alicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	client "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 	gomock "go.uber.org/mock/gomock"
@@ -63,6 +64,21 @@ func (mr *MockClientFactoryMockRecorder) NewDNSClient(region, accessKeyID, acces
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDNSClient", reflect.TypeOf((*MockClientFactory)(nil).NewDNSClient), region, accessKeyID, accessKeySecret)
 }
 
+// NewDNSClientFromAuthConfig mocks base method.
+func (m *MockClientFactory) NewDNSClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (client.DNS, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewDNSClientFromAuthConfig", region, auth, sessionName)
+	ret0, _ := ret[0].(client.DNS)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewDNSClientFromAuthConfig indicates an expected call of NewDNSClientFromAuthConfig.
+func (mr *MockClientFactoryMockRecorder) NewDNSClientFromAuthConfig(region, auth, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDNSClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewDNSClientFromAuthConfig), region, auth, sessionName)
+}
+
 // NewECSClient mocks base method.
 func (m *MockClientFactory) NewECSClient(region, accessKeyID, accessKeySecret string) (client.ECS, error) {
 	m.ctrl.T.Helper()
@@ -76,6 +92,21 @@ func (m *MockClientFactory) NewECSClient(region, accessKeyID, accessKeySecret st
 func (mr *MockClientFactoryMockRecorder) NewECSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewECSClient", reflect.TypeOf((*MockClientFactory)(nil).NewECSClient), region, accessKeyID, accessKeySecret)
+}
+
+// NewECSClientFromAuthConfig mocks base method.
+func (m *MockClientFactory) NewECSClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (client.ECS, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewECSClientFromAuthConfig", region, auth, sessionName)
+	ret0, _ := ret[0].(client.ECS)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewECSClientFromAuthConfig indicates an expected call of NewECSClientFromAuthConfig.
+func (mr *MockClientFactoryMockRecorder) NewECSClientFromAuthConfig(region, auth, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewECSClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewECSClientFromAuthConfig), region, auth, sessionName)
 }
 
 // NewNLBClient mocks base method.
@@ -93,6 +124,21 @@ func (mr *MockClientFactoryMockRecorder) NewNLBClient(region, accessKeyID, acces
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewNLBClient", reflect.TypeOf((*MockClientFactory)(nil).NewNLBClient), region, accessKeyID, accessKeySecret)
 }
 
+// NewNLBClientFromAuthConfig mocks base method.
+func (m *MockClientFactory) NewNLBClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (client.NLB, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewNLBClientFromAuthConfig", region, auth, sessionName)
+	ret0, _ := ret[0].(client.NLB)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewNLBClientFromAuthConfig indicates an expected call of NewNLBClientFromAuthConfig.
+func (mr *MockClientFactoryMockRecorder) NewNLBClientFromAuthConfig(region, auth, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewNLBClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewNLBClientFromAuthConfig), region, auth, sessionName)
+}
+
 // NewOSSClient mocks base method.
 func (m *MockClientFactory) NewOSSClient(endpoint, accessKeyID, accessKeySecret string) (client.OSS, error) {
 	m.ctrl.T.Helper()
@@ -106,6 +152,21 @@ func (m *MockClientFactory) NewOSSClient(endpoint, accessKeyID, accessKeySecret 
 func (mr *MockClientFactoryMockRecorder) NewOSSClient(endpoint, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClient", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClient), endpoint, accessKeyID, accessKeySecret)
+}
+
+// NewOSSClientFromAuthConfig mocks base method.
+func (m *MockClientFactory) NewOSSClientFromAuthConfig(endpoint string, auth alicloud.AuthConfig, sessionName string) (client.OSS, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewOSSClientFromAuthConfig", endpoint, auth, sessionName)
+	ret0, _ := ret[0].(client.OSS)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewOSSClientFromAuthConfig indicates an expected call of NewOSSClientFromAuthConfig.
+func (mr *MockClientFactoryMockRecorder) NewOSSClientFromAuthConfig(endpoint, auth, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClientFromAuthConfig), endpoint, auth, sessionName)
 }
 
 // NewOSSClientFromSecretRef mocks base method.
@@ -138,6 +199,21 @@ func (mr *MockClientFactoryMockRecorder) NewRAMClient(region, accessKeyID, acces
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewRAMClient", reflect.TypeOf((*MockClientFactory)(nil).NewRAMClient), region, accessKeyID, accessKeySecret)
 }
 
+// NewRAMClientFromAuthConfig mocks base method.
+func (m *MockClientFactory) NewRAMClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (client.RAM, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewRAMClientFromAuthConfig", region, auth, sessionName)
+	ret0, _ := ret[0].(client.RAM)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewRAMClientFromAuthConfig indicates an expected call of NewRAMClientFromAuthConfig.
+func (mr *MockClientFactoryMockRecorder) NewRAMClientFromAuthConfig(region, auth, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewRAMClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewRAMClientFromAuthConfig), region, auth, sessionName)
+}
+
 // NewROSClient mocks base method.
 func (m *MockClientFactory) NewROSClient(region, accessKeyID, accessKeySecret string) (client.ROS, error) {
 	m.ctrl.T.Helper()
@@ -151,6 +227,21 @@ func (m *MockClientFactory) NewROSClient(region, accessKeyID, accessKeySecret st
 func (mr *MockClientFactoryMockRecorder) NewROSClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewROSClient", reflect.TypeOf((*MockClientFactory)(nil).NewROSClient), region, accessKeyID, accessKeySecret)
+}
+
+// NewROSClientFromAuthConfig mocks base method.
+func (m *MockClientFactory) NewROSClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (client.ROS, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewROSClientFromAuthConfig", region, auth, sessionName)
+	ret0, _ := ret[0].(client.ROS)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewROSClientFromAuthConfig indicates an expected call of NewROSClientFromAuthConfig.
+func (mr *MockClientFactoryMockRecorder) NewROSClientFromAuthConfig(region, auth, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewROSClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewROSClientFromAuthConfig), region, auth, sessionName)
 }
 
 // NewSLBClient mocks base method.
@@ -168,6 +259,21 @@ func (mr *MockClientFactoryMockRecorder) NewSLBClient(region, accessKeyID, acces
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSLBClient", reflect.TypeOf((*MockClientFactory)(nil).NewSLBClient), region, accessKeyID, accessKeySecret)
 }
 
+// NewSLBClientFromAuthConfig mocks base method.
+func (m *MockClientFactory) NewSLBClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (client.SLB, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewSLBClientFromAuthConfig", region, auth, sessionName)
+	ret0, _ := ret[0].(client.SLB)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewSLBClientFromAuthConfig indicates an expected call of NewSLBClientFromAuthConfig.
+func (mr *MockClientFactoryMockRecorder) NewSLBClientFromAuthConfig(region, auth, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSLBClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewSLBClientFromAuthConfig), region, auth, sessionName)
+}
+
 // NewSTSClient mocks base method.
 func (m *MockClientFactory) NewSTSClient(region, accessKeyID, accessKeySecret string) (client.STS, error) {
 	m.ctrl.T.Helper()
@@ -183,6 +289,21 @@ func (mr *MockClientFactoryMockRecorder) NewSTSClient(region, accessKeyID, acces
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSTSClient", reflect.TypeOf((*MockClientFactory)(nil).NewSTSClient), region, accessKeyID, accessKeySecret)
 }
 
+// NewSTSClientFromAuthConfig mocks base method.
+func (m *MockClientFactory) NewSTSClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (client.STS, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewSTSClientFromAuthConfig", region, auth, sessionName)
+	ret0, _ := ret[0].(client.STS)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewSTSClientFromAuthConfig indicates an expected call of NewSTSClientFromAuthConfig.
+func (mr *MockClientFactoryMockRecorder) NewSTSClientFromAuthConfig(region, auth, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSTSClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewSTSClientFromAuthConfig), region, auth, sessionName)
+}
+
 // NewVPCClient mocks base method.
 func (m *MockClientFactory) NewVPCClient(region, accessKeyID, accessKeySecret string) (client.VPC, error) {
 	m.ctrl.T.Helper()
@@ -196,6 +317,21 @@ func (m *MockClientFactory) NewVPCClient(region, accessKeyID, accessKeySecret st
 func (mr *MockClientFactoryMockRecorder) NewVPCClient(region, accessKeyID, accessKeySecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewVPCClient", reflect.TypeOf((*MockClientFactory)(nil).NewVPCClient), region, accessKeyID, accessKeySecret)
+}
+
+// NewVPCClientFromAuthConfig mocks base method.
+func (m *MockClientFactory) NewVPCClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (client.VPC, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewVPCClientFromAuthConfig", region, auth, sessionName)
+	ret0, _ := ret[0].(client.VPC)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewVPCClientFromAuthConfig indicates an expected call of NewVPCClientFromAuthConfig.
+func (mr *MockClientFactoryMockRecorder) NewVPCClientFromAuthConfig(region, auth, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewVPCClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewVPCClientFromAuthConfig), region, auth, sessionName)
 }
 
 // MockECS is a mock of ECS interface.
