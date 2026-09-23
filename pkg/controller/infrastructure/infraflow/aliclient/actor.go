@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 )
 
@@ -134,6 +135,30 @@ func NewActor(accessKeyID, secretAccessKey, region string) (Actor, error) {
 		return nil, err
 	}
 	nlbClient, err := clientFactory.NewNLBClient(region, accessKeyID, secretAccessKey)
+	if err != nil {
+		return nil, err
+	}
+	return &actor{
+		vpcClient:    vpcClient,
+		ecsClient:    ecsClient,
+		nlbClient:    nlbClient,
+		Logger:       log.Log.WithName("alicloud-client"),
+		PollInterval: 5 * time.Second,
+	}, nil
+}
+
+// NewActorFromAuthConfig creates an Actor from an AuthConfig (static AK or workload identity).
+func NewActorFromAuthConfig(auth alicloud.AuthConfig, region, sessionName string) (Actor, error) {
+	clientFactory := alicloudclient.NewClientFactory()
+	vpcClient, err := clientFactory.NewVPCClientFromAuthConfig(region, auth, sessionName)
+	if err != nil {
+		return nil, err
+	}
+	ecsClient, err := clientFactory.NewECSClientFromAuthConfig(region, auth, sessionName)
+	if err != nil {
+		return nil, err
+	}
+	nlbClient, err := clientFactory.NewNLBClientFromAuthConfig(region, auth, sessionName)
 	if err != nil {
 		return nil, err
 	}

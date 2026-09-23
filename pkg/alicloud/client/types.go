@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 )
 
@@ -63,6 +64,16 @@ type ClientFactory interface {
 	NewOSSClientFromSecretRef(ctx context.Context, c client.Client, secretRef *corev1.SecretReference, region string) (OSS, error)
 	NewDNSClient(region, accessKeyID, accessKeySecret string) (DNS, error)
 	NewNLBClient(region, accessKeyID, accessKeySecret string) (NLB, error)
+
+	NewECSClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (ECS, error)
+	NewSTSClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (STS, error)
+	NewSLBClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (SLB, error)
+	NewVPCClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (VPC, error)
+	NewRAMClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (RAM, error)
+	NewROSClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (ROS, error)
+	NewOSSClientFromAuthConfig(endpoint string, auth alicloud.AuthConfig, sessionName string) (OSS, error)
+	NewDNSClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (DNS, error)
+	NewNLBClientFromAuthConfig(region string, auth alicloud.AuthConfig, sessionName string) (NLB, error)
 }
 
 // ecsClient implements the ECS interface.
