@@ -10,7 +10,9 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/security"
+	securityv1alpha1 "github.com/gardener/gardener/pkg/apis/security/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -56,6 +58,17 @@ func (cb *credentialsBinding) Validate(ctx context.Context, newObj, oldObj clien
 		}
 
 		return alicloudvalidation.ValidateCloudProviderSecret(secret)
+	case credentialsBinding.CredentialsRef.APIVersion == securityv1alpha1.SchemeGroupVersion.String() && credentialsBinding.CredentialsRef.Kind == "WorkloadIdentity":
+		wi := &securityv1alpha1.WorkloadIdentity{}
+		if err := cb.apiReader.Get(ctx, credentialsKey, wi); err != nil {
+			return err
+		}
+
+		fldPath := field.NewPath("spec", "targetSystem", "providerConfig")
+		if errList := ValidateWorkloadIdentity(wi, nil, fldPath); len(errList) > 0 {
+			return fmt.Errorf("referenced workload identity %s is not valid: %w", credentialsKey, errList.ToAggregate())
+		}
+		return nil
 	default:
 		return fmt.Errorf("unsupported credentials reference: version %q, kind %q", credentialsBinding.CredentialsRef.APIVersion, credentialsBinding.CredentialsRef.Kind)
 	}
