@@ -114,7 +114,7 @@ var _ = Describe("ConfigValidator", func() {
 		mgr = &testutils.FakeManager{Client: c}
 		cv = NewConfigValidator(mgr, logger, actorFactor)
 
-		actorFactor.EXPECT().NewActor(accessKeyID, secretAccessKey, region).Return(actor, nil)
+		actorFactor.EXPECT().NewActorFromAuthConfig(gomock.Any(), region, gomock.Any()).Return(actor, nil)
 	})
 
 	AfterEach(func() {
