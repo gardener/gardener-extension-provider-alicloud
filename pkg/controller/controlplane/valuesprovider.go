@@ -273,19 +273,10 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	_ secretsmanager.Reader,
 	_ map[string]string,
 ) (map[string]interface{}, error) {
-	// Get credentials from the referenced secret; also read credentialsFile for AK mode CSI chart
-	secret := &corev1.Secret{}
-	if err := vp.client.Get(ctx, client.ObjectKey{
-		Namespace: cp.Spec.SecretRef.Namespace,
-		Name:      cp.Spec.SecretRef.Name,
-	}, secret); err != nil {
-		return nil, fmt.Errorf("could not get cloud-provider secret for controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
-	}
-	authConfig, err := alicloud.ReadAuthConfig(secret)
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
 		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
-	credentialsFile := string(secret.Data[alicloud.CredentialsFile])
 
 	cpConfig, err := vp.decodeControlPlaneConfig(cp)
 	if err != nil {
@@ -293,7 +284,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cpConfig, authConfig, credentialsFile, cluster)
+	return vp.getControlPlaneShootChartValues(cpConfig, authConfig, cluster)
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.
@@ -442,7 +433,6 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 func (vp *valuesProvider) getControlPlaneShootChartValues(
 	cpConfig *apisalicloud.ControlPlaneConfig,
 	authConfig *alicloud.AuthConfig,
-	credentialsFile string,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 	overlayEnabled, err := networking.IsOverlayEnabled(cluster.Shoot.Spec.Networking)
@@ -464,7 +454,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 		}
 	} else {
 		csiCredential = map[string]interface{}{
-			"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentialsFile)),
+			"credentialsFile": base64.StdEncoding.EncodeToString([]byte(authConfig.CredentialsFile)),
 		}
 	}
 
