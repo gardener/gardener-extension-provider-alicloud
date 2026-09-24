@@ -385,37 +385,54 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 		return nil, fmt.Errorf("could not build cloud controller config file content for controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
 
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, fmt.Errorf("could not read auth config for controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
+	}
+
 	ccmNetworkFalg := "public"
 	if cluster.Seed != nil && cluster.Seed.Spec.Provider.Type == alicloud.Type && cluster.Shoot != nil && cluster.Seed.Spec.Provider.Region == cluster.Shoot.Spec.Region {
 		ccmNetworkFalg = "vpc"
 	}
+
+	ccmValues := map[string]interface{}{
+		"replicas":    extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+		"clusterName": cp.Namespace,
+		"podNetwork":  strings.Join(extensionscontroller.GetPodNetwork(cluster), ","),
+		"podLabels": map[string]interface{}{
+			v1beta1constants.LabelPodMaintenanceRestart: "true",
+		},
+		"cloudConfig":    ccmConfig,
+		"ccmNetworkFalg": ccmNetworkFalg,
+	}
+	csiValues := map[string]interface{}{
+		"regionID":           cp.Spec.Region,
+		"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+		"enableADController": vp.enableCSIADController(cpConfig),
+		"csiPluginController": map[string]interface{}{
+			"snapshotPrefix":         cluster.Shoot.Name,
+			"persistentVolumePrefix": cluster.Shoot.Name,
+			"podAnnotations": map[string]interface{}{
+				"checksum/secret-cloudprovider": checksums[v1beta1constants.SecretNameCloudProvider],
+			},
+		},
+		"csiSnapshotController": map[string]interface{}{},
+	}
+
+	if authConfig.WorkloadIdentity != nil {
+		wiValues := map[string]interface{}{
+			"enabled": true,
+		}
+		ccmValues["workloadIdentity"] = wiValues
+		csiValues["workloadIdentity"] = wiValues
+	}
+
 	values := map[string]interface{}{
 		"global": map[string]interface{}{
 			"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
 		},
-		"alicloud-cloud-controller-manager": map[string]interface{}{
-			"replicas":    extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
-			"clusterName": cp.Namespace,
-			"podNetwork":  strings.Join(extensionscontroller.GetPodNetwork(cluster), ","),
-			"podLabels": map[string]interface{}{
-				v1beta1constants.LabelPodMaintenanceRestart: "true",
-			},
-			"cloudConfig":    ccmConfig,
-			"ccmNetworkFalg": ccmNetworkFalg,
-		},
-		"csi-alicloud": map[string]interface{}{
-			"regionID":           cp.Spec.Region,
-			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
-			"enableADController": vp.enableCSIADController(cpConfig),
-			"csiPluginController": map[string]interface{}{
-				"snapshotPrefix":         cluster.Shoot.Name,
-				"persistentVolumePrefix": cluster.Shoot.Name,
-				"podAnnotations": map[string]interface{}{
-					"checksum/secret-cloudprovider": checksums[v1beta1constants.SecretNameCloudProvider],
-				},
-			},
-			"csiSnapshotController": map[string]interface{}{},
-		},
+		"alicloud-cloud-controller-manager": ccmValues,
+		"csi-alicloud":                      csiValues,
 	}
 
 	if cpConfig.CloudControllerManager != nil {
@@ -451,6 +468,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 	if authConfig.WorkloadIdentity != nil {
 		csiCredential = map[string]interface{}{
 			"useWorkloadIdentity": true,
+			"oidcProviderARN":     authConfig.WorkloadIdentity.OIDCProviderARN,
+			"roleARN":             authConfig.WorkloadIdentity.RoleARN,
+			"token":               base64.StdEncoding.EncodeToString(authConfig.WorkloadIdentity.Token),
 		}
 	} else {
 		csiCredential = map[string]interface{}{

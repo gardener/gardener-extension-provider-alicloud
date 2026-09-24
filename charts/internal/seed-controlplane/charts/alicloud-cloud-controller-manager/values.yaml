@@ -13,3 +13,6 @@ resources:
     memory: 40Mi
 cloudConfig: json-values
 vpa: {}
+workloadIdentity:
+  enabled: false
+  tokenMountPath: /var/run/secrets/gardener.cloud/workload-identity

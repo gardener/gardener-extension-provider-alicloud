@@ -85,8 +85,23 @@ spec:
 {{- end }}
         - name: CSI_ENDPOINT
           value: unix://var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock
+{{- if .Values.credential.useWorkloadIdentity }}
+        - name: ALIBABA_CLOUD_ROLE_ARN
+          valueFrom:
+            secretKeyRef:
+              name: csi-diskplugin-alicloud
+              key: roleARN
+        - name: ALIBABA_CLOUD_OIDC_PROVIDER_ARN
+          valueFrom:
+            secretKeyRef:
+              name: csi-diskplugin-alicloud
+              key: oidcProviderARN
+        - name: ALIBABA_CLOUD_OIDC_TOKEN_FILE
+          value: /srv/cloudprovider/token
+{{- else }}
         - name: ALIBABA_CLOUD_CREDENTIALS_FILE
           value: /srv/cloudprovider/credentialsFile
+{{- end }}
         - name: KUBE_NODE_NAME
           valueFrom:
             fieldRef:

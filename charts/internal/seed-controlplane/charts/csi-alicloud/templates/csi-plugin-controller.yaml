@@ -55,6 +55,20 @@ spec:
           value: {{ .Values.regionID }}
         - name: ALIBABA_CLOUD_CREDENTIALS_FILE
           value: /srv/cloudprovider/credentialsFile
+{{- if .Values.workloadIdentity.enabled }}
+        - name: ALIBABA_CLOUD_ROLE_ARN
+          valueFrom:
+            secretKeyRef:
+              name: cloudprovider
+              key: roleARN
+        - name: ALIBABA_CLOUD_OIDC_PROVIDER_ARN
+          valueFrom:
+            secretKeyRef:
+              name: cloudprovider
+              key: oidcProviderARN
+        - name: ALIBABA_CLOUD_OIDC_TOKEN_FILE
+          value: /srv/cloudprovider/token
+{{- end }}
         imagePullPolicy: IfNotPresent
 {{- if .Values.csiPluginController.podResources.diskPlugin }}
         resources:
