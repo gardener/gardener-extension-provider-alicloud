@@ -26,12 +26,12 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, bastion *extensi
 		return err
 	}
 
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.client, &opt.SecretReference)
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, a.client, &opt.SecretReference)
 	if err != nil {
 		return err
 	}
 
-	aliCloudECSClient, err := a.newClientFactory.NewECSClient(opt.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
+	aliCloudECSClient, err := a.newClientFactory.NewECSClientFromAuthConfig(opt.Region, *authConfig, alicloud.BuildSessionName(opt.SecretReference.Namespace))
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}

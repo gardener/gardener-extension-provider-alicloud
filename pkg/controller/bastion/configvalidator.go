@@ -50,20 +50,22 @@ func (c *configValidator) Validate(ctx context.Context, _ *extensionsv1alpha1.Ba
 		Name:      v1beta1constants.SecretNameCloudProvider,
 	}
 
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, c.client, secretReference)
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, c.client, secretReference)
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, err))
 		return allErrs
 	}
+
+	sessionName := alicloud.BuildSessionName(cluster.ObjectMeta.Name)
 
 	// Create alicloud ECS client
-	aliCloudECSClient, err := c.aliClientFactory.NewECSClient(cluster.Shoot.Spec.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
+	aliCloudECSClient, err := c.aliClientFactory.NewECSClientFromAuthConfig(cluster.Shoot.Spec.Region, *authConfig, sessionName)
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, err))
 		return allErrs
 	}
 
-	aliCloudVPCClient, err := c.aliClientFactory.NewVPCClient(cluster.Shoot.Spec.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
+	aliCloudVPCClient, err := c.aliClientFactory.NewVPCClientFromAuthConfig(cluster.Shoot.Spec.Region, *authConfig, sessionName)
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, err))
 		return allErrs
