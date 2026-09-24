@@ -178,11 +178,11 @@ var _ = Describe("BackupBucket", func() {
 			Expect(errs).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
 				"Type":   Equal(field.ErrorTypeNotSupported),
 				"Field":  Equal("spec.credentialsRef"),
-				"Detail": Equal("supported values: \"/v1, Kind=Secret\""),
+				"Detail": Equal("supported values: \"/v1, Kind=Secret\", \"security.gardener.cloud/v1alpha1, Kind=WorkloadIdentity\""),
 			}))))
 		})
 
-		It("should forbid security.gardener.cloud/v1alpha1.WorkloadIdentity credentials", func() {
+		It("should allow security.gardener.cloud/v1alpha1.WorkloadIdentity credentials", func() {
 			credsRef := &corev1.ObjectReference{
 				APIVersion: "security.gardener.cloud/v1alpha1",
 				Kind:       "WorkloadIdentity",
@@ -190,11 +190,7 @@ var _ = Describe("BackupBucket", func() {
 				Namespace:  "my-namespace",
 			}
 			errs := ValidateBackupBucketCredentialsRef(credsRef, fldPath)
-			Expect(errs).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Type":   Equal(field.ErrorTypeNotSupported),
-				"Field":  Equal("spec.credentialsRef"),
-				"Detail": Equal("supported values: \"/v1, Kind=Secret\""),
-			}))))
+			Expect(errs).To(BeEmpty())
 		})
 
 		It("should allow v1.Secret credentials", func() {

@@ -128,7 +128,7 @@ var _ = Describe("Actuator", func() {
 
 	Describe("#Reconcile", func() {
 		It("should reconcile the DNSRecord if a zone is not specified", func() {
-			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
+			alicloudClientFactory.EXPECT().NewDNSClientFromAuthConfig(alicloud.DefaultDNSRegion, gomock.Any(), gomock.Any()).Return(dnsClient, nil)
 			dnsClient.EXPECT().GetDomainNames(ctx).Return(domainNames, nil)
 			dnsClient.EXPECT().CreateOrUpdateDomainRecords(ctx, compositeDomainName, dnsName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120)).Return(nil)
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, compositeDomainName, "comment-"+dnsName, "TXT").Return(nil)
@@ -141,7 +141,7 @@ var _ = Describe("Actuator", func() {
 		It("should reconcile the DNSRecord if a zone is specified and it's a domain name", func() {
 			dns.Spec.Zone = ptr.To(domainName)
 
-			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
+			alicloudClientFactory.EXPECT().NewDNSClientFromAuthConfig(alicloud.DefaultDNSRegion, gomock.Any(), gomock.Any()).Return(dnsClient, nil)
 			dnsClient.EXPECT().CreateOrUpdateDomainRecords(ctx, domainName, dnsName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120)).Return(nil)
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, domainName, "comment-"+dnsName, "TXT").Return(nil)
 
@@ -153,7 +153,7 @@ var _ = Describe("Actuator", func() {
 		It("should reconcile the DNSRecord if a zone is specified and it's a domain id", func() {
 			dns.Spec.Zone = ptr.To(domainId)
 
-			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
+			alicloudClientFactory.EXPECT().NewDNSClientFromAuthConfig(alicloud.DefaultDNSRegion, gomock.Any(), gomock.Any()).Return(dnsClient, nil)
 			dnsClient.EXPECT().GetDomainName(ctx, domainId).Return(compositeDomainName, nil)
 			dnsClient.EXPECT().CreateOrUpdateDomainRecords(ctx, compositeDomainName, dnsName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120)).Return(nil)
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, compositeDomainName, "comment-"+dnsName, "TXT").Return(nil)
@@ -167,7 +167,7 @@ var _ = Describe("Actuator", func() {
 			dns.Spec.Zone = ptr.To(domainId)
 			dns.Status.Zone = ptr.To("example.com:2")
 
-			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
+			alicloudClientFactory.EXPECT().NewDNSClientFromAuthConfig(alicloud.DefaultDNSRegion, gomock.Any(), gomock.Any()).Return(dnsClient, nil)
 			dnsClient.EXPECT().GetDomainName(ctx, domainId).Return(compositeDomainName, nil)
 			dnsClient.EXPECT().CreateOrUpdateDomainRecords(ctx, compositeDomainName, dnsName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120)).Return(nil)
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, compositeDomainName, "comment-"+dnsName, "TXT").Return(nil)
@@ -182,7 +182,7 @@ var _ = Describe("Actuator", func() {
 		It("should delete the DNSRecord with a composite domain name in status", func() {
 			dns.Status.Zone = ptr.To(compositeDomainName)
 
-			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
+			alicloudClientFactory.EXPECT().NewDNSClientFromAuthConfig(alicloud.DefaultDNSRegion, gomock.Any(), gomock.Any()).Return(dnsClient, nil)
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, compositeDomainName, dnsName, string(extensionsv1alpha1.DNSRecordTypeA)).Return(nil)
 
 			err := a.Delete(ctx, logger, dns, nil)
@@ -192,7 +192,7 @@ var _ = Describe("Actuator", func() {
 		It("should delete the DNSRecord with a domain name in status", func() {
 			dns.Status.Zone = ptr.To(domainName)
 
-			alicloudClientFactory.EXPECT().NewDNSClient(alicloud.DefaultDNSRegion, accessKeyID, accessKeySecret).Return(dnsClient, nil)
+			alicloudClientFactory.EXPECT().NewDNSClientFromAuthConfig(alicloud.DefaultDNSRegion, gomock.Any(), gomock.Any()).Return(dnsClient, nil)
 			dnsClient.EXPECT().DeleteDomainRecords(ctx, domainName, dnsName, string(extensionsv1alpha1.DNSRecordTypeA)).Return(nil)
 
 			err := a.Delete(ctx, logger, dns, nil)
