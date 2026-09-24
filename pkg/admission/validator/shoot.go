@@ -42,12 +42,12 @@ func NewShootValidator(mgr manager.Manager) extensionswebhook.Validator {
 		decoder:        serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
 		lenientDecoder: serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
 		apiReader:      mgr.GetAPIReader(),
-		newActorFn:     aliclient.NewActor,
+		newActorFn:     aliclient.NewActorFromAuthConfig,
 	}
 }
 
 // NewShootValidatorWithActorFn creates a shoot validator with a custom actor constructor, for testing.
-func NewShootValidatorWithActorFn(mgr manager.Manager, fn func(accessKeyID, secretAccessKey, region string) (aliclient.Actor, error)) extensionswebhook.Validator {
+func NewShootValidatorWithActorFn(mgr manager.Manager, fn func(auth provideralicloud.AuthConfig, region, sessionName string) (aliclient.Actor, error)) extensionswebhook.Validator {
 	return &shoot{
 		decoder:        serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
 		lenientDecoder: serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
@@ -60,7 +60,7 @@ type shoot struct {
 	decoder        runtime.Decoder
 	lenientDecoder runtime.Decoder
 	apiReader      client.Reader
-	newActorFn     func(accessKeyID, secretAccessKey, region string) (aliclient.Actor, error)
+	newActorFn     func(auth provideralicloud.AuthConfig, region, sessionName string) (aliclient.Actor, error)
 }
 
 // Validate validates the given shoot object.
@@ -228,12 +228,12 @@ func (s *shoot) computeGoneVSwitches(ctx context.Context, shoot *core.Shoot, old
 		return gone, nil
 	}
 
-	credentials, err := s.getCredentials(ctx, shoot)
+	authConfig, err := s.getAuthConfig(ctx, shoot)
 	if err != nil {
 		return nil, field.InternalError(infraConfigFldPath,
 			fmt.Errorf("could not get credentials for BYO VSwitch check: %w", err))
 	}
-	actor, err := s.newActorFn(credentials.AccessKeyID, credentials.AccessKeySecret, shoot.Spec.Region)
+	actor, err := s.newActorFn(*authConfig, shoot.Spec.Region, provideralicloud.BuildSessionName(shoot.Namespace))
 	if err != nil {
 		return nil, field.InternalError(infraConfigFldPath,
 			fmt.Errorf("could not create Alicloud actor for BYO VSwitch check: %w", err))
@@ -258,12 +258,12 @@ func (s *shoot) computeGoneVSwitches(ctx context.Context, shoot *core.Shoot, old
 // any of the supplied zones' worker CIDRs overlap with an existing vswitch's CIDR block.
 // startIndex is the position of zonesToCheck[0] within the full zones slice, used for correct field paths.
 func (s *shoot) validateVSwitchCIDRConflict(ctx context.Context, shoot *core.Shoot, vpcID string, zonesToCheck []alicloud.Zone, startIndex int) error {
-	credentials, err := s.getCredentials(ctx, shoot)
+	authConfig, err := s.getAuthConfig(ctx, shoot)
 	if err != nil {
 		return field.InternalError(infraConfigFldPath, fmt.Errorf("could not get Alicloud credentials: %w", err))
 	}
 
-	actor, err := s.newActorFn(credentials.AccessKeyID, credentials.AccessKeySecret, shoot.Spec.Region)
+	actor, err := s.newActorFn(*authConfig, shoot.Spec.Region, provideralicloud.BuildSessionName(shoot.Namespace))
 	if err != nil {
 		return field.InternalError(infraConfigFldPath, fmt.Errorf("could not create Alicloud client: %w", err))
 	}
@@ -302,9 +302,9 @@ func (s *shoot) validateVSwitchCIDRConflict(ctx context.Context, shoot *core.Sho
 	return allErrs.ToAggregate()
 }
 
-// getCredentials retrieves Alicloud credentials from the secret referenced by the shoot's
+// getAuthConfig retrieves Alicloud AuthConfig from the secret referenced by the shoot's
 // SecretBinding or CredentialsBinding.
-func (s *shoot) getCredentials(ctx context.Context, shoot *core.Shoot) (*provideralicloud.Credentials, error) {
+func (s *shoot) getAuthConfig(ctx context.Context, shoot *core.Shoot) (*provideralicloud.AuthConfig, error) {
 	var secretRef corev1.SecretReference
 
 	switch {
@@ -333,5 +333,5 @@ func (s *shoot) getCredentials(ctx context.Context, shoot *core.Shoot) (*provide
 	if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: secretRef.Namespace, Name: secretRef.Name}, secret); err != nil {
 		return nil, err
 	}
-	return provideralicloud.ReadSecretCredentials(secret, false)
+	return provideralicloud.ReadAuthConfig(secret)
 }
