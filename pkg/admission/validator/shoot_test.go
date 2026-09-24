@@ -114,7 +114,7 @@ var _ = Describe("shoot.validateVSwitchCIDRConflict", func() {
 
 		s = &shoot{
 			apiReader: newFakeReader(secretBinding, providerSecret),
-			newActorFn: func(_, _, _ string) (aliclient.Actor, error) {
+			newActorFn: func(_ provideralicloud.AuthConfig, _, _ string) (aliclient.Actor, error) {
 				return mockActor, nil
 			},
 		}
@@ -203,7 +203,7 @@ var _ = Describe("shoot.validateVSwitchCIDRConflict", func() {
 		})
 	})
 
-	Describe("getCredentials via CredentialsBinding", func() {
+	Describe("getAuthConfig via CredentialsBinding", func() {
 		It("should resolve credentials via CredentialsBinding when SecretBindingName is nil", func() {
 			sh := baseShoot.DeepCopy()
 			sh.Spec.SecretBindingName = nil

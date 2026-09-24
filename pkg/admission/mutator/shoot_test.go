@@ -235,7 +235,7 @@ var _ = Describe("Mutating Shoot", func() {
 	})
 	Context("#ControlPlaneConfig", func() {
 		It("should default EnableADController true if EnableADController is not set when creating a shoot ", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
+			alicloudClientFactory.EXPECT().NewECSClientFromAuthConfig(regionId, gomock.Any(), gomock.Any()).Return(ecsClient, nil)
 			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(false, nil)
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -259,7 +259,7 @@ var _ = Describe("Mutating Shoot", func() {
 	})
 	Context("#Encrypted System Disk", func() {
 		It("should set encrypted flag as true for new shoot ", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
+			alicloudClientFactory.EXPECT().NewECSClientFromAuthConfig(regionId, gomock.Any(), gomock.Any()).Return(ecsClient, nil)
 			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(false, nil)
 			//ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(false, nil)
 			err := mutator.Mutate(ctx, newShoot, nil)
@@ -269,7 +269,7 @@ var _ = Describe("Mutating Shoot", func() {
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
 		It("should set encrypted flag as false for system disk if image is owned by alicloud", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
+			alicloudClientFactory.EXPECT().NewECSClientFromAuthConfig(regionId, gomock.Any(), gomock.Any()).Return(ecsClient, nil)
 			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil)
 			ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil)
 			err := mutator.Mutate(ctx, newShoot, nil)
@@ -295,7 +295,7 @@ var _ = Describe("Mutating Shoot", func() {
 			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
+			alicloudClientFactory.EXPECT().NewECSClientFromAuthConfig(regionId, gomock.Any(), gomock.Any()).Return(ecsClient, nil)
 			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(false, nil)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
@@ -460,7 +460,7 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 
 		It("should disable overlay for a new shoot", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
+			alicloudClientFactory.EXPECT().NewECSClientFromAuthConfig(regionId, gomock.Any(), gomock.Any()).Return(ecsClient, nil)
 			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil)
 			ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil)
 			err := mutator.Mutate(ctx, newShoot, nil)
@@ -485,7 +485,7 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 
 		It("should disable overlay for a new shoot with non empty network config", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
+			alicloudClientFactory.EXPECT().NewECSClientFromAuthConfig(regionId, gomock.Any(), gomock.Any()).Return(ecsClient, nil)
 			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil)
 			ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil)
 			newShoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
@@ -564,7 +564,7 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 
 		It("should disable overlay for a new shoot", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
+			alicloudClientFactory.EXPECT().NewECSClientFromAuthConfig(regionId, gomock.Any(), gomock.Any()).Return(ecsClient, nil)
 			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil)
 			ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil)
 			err := mutator.Mutate(ctx, newShoot, nil)

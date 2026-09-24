@@ -265,15 +265,11 @@ func (s *shootMutator) isOwnedByAliCloud(ctx context.Context, shoot *corev1beta1
 	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
 		return false, err
 	}
-	accessKeyID, ok := secret.Data[alicloud.AccessKeyID]
-	if !ok {
-		return false, fmt.Errorf("missing %q field in secret %s", alicloud.AccessKeyID, secret.Name)
+	authConfig, err := alicloud.ReadAuthConfig(secret)
+	if err != nil {
+		return false, err
 	}
-	accessKeySecret, ok := secret.Data[alicloud.AccessKeySecret]
-	if !ok {
-		return false, fmt.Errorf("missing %q field in secret %s", alicloud.AccessKeySecret, secret.Name)
-	}
-	shootECSClient, err := s.alicloudClientFactory.NewECSClient(region, string(accessKeyID), string(accessKeySecret))
+	shootECSClient, err := s.alicloudClientFactory.NewECSClientFromAuthConfig(region, *authConfig, alicloud.BuildSessionName(shoot.Namespace))
 	if err != nil {
 		return false, err
 	}
