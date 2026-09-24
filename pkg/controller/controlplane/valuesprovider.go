@@ -273,11 +273,19 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	_ secretsmanager.Reader,
 	_ map[string]string,
 ) (map[string]interface{}, error) {
-	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+	// Get credentials from the referenced secret; also read credentialsFile for AK mode CSI chart
+	secret := &corev1.Secret{}
+	if err := vp.client.Get(ctx, client.ObjectKey{
+		Namespace: cp.Spec.SecretRef.Namespace,
+		Name:      cp.Spec.SecretRef.Name,
+	}, secret); err != nil {
+		return nil, fmt.Errorf("could not get cloud-provider secret for controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
+	}
+	authConfig, err := alicloud.ReadAuthConfig(secret)
 	if err != nil {
 		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
+	credentialsFile := string(secret.Data[alicloud.CredentialsFile])
 
 	cpConfig, err := vp.decodeControlPlaneConfig(cp)
 	if err != nil {
@@ -285,7 +293,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cpConfig, credentials, cluster)
+	return vp.getControlPlaneShootChartValues(cpConfig, authConfig, credentialsFile, cluster)
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.
@@ -334,7 +342,7 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 	}
 
 	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
 		return "", fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
@@ -352,8 +360,11 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 	cfg.Global.VpcID = infraStatus.VPC.ID
 	cfg.Global.ZoneID = vswitch.Zone
 	cfg.Global.VswitchID = vswitch.ID
-	cfg.Global.AccessKeyID = base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeyID))
-	cfg.Global.AccessKeySecret = base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret))
+	if authConfig.AccessKey != nil {
+		cfg.Global.AccessKeyID = base64.StdEncoding.EncodeToString([]byte(authConfig.AccessKey.ID))
+		cfg.Global.AccessKeySecret = base64.StdEncoding.EncodeToString([]byte(authConfig.AccessKey.Secret))
+	}
+	// WI mode: AccessKeyID/AccessKeySecret left empty; CCM reads RRSA via env vars injected by B7 chart
 	cfg.Global.Region = cp.Spec.Region
 
 	// Set route table ID so the CCM uses this specific table instead of auto-discovering
@@ -430,7 +441,8 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
 func (vp *valuesProvider) getControlPlaneShootChartValues(
 	cpConfig *apisalicloud.ControlPlaneConfig,
-	credentials *alicloud.Credentials,
+	authConfig *alicloud.AuthConfig,
+	credentialsFile string,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 	overlayEnabled, err := networking.IsOverlayEnabled(cluster.Shoot.Spec.Networking)
@@ -445,11 +457,20 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 		calicoMutatingAdmissionPolicyValues["apiVersion"] = mutatingAdmissionPolicyAPIVersion(cluster)
 	}
 
+	var csiCredential map[string]interface{}
+	if authConfig.WorkloadIdentity != nil {
+		csiCredential = map[string]interface{}{
+			"useWorkloadIdentity": true,
+		}
+	} else {
+		csiCredential = map[string]interface{}{
+			"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentialsFile)),
+		}
+	}
+
 	values := map[string]interface{}{
 		"csi-alicloud": map[string]interface{}{
-			"credential": map[string]interface{}{
-				"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
-			},
+			"credential":         csiCredential,
 			"enableADController": vp.enableCSIADController(cpConfig),
 		},
 		"calico-mutating-admission-policy": calicoMutatingAdmissionPolicyValues,

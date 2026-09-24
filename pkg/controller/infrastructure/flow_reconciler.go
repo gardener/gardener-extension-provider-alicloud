@@ -110,12 +110,12 @@ func (f *FlowReconciler) reconcileWithFlow(ctx context.Context, infrastructure *
 		err           error
 	)
 
-	_, credentials, err := f.actuator.getConfigAndCredentialsForInfra(ctx, infrastructure)
+	_, authConfig, err := f.actuator.getConfigAndCredentialsForInfra(ctx, infrastructure)
 	if err != nil {
 		return err
 	}
 
-	if err := f.actuator.ensureServiceLinkedRole(ctx, infrastructure, credentials); err != nil {
+	if err := f.actuator.ensureServiceLinkedRole(ctx, infrastructure, authConfig); err != nil {
 		return err
 	}
 
@@ -301,9 +301,9 @@ func (f *FlowReconciler) createFlowContext(ctx context.Context, infrastructure *
 	if err != nil {
 		return nil, err
 	}
-	_, shootCloudProviderCredentials, err := f.actuator.getConfigAndCredentialsForInfra(ctx, infrastructure)
+	_, authConfig, err := f.actuator.getConfigAndCredentialsForInfra(ctx, infrastructure)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get shoot credentials: %w", err)
+		return nil, fmt.Errorf("failed to read auth config from cloud-provider secret: %w", err)
 	}
 
 	infraObjectKey := client.ObjectKey{
@@ -327,7 +327,7 @@ func (f *FlowReconciler) createFlowContext(ctx context.Context, infrastructure *
 		oldFlatState = oldState.ToFlatMap()
 	}
 
-	return infraflow.NewFlowContext(f.log, shootCloudProviderCredentials, infrastructure, infrastructureConfig, oldFlatState, persistor, cluster)
+	return infraflow.NewFlowContext(f.log, *authConfig, infrastructure, infrastructureConfig, oldFlatState, persistor, cluster)
 }
 
 func (f *FlowReconciler) getFlowStateFromInfraStatus(infrastructure *extensionsv1alpha1.Infrastructure) (*infraflow.PersistentState, error) {

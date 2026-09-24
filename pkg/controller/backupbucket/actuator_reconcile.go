@@ -35,12 +35,12 @@ import (
 func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, bb *extensionsv1alpha1.BackupBucket) error {
 	logger.Info("Starting reconciliation of BackupBucket...")
 
-	authConfig, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.client, &bb.Spec.SecretRef)
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, a.client, &bb.Spec.SecretRef)
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}
 
-	ossClient, err := a.aliClientFactory.NewOSSClient(alicloudclient.ComputeStorageEndpoint(bb.Spec.Region), authConfig.AccessKeyID, authConfig.AccessKeySecret)
+	ossClient, err := a.aliClientFactory.NewOSSClientFromAuthConfig(alicloudclient.ComputeStorageEndpoint(bb.Spec.Region), *authConfig, alicloud.BuildSessionName(bb.Namespace))
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}

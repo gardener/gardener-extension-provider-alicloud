@@ -49,11 +49,11 @@ func NewActuator(mgr manager.Manager, alicloudClientFactory alicloudclient.Clien
 // Reconcile reconciles the DNSRecord.
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, dns *extensionsv1alpha1.DNSRecord, _ *extensionscontroller.Cluster) error {
 	// Create Alicloud client
-	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.client, &dns.Spec.SecretRef)
+	authConfig, err := alicloud.ReadDNSAuthConfigFromSecretRef(ctx, a.client, &dns.Spec.SecretRef)
 	if err != nil {
 		return fmt.Errorf("could not get Alicloud credentials: %+v", err)
 	}
-	dnsClient, err := a.alicloudClientFactory.NewDNSClient(getRegion(dns), credentials.AccessKeyID, credentials.AccessKeySecret)
+	dnsClient, err := a.alicloudClientFactory.NewDNSClientFromAuthConfig(getRegion(dns), *authConfig, alicloud.BuildSessionName(dns.Namespace))
 	if err != nil {
 		return util.DetermineError(fmt.Errorf("could not create Alicloud DNS client: %+v", err), helper.KnownCodes)
 	}
@@ -89,11 +89,11 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, dns *extensio
 // Delete deletes the DNSRecord.
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, dns *extensionsv1alpha1.DNSRecord, _ *extensionscontroller.Cluster) error {
 	// Create Alicloud client
-	credentials, err := alicloud.ReadDNSCredentialsFromSecretRef(ctx, a.client, &dns.Spec.SecretRef)
+	authConfig, err := alicloud.ReadDNSAuthConfigFromSecretRef(ctx, a.client, &dns.Spec.SecretRef)
 	if err != nil {
 		return fmt.Errorf("could not get Alicloud credentials: %+v", err)
 	}
-	dnsClient, err := a.alicloudClientFactory.NewDNSClient(getRegion(dns), credentials.AccessKeyID, credentials.AccessKeySecret)
+	dnsClient, err := a.alicloudClientFactory.NewDNSClientFromAuthConfig(getRegion(dns), *authConfig, alicloud.BuildSessionName(dns.Namespace))
 	if err != nil {
 		return util.DetermineError(fmt.Errorf("could not create Alicloud DNS client: %+v", err), helper.KnownCodes)
 	}
