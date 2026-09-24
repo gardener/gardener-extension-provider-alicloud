@@ -53,12 +53,12 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		return allErrs
 	}
 
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, c.mgr.GetClient(), &infra.Spec.SecretRef)
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, c.mgr.GetClient(), &infra.Spec.SecretRef)
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, fmt.Errorf("could not get Alicloud credentials: %+v", err)))
 		return allErrs
 	}
-	actor, err := c.factory.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
+	actor, err := c.factory.NewActorFromAuthConfig(*authConfig, infra.Spec.Region, alicloud.BuildSessionName(infra.Namespace))
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, fmt.Errorf("create aliclient actor failed: %+v", err)))
 		return allErrs

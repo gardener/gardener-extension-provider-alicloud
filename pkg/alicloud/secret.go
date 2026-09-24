@@ -7,6 +7,7 @@ package alicloud
 import (
 	"context"
 	"fmt"
+	"time"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	securityv1alpha1constants "github.com/gardener/gardener/pkg/apis/security/v1alpha1/constants"
@@ -102,6 +103,53 @@ func ReadCredentialsFromSecretRef(ctx context.Context, client client.Client, sec
 	return ReadSecretCredentials(secret, false)
 }
 
+// ReadDNSAuthConfigFromSecretRef reads an AuthConfig from the DNS secret referred by the given secretRef.
+// It accepts both standard keys (accessKeyID/accessKeySecret) and DNS-specific keys (ACCESS_KEY_ID/ACCESS_KEY_SECRET).
+func ReadDNSAuthConfigFromSecretRef(ctx context.Context, c client.Client, secretRef *corev1.SecretReference) (*AuthConfig, error) {
+	secret, err := extensionscontroller.GetSecretByReference(ctx, c, secretRef)
+	if err != nil {
+		return nil, err
+	}
+	return ReadDNSAuthConfig(secret)
+}
+
+// ReadDNSAuthConfig reads an AuthConfig from a DNS secret.
+// It accepts both standard keys (accessKeyID/accessKeySecret) and DNS-specific keys (ACCESS_KEY_ID/ACCESS_KEY_SECRET).
+func ReadDNSAuthConfig(secret *corev1.Secret) (*AuthConfig, error) {
+	if secret.Data == nil {
+		return nil, fmt.Errorf("secret %s/%s has no data section", secret.Namespace, secret.Name)
+	}
+	akIDBytes, ok := getSecretDataValue(secret, AccessKeyID, ptr.To(dnsAccessKeyID))
+	if ok {
+		akSecretBytes, ok := getSecretDataValue(secret, AccessKeySecret, ptr.To(dnsAccessKeySecret))
+		if !ok {
+			return nil, fmt.Errorf("secret %s/%s has access key id but no access key secret", secret.Namespace, secret.Name)
+		}
+		return &AuthConfig{AccessKey: &AccessKey{
+			ID:     string(akIDBytes),
+			Secret: string(akSecretBytes),
+		}}, nil
+	}
+	token, ok := secret.Data[securityv1alpha1constants.DataKeyToken]
+	if !ok {
+		return nil, fmt.Errorf("secret %s/%s has neither accessKeyID nor workload identity token", secret.Namespace, secret.Name)
+	}
+	return &AuthConfig{WorkloadIdentity: &WorkloadIdentityAuth{
+		OIDCProviderARN: string(secret.Data[OIDCProviderARNKey]),
+		RoleARN:         string(secret.Data[RoleARNKey]),
+		Token:           token,
+	}}, nil
+}
+
+// ReadAuthConfigFromSecretRef reads an AuthConfig from the secret referred by the given secretRef.
+func ReadAuthConfigFromSecretRef(ctx context.Context, c client.Client, secretRef *corev1.SecretReference) (*AuthConfig, error) {
+	secret, err := extensionscontroller.GetSecretByReference(ctx, c, secretRef)
+	if err != nil {
+		return nil, err
+	}
+	return ReadAuthConfig(secret)
+}
+
 // ReadDNSCredentialsFromSecretRef reads the credentials from the DNS secret referred by given <secretRef>.
 func ReadDNSCredentialsFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference) (*Credentials, error) {
 	secret, err := extensionscontroller.GetSecretByReference(ctx, client, secretRef)
@@ -151,4 +199,16 @@ func ReadAuthConfig(secret *corev1.Secret) (*AuthConfig, error) {
 		RoleARN:         string(secret.Data[RoleARNKey]),
 		Token:           token,
 	}}, nil
+}
+
+// BuildSessionName constructs an STS RoleSessionName from a Kubernetes namespace.
+// STS allows 2-64 characters (letters, digits, -, _, ., @).
+// The namespace is truncated to 44 chars so that the gardener- prefix and Unix
+// timestamp suffix keep the total within the 64-char limit.
+func BuildSessionName(namespace string) string {
+	ns := namespace
+	if len(ns) > 44 {
+		ns = ns[:44]
+	}
+	return fmt.Sprintf("gardener-%s-%d", ns, time.Now().Unix())
 }
