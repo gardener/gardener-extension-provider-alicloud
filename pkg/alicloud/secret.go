@@ -25,9 +25,11 @@ type Credentials struct {
 
 // AuthConfig holds credentials for either static AK/SK or workload identity mode.
 // Exactly one of AccessKey or WorkloadIdentity is set.
+// CredentialsFile is always populated by the cloudprovider webhook regardless of mode.
 type AuthConfig struct {
 	AccessKey        *AccessKey
 	WorkloadIdentity *WorkloadIdentityAuth
+	CredentialsFile  string
 }
 
 // AccessKey holds static Alicloud access key credentials.
@@ -184,21 +186,24 @@ func ReadAuthConfig(secret *corev1.Secret) (*AuthConfig, error) {
 		if !ok {
 			return nil, fmt.Errorf("secret %s/%s has accessKeyID but no accessKeySecret", secret.Namespace, secret.Name)
 		}
-		return &AuthConfig{AccessKey: &AccessKey{
-			ID:     string(akID),
-			Secret: string(akSecret),
-		}}, nil
+		return &AuthConfig{
+			AccessKey:       &AccessKey{ID: string(akID), Secret: string(akSecret)},
+			CredentialsFile: string(secret.Data[CredentialsFile]),
+		}, nil
 	}
 
 	token, ok := secret.Data[securityv1alpha1constants.DataKeyToken]
 	if !ok {
 		return nil, fmt.Errorf("secret %s/%s has neither accessKeyID nor workload identity token", secret.Namespace, secret.Name)
 	}
-	return &AuthConfig{WorkloadIdentity: &WorkloadIdentityAuth{
-		OIDCProviderARN: string(secret.Data[OIDCProviderARNKey]),
-		RoleARN:         string(secret.Data[RoleARNKey]),
-		Token:           token,
-	}}, nil
+	return &AuthConfig{
+		WorkloadIdentity: &WorkloadIdentityAuth{
+			OIDCProviderARN: string(secret.Data[OIDCProviderARNKey]),
+			RoleARN:         string(secret.Data[RoleARNKey]),
+			Token:           token,
+		},
+		CredentialsFile: string(secret.Data[CredentialsFile]),
+	}, nil
 }
 
 // BuildSessionName constructs an STS RoleSessionName from a Kubernetes namespace.
