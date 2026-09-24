@@ -25,7 +25,7 @@ type Credentials struct {
 
 // AuthConfig holds credentials for either static AK/SK or workload identity mode.
 // Exactly one of AccessKey or WorkloadIdentity is set.
-// CredentialsFile is always populated by the cloudprovider webhook regardless of mode.
+// CredentialsFile is populated by the cloudprovider webhook in AK mode only.
 type AuthConfig struct {
 	AccessKey        *AccessKey
 	WorkloadIdentity *WorkloadIdentityAuth

@@ -60,7 +60,6 @@ func (e *ensurer) ensureWorkloadIdentitySecret(secret *corev1.Secret) error {
 	secret.Data[alicloud.OIDCProviderARNKey] = []byte(config.OIDCProviderARN)
 	secret.Data[alicloud.RoleARNKey] = []byte(config.RoleARN)
 	secret.Data[alicloud.OIDCTokenFileKey] = []byte(tokenFilePath)
-	secret.Data[alicloud.CredentialsFile] = []byte(buildOIDCCredentialsFile(config.OIDCProviderARN, config.RoleARN, tokenFilePath))
 	return nil
 }
 
@@ -78,14 +77,4 @@ func (e *ensurer) ensureStaticCredentialsSecret(secret *corev1.Secret) error {
 		fmt.Sprintf("access_key_secret = %s", string(secret.Data[alicloud.AccessKeySecret])),
 	)
 	return nil
-}
-
-// buildOIDCCredentialsFile returns an Alicloud SDK INI credentials file for OIDC role ARN auth.
-// The CSI controller (seed-side) reads this file to assume the RAM role via RRSA.
-func buildOIDCCredentialsFile(oidcProviderARN, roleARN, tokenFilePath string) string {
-	return "[default]\n" +
-		"type = oidc_role_arn\n" +
-		fmt.Sprintf("oidc_provider_arn = %s\n", oidcProviderARN) +
-		fmt.Sprintf("role_arn = %s\n", roleARN) +
-		fmt.Sprintf("oidc_token_file = %s", tokenFilePath)
 }
