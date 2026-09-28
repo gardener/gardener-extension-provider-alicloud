@@ -375,5 +375,5 @@ func (s *shoot) getAuthConfig(ctx context.Context, shoot *core.Shoot) (*provider
 	if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: secretRef.Namespace, Name: secretRef.Name}, secret); err != nil {
 		return nil, err
 	}
-	return provideralicloud.ReadAuthConfig(secret)
+	return provideralicloud.ReadAuthConfig(secret, false)
 }

@@ -21,8 +21,6 @@ import (
 	client "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	ros "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
 	gomock "go.uber.org/mock/gomock"
-	v1 "k8s.io/api/core/v1"
-	client0 "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MockClientFactory is a mock of ClientFactory interface.
@@ -167,21 +165,6 @@ func (m *MockClientFactory) NewOSSClientFromAuthConfig(endpoint string, auth ali
 func (mr *MockClientFactoryMockRecorder) NewOSSClientFromAuthConfig(endpoint, auth, sessionName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClientFromAuthConfig", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClientFromAuthConfig), endpoint, auth, sessionName)
-}
-
-// NewOSSClientFromSecretRef mocks base method.
-func (m *MockClientFactory) NewOSSClientFromSecretRef(ctx context.Context, c client0.Client, secretRef *v1.SecretReference, region string) (client.OSS, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewOSSClientFromSecretRef", ctx, c, secretRef, region)
-	ret0, _ := ret[0].(client.OSS)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// NewOSSClientFromSecretRef indicates an expected call of NewOSSClientFromSecretRef.
-func (mr *MockClientFactoryMockRecorder) NewOSSClientFromSecretRef(ctx, c, secretRef, region any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOSSClientFromSecretRef", reflect.TypeOf((*MockClientFactory)(nil).NewOSSClientFromSecretRef), ctx, c, secretRef, region)
 }
 
 // NewRAMClient mocks base method.

@@ -95,16 +95,6 @@ func ReadSecretCredentials(secret *corev1.Secret, allowDNSKeys bool) (*Credentia
 	}, nil
 }
 
-// ReadCredentialsFromSecretRef reads the credentials from the secret referred by given <secretRef>.
-func ReadCredentialsFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference) (*Credentials, error) {
-	secret, err := extensionscontroller.GetSecretByReference(ctx, client, secretRef)
-	if err != nil {
-		return nil, err
-	}
-
-	return ReadSecretCredentials(secret, false)
-}
-
 // ReadDNSAuthConfigFromSecretRef reads an AuthConfig from the DNS secret referred by the given secretRef.
 // It accepts both standard keys (accessKeyID/accessKeySecret) and DNS-specific keys (ACCESS_KEY_ID/ACCESS_KEY_SECRET).
 func ReadDNSAuthConfigFromSecretRef(ctx context.Context, c client.Client, secretRef *corev1.SecretReference) (*AuthConfig, error) {
@@ -112,35 +102,7 @@ func ReadDNSAuthConfigFromSecretRef(ctx context.Context, c client.Client, secret
 	if err != nil {
 		return nil, err
 	}
-	return ReadDNSAuthConfig(secret)
-}
-
-// ReadDNSAuthConfig reads an AuthConfig from a DNS secret.
-// It accepts both standard keys (accessKeyID/accessKeySecret) and DNS-specific keys (ACCESS_KEY_ID/ACCESS_KEY_SECRET).
-func ReadDNSAuthConfig(secret *corev1.Secret) (*AuthConfig, error) {
-	if secret.Data == nil {
-		return nil, fmt.Errorf("secret %s/%s has no data section", secret.Namespace, secret.Name)
-	}
-	akIDBytes, ok := getSecretDataValue(secret, AccessKeyID, ptr.To(dnsAccessKeyID))
-	if ok {
-		akSecretBytes, ok := getSecretDataValue(secret, AccessKeySecret, ptr.To(dnsAccessKeySecret))
-		if !ok {
-			return nil, fmt.Errorf("secret %s/%s has access key id but no access key secret", secret.Namespace, secret.Name)
-		}
-		return &AuthConfig{AccessKey: &AccessKey{
-			ID:     string(akIDBytes),
-			Secret: string(akSecretBytes),
-		}}, nil
-	}
-	token, ok := secret.Data[securityv1alpha1constants.DataKeyToken]
-	if !ok {
-		return nil, fmt.Errorf("secret %s/%s has neither accessKeyID nor workload identity token", secret.Namespace, secret.Name)
-	}
-	return &AuthConfig{WorkloadIdentity: &WorkloadIdentityAuth{
-		OIDCProviderARN: string(secret.Data[OIDCProviderARNKey]),
-		RoleARN:         string(secret.Data[RoleARNKey]),
-		Token:           token,
-	}}, nil
+	return ReadAuthConfig(secret, true)
 }
 
 // ReadAuthConfigFromSecretRef reads an AuthConfig from the secret referred by the given secretRef.
@@ -149,17 +111,7 @@ func ReadAuthConfigFromSecretRef(ctx context.Context, c client.Client, secretRef
 	if err != nil {
 		return nil, err
 	}
-	return ReadAuthConfig(secret)
-}
-
-// ReadDNSCredentialsFromSecretRef reads the credentials from the DNS secret referred by given <secretRef>.
-func ReadDNSCredentialsFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference) (*Credentials, error) {
-	secret, err := extensionscontroller.GetSecretByReference(ctx, client, secretRef)
-	if err != nil {
-		return nil, err
-	}
-
-	return ReadSecretCredentials(secret, true)
+	return ReadAuthConfig(secret, false)
 }
 
 func getSecretDataValue(secret *corev1.Secret, key string, altKey *string) ([]byte, bool) {
@@ -175,14 +127,21 @@ func getSecretDataValue(secret *corev1.Secret, key string, altKey *string) ([]by
 }
 
 // ReadAuthConfig reads an AuthConfig from the given secret.
+// If allowDNSKeys is true, it also accepts DNS-specific key names (ACCESS_KEY_ID/ACCESS_KEY_SECRET).
 // If the secret contains accessKeyID it returns AK/SK mode; otherwise it expects a workload identity token.
-func ReadAuthConfig(secret *corev1.Secret) (*AuthConfig, error) {
+func ReadAuthConfig(secret *corev1.Secret, allowDNSKeys bool) (*AuthConfig, error) {
 	if secret.Data == nil {
 		return nil, fmt.Errorf("secret %s/%s has no data section", secret.Namespace, secret.Name)
 	}
 
-	if akID, ok := secret.Data[AccessKeyID]; ok {
-		akSecret, ok := secret.Data[AccessKeySecret]
+	var altAKIDKey, altAKSecretKey *string
+	if allowDNSKeys {
+		altAKIDKey = ptr.To(dnsAccessKeyID)
+		altAKSecretKey = ptr.To(dnsAccessKeySecret)
+	}
+
+	if akID, ok := getSecretDataValue(secret, AccessKeyID, altAKIDKey); ok {
+		akSecret, ok := getSecretDataValue(secret, AccessKeySecret, altAKSecretKey)
 		if !ok {
 			return nil, fmt.Errorf("secret %s/%s has accessKeyID but no accessKeySecret", secret.Namespace, secret.Name)
 		}

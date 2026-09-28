@@ -265,7 +265,7 @@ func (s *shootMutator) isOwnedByAliCloud(ctx context.Context, shoot *corev1beta1
 	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
 		return false, err
 	}
-	authConfig, err := alicloud.ReadAuthConfig(secret)
+	authConfig, err := alicloud.ReadAuthConfig(secret, false)
 	if err != nil {
 		return false, err
 	}
