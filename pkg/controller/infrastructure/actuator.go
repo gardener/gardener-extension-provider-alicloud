@@ -85,7 +85,7 @@ func NewActuatorWithDeps(
 			return nil, err
 		}
 		a.alicloudECSClient, err = a.newClientFactory.NewECSClient("", seedCloudProviderCredentials.AccessKeyID, seedCloudProviderCredentials.AccessKeySecret)
-		return nil, err
+		return a, err
 	}
 
 	return a, nil
