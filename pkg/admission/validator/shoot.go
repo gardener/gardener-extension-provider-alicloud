@@ -166,6 +166,10 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 		}
 	}
 
+	if errList := s.validateDNS(ctx, shoot); len(errList) != 0 {
+		return errList.ToAggregate()
+	}
+
 	return nil
 }
 
@@ -191,6 +195,10 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 	}
 
 	if errList := alicloudvalidation.ValidateNetworking(shoot.Spec.Networking, networkingFldPath); len(errList) != 0 {
+		return errList.ToAggregate()
+	}
+
+	if errList := s.validateDNS(ctx, shoot); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 
@@ -300,6 +308,40 @@ func (s *shoot) validateVSwitchCIDRConflict(ctx context.Context, shoot *core.Sho
 		}
 	}
 	return allErrs.ToAggregate()
+}
+
+// validateDNS validates that all alicloud-dns DNS providers with a credentialsRef that points to
+// a WorkloadIdentity contain a valid WI config (OIDCProviderARN, RoleARN).
+func (s *shoot) validateDNS(ctx context.Context, shoot *core.Shoot) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if shoot.Spec.DNS == nil {
+		return allErrs
+	}
+	for i, provider := range shoot.Spec.DNS.Providers {
+		if provider.Type == nil || *provider.Type != "alicloud-dns" || provider.CredentialsRef == nil {
+			continue
+		}
+		fldPath := field.NewPath("spec", "dns", "providers").Index(i).Child("credentialsRef")
+		ref := provider.CredentialsRef
+		switch {
+		case ref.APIVersion == corev1.SchemeGroupVersion.String() && ref.Kind == "Secret":
+			// no additional validation needed for AK/SK secrets
+		case ref.APIVersion == securityv1alpha1.SchemeGroupVersion.String() && ref.Kind == "WorkloadIdentity":
+			wi := &securityv1alpha1.WorkloadIdentity{}
+			if err := s.apiReader.Get(ctx, client.ObjectKey{Name: ref.Name}, wi); err != nil {
+				allErrs = append(allErrs, field.InternalError(fldPath, err))
+				continue
+			}
+			allErrs = append(allErrs, ValidateWorkloadIdentity(wi, nil, fldPath)...)
+		default:
+			allErrs = append(allErrs, field.NotSupported(fldPath, ref.APIVersion+", Kind="+ref.Kind,
+				[]string{
+					corev1.SchemeGroupVersion.String() + ", Kind=Secret",
+					securityv1alpha1.SchemeGroupVersion.String() + ", Kind=WorkloadIdentity",
+				}))
+		}
+	}
+	return allErrs
 }
 
 // getAuthConfig retrieves Alicloud AuthConfig from the secret referenced by the shoot's
