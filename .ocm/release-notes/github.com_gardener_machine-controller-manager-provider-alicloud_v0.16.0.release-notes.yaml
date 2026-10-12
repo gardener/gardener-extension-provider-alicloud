@@ -1,0 +1,26 @@
+ocm:
+  component_name: github.com/gardener/machine-controller-manager-provider-alicloud
+  component_version: v0.16.0
+release_notes:
+- audience: operator
+  author:
+    hostname: github.com
+    type: githubUser
+    username: vpnachev
+  category: bugfix
+  contents: 'Fix multi-arch container image build to compile the binary for the configured
+    `TARGETARCH` instead of always for `amd64`, i.e. the `arm64` image now contains
+    `arm64` binary instead of `amd64`. '
+  mimetype: text/markdown
+  reference: '[#148](https://github.com/gardener/machine-controller-manager-provider-alicloud/pull/148)'
+  type: standard
+- audience: developer
+  author:
+    hostname: github.com
+    type: githubUser
+    username: aaronfern
+  category: improvement
+  contents: Remove unused `.ci/pipeline_integration_test` file
+  mimetype: text/markdown
+  reference: '[#149](https://github.com/gardener/machine-controller-manager-provider-alicloud/pull/149)'
+  type: standard
