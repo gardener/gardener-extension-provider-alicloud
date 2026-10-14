@@ -7,7 +7,6 @@ package validator
 import (
 	"context"
 	"fmt"
-	"net"
 	"reflect"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
@@ -21,10 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	provideralicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 )
 
 var (
@@ -42,17 +39,6 @@ func NewShootValidator(mgr manager.Manager) extensionswebhook.Validator {
 		decoder:        serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
 		lenientDecoder: serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
 		apiReader:      mgr.GetAPIReader(),
-		newActorFn:     aliclient.NewActorFromAuthConfig,
-	}
-}
-
-// NewShootValidatorWithActorFn creates a shoot validator with a custom actor constructor, for testing.
-func NewShootValidatorWithActorFn(mgr manager.Manager, fn func(auth provideralicloud.AuthConfig, region, sessionName string) (aliclient.Actor, error)) extensionswebhook.Validator {
-	return &shoot{
-		decoder:        serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
-		lenientDecoder: serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
-		apiReader:      mgr.GetAPIReader(),
-		newActorFn:     fn,
 	}
 }
 
@@ -60,7 +46,6 @@ type shoot struct {
 	decoder        runtime.Decoder
 	lenientDecoder runtime.Decoder
 	apiReader      client.Reader
-	newActorFn     func(auth provideralicloud.AuthConfig, region, sessionName string) (aliclient.Actor, error)
 }
 
 // Validate validates the given shoot object.
@@ -134,11 +119,7 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 	}
 
 	if !reflect.DeepEqual(oldInfraConfig, infraConfig) {
-		goneVSwitches, err := s.computeGoneVSwitches(ctx, shoot, oldInfraConfig, infraConfig)
-		if err != nil {
-			return err
-		}
-		if errList := alicloudvalidation.ValidateInfrastructureConfigUpdate(oldInfraConfig, infraConfig, shoot.Spec.Provider.Workers, goneVSwitches); len(errList) != 0 {
+		if errList := alicloudvalidation.ValidateInfrastructureConfigUpdate(oldInfraConfig, infraConfig); len(errList) != 0 {
 			return errList.ToAggregate()
 		}
 	}
@@ -153,17 +134,6 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 
 	if err := s.validateShoot(ctx, shoot, infraConfig, cpConfig); err != nil {
 		return err
-	}
-
-	// Only check newly added zones against existing vswitches in the VPC.
-	if infraConfig != nil && infraConfig.Networks.VPC.ID != nil {
-		newZones := infraConfig.Networks.Zones
-		oldZones := oldInfraConfig.Networks.Zones
-		if len(newZones) > len(oldZones) {
-			if err := s.validateVSwitchCIDRConflict(ctx, shoot, *infraConfig.Networks.VPC.ID, newZones[len(oldZones):], len(oldZones)); err != nil {
-				return err
-			}
-		}
 	}
 
 	if errList := s.validateDNS(ctx, shoot); len(errList) != 0 {
@@ -205,111 +175,6 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 	return nil
 }
 
-// computeGoneVSwitches calls the Alicloud API to check which old WorkersVSwitchIDs no longer exist,
-// returning their IDs as a set. Only zones where WorkersVSwitchID changed are checked.
-// Returns fail-closed: API errors are surfaced as field.InternalError.
-func (s *shoot) computeGoneVSwitches(ctx context.Context, shoot *core.Shoot, oldConfig, newConfig *alicloud.InfrastructureConfig) ([]string, error) {
-	var gone []string
-	zonesPath := infraConfigFldPath.Child("networks", "zones")
-
-	// Zones are append-only (ValidateNetworkZonesConfig forbids removal), so oldConfig and newConfig
-	// zones share the same indices — iterating oldConfig and accessing newConfig[i] is safe.
-	type vswCheck struct {
-		zoneIdx      int
-		oldVSwitchID string
-	}
-	var checks []vswCheck
-	for i := range oldConfig.Networks.Zones {
-		if i >= len(newConfig.Networks.Zones) {
-			break
-		}
-		oldZone, newZone := oldConfig.Networks.Zones[i], newConfig.Networks.Zones[i]
-		if oldZone.WorkersVSwitchID == nil || newZone.WorkersVSwitchID == nil {
-			continue
-		}
-		if *oldZone.WorkersVSwitchID == *newZone.WorkersVSwitchID {
-			continue
-		}
-		checks = append(checks, vswCheck{i, *oldZone.WorkersVSwitchID})
-	}
-	if len(checks) == 0 {
-		return gone, nil
-	}
-
-	authConfig, err := s.getAuthConfig(ctx, shoot)
-	if err != nil {
-		return nil, field.InternalError(infraConfigFldPath,
-			fmt.Errorf("could not get credentials for BYO VSwitch check: %w", err))
-	}
-	actor, err := s.newActorFn(*authConfig, shoot.Spec.Region, provideralicloud.BuildSessionName(shoot.Namespace))
-	if err != nil {
-		return nil, field.InternalError(infraConfigFldPath,
-			fmt.Errorf("could not create Alicloud actor for BYO VSwitch check: %w", err))
-	}
-
-	for _, c := range checks {
-		vsw, err := actor.GetVSwitch(ctx, c.oldVSwitchID)
-		if err != nil {
-			return nil, field.InternalError(
-				zonesPath.Index(c.zoneIdx).Child("workersVSwitchID"),
-				fmt.Errorf("GetVSwitch %s failed: %w", c.oldVSwitchID, err))
-		}
-		if vsw == nil {
-			gone = append(gone, c.oldVSwitchID)
-		}
-	}
-
-	return gone, nil
-}
-
-// validateVSwitchCIDRConflict queries all existing vswitches in the given VPC and checks whether
-// any of the supplied zones' worker CIDRs overlap with an existing vswitch's CIDR block.
-// startIndex is the position of zonesToCheck[0] within the full zones slice, used for correct field paths.
-func (s *shoot) validateVSwitchCIDRConflict(ctx context.Context, shoot *core.Shoot, vpcID string, zonesToCheck []alicloud.Zone, startIndex int) error {
-	authConfig, err := s.getAuthConfig(ctx, shoot)
-	if err != nil {
-		return field.InternalError(infraConfigFldPath, fmt.Errorf("could not get Alicloud credentials: %w", err))
-	}
-
-	actor, err := s.newActorFn(*authConfig, shoot.Spec.Region, provideralicloud.BuildSessionName(shoot.Namespace))
-	if err != nil {
-		return field.InternalError(infraConfigFldPath, fmt.Errorf("could not create Alicloud client: %w", err))
-	}
-
-	existingVSwitches, err := actor.FindVSwitchesByVPC(ctx, vpcID)
-	if err != nil {
-		return field.InternalError(infraConfigFldPath, fmt.Errorf("could not list vswitches in VPC %s: %w", vpcID, err))
-	}
-
-	allErrs := field.ErrorList{}
-	zonesPath := field.NewPath("networks", "zones")
-	for i, zone := range zonesToCheck {
-		workerCIDR := zone.Workers
-		if workerCIDR == "" {
-			workerCIDR = zone.Worker
-		}
-		if workerCIDR == "" {
-			continue
-		}
-		fldPath := zonesPath.Index(startIndex + i).Child("workers")
-		_, netA, err := net.ParseCIDR(workerCIDR)
-		if err != nil {
-			continue
-		}
-		for _, vsw := range existingVSwitches {
-			_, netB, err := net.ParseCIDR(vsw.CidrBlock)
-			if err != nil {
-				continue
-			}
-			if netA.Contains(netB.IP) || netB.Contains(netA.IP) {
-				allErrs = append(allErrs, field.Invalid(fldPath, workerCIDR,
-					fmt.Sprintf("conflicts with existing vswitch %s (%s) in VPC %s", vsw.VSwitchId, vsw.CidrBlock, vpcID)))
-			}
-		}
-	}
-	return allErrs.ToAggregate()
-}
-
 // validateDNS validates that all alicloud-dns DNS providers with a credentialsRef that points to
 // a WorkloadIdentity contain a valid WI config (OIDCProviderARN, RoleARN).
 func (s *shoot) validateDNS(ctx context.Context, shoot *core.Shoot) field.ErrorList {
@@ -342,38 +207,4 @@ func (s *shoot) validateDNS(ctx context.Context, shoot *core.Shoot) field.ErrorL
 		}
 	}
 	return allErrs
-}
-
-// getAuthConfig retrieves Alicloud AuthConfig from the secret referenced by the shoot's
-// SecretBinding or CredentialsBinding.
-func (s *shoot) getAuthConfig(ctx context.Context, shoot *core.Shoot) (*provideralicloud.AuthConfig, error) {
-	var secretRef corev1.SecretReference
-
-	switch {
-	case shoot.Spec.SecretBindingName != nil:
-		secretBinding := &core.SecretBinding{}
-		if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.SecretBindingName}, secretBinding); err != nil {
-			return nil, err
-		}
-		secretRef = secretBinding.SecretRef
-
-	case shoot.Spec.CredentialsBindingName != nil:
-		credentialsBinding := &securityv1alpha1.CredentialsBinding{}
-		if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.CredentialsBindingName}, credentialsBinding); err != nil {
-			return nil, err
-		}
-		secretRef = corev1.SecretReference{
-			Namespace: credentialsBinding.CredentialsRef.Namespace,
-			Name:      credentialsBinding.CredentialsRef.Name,
-		}
-
-	default:
-		return nil, fmt.Errorf("shoot has neither secretBindingName nor credentialsBindingName")
-	}
-
-	secret := &corev1.Secret{}
-	if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: secretRef.Namespace, Name: secretRef.Name}, secret); err != nil {
-		return nil, err
-	}
-	return provideralicloud.ReadAuthConfig(secret, false)
 }
