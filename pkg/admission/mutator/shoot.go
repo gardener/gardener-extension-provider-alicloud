@@ -14,11 +14,7 @@ import (
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/api/core/v1beta1/helper"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-	securityv1alpha1 "github.com/gardener/gardener/pkg/apis/security/v1alpha1"
 	"github.com/gardener/gardener/pkg/controllerutils"
-	"github.com/gardener/gardener/pkg/utils/gardener"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -27,10 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
-	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
-	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	apisalicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
 )
 
@@ -44,25 +36,13 @@ const (
 
 // NewShootMutator returns a new instance of a shoot mutator.
 func NewShootMutator(mgr manager.Manager) extensionswebhook.Mutator {
-	alicloudclientFactory := alicloudclient.NewClientFactory()
-	return NewShootMutatorWithDeps(mgr, alicloudclientFactory)
-}
-
-// NewShootMutatorWithDeps with parameter returns a new instance of a shoot mutator.
-func NewShootMutatorWithDeps(mgr manager.Manager, alicloudclientFactory alicloudclient.ClientFactory) extensionswebhook.Mutator {
 	return &shootMutator{
-		client:                mgr.GetClient(),
-		apiReader:             mgr.GetAPIReader(),
-		codec:                 runtime.NewCodec(json.NewSerializerWithOptions(json.DefaultMetaFactory, mgr.GetScheme(), mgr.GetScheme(), json.SerializerOptions{}), serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()),
-		alicloudClientFactory: alicloudclientFactory,
+		codec: runtime.NewCodec(json.NewSerializerWithOptions(json.DefaultMetaFactory, mgr.GetScheme(), mgr.GetScheme(), json.SerializerOptions{}), serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()),
 	}
 }
 
 type shootMutator struct {
-	client                client.Client
-	apiReader             client.Reader
-	codec                 runtime.Codec
-	alicloudClientFactory alicloudclient.ClientFactory
+	codec runtime.Codec
 }
 
 func (s *shootMutator) Mutate(ctx context.Context, newObj, oldObj client.Object) error {
@@ -94,7 +74,7 @@ func (s *shootMutator) Mutate(ctx context.Context, newObj, oldObj client.Object)
 	}
 }
 
-func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1beta1.Shoot) error {
+func (s *shootMutator) mutateShootCreation(_ context.Context, shoot *corev1beta1.Shoot) error {
 	logger.Info("Starting Shoot Creation Mutation")
 
 	err := s.mutateControlPlaneConfigForCreate(shoot)
@@ -103,9 +83,7 @@ func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1bet
 	}
 
 	for _, worker := range shoot.Spec.Provider.Workers {
-		if err := s.setDefaultForEncryptedDisk(ctx, shoot, &worker); err != nil {
-			return err
-		}
+		s.setDefaultForEncryptedDisk(&worker)
 	}
 
 	return nil
@@ -192,7 +170,7 @@ func (s *shootMutator) decodeNetworkConfig(network *runtime.RawExtension) (map[s
 	return networkConfig, nil
 }
 
-func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *corev1beta1.Shoot, worker *corev1beta1.Worker) error {
+func (s *shootMutator) setDefaultForEncryptedDisk(worker *corev1beta1.Worker) {
 	imageName := worker.Machine.Image.Name
 	imageVersion := worker.Machine.Image.Version
 	logger.Info("Check ImageName: " + imageName + "; ImageVesion: " + *imageVersion)
@@ -206,108 +184,9 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 		}
 	}
 	if worker.Volume != nil && worker.Volume.Encrypted == nil {
-		//don't set encrypted disk by default if image is system image
-		isCustomizeImage, err := s.isCustomizedImage(ctx, shoot, imageName, imageVersion, worker)
-		if err != nil {
-			return err
-		}
-		if !isCustomizeImage {
-			return nil
-		}
-		logger.Info("Customized Image is used and we set encrypted disk by default for system disk")
+		logger.Info("Set encrypted disk by default for system disk")
 		worker.Volume.Encrypted = ptr.To(true)
 	}
-	return nil
-}
-
-func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1.Shoot, imageName string, imageVersion *string, worker *corev1beta1.Worker) (bool, error) {
-	cloudProfile, err := gardener.GetCloudProfile(ctx, s.client, shoot)
-	if err != nil {
-		return false, err
-	}
-	if cloudProfile == nil {
-		return false, fmt.Errorf("cloudprofile could not be found")
-	}
-	region := shoot.Spec.Region
-	logger.Info("Checking in cloudProfile", "CloudProfile", client.ObjectKeyFromObject(cloudProfile), "Region", region)
-	imageId, err := s.getImageId(ctx, imageName, imageVersion, region, cloudProfile, worker)
-	if err != nil || imageId == "" {
-		return false, err
-	}
-	logger.Info("Got ImageID", "ImageID", imageId)
-	isOwnedByAli, err := s.isOwnedByAliCloud(ctx, shoot, imageId, region)
-	return !isOwnedByAli, err
-}
-
-func (s *shootMutator) isOwnedByAliCloud(ctx context.Context, shoot *corev1beta1.Shoot, imageId string, region string) (bool, error) {
-	if shoot.Spec.SecretBindingName == nil && shoot.Spec.CredentialsBindingName == nil {
-		return false, fmt.Errorf("secretBindingName and credentialsBindingName cannot be both nil")
-	}
-
-	var secretKey client.ObjectKey
-	if shoot.Spec.SecretBindingName != nil {
-		bindingKey := client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.SecretBindingName}
-		secretBinding := &corev1beta1.SecretBinding{}
-		if err := kutil.LookupObject(ctx, s.client, s.apiReader, bindingKey, secretBinding); err != nil {
-			return false, err
-		}
-		secretKey = client.ObjectKey{Namespace: secretBinding.SecretRef.Namespace, Name: secretBinding.SecretRef.Name}
-	} else {
-		bindingKey := client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.CredentialsBindingName}
-		credentialsBinding := &securityv1alpha1.CredentialsBinding{}
-		if err := kutil.LookupObject(ctx, s.client, s.apiReader, bindingKey, credentialsBinding); err != nil {
-			return false, err
-		}
-		secretKey = client.ObjectKey{Namespace: credentialsBinding.CredentialsRef.Namespace, Name: credentialsBinding.CredentialsRef.Name}
-	}
-
-	secret := &corev1.Secret{}
-	if err := s.apiReader.Get(ctx, secretKey, secret); err != nil {
-		return false, err
-	}
-	authConfig, err := alicloud.ReadAuthConfig(secret, false)
-	if err != nil {
-		return false, err
-	}
-	shootECSClient, err := s.alicloudClientFactory.NewECSClientFromAuthConfig(region, *authConfig, alicloud.BuildSessionName(shoot.Namespace))
-	if err != nil {
-		return false, err
-	}
-	if exist, err := shootECSClient.CheckIfImageExists(imageId); err != nil {
-		return false, err
-	} else if exist {
-		return shootECSClient.CheckIfImageOwnedByAliCloud(imageId)
-	}
-	return false, nil
-}
-
-func (s *shootMutator) getImageId(_ context.Context, imageName string, imageVersion *string, imageRegion string, cloudProfileSpec *corev1beta1.CloudProfile, worker *corev1beta1.Worker) (string, error) {
-	cloudProfileConfig, err := s.getCloudProfileConfig(cloudProfileSpec)
-	if err != nil {
-		return "", err
-	}
-	if len(cloudProfileSpec.Spec.MachineCapabilities) > 0 {
-		machineTypeFromCloudProfile := gardencorev1beta1helper.FindMachineTypeByName(cloudProfileSpec.Spec.MachineTypes, worker.Machine.Type)
-		if machineTypeFromCloudProfile == nil {
-			return "", fmt.Errorf("machine type %q not found in cloud profile %q", worker.Machine.Type, cloudProfileSpec.Name)
-		}
-
-		imageFlavor, err := helper.FindImageInCloudProfileFlavor(cloudProfileConfig, imageName, *imageVersion, imageRegion, machineTypeFromCloudProfile.Capabilities, cloudProfileSpec.Spec.MachineCapabilities)
-		if err != nil {
-			return "", err
-		}
-		return imageFlavor.Regions[0].ID, nil
-	}
-	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
-}
-
-func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {
-	var cloudProfileConfig = &api.CloudProfileConfig{}
-	if _, _, err := s.codec.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
-		return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s': %w", client.ObjectKeyFromObject(cloudProfile), err)
-	}
-
-	return cloudProfileConfig, nil
 }
 
 func (s *shootMutator) mutateShootUpdate(ctx context.Context, shoot, oldShoot *corev1beta1.Shoot) error {
@@ -326,14 +205,12 @@ func (s *shootMutator) mutateShootUpdate(ctx context.Context, shoot, oldShoot *c
 	return nil
 }
 
-func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(ctx context.Context, shoot, oldshoot *corev1beta1.Shoot) error {
+func (s *shootMutator) triggerInfraUpdateForNewEncryptedSystemDisk(_ context.Context, shoot, oldshoot *corev1beta1.Shoot) error {
 	for _, worker := range shoot.Spec.Provider.Workers {
 		oldWorker := getWorkerByName(oldshoot, worker.Name)
 		if oldWorker == nil {
 			logger.Info("Set default value of encrypted disk for newly added worker")
-			if err := s.setDefaultForEncryptedDisk(ctx, shoot, &worker); err != nil {
-				return err
-			}
+			s.setDefaultForEncryptedDisk(&worker)
 			continue
 		}
 		if worker.Volume != nil && worker.Volume.Encrypted == nil && oldWorker.Volume != nil && oldWorker.Volume.Encrypted != nil {
