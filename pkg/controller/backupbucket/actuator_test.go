@@ -105,7 +105,7 @@ var _ = Describe("Actuator", func() {
 
 		Context("when creation of alicloud's oss client fails", func() {
 			It("should return an error", func() {
-				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("failed to create alicloud oss client"))
+				alicloudClientFactory.EXPECT().NewOSSClientFromAuthConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("failed to create alicloud oss client"))
 
 				err := a.Reconcile(ctx, logger, backupBucket)
 				Expect(err).Should(HaveOccurred())
@@ -118,7 +118,7 @@ var _ = Describe("Actuator", func() {
 				backupBucket.Spec.ProviderConfig = &runtime.RawExtension{
 					Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "BackupBucketConfig", "someField": "someValue"}`),
 				}
-				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil)
+				alicloudClientFactory.EXPECT().NewOSSClientFromAuthConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil)
 
 				err := a.Reconcile(ctx, logger, backupBucket)
 				Expect(err).Should(HaveOccurred())
@@ -127,7 +127,7 @@ var _ = Describe("Actuator", func() {
 
 		Context("when bucket does not exist", func() {
 			BeforeEach(func() {
-				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil).AnyTimes()
+				alicloudClientFactory.EXPECT().NewOSSClientFromAuthConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil).AnyTimes()
 				ossClient.EXPECT().GetBucketInfo(gomock.Any()).DoAndReturn(
 					func(_ string, _ ...oss.Option) (*oss.BucketInfo, error) {
 						return nil, oss.ServiceError{
@@ -199,7 +199,7 @@ var _ = Describe("Actuator", func() {
 
 		Context("when bucket exist", func() {
 			BeforeEach(func() {
-				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil).AnyTimes()
+				alicloudClientFactory.EXPECT().NewOSSClientFromAuthConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil).AnyTimes()
 				ossClient.EXPECT().GetBucketInfo(gomock.Any()).DoAndReturn(
 					func(_ string, _ ...oss.Option) (*oss.BucketInfo, error) {
 						return &oss.BucketInfo{}, nil
@@ -489,7 +489,7 @@ var _ = Describe("Actuator", func() {
 
 		Context("when creation of alicloud's oss client fails", func() {
 			It("should return an error", func() {
-				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("failed to create alicloud oss client"))
+				alicloudClientFactory.EXPECT().NewOSSClientFromAuthConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("failed to create alicloud oss client"))
 
 				err := a.Delete(ctx, logger, backupBucket)
 				Expect(err).Should(HaveOccurred())
@@ -497,7 +497,7 @@ var _ = Describe("Actuator", func() {
 		})
 
 		It("should delete the backup bucket successfully", func() {
-			alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil)
+			alicloudClientFactory.EXPECT().NewOSSClientFromAuthConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil)
 			ossClient.EXPECT().DeleteBucketIfExists(ctx, gomock.Any()).Return(nil)
 
 			err := a.Delete(ctx, logger, backupBucket)
@@ -505,7 +505,7 @@ var _ = Describe("Actuator", func() {
 		})
 
 		It("should return error if deletion of backup bucket fails", func() {
-			alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil)
+			alicloudClientFactory.EXPECT().NewOSSClientFromAuthConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil)
 			ossClient.EXPECT().DeleteBucketIfExists(ctx, gomock.Any()).Return(fmt.Errorf("failed to delete the backup bucket"))
 
 			err := a.Delete(ctx, logger, backupBucket)

@@ -85,7 +85,7 @@ func NewActuatorWithDeps(
 			return nil, err
 		}
 		a.alicloudECSClient, err = a.newClientFactory.NewECSClient("", seedCloudProviderCredentials.AccessKeyID, seedCloudProviderCredentials.AccessKeySecret)
-		return nil, err
+		return a, err
 	}
 
 	return a, nil
@@ -105,18 +105,18 @@ type actuator struct {
 	disableProjectedTokenMount bool
 }
 
-func (a *actuator) getConfigAndCredentialsForInfra(ctx context.Context, infra *extensionsv1alpha1.Infrastructure) (*alicloudv1alpha1.InfrastructureConfig, *alicloud.Credentials, error) {
+func (a *actuator) getConfigAndCredentialsForInfra(ctx context.Context, infra *extensionsv1alpha1.Infrastructure) (*alicloudv1alpha1.InfrastructureConfig, *alicloud.AuthConfig, error) {
 	config := &alicloudv1alpha1.InfrastructureConfig{}
 	if _, _, err := a.decoder.Decode(infra.Spec.ProviderConfig.Raw, nil, config); err != nil {
 		return nil, nil, err
 	}
 
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, a.client, &infra.Spec.SecretRef)
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, a.client, &infra.Spec.SecretRef)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return config, credentials, nil
+	return config, authConfig, nil
 }
 
 func (a *actuator) convertImageListToV1alpha1(machineImages []apisalicloud.MachineImage) ([]alicloudv1alpha1.MachineImage, error) {
@@ -149,12 +149,12 @@ func (a *actuator) ensureOldSSHKeyDetached(ctx context.Context, log logr.Logger,
 		return nil
 	}
 
-	_, shootCloudProviderCredentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
+	_, shootAuthConfig, err := a.getConfigAndCredentialsForInfra(ctx, infra)
 	if err != nil {
 		return err
 	}
 
-	shootAlicloudECSClient, err := a.newClientFactory.NewECSClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
+	shootAlicloudECSClient, err := a.newClientFactory.NewECSClientFromAuthConfig(infra.Spec.Region, *shootAuthConfig, alicloud.BuildSessionName(infra.Namespace))
 	if err != nil {
 		return err
 	}
@@ -170,12 +170,12 @@ func (a *actuator) ensureOldSSHKeyDetached(ctx context.Context, log logr.Logger,
 }
 
 func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *extensionsv1alpha1.Infrastructure) error {
-	_, shootCloudProviderCredentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
+	_, shootAuthConfig, err := a.getConfigAndCredentialsForInfra(ctx, infra)
 	if err != nil {
 		return err
 	}
 
-	shootAlicloudSLBClient, err := a.newClientFactory.NewSLBClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
+	shootAlicloudSLBClient, err := a.newClientFactory.NewSLBClientFromAuthConfig(infra.Spec.Region, *shootAuthConfig, alicloud.BuildSessionName(infra.Namespace))
 	if err != nil {
 		return err
 	}
@@ -220,8 +220,8 @@ func (a *actuator) cleanupServiceLoadBalancers(ctx context.Context, infra *exten
 	return nil
 }
 
-func (a *actuator) cleanupNLBs(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, credentials *alicloud.Credentials) error {
-	actor, err := aliclient.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
+func (a *actuator) cleanupNLBs(ctx context.Context, infra *extensionsv1alpha1.Infrastructure, auth *alicloud.AuthConfig) error {
+	actor, err := aliclient.NewActorFromAuthConfig(*auth, infra.Spec.Region, alicloud.BuildSessionName(infra.Namespace))
 	if err != nil {
 		return err
 	}
@@ -257,8 +257,8 @@ func (a *actuator) cleanupTerraformerResources(ctx context.Context, log logr.Log
 }
 
 // ensureServiceLinkedRole is to check if service linked role exists, if not create one.
-func (a *actuator) ensureServiceLinkedRole(_ context.Context, infra *extensionsv1alpha1.Infrastructure, credentials *alicloud.Credentials) error {
-	client, err := a.newClientFactory.NewRAMClient(infra.Spec.Region, credentials.AccessKeyID, credentials.AccessKeySecret)
+func (a *actuator) ensureServiceLinkedRole(_ context.Context, infra *extensionsv1alpha1.Infrastructure, auth *alicloud.AuthConfig) error {
+	client, err := a.newClientFactory.NewRAMClientFromAuthConfig(infra.Spec.Region, *auth, alicloud.BuildSessionName(infra.Namespace))
 	if err != nil {
 		return err
 	}

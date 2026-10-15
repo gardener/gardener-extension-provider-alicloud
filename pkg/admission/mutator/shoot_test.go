@@ -9,7 +9,6 @@ import (
 	encodingjson "encoding/json"
 	"time"
 
-	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -18,20 +17,15 @@ import (
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/mock/gomock"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/utils/ptr"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	alimutator "github.com/gardener/gardener-extension-provider-alicloud/pkg/admission/mutator"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
-	api "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/install"
 	apisalicloudv1alpha1 "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/v1alpha1"
-	mockalicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/mock/provider-alicloud/alicloud/client"
 )
 
 const (
@@ -56,94 +50,23 @@ func expectEncode(data []byte, err error) []byte {
 
 var _ = Describe("Mutating Shoot", func() {
 	var (
-		oldShoot              *corev1beta1.Shoot
-		newShoot              *corev1beta1.Shoot
-		mutator               extensionswebhook.Mutator
-		ctx                   context.Context
-		ctrl                  *gomock.Controller
-		scheme                *runtime.Scheme
-		serializer            runtime.Serializer
-		alicloudClientFactory *mockalicloudclient.MockClientFactory
-		ecsClient             *mockalicloudclient.MockECS
-		secretBinding         *corev1beta1.SecretBinding
-		secret                *corev1.Secret
-		now                   = metav1.Now()
-
-		config       *api.CloudProfileConfig
-		configJson   []byte
-		cloudProfile *corev1beta1.CloudProfile
+		oldShoot   *corev1beta1.Shoot
+		newShoot   *corev1beta1.Shoot
+		mutator    extensionswebhook.Mutator
+		ctx        context.Context
+		scheme     *runtime.Scheme
+		serializer runtime.Serializer
+		now        = metav1.Now()
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
-
 		scheme = runtime.NewScheme()
 		install.Install(scheme)
-		Expect(controller.AddToScheme(scheme)).To(Succeed())
 		Expect(corev1beta1.AddToScheme(scheme)).To(Succeed())
-		Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
 		serializer = json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{})
-		alicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)
-		ecsClient = mockalicloudclient.NewMockECS(ctrl)
 		ctx = context.TODO()
 
-		secretBinding = &corev1beta1.SecretBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-			},
-			SecretRef: corev1.SecretReference{
-				Name:      name,
-				Namespace: namespace,
-			},
-		}
-
-		secret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-			},
-			Type: corev1.SecretTypeOpaque,
-			Data: map[string][]byte{
-				alicloud.AccessKeyID:     []byte(accessKeyID),
-				alicloud.AccessKeySecret: []byte(accessKeySecret),
-			},
-		}
-
-		config = &api.CloudProfileConfig{
-			MachineImages: []api.MachineImages{
-				{
-					Name: imageName,
-					Versions: []api.MachineImageVersion{
-						{
-							Version: imageVersionStr,
-							Regions: []api.RegionIDMapping{
-								{
-									Name: regionId,
-									ID:   imageId,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		configJson = expectEncode(runtime.Encode(serializer, config))
-		cloudProfile = &corev1beta1.CloudProfile{
-			ObjectMeta: metav1.ObjectMeta{Name: "alicloud"},
-			Spec: corev1beta1.CloudProfileSpec{
-				ProviderConfig: &runtime.RawExtension{
-					Raw: configJson,
-				},
-				MachineTypes: []corev1beta1.MachineType{
-					{
-						Name: machineType,
-					},
-				},
-			},
-		}
 		controlPlaneConfig := &apisalicloudv1alpha1.ControlPlaneConfig{
 			CSI: &apisalicloudv1alpha1.CSI{
 				EnableADController: ptr.To(false),
@@ -225,18 +148,11 @@ var _ = Describe("Mutating Shoot", func() {
 			},
 		}
 
-		c := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(cloudProfile, secretBinding).Build()
-		apiReader := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
-		mgr := &testutils.FakeManager{Client: c, Scheme: scheme, APIReader: apiReader}
-		mutator = alimutator.NewShootMutatorWithDeps(mgr, alicloudClientFactory)
-	})
-	AfterEach(func() {
-		ctrl.Finish()
+		mgr := &testutils.FakeManager{Scheme: scheme}
+		mutator = alimutator.NewShootMutator(mgr)
 	})
 	Context("#ControlPlaneConfig", func() {
 		It("should default EnableADController true if EnableADController is not set when creating a shoot ", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
-			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(false, nil)
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
 			cpConfig := &apisalicloudv1alpha1.ControlPlaneConfig{}
@@ -259,22 +175,16 @@ var _ = Describe("Mutating Shoot", func() {
 	})
 	Context("#Encrypted System Disk", func() {
 		It("should set encrypted flag as true for new shoot ", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
-			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(false, nil)
-			//ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(false, nil)
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*newShoot.Spec.Provider.Workers[0].Volume.Encrypted).To(BeTrue())
 			Expect(*newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted).To(BeTrue())
 			Expect(controllerutils.HasTask(newShoot.Annotations, v1beta1constants.ShootTaskDeployInfrastructure)).To(BeFalse())
 		})
-		It("should set encrypted flag as false for system disk if image is owned by alicloud", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
-			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil)
-			ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil)
+		It("should set encrypted flag as true for system disk even for alicloud-owned images", func() {
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(newShoot.Spec.Provider.Workers[0].Volume.Encrypted).To(BeNil())
+			Expect(*newShoot.Spec.Provider.Workers[0].Volume.Encrypted).To(BeTrue())
 			Expect(*newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted).To(BeTrue())
 		})
 		It("should set encrypted flag as true for newly added worker or datavolume", func() {
@@ -295,8 +205,6 @@ var _ = Describe("Mutating Shoot", func() {
 			oldShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 			newShoot.Spec.Provider.Workers[0].DataVolumes[0].Encrypted = nil
 
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
-			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(false, nil)
 			err := mutator.Mutate(ctx, newShoot, oldShoot)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*newShoot.Spec.Provider.Workers[1].Volume.Encrypted).To(BeTrue())
@@ -460,9 +368,6 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 
 		It("should disable overlay for a new shoot", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
-			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil)
-			ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil)
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
 			var networkConfig, expectedConfig map[string]interface{}
@@ -485,9 +390,6 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 
 		It("should disable overlay for a new shoot with non empty network config", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
-			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil)
-			ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil)
 			newShoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
 				Raw: []byte(`{"foo":{"enabled":true}}`),
 			}
@@ -564,9 +466,6 @@ var _ = Describe("Mutating Shoot", func() {
 		})
 
 		It("should disable overlay for a new shoot", func() {
-			alicloudClientFactory.EXPECT().NewECSClient(regionId, accessKeyID, accessKeySecret).Return(ecsClient, nil)
-			ecsClient.EXPECT().CheckIfImageExists(imageId).Return(true, nil)
-			ecsClient.EXPECT().CheckIfImageOwnedByAliCloud(imageId).Return(true, nil)
 			err := mutator.Mutate(ctx, newShoot, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(newShoot.Spec.Networking.ProviderConfig).To(Equal(&runtime.RawExtension{

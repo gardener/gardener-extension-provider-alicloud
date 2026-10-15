@@ -27,6 +27,7 @@ import (
 	vpaautoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/utils/ptr"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestController(t *testing.T) {
@@ -69,7 +70,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(logger)
+			ensurer := NewEnsurer(logger, nil)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
 			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext32, dep, nil)
@@ -99,7 +100,7 @@ var _ = Describe("Ensurer", func() {
 			)
 
 			// Create ensurer
-			ensurer := NewEnsurer(logger)
+			ensurer := NewEnsurer(logger, nil)
 
 			// Call EnsureKubeControllerManagerDeployment method and check the result
 			err := ensurer.EnsureKubeControllerManagerDeployment(context.TODO(), eContext32, dep, nil)
@@ -114,7 +115,7 @@ var _ = Describe("Ensurer", func() {
 		)
 
 		BeforeEach(func() {
-			ensurer = NewEnsurer(logger)
+			ensurer = NewEnsurer(logger, nil)
 		})
 
 		It("should modify existing elements of kubelet.service unit options", func() {
@@ -157,7 +158,7 @@ var _ = Describe("Ensurer", func() {
 		)
 
 		BeforeEach(func() {
-			ensurer = NewEnsurer(logger)
+			ensurer = NewEnsurer(logger, nil)
 			oldKubeletConfig = &kubeletconfigv1beta1.KubeletConfiguration{
 				FeatureGates: map[string]bool{
 					"Foo": true,
@@ -198,7 +199,17 @@ var _ = Describe("Ensurer", func() {
 					},
 				},
 			}
-			ensurer = NewEnsurer(logger)
+			fakeClient := fakeclient.NewClientBuilder().WithObjects(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      v1beta1constants.SecretNameCloudProvider,
+					Namespace: "foo",
+				},
+				Data: map[string][]byte{
+					"accessKeyID":     []byte("test-ak-id"),
+					"accessKeySecret": []byte("test-ak-secret"),
+				},
+			}).Build()
+			ensurer = NewEnsurer(logger, fakeClient)
 			DeferCleanup(testutils.WithVar(&ImageVector, imagevector.ImageVector{{
 				Name:       "machine-controller-manager-provider-alicloud",
 				Repository: ptr.To("foo"),
@@ -222,7 +233,7 @@ var _ = Describe("Ensurer", func() {
 
 		BeforeEach(func() {
 			vpa = &vpaautoscalingv1.VerticalPodAutoscaler{}
-			ensurer = NewEnsurer(logger)
+			ensurer = NewEnsurer(logger, nil)
 		})
 
 		It("should inject the sidecar container policy", func() {

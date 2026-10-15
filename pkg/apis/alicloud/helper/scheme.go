@@ -77,3 +77,25 @@ func CloudProfileConfigFromCluster(cluster *controller.Cluster) (*api.CloudProfi
 	}
 	return cloudProfileConfig, nil
 }
+
+// WorkloadIdentityConfigFromRaw decodes a WorkloadIdentityConfig from a RawExtension.
+// Used when reading WorkloadIdentity.Spec.TargetSystem.ProviderConfig.
+func WorkloadIdentityConfigFromRaw(raw *runtime.RawExtension) (*api.WorkloadIdentityConfig, error) {
+	if raw == nil || raw.Raw == nil {
+		return nil, fmt.Errorf("workload identity config is nil")
+	}
+	return WorkloadIdentityConfigFromBytes(raw.Raw)
+}
+
+// WorkloadIdentityConfigFromBytes decodes a WorkloadIdentityConfig from raw bytes.
+// Used when reading secret.Data["config"].
+func WorkloadIdentityConfigFromBytes(config []byte) (*api.WorkloadIdentityConfig, error) {
+	if len(config) == 0 {
+		return nil, fmt.Errorf("workload identity config is empty")
+	}
+	out := &api.WorkloadIdentityConfig{}
+	if _, _, err := decoder.Decode(config, nil, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}

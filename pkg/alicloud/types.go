@@ -84,3 +84,14 @@ var (
 	// UsernamePrefix is a constant for the username prefix of components deployed by AWS.
 	UsernamePrefix = extensionsv1alpha1.SchemeGroupVersion.Group + ":" + Name + ":"
 )
+
+const (
+	// WorkloadIdentityMountPath is the mount path for the workload identity token volume in MCM/CCM pods.
+	WorkloadIdentityMountPath = "/var/run/secrets/gardener.cloud/workload-identity"
+	// OIDCProviderARNKey is the key in the cloud-provider secret for the OIDC provider ARN.
+	OIDCProviderARNKey = "oidcProviderARN"
+	// RoleARNKey is the key in the cloud-provider secret for the RAM role ARN.
+	RoleARNKey = "roleARN"
+	// OIDCTokenFileKey is the key in the cloud-provider secret for the OIDC token file path.
+	OIDCTokenFileKey = "oidcTokenFile"
+)

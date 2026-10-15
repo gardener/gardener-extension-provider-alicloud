@@ -126,8 +126,8 @@ var _ = Describe("ConfigValidator", func() {
 			fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(worker, cpSecret).Build()
 			mgr = &testutils.FakeManager{Client: fakeClient}
 			cv = NewConfigValidator(mgr, alicloudClientFactory)
-			alicloudClientFactory.EXPECT().NewECSClient(region, accessKeyID, accessKeySecret).Return(ecsClient, nil)
-			alicloudClientFactory.EXPECT().NewVPCClient(region, accessKeyID, accessKeySecret).Return(vpcClient, nil)
+			alicloudClientFactory.EXPECT().NewECSClientFromAuthConfig(region, gomock.Any(), gomock.Any()).Return(ecsClient, nil)
+			alicloudClientFactory.EXPECT().NewVPCClientFromAuthConfig(region, gomock.Any(), gomock.Any()).Return(vpcClient, nil)
 		})
 
 		It("should succeed if there are infrastructureStatus passed", func() {

@@ -23,9 +23,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"golang.org/x/time/rate"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client/ros"
@@ -74,16 +72,6 @@ func (f *clientFactory) NewOSSClient(endpoint, accessKeyID, accessKeySecret stri
 	return &ossClient{
 		*client,
 	}, nil
-}
-
-// NewOSSClientFromSecretRef creates a new OSS Client using the credentials from <secretRef>.
-func (f *clientFactory) NewOSSClientFromSecretRef(ctx context.Context, client client.Client, secretRef *corev1.SecretReference, region string) (OSS, error) {
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, client, secretRef)
-	if err != nil {
-		return nil, err
-	}
-
-	return f.NewOSSClient(ComputeStorageEndpoint(region), credentials.AccessKeyID, credentials.AccessKeySecret)
 }
 
 // DeleteObjectsWithPrefix deletes the OSS objects with the specific <prefix> from <bucketName>.
