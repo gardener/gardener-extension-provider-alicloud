@@ -55,7 +55,7 @@ const (
 	// useCSILabeler switches between Plan A (DISK_ALLOW_ALL_TYPE + MAX_VOLUMES_PERNODE)
 	// and Plan B (--run-labeler on controller, --use-labeler on DaemonSet).
 	// Set to true to enable Plan B.
-	useCSILabeler = false
+	useCSILabeler = true
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretmanager.SecretConfigWithOptions {
@@ -165,6 +165,7 @@ var controlPlaneShootChart = &chart.Chart{
 			Objects: []*chart.Object{
 				// csi-disk-plugin-alicloud
 				{Type: &appsv1.DaemonSet{}, Name: "csi-disk-plugin-alicloud"},
+				{Type: &corev1.Secret{}, Name: "csi-diskplugin-alicloud"},
 				{Type: &corev1.ServiceAccount{}, Name: "csi-disk-plugin-alicloud"},
 				// csi-controller-ali-plugin
 				{Type: &corev1.ServiceAccount{}, Name: "csi-controller-ali-plugin"},
@@ -283,7 +284,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cpConfig, cluster)
+	return vp.getControlPlaneShootChartValues(ctx, cp, cpConfig, cluster)
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.
@@ -428,6 +429,8 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
 func (vp *valuesProvider) getControlPlaneShootChartValues(
+	ctx context.Context,
+	cp *extensionsv1alpha1.ControlPlane,
 	cpConfig *apisalicloud.ControlPlaneConfig,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
@@ -443,11 +446,24 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 		calicoMutatingAdmissionPolicyValues["apiVersion"] = mutatingAdmissionPolicyAPIVersion(cluster)
 	}
 
+	enableADController := vp.enableCSIADController(cpConfig)
+	csiValues := map[string]interface{}{
+		"enableADController": enableADController,
+		"useLabeler":         useCSILabeler,
+	}
+
+	if !enableADController {
+		credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+		if err != nil {
+			return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
+		}
+		csiValues["credential"] = map[string]interface{}{
+			"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
+		}
+	}
+
 	values := map[string]interface{}{
-		"csi-alicloud": map[string]interface{}{
-			"enableADController": vp.enableCSIADController(cpConfig),
-			"useLabeler":         useCSILabeler,
-		},
+		"csi-alicloud":                    csiValues,
 		"calico-mutating-admission-policy": calicoMutatingAdmissionPolicyValues,
 	}
 
