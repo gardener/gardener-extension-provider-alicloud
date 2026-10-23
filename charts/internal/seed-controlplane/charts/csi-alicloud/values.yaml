@@ -12,7 +12,7 @@ images:
 
 enableADController: true
 
-useLabeler: false
+runLabeler: false
 
 csiPluginController:
   snapshotPrefix: ""

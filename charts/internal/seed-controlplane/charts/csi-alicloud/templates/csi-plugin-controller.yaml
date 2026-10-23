@@ -40,7 +40,7 @@ spec:
         - "--run-as-controller=true"
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
         - "--v=5"
-{{- if .Values.useLabeler }}
+{{- if .Values.runLabeler }}
         - "--run-labeler=true"
 {{- end }}
         env:

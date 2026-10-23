@@ -133,7 +133,7 @@ var _ = Describe("ValuesProvider", func() {
 				"replicas":           1,
 				"regionID":           "eu-central-1",
 				"enableADController": true,
-				"useLabeler":         true,
+				"runLabeler":         true,
 				"csiPluginController": map[string]interface{}{
 					"snapshotPrefix":         "myshoot",
 					"persistentVolumePrefix": "myshoot",
@@ -149,7 +149,7 @@ var _ = Describe("ValuesProvider", func() {
 		controlPlaneShootChartValues = map[string]interface{}{
 			"csi-alicloud": map[string]interface{}{
 				"enableADController": true,
-				"useLabeler":         true,
+				"useLabeler":         false,
 			},
 			"calico-mutating-admission-policy": map[string]interface{}{
 				"enabled": false,
@@ -309,7 +309,7 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(HaveKeyWithValue("csi-alicloud", map[string]interface{}{
 				"enableADController": false,
-				"useLabeler":         true,
+				"useLabeler":         false,
 				"credential": map[string]interface{}{
 					"credentialsFile": "YmF6",
 				},

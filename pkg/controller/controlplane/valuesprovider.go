@@ -52,10 +52,16 @@ const (
 	caNameControlPlane               = "ca-" + alicloud.Name + "-controlplane"
 	cloudControllerManagerServerName = "cloud-controller-manager-server"
 
-	// useCSILabeler switches between Plan A (DISK_ALLOW_ALL_TYPE + MAX_VOLUMES_PERNODE)
-	// and Plan B (--run-labeler on controller, --use-labeler on DaemonSet).
-	// Set to true to enable Plan B.
-	useCSILabeler = true
+	// runCSILabeler enables the centralized metadata labeler on the seed-side CSI controller
+	// (--run-labeler=true). When true, the controller patches shoot nodes with
+	// node.csi.alibabacloud.com/max-disk. This is Step 1 of the two-step migration.
+	runCSILabeler = true
+
+	// useCSILabeler enables the DaemonSet to read max-disk from the node annotation
+	// instead of calling ECS API (--use-labeler=true). Only safe to set true AFTER
+	// runCSILabeler has been true for at least one shoot reconcile cycle, so that all
+	// existing nodes already have the max-disk annotation. This is Step 2.
+	useCSILabeler = false
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretmanager.SecretConfigWithOptions {
@@ -404,7 +410,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"regionID":           cp.Spec.Region,
 			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"enableADController": vp.enableCSIADController(cpConfig),
-			"useLabeler":         useCSILabeler,
+			"runLabeler":         runCSILabeler,
 			"csiPluginController": map[string]interface{}{
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
@@ -463,7 +469,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 	}
 
 	values := map[string]interface{}{
-		"csi-alicloud":                    csiValues,
+		"csi-alicloud":                     csiValues,
 		"calico-mutating-admission-policy": calicoMutatingAdmissionPolicyValues,
 	}
 
