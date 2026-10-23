@@ -51,6 +51,11 @@ import (
 const (
 	caNameControlPlane               = "ca-" + alicloud.Name + "-controlplane"
 	cloudControllerManagerServerName = "cloud-controller-manager-server"
+
+	// useCSILabeler switches between Plan A (DISK_ALLOW_ALL_TYPE + MAX_VOLUMES_PERNODE)
+	// and Plan B (--run-labeler on controller, --use-labeler on DaemonSet).
+	// Set to true to enable Plan B.
+	useCSILabeler = false
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretmanager.SecretConfigWithOptions {
@@ -160,7 +165,6 @@ var controlPlaneShootChart = &chart.Chart{
 			Objects: []*chart.Object{
 				// csi-disk-plugin-alicloud
 				{Type: &appsv1.DaemonSet{}, Name: "csi-disk-plugin-alicloud"},
-				{Type: &corev1.Secret{}, Name: "csi-diskplugin-alicloud"},
 				{Type: &corev1.ServiceAccount{}, Name: "csi-disk-plugin-alicloud"},
 				// csi-controller-ali-plugin
 				{Type: &corev1.ServiceAccount{}, Name: "csi-controller-ali-plugin"},
@@ -273,19 +277,13 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	_ secretsmanager.Reader,
 	_ map[string]string,
 ) (map[string]interface{}, error) {
-	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
-	if err != nil {
-		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
-	}
-
 	cpConfig, err := vp.decodeControlPlaneConfig(cp)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cpConfig, credentials, cluster)
+	return vp.getControlPlaneShootChartValues(cpConfig, cluster)
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.
@@ -405,6 +403,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"regionID":           cp.Spec.Region,
 			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"enableADController": vp.enableCSIADController(cpConfig),
+			"useLabeler":         useCSILabeler,
 			"csiPluginController": map[string]interface{}{
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
@@ -430,7 +429,6 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
 func (vp *valuesProvider) getControlPlaneShootChartValues(
 	cpConfig *apisalicloud.ControlPlaneConfig,
-	credentials *alicloud.Credentials,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 	overlayEnabled, err := networking.IsOverlayEnabled(cluster.Shoot.Spec.Networking)
@@ -447,10 +445,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 
 	values := map[string]interface{}{
 		"csi-alicloud": map[string]interface{}{
-			"credential": map[string]interface{}{
-				"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
-			},
 			"enableADController": vp.enableCSIADController(cpConfig),
+			"useLabeler":         useCSILabeler,
 		},
 		"calico-mutating-admission-policy": calicoMutatingAdmissionPolicyValues,
 	}

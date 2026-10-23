@@ -40,6 +40,9 @@ spec:
         - "--run-as-controller=true"
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
         - "--v=5"
+{{- if .Values.useLabeler }}
+        - "--run-labeler=true"
+{{- end }}
         env:
 {{- if .Values.enableADController }}
         - name: DISK_AD_CONTROLLER

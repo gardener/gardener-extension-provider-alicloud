@@ -133,6 +133,7 @@ var _ = Describe("ValuesProvider", func() {
 				"replicas":           1,
 				"regionID":           "eu-central-1",
 				"enableADController": true,
+				"useLabeler":         false,
 				"csiPluginController": map[string]interface{}{
 					"snapshotPrefix":         "myshoot",
 					"persistentVolumePrefix": "myshoot",
@@ -147,10 +148,8 @@ var _ = Describe("ValuesProvider", func() {
 
 		controlPlaneShootChartValues = map[string]interface{}{
 			"csi-alicloud": map[string]interface{}{
-				"credential": map[string]interface{}{
-					"credentialsFile": "YmF6",
-				},
 				"enableADController": true,
+				"useLabeler":         false,
 			},
 			"calico-mutating-admission-policy": map[string]interface{}{
 				"enabled": false,
