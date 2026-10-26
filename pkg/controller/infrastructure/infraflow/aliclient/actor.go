@@ -1436,6 +1436,9 @@ func listByIds[RESP any](geter func(id string) (*RESP, error), ids []string) ([]
 }
 
 func callApi[REQ any, RESP any](call func(req *REQ) (*RESP, error), req *REQ) (*RESP, error) {
+	if ar, ok := any(req).(requests.AcsRequest); ok {
+		ar.SetScheme("HTTPS")
+	}
 	var resp *RESP
 	var err error
 	retry_error_code_list := []string{
