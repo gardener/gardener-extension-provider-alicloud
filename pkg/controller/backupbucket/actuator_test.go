@@ -36,6 +36,7 @@ const (
 	secretAccessKey = "secretAccessKey"
 	name            = "alicloud-operator"
 	namespace       = "shoot--test--alicloud"
+	accountID       = "1234567890"
 )
 
 var _ = Describe("Actuator", func() {
@@ -45,6 +46,7 @@ var _ = Describe("Actuator", func() {
 		a                     backupbucket.Actuator
 		alicloudClientFactory *mockalicloudclient.MockClientFactory
 		ossClient             *mockalicloudclient.MockOSS
+		stsClient             *mockalicloudclient.MockSTS
 		ctx                   context.Context
 		logger                logr.Logger
 		secret                *corev1.Secret
@@ -62,6 +64,7 @@ var _ = Describe("Actuator", func() {
 
 		alicloudClientFactory = mockalicloudclient.NewMockClientFactory(ctrl)
 		ossClient = mockalicloudclient.NewMockOSS(ctrl)
+		stsClient = mockalicloudclient.NewMockSTS(ctrl)
 
 		ctx = context.Background()
 		logger = log.Log.WithName("test")
@@ -119,6 +122,7 @@ var _ = Describe("Actuator", func() {
 					Raw: []byte(`{"apiVersion": "alicloud.provider.extensions.gardener.cloud/v1alpha1", "kind": "BackupBucketConfig", "someField": "someValue"}`),
 				}
 				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil)
+				alicloudClientFactory.EXPECT().NewSTSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(stsClient, nil)
 
 				err := a.Reconcile(ctx, logger, backupBucket)
 				Expect(err).Should(HaveOccurred())
@@ -128,13 +132,20 @@ var _ = Describe("Actuator", func() {
 		Context("when bucket does not exist", func() {
 			BeforeEach(func() {
 				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil).AnyTimes()
+				alicloudClientFactory.EXPECT().NewSTSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(stsClient, nil).AnyTimes()
+				callCount := 0
 				ossClient.EXPECT().GetBucketInfo(gomock.Any()).DoAndReturn(
 					func(_ string, _ ...oss.Option) (*oss.BucketInfo, error) {
-						return nil, oss.ServiceError{
-							Code: "NoSuchBucket",
+						callCount++
+						if callCount == 1 {
+							return nil, oss.ServiceError{
+								Code: "NoSuchBucket",
+							}
 						}
+						return &oss.BucketInfo{Owner: oss.Owner{ID: accountID}}, nil
 					},
-				)
+				).AnyTimes()
+				stsClient.EXPECT().GetAccountIDFromCallerIdentity(gomock.Any()).Return(accountID, nil).AnyTimes()
 				ossClient.EXPECT().GetBucketWorm(gomock.Any()).DoAndReturn(
 					func(_ string, _ ...oss.Option) (*oss.WormConfiguration, error) {
 						return nil, oss.ServiceError{
@@ -200,11 +211,13 @@ var _ = Describe("Actuator", func() {
 		Context("when bucket exist", func() {
 			BeforeEach(func() {
 				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil).AnyTimes()
+				alicloudClientFactory.EXPECT().NewSTSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(stsClient, nil).AnyTimes()
 				ossClient.EXPECT().GetBucketInfo(gomock.Any()).DoAndReturn(
 					func(_ string, _ ...oss.Option) (*oss.BucketInfo, error) {
-						return &oss.BucketInfo{}, nil
+						return &oss.BucketInfo{Owner: oss.Owner{ID: accountID}}, nil
 					},
-				)
+				).AnyTimes()
+				stsClient.EXPECT().GetAccountIDFromCallerIdentity(gomock.Any()).Return(accountID, nil).AnyTimes()
 			})
 
 			Context("bucket lock need to be enabled", func() {

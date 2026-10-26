@@ -45,6 +45,11 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, bb *extens
 		return util.DetermineError(err, helper.KnownCodes)
 	}
 
+	stsClient, err := a.aliClientFactory.NewSTSClient(bb.Spec.Region, authConfig.AccessKeyID, authConfig.AccessKeySecret)
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+
 	var backupBucketConfig *apisali.BackupBucketConfig
 	if bb.Spec.ProviderConfig != nil {
 		backupBucketConfig, err = validator.DecodeBackupBucketConfig(serializer.NewCodecFactory(a.client.Scheme(), serializer.EnableStrict).UniversalDecoder(), bb.Spec.ProviderConfig)
@@ -55,20 +60,33 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, bb *extens
 
 	a.action = ActionFunc(getAction(ossClient, bb.Name, backupBucketConfig))
 
-	return util.DetermineError(a.reconcile(ctx, logger, ossClient, bb.Name, backupBucketConfig), helper.KnownCodes)
+	return util.DetermineError(a.reconcile(ctx, logger, ossClient, stsClient, bb.Name, backupBucketConfig), helper.KnownCodes)
 }
 
-func (a *actuator) reconcile(ctx context.Context, _ logr.Logger, ossClient alicloudclient.OSS, bucket string, backupBucketConfig *apisali.BackupBucketConfig) error {
-	if _, err := ossClient.GetBucketInfo(bucket); err != nil {
+func (a *actuator) reconcile(ctx context.Context, _ logr.Logger, ossClient alicloudclient.OSS, stsClient alicloudclient.STS, bucket string, backupBucketConfig *apisali.BackupBucketConfig) error {
+	info, err := ossClient.GetBucketInfo(bucket)
+	if err != nil {
 		ossErr, ok := err.(oss.ServiceError)
 		if !ok {
 			return util.DetermineError(err, helper.KnownCodes)
 		}
-		if ossErr.Code == alicloudclient.ErrorCodeNoSuchBucket {
-			if err := ossClient.CreateBucketIfNotExists(ctx, bucket); err != nil {
-				return util.DetermineError(err, helper.KnownCodes)
-			}
+		if ossErr.Code != alicloudclient.ErrorCodeNoSuchBucket {
+			return fmt.Errorf("unexpected error checking bucket %s: %w", bucket, err)
 		}
+		if err := ossClient.CreateBucketIfNotExists(ctx, bucket); err != nil {
+			return util.DetermineError(err, helper.KnownCodes)
+		}
+		if info, err = ossClient.GetBucketInfo(bucket); err != nil {
+			return util.DetermineError(err, helper.KnownCodes)
+		}
+	}
+
+	callerAccountID, err := stsClient.GetAccountIDFromCallerIdentity(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get caller account ID: %w", err)
+	}
+	if info.Owner.ID != callerAccountID {
+		return fmt.Errorf("bucket %s is owned by another account", bucket)
 	}
 
 	if isBucketLockConfigNeedToBeRemoved(ossClient, bucket, backupBucketConfig) {
