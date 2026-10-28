@@ -435,6 +435,7 @@ func (c *ecsClient) ShareImageToAccount(_ context.Context, regionID, imageID, ac
 func (c *ecsClient) DetachECSInstancesFromSSHKeyPair(keyName string) error {
 	const pageSize = 50
 	describeECSRequest := ecs.CreateDescribeInstancesRequest()
+	describeECSRequest.SetScheme("HTTPS")
 	describeECSRequest.KeyPairName = keyName
 	describeECSRequest.PageSize = requests.NewInteger(pageSize)
 
@@ -470,6 +471,7 @@ func (c *ecsClient) DetachECSInstancesFromSSHKeyPair(keyName string) error {
 	}
 
 	detachKeyPairRequest := ecs.CreateDetachKeyPairRequest()
+	detachKeyPairRequest.SetScheme("HTTPS")
 	detachKeyPairRequest.KeyPairName = keyName
 	for _, ids := range datachInstanceBatches {
 		detachKeyPairRequest.InstanceIds = ids
@@ -608,6 +610,7 @@ func (f *clientFactory) NewVPCClient(region, accessKeyID, accessKeySecret string
 // GetEnhanhcedNatGatewayAvailableZones returns zones in which Enhanced NatGateway is available with given region
 func (c *vpcClient) GetEnhanhcedNatGatewayAvailableZones(_ context.Context, region string) ([]string, error) {
 	request := vpc.CreateListEnhanhcedNatGatewayAvailableZonesRequest()
+	request.SetScheme("HTTPS")
 	request.RegionId = region
 	response, err := c.ListEnhanhcedNatGatewayAvailableZones(request)
 	if err != nil {
@@ -623,6 +626,7 @@ func (c *vpcClient) GetEnhanhcedNatGatewayAvailableZones(_ context.Context, regi
 // GetVPCWithID returns VPC with given vpcID.
 func (c *vpcClient) GetVPCWithID(_ context.Context, vpcID string) ([]vpc.Vpc, error) {
 	request := vpc.CreateDescribeVpcsRequest()
+	request.SetScheme("HTTPS")
 	request.VpcId = vpcID
 	response, err := c.DescribeVpcs(request)
 	if err != nil {
@@ -635,6 +639,7 @@ func (c *vpcClient) GetVPCWithID(_ context.Context, vpcID string) ([]vpc.Vpc, er
 // GetNatGatewaysWithVPCID returns Gateways with given vpcID.
 func (c *vpcClient) GetNatGatewaysWithVPCID(_ context.Context, vpcID string) ([]vpc.NatGateway, error) {
 	request := vpc.CreateDescribeNatGatewaysRequest()
+	request.SetScheme("HTTPS")
 	request.VpcId = vpcID
 	response, err := c.DescribeNatGateways(request)
 	if err != nil {
@@ -647,6 +652,7 @@ func (c *vpcClient) GetNatGatewaysWithVPCID(_ context.Context, vpcID string) ([]
 // GetEIPWithID returns EIP with given eipID
 func (c *vpcClient) GetEIPWithID(_ context.Context, eipID string) ([]vpc.EipAddress, error) {
 	request := vpc.CreateDescribeEipAddressesRequest()
+	request.SetScheme("HTTPS")
 	request.AllocationId = eipID
 
 	response, err := c.DescribeEipAddresses(request)
@@ -694,6 +700,7 @@ func (c *vpcClient) GetVPCInfo(ctx context.Context, vpcID string) (*VPCInfo, err
 // GetVPCInfoByName gets info of an existing VPC by VPC name
 func (c *vpcClient) GetVPCInfoByName(name string) (*VPCInfo, error) {
 	request := vpc.CreateDescribeVpcsRequest()
+	request.SetScheme("HTTPS")
 	request.VpcName = name
 
 	vpc, err := c.DescribeVpcs(request)
@@ -718,6 +725,7 @@ func (c *vpcClient) GetVPCInfoByName(name string) (*VPCInfo, error) {
 // GetVSwitchesInfoByID get info of VSwitch by ID
 func (c *vpcClient) GetVSwitchesInfoByID(id string) (*VSwitchInfo, error) {
 	request := vpc.CreateDescribeVSwitchesRequest()
+	request.SetScheme("HTTPS")
 	request.VSwitchId = id
 	vswitches, err := c.DescribeVSwitches(request)
 	if err != nil {

@@ -188,6 +188,7 @@ func (d *dnsClient) getDomains(ctx context.Context) (map[string]alidns.Domain, e
 	domains := make(map[string]alidns.Domain)
 	pageSize, pageNumber := 20, 1
 	req := alidns.CreateDescribeDomainsRequest()
+	req.SetScheme("HTTPS")
 	req.PageSize = requests.NewInteger(pageSize)
 	for {
 		req.PageNumber = requests.NewInteger(pageNumber)
@@ -248,6 +249,7 @@ func (d *dnsClient) getDomainRecords(ctx context.Context, domainName, rr, record
 	records := make(map[string]alidns.Record)
 	pageSize, pageNumber := 20, 1
 	req := alidns.CreateDescribeDomainRecordsRequest()
+	req.SetScheme("HTTPS")
 	req.PageSize = requests.NewInteger(pageSize)
 	for {
 		req.PageNumber = requests.NewInteger(pageNumber)
@@ -279,6 +281,7 @@ func (d *dnsClient) createDomainRecord(ctx context.Context, domainName, rr, reco
 	}
 
 	req := alidns.CreateAddDomainRecordRequest()
+	req.SetScheme("HTTPS")
 	req.DomainName = domainName
 	req.RR = rr
 	req.Type = recordType
@@ -294,6 +297,7 @@ func (d *dnsClient) updateDomainRecord(ctx context.Context, id, rr, recordType, 
 	}
 
 	req := alidns.CreateUpdateDomainRecordRequest()
+	req.SetScheme("HTTPS")
 	req.RecordId = id
 	req.RR = rr
 	req.Type = recordType
@@ -309,6 +313,7 @@ func (d *dnsClient) deleteDomainRecord(ctx context.Context, id string) error {
 	}
 
 	req := alidns.CreateDeleteDomainRecordRequest()
+	req.SetScheme("HTTPS")
 	req.RecordId = id
 	if _, err := d.DeleteDomainRecord(req); err != nil && !isDomainRecordDoesNotExistError(err) {
 		return err
