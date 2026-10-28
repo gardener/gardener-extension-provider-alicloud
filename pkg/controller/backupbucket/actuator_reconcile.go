@@ -22,16 +22,12 @@ import (
 )
 
 // Reconcile reconciles the BackupBucket resource with following steps:
-// 1. Create alicloud's oss client from secret ref.
+// 1. Create alicloud's oss and sts clients from secret ref.
 // 2. Decode the backupbucket config (if provided).
-// 3. Check if bucket already exist or not.
-// 4. If bucket doesn't exist
-//   - then create a new bucket according to backupbucketConfig, if provided.
-//
-// 5. If bucket exist
-//   - check for bucket update is required or not
-//   - If yes then update the backup bucket settings according to backupbucketConfig(if provided)
-//     otherwise do nothing.
+// 3. Check if bucket already exists.
+// 4. If bucket doesn't exist, create it.
+// 5. Verify the bucket is owned by the caller's account (via STS GetCallerIdentity).
+// 6. If bucket exists, check if an update is required and update accordingly.
 func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, bb *extensionsv1alpha1.BackupBucket) error {
 	logger.Info("Starting reconciliation of BackupBucket...")
 
@@ -85,7 +81,7 @@ func (a *actuator) reconcile(ctx context.Context, _ logr.Logger, ossClient alicl
 	if err != nil {
 		return fmt.Errorf("failed to get caller account ID: %w", err)
 	}
-	if info.Owner.ID != callerAccountID {
+	if info == nil || info.Owner.ID != callerAccountID {
 		return fmt.Errorf("bucket %s is owned by another account", bucket)
 	}
 

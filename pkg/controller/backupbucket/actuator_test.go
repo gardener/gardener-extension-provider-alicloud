@@ -133,18 +133,10 @@ var _ = Describe("Actuator", func() {
 			BeforeEach(func() {
 				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil).AnyTimes()
 				alicloudClientFactory.EXPECT().NewSTSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(stsClient, nil).AnyTimes()
-				callCount := 0
-				ossClient.EXPECT().GetBucketInfo(gomock.Any()).DoAndReturn(
-					func(_ string, _ ...oss.Option) (*oss.BucketInfo, error) {
-						callCount++
-						if callCount == 1 {
-							return nil, oss.ServiceError{
-								Code: "NoSuchBucket",
-							}
-						}
-						return &oss.BucketInfo{Owner: oss.Owner{ID: accountID}}, nil
-					},
-				).AnyTimes()
+				gomock.InOrder(
+					ossClient.EXPECT().GetBucketInfo(gomock.Any()).Return(nil, oss.ServiceError{Code: "NoSuchBucket"}),
+					ossClient.EXPECT().GetBucketInfo(gomock.Any()).Return(&oss.BucketInfo{Owner: oss.Owner{ID: accountID}}, nil).AnyTimes(),
+				)
 				stsClient.EXPECT().GetAccountIDFromCallerIdentity(gomock.Any()).Return(accountID, nil).AnyTimes()
 				ossClient.EXPECT().GetBucketWorm(gomock.Any()).DoAndReturn(
 					func(_ string, _ ...oss.Option) (*oss.WormConfiguration, error) {
@@ -209,15 +201,26 @@ var _ = Describe("Actuator", func() {
 		})
 
 		Context("when bucket exist", func() {
+			var bucketOwnerID string
+
 			BeforeEach(func() {
+				bucketOwnerID = accountID
 				alicloudClientFactory.EXPECT().NewOSSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(ossClient, nil).AnyTimes()
 				alicloudClientFactory.EXPECT().NewSTSClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(stsClient, nil).AnyTimes()
 				ossClient.EXPECT().GetBucketInfo(gomock.Any()).DoAndReturn(
 					func(_ string, _ ...oss.Option) (*oss.BucketInfo, error) {
-						return &oss.BucketInfo{Owner: oss.Owner{ID: accountID}}, nil
+						return &oss.BucketInfo{Owner: oss.Owner{ID: bucketOwnerID}}, nil
 					},
 				).AnyTimes()
 				stsClient.EXPECT().GetAccountIDFromCallerIdentity(gomock.Any()).Return(accountID, nil).AnyTimes()
+			})
+
+			It("should return error when bucket is owned by another account", func() {
+				bucketOwnerID = "other-account-id"
+
+				err := a.Reconcile(ctx, logger, backupBucket)
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("owned by another account"))
 			})
 
 			Context("bucket lock need to be enabled", func() {
