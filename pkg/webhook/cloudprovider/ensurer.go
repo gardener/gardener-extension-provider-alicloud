@@ -17,6 +17,7 @@ package cloudprovider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/webhook/cloudprovider"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
@@ -51,10 +52,8 @@ func (e *ensurer) EnsureCloudProviderSecret(_ context.Context, _ gcontext.Garden
 
 	accessKey := string(newSecret.Data[alicloud.AccessKeyID])
 	accessKeySecret := string(newSecret.Data[alicloud.AccessKeySecret])
-	for _, c := range accessKeySecret {
-		if c < 32 {
-			return fmt.Errorf("field %q in secret %s/%s must not contain control characters", alicloud.AccessKeySecret, newSecret.Namespace, newSecret.Name)
-		}
+	if strings.ContainsAny(accessKeySecret, "\n\r") {
+		return fmt.Errorf("field %q in secret %s/%s must not contain new lines", alicloud.AccessKeySecret, newSecret.Namespace, newSecret.Name)
 	}
 
 	newSecret.Data[alicloud.CredentialsFile] = []byte("[default]\n" +

@@ -90,10 +90,18 @@ var _ = Describe("Secret validation", func() {
 			HaveOccurred(),
 		),
 
-		Entry("should return error when the secret access key contains a trailing new line",
+		Entry("should return error when the secret access key contains a new line",
 			map[string][]byte{
 				alicloud.AccessKeyID:     []byte(strings.Repeat("a", 16)),
 				alicloud.AccessKeySecret: []byte(strings.Repeat("b", 30) + "\n"),
+			},
+			HaveOccurred(),
+		),
+
+		Entry("should return error when the secret access key contains an embedded new line",
+			map[string][]byte{
+				alicloud.AccessKeyID:     []byte(strings.Repeat("a", 16)),
+				alicloud.AccessKeySecret: []byte(strings.Repeat("b", 15) + "\n" + strings.Repeat("b", 15)),
 			},
 			HaveOccurred(),
 		),

@@ -7,6 +7,7 @@ package validation
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -50,14 +51,10 @@ func ValidateCloudProviderSecret(secret *corev1.Secret) error {
 	if len(secretAccessKey) < accessKeySecretMinLen {
 		return fmt.Errorf("field %q in secret %s must have at least %d characters", alicloud.AccessKeySecret, secretRef, accessKeySecretMinLen)
 	}
-	// accessKeySecret must not contain control characters (including newlines),
-	// as they are known to cause issues when writing the credentials file.
-	// Printable whitespace such as spaces and tabs is intentionally not checked for,
-	// since there is no documentation indicating that they would not be valid.
-	for _, c := range secretAccessKey {
-		if c < 32 {
-			return fmt.Errorf("field %q in secret %s must not contain control characters", alicloud.AccessKeySecret, secretRef)
-		}
+	// accessKeySecret must not contain new lines anywhere, as they are known to cause issues
+	// when writing the credentials file.
+	if strings.ContainsAny(string(secretAccessKey), "\n\r") {
+		return fmt.Errorf("field %q in secret %s must not contain new lines", alicloud.AccessKeySecret, secretRef)
 	}
 
 	return nil
