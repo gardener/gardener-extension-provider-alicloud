@@ -435,6 +435,7 @@ func (c *ecsClient) ShareImageToAccount(_ context.Context, regionID, imageID, ac
 func (c *ecsClient) DetachECSInstancesFromSSHKeyPair(keyName string) error {
 	const pageSize = 50
 	describeECSRequest := ecs.CreateDescribeInstancesRequest()
+	describeECSRequest.SetScheme("HTTPS")
 	describeECSRequest.KeyPairName = keyName
 	describeECSRequest.PageSize = requests.NewInteger(pageSize)
 
@@ -470,6 +471,7 @@ func (c *ecsClient) DetachECSInstancesFromSSHKeyPair(keyName string) error {
 	}
 
 	detachKeyPairRequest := ecs.CreateDetachKeyPairRequest()
+	detachKeyPairRequest.SetScheme("HTTPS")
 	detachKeyPairRequest.KeyPairName = keyName
 	for _, ids := range datachInstanceBatches {
 		detachKeyPairRequest.InstanceIds = ids
