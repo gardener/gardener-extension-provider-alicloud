@@ -220,7 +220,7 @@ var _ = Describe("Actuator", func() {
 
 				err := a.Reconcile(ctx, logger, backupBucket)
 				Expect(err).Should(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("owned by another account"))
+				Expect(err.Error()).To(ContainSubstring("owned by account"))
 			})
 
 			Context("bucket lock need to be enabled", func() {
