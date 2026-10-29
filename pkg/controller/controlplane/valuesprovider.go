@@ -53,15 +53,17 @@ const (
 	cloudControllerManagerServerName = "cloud-controller-manager-server"
 
 	// runCSILabeler enables the centralized metadata labeler on the seed-side CSI controller
-	// (--run-labeler=true). When true, the controller patches shoot nodes with
-	// node.csi.alibabacloud.com/max-disk. This is Step 1 of the two-step migration.
+	// (--run-labeler=true). The labeler patches shoot nodes with
+	// node.csi.alibabacloud.com/max-disk via an initial LIST + AddFunc watch.
 	runCSILabeler = true
 
-	// useCSILabeler enables the DaemonSet to read max-disk from the node annotation
-	// instead of calling ECS API (--use-labeler=true). Only safe to set true AFTER
-	// runCSILabeler has been true for at least one shoot reconcile cycle, so that all
-	// existing nodes already have the max-disk annotation. This is Step 2.
-	useCSILabeler = false
+	// useCSILabeler enables the DaemonSet to skip all ECS API calls in NodeGetInfo
+	// (--use-labeler=true) and read max-disk from the node annotation instead.
+	// Safe to enable together with runCSILabeler: the labeler's initial LIST completes
+	// before DaemonSet rolling update reaches each node. New nodes may see transient
+	// NodeGetInfo failures until the labeler's AddFunc writes max-disk, but kubelet
+	// retries automatically and existing workloads are unaffected.
+	useCSILabeler = true
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretmanager.SecretConfigWithOptions {

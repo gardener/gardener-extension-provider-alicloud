@@ -149,7 +149,7 @@ var _ = Describe("ValuesProvider", func() {
 		controlPlaneShootChartValues = map[string]interface{}{
 			"csi-alicloud": map[string]interface{}{
 				"enableADController": true,
-				"useLabeler":         false,
+				"useLabeler":         true,
 			},
 			"calico-mutating-admission-policy": map[string]interface{}{
 				"enabled": false,
@@ -309,7 +309,7 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(HaveKeyWithValue("csi-alicloud", map[string]interface{}{
 				"enableADController": false,
-				"useLabeler":         false,
+				"useLabeler":         true,
 				"credential": map[string]interface{}{
 					"credentialsFile": "YmF6",
 				},
