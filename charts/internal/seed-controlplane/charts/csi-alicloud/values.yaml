@@ -12,6 +12,8 @@ images:
 
 enableADController: true
 
+runLabeler: false
+
 csiPluginController:
   snapshotPrefix: ""
   persistentVolumePrefix: ""

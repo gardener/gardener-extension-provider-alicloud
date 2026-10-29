@@ -133,6 +133,7 @@ var _ = Describe("ValuesProvider", func() {
 				"replicas":           1,
 				"regionID":           "eu-central-1",
 				"enableADController": true,
+				"runLabeler":         true,
 				"csiPluginController": map[string]interface{}{
 					"snapshotPrefix":         "myshoot",
 					"persistentVolumePrefix": "myshoot",
@@ -147,10 +148,8 @@ var _ = Describe("ValuesProvider", func() {
 
 		controlPlaneShootChartValues = map[string]interface{}{
 			"csi-alicloud": map[string]interface{}{
-				"credential": map[string]interface{}{
-					"credentialsFile": "YmF6",
-				},
 				"enableADController": true,
+				"useLabeler":         true,
 			},
 			"calico-mutating-admission-policy": map[string]interface{}{
 				"enabled": false,
@@ -290,6 +289,31 @@ var _ = Describe("ValuesProvider", func() {
 			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(controlPlaneShootChartValues))
+		})
+
+		It("should include credentials when enableADController is false", func() {
+			cpNoAD := cp.DeepCopy()
+			cpNoAD.Spec.ProviderConfig = &runtime.RawExtension{
+				Raw: encode(&apisalicloud.ControlPlaneConfig{
+					CloudControllerManager: &apisalicloud.CloudControllerManagerConfig{
+						FeatureGates: map[string]bool{
+							"SomeKubernetesFeature": true,
+						},
+					},
+					CSI: &apisalicloud.CSI{
+						EnableADController: ptr.To(false),
+					},
+				}),
+			}
+			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cpNoAD, cluster, fakeSecretsManager, checksums)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(HaveKeyWithValue("csi-alicloud", map[string]interface{}{
+				"enableADController": false,
+				"useLabeler":         true,
+				"credential": map[string]interface{}{
+					"credentialsFile": "YmF6",
+				},
+			}))
 		})
 
 		DescribeTable("calico-mutating-admission-policy values",

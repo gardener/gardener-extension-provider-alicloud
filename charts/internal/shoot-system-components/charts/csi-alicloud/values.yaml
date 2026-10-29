@@ -4,10 +4,10 @@ images:
   csi-plugin-alicloud-init: image-repository:image-tag
   csi-liveness-probe: image-repository:image-tag
 
-credential:
-  credentialsFile: file
-
 enableADController: true
+
+maxVolumesPerNode: 15
+useLabeler: false
 
 resources:
   driver:

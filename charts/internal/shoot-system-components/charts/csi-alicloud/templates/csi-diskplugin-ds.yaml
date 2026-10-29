@@ -14,7 +14,6 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret-csi-diskplugin-alicloud: {{ include (print $.Template.BasePath "/csi-diskplugin-secret.yaml") . | sha256sum }}
         node.gardener.cloud/wait-for-csi-node-alicloud: diskplugin.csi.alibabacloud.com
       labels:
         app: csi-disk-plugin-alicloud
@@ -78,6 +77,9 @@ spec:
         args:
         - "--endpoint=$(CSI_ENDPOINT)"
         - "--v=5"
+{{- if and .Values.enableADController .Values.useLabeler }}
+        - "--use-labeler=true"
+{{- end }}
         env:
 {{- if .Values.enableADController }}
         - name: DISK_AD_CONTROLLER
@@ -85,8 +87,15 @@ spec:
 {{- end }}
         - name: CSI_ENDPOINT
           value: unix://var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock
+{{- if not .Values.enableADController }}
         - name: ALIBABA_CLOUD_CREDENTIALS_FILE
           value: /srv/cloudprovider/credentialsFile
+{{- else if not .Values.useLabeler }}
+        - name: DISK_ALLOW_ALL_TYPE
+          value: "true"
+        - name: MAX_VOLUMES_PERNODE
+          value: {{ .Values.maxVolumesPerNode | quote }}
+{{- end }}
         - name: KUBE_NODE_NAME
           valueFrom:
             fieldRef:
@@ -116,8 +125,10 @@ spec:
         - mountPath: /dev
           name: host-dev
           mountPropagation: "HostToContainer"
+{{- if not .Values.enableADController }}
         - name: cloudprovider
           mountPath: /srv/cloudprovider
+{{- end }}
       - name: csi-liveness-probe
         image: {{ index .Values.images "csi-liveness-probe" }}
         args:
@@ -132,9 +143,11 @@ spec:
         - name: plugin-dir
           mountPath: /csi
       volumes:
+{{- if not .Values.enableADController }}
       - name: cloudprovider
         secret:
           secretName: csi-diskplugin-alicloud
+{{- end }}
       - name: registration-dir
         hostPath:
           path: /var/lib/kubelet/plugins_registry

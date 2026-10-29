@@ -51,6 +51,19 @@ import (
 const (
 	caNameControlPlane               = "ca-" + alicloud.Name + "-controlplane"
 	cloudControllerManagerServerName = "cloud-controller-manager-server"
+
+	// runCSILabeler enables the centralized metadata labeler on the seed-side CSI controller
+	// (--run-labeler=true). The labeler patches shoot nodes with
+	// node.csi.alibabacloud.com/max-disk via an initial LIST + AddFunc watch.
+	runCSILabeler = true
+
+	// useCSILabeler enables the DaemonSet to skip all ECS API calls in NodeGetInfo
+	// (--use-labeler=true) and read max-disk from the node annotation instead.
+	// Safe to enable together with runCSILabeler: the labeler's initial LIST completes
+	// before DaemonSet rolling update reaches each node. New nodes may see transient
+	// NodeGetInfo failures until the labeler's AddFunc writes max-disk, but kubelet
+	// retries automatically and existing workloads are unaffected.
+	useCSILabeler = true
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretmanager.SecretConfigWithOptions {
@@ -273,19 +286,13 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	_ secretsmanager.Reader,
 	_ map[string]string,
 ) (map[string]interface{}, error) {
-	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
-	if err != nil {
-		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
-	}
-
 	cpConfig, err := vp.decodeControlPlaneConfig(cp)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cpConfig, credentials, cluster)
+	return vp.getControlPlaneShootChartValues(ctx, cp, cpConfig, cluster)
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.
@@ -405,6 +412,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"regionID":           cp.Spec.Region,
 			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"enableADController": vp.enableCSIADController(cpConfig),
+			"runLabeler":         runCSILabeler,
 			"csiPluginController": map[string]interface{}{
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
@@ -429,8 +437,9 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
 func (vp *valuesProvider) getControlPlaneShootChartValues(
+	ctx context.Context,
+	cp *extensionsv1alpha1.ControlPlane,
 	cpConfig *apisalicloud.ControlPlaneConfig,
-	credentials *alicloud.Credentials,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 	overlayEnabled, err := networking.IsOverlayEnabled(cluster.Shoot.Spec.Networking)
@@ -445,13 +454,24 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 		calicoMutatingAdmissionPolicyValues["apiVersion"] = mutatingAdmissionPolicyAPIVersion(cluster)
 	}
 
+	enableADController := vp.enableCSIADController(cpConfig)
+	csiValues := map[string]interface{}{
+		"enableADController": enableADController,
+		"useLabeler":         useCSILabeler,
+	}
+
+	if !enableADController {
+		credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+		if err != nil {
+			return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
+		}
+		csiValues["credential"] = map[string]interface{}{
+			"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
+		}
+	}
+
 	values := map[string]interface{}{
-		"csi-alicloud": map[string]interface{}{
-			"credential": map[string]interface{}{
-				"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
-			},
-			"enableADController": vp.enableCSIADController(cpConfig),
-		},
+		"csi-alicloud":                     csiValues,
 		"calico-mutating-admission-policy": calicoMutatingAdmissionPolicyValues,
 	}
 
