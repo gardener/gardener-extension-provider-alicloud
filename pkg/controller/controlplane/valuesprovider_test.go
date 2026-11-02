@@ -71,6 +71,7 @@ var _ = Describe("ValuesProvider", func() {
 							},
 							CSI: &apisalicloud.CSI{
 								EnableADController: ptr.To(true),
+								EnableLabeler:      ptr.To(true),
 							},
 						}),
 					},
@@ -291,6 +292,16 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(values).To(Equal(controlPlaneShootChartValues))
 		})
 
+		It("should omit credentials when enableADController and enableLabeler are both true", func() {
+			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cp, cluster, fakeSecretsManager, checksums)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(HaveKeyWithValue("csi-alicloud", map[string]interface{}{
+				"enableADController": true,
+				"useLabeler":         true,
+			}))
+			Expect(values["csi-alicloud"]).NotTo(HaveKey("credential"))
+		})
+
 		It("should include credentials when enableADController is false", func() {
 			cpNoAD := cp.DeepCopy()
 			cpNoAD.Spec.ProviderConfig = &runtime.RawExtension{
@@ -309,7 +320,32 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(HaveKeyWithValue("csi-alicloud", map[string]interface{}{
 				"enableADController": false,
-				"useLabeler":         true,
+				"useLabeler":         false,
+				"credential": map[string]interface{}{
+					"credentialsFile": "YmF6",
+				},
+			}))
+		})
+
+		It("should include credentials when removeNodeCredentials is not set (backward compat)", func() {
+			cpNoRemove := cp.DeepCopy()
+			cpNoRemove.Spec.ProviderConfig = &runtime.RawExtension{
+				Raw: encode(&apisalicloud.ControlPlaneConfig{
+					CloudControllerManager: &apisalicloud.CloudControllerManagerConfig{
+						FeatureGates: map[string]bool{
+							"SomeKubernetesFeature": true,
+						},
+					},
+					CSI: &apisalicloud.CSI{
+						EnableADController: ptr.To(true),
+					},
+				}),
+			}
+			values, err := vp.GetControlPlaneShootChartValues(context.TODO(), cpNoRemove, cluster, fakeSecretsManager, checksums)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(HaveKeyWithValue("csi-alicloud", map[string]interface{}{
+				"enableADController": true,
+				"useLabeler":         false,
 				"credential": map[string]interface{}{
 					"credentialsFile": "YmF6",
 				},

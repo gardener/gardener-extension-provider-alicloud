@@ -52,6 +52,11 @@ func (in *CSI) DeepCopyInto(out *CSI) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.EnableLabeler != nil {
+		in, out := &in.EnableLabeler, &out.EnableLabeler
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

@@ -51,19 +51,6 @@ import (
 const (
 	caNameControlPlane               = "ca-" + alicloud.Name + "-controlplane"
 	cloudControllerManagerServerName = "cloud-controller-manager-server"
-
-	// runCSILabeler enables the centralized metadata labeler on the seed-side CSI controller
-	// (--run-labeler=true). The labeler patches shoot nodes with
-	// node.csi.alibabacloud.com/max-disk via an initial LIST + AddFunc watch.
-	runCSILabeler = true
-
-	// useCSILabeler enables the DaemonSet to skip all ECS API calls in NodeGetInfo
-	// (--use-labeler=true) and read max-disk from the node annotation instead.
-	// Safe to enable together with runCSILabeler: the labeler's initial LIST completes
-	// before DaemonSet rolling update reaches each node. New nodes may see transient
-	// NodeGetInfo failures until the labeler's AddFunc writes max-disk, but kubelet
-	// retries automatically and existing workloads are unaffected.
-	useCSILabeler = true
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretmanager.SecretConfigWithOptions {
@@ -412,7 +399,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"regionID":           cp.Spec.Region,
 			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"enableADController": vp.enableCSIADController(cpConfig),
-			"runLabeler":         runCSILabeler,
+			"runLabeler":         vp.enableCSIADController(cpConfig) && vp.enableCSILabeler(cpConfig),
 			"csiPluginController": map[string]interface{}{
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
@@ -435,6 +422,10 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 	return vp.csi.EnableADController != nil && *vp.csi.EnableADController || cpConfig.CSI != nil && cpConfig.CSI.EnableADController != nil && *cpConfig.CSI.EnableADController
 }
 
+func (vp *valuesProvider) enableCSILabeler(cpConfig *apisalicloud.ControlPlaneConfig) bool {
+	return cpConfig.CSI != nil && cpConfig.CSI.EnableLabeler != nil && *cpConfig.CSI.EnableLabeler
+}
+
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
 func (vp *valuesProvider) getControlPlaneShootChartValues(
 	ctx context.Context,
@@ -455,12 +446,15 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 	}
 
 	enableADController := vp.enableCSIADController(cpConfig)
+	// useLabeler: AD is a hard prerequisite (DaemonSet needs credentials for Attach/Detach when AD is off).
+	useLabeler := enableADController && vp.enableCSILabeler(cpConfig)
+
 	csiValues := map[string]interface{}{
 		"enableADController": enableADController,
-		"useLabeler":         useCSILabeler,
+		"useLabeler":         useLabeler,
 	}
 
-	if !enableADController {
+	if !useLabeler {
 		credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 		if err != nil {
 			return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
