@@ -418,7 +418,7 @@ spec:
     nodes: 10.250.0.0/16
     type: calico
   kubernetes:
-    version: 1.32.0
+    version: 1.33.0
   maintenance:
     autoUpdate:
       kubernetesVersion: true
@@ -482,7 +482,7 @@ spec:
     nodes: 10.250.0.0/16
     type: calico
   kubernetes:
-    version: 1.32.0
+    version: 1.33.0
   maintenance:
     autoUpdate:
       kubernetesVersion: true
