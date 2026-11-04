@@ -35,6 +35,13 @@ type CloudControllerManagerConfig struct {
 type CSI struct {
 	// EnableADController enables disks to be attached/detached from controller server of CSI Plugin.
 	EnableADController *bool
+
+	// EnableLabeler enables the labeler mode for the CSI node plugin.
+	// When true (and EnableADController is also true), the seed controller runs --run-labeler and
+	// the node DaemonSet runs --use-labeler without Alicloud credentials.
+	// When false or nil, credentials are provided (unchanged from before).
+	// +optional
+	EnableLabeler *bool
 }
 
 // Storage contains configuration for the default StorageClass and VolumeSnapshotClass.

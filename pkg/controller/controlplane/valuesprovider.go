@@ -273,19 +273,13 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	_ secretsmanager.Reader,
 	_ map[string]string,
 ) (map[string]interface{}, error) {
-	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
-	if err != nil {
-		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
-	}
-
 	cpConfig, err := vp.decodeControlPlaneConfig(cp)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(cpConfig, credentials, cluster)
+	return vp.getControlPlaneShootChartValues(ctx, cp, cpConfig, cluster)
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.
@@ -405,6 +399,7 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 			"regionID":           cp.Spec.Region,
 			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"enableADController": vp.enableCSIADController(cpConfig),
+			"runLabeler":         vp.enableCSIADController(cpConfig) && vp.enableCSILabeler(cpConfig),
 			"csiPluginController": map[string]interface{}{
 				"snapshotPrefix":         cluster.Shoot.Name,
 				"persistentVolumePrefix": cluster.Shoot.Name,
@@ -427,10 +422,15 @@ func (vp *valuesProvider) enableCSIADController(cpConfig *apisalicloud.ControlPl
 	return vp.csi.EnableADController != nil && *vp.csi.EnableADController || cpConfig.CSI != nil && cpConfig.CSI.EnableADController != nil && *cpConfig.CSI.EnableADController
 }
 
+func (vp *valuesProvider) enableCSILabeler(cpConfig *apisalicloud.ControlPlaneConfig) bool {
+	return cpConfig.CSI != nil && cpConfig.CSI.EnableLabeler != nil && *cpConfig.CSI.EnableLabeler
+}
+
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
 func (vp *valuesProvider) getControlPlaneShootChartValues(
+	ctx context.Context,
+	cp *extensionsv1alpha1.ControlPlane,
 	cpConfig *apisalicloud.ControlPlaneConfig,
-	credentials *alicloud.Credentials,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 	overlayEnabled, err := networking.IsOverlayEnabled(cluster.Shoot.Spec.Networking)
@@ -445,13 +445,27 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 		calicoMutatingAdmissionPolicyValues["apiVersion"] = mutatingAdmissionPolicyAPIVersion(cluster)
 	}
 
+	enableADController := vp.enableCSIADController(cpConfig)
+	// useLabeler: AD is a hard prerequisite (DaemonSet needs credentials for Attach/Detach when AD is off).
+	useLabeler := enableADController && vp.enableCSILabeler(cpConfig)
+
+	csiValues := map[string]interface{}{
+		"enableADController": enableADController,
+		"useLabeler":         useLabeler,
+	}
+
+	if !useLabeler {
+		credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+		if err != nil {
+			return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
+		}
+		csiValues["credential"] = map[string]interface{}{
+			"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
+		}
+	}
+
 	values := map[string]interface{}{
-		"csi-alicloud": map[string]interface{}{
-			"credential": map[string]interface{}{
-				"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
-			},
-			"enableADController": vp.enableCSIADController(cpConfig),
-		},
+		"csi-alicloud":                     csiValues,
 		"calico-mutating-admission-policy": calicoMutatingAdmissionPolicyValues,
 	}
 

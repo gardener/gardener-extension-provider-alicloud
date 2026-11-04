@@ -280,6 +280,7 @@ func Convert_alicloud_BackupBucketConfig_To_v1alpha1_BackupBucketConfig(in *alic
 
 func autoConvert_v1alpha1_CSI_To_alicloud_CSI(in *CSI, out *alicloud.CSI, s conversion.Scope) error {
 	out.EnableADController = (*bool)(unsafe.Pointer(in.EnableADController))
+	out.EnableLabeler = (*bool)(unsafe.Pointer(in.EnableLabeler))
 	return nil
 }
 
@@ -290,6 +291,7 @@ func Convert_v1alpha1_CSI_To_alicloud_CSI(in *CSI, out *alicloud.CSI, s conversi
 
 func autoConvert_alicloud_CSI_To_v1alpha1_CSI(in *alicloud.CSI, out *CSI, s conversion.Scope) error {
 	out.EnableADController = (*bool)(unsafe.Pointer(in.EnableADController))
+	out.EnableLabeler = (*bool)(unsafe.Pointer(in.EnableLabeler))
 	return nil
 }
 

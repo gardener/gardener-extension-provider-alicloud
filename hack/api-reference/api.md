@@ -77,6 +77,18 @@ boolean
 <p>EnableADController enables disks to be attached/detached from controller server of CSI Plugin.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>enableLabeler</code></br>
+<em>
+boolean
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnableLabeler enables the labeler mode for the CSI node plugin.<br />When true (and EnableADController is also true), the seed controller runs --run-labeler and<br />the node DaemonSet runs --use-labeler without Alicloud credentials.<br />When false or nil, credentials are provided (unchanged from before).</p>
+</td>
+</tr>
 
 </tbody>
 </table>

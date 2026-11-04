@@ -9,6 +9,8 @@ credential:
 
 enableADController: true
 
+useLabeler: false
+
 resources:
   driver:
     requests:
