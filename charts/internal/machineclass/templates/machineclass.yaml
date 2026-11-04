@@ -27,32 +27,32 @@ metadata:
     {{- end }}
 {{- if $machineClass.nodeTemplate }}
 nodeTemplate:
-  architecture: {{ $machineClass.nodeTemplate.architecture }}
+  architecture: {{ $machineClass.nodeTemplate.architecture | quote }}
   capacity:
 {{ toYaml $machineClass.nodeTemplate.capacity | indent 4 }}
-  instanceType: {{ $machineClass.nodeTemplate.instanceType }}
-  region: {{ $machineClass.nodeTemplate.region }}
-  zone: {{ $machineClass.nodeTemplate.zone }}
+  instanceType: {{ $machineClass.nodeTemplate.instanceType | quote }}
+  region: {{ $machineClass.nodeTemplate.region | quote }}
+  zone: {{ $machineClass.nodeTemplate.zone | quote }}
 {{- end }}
 providerSpec:
-  imageID: {{ $machineClass.imageID }}
-  instanceType: {{ $machineClass.instanceType }}
-  region: {{ $machineClass.region }}
-  zoneID: {{ $machineClass.zoneID }}
-  securityGroupID: {{ $machineClass.securityGroupID }}
-  vSwitchID: {{ $machineClass.vSwitchID }}
+  imageID: {{ $machineClass.imageID | quote }}
+  instanceType: {{ $machineClass.instanceType | quote }}
+  region: {{ $machineClass.region | quote }}
+  zoneID: {{ $machineClass.zoneID | quote }}
+  securityGroupID: {{ $machineClass.securityGroupID | quote }}
+  vSwitchID: {{ $machineClass.vSwitchID | quote }}
   systemDisk:
-    category: {{ $machineClass.systemDisk.category }}
+    category: {{ $machineClass.systemDisk.category | quote }}
     size: {{ $machineClass.systemDisk.size }}
 {{- if $machineClass.dataDisks }}
   dataDisks:
 {{ toYaml $machineClass.dataDisks | indent 2 }}
 {{- end }}
-  instanceChargeType: {{ $machineClass.instanceChargeType }}
-  internetChargeType: {{ $machineClass.internetChargeType }}
+  instanceChargeType: {{ $machineClass.instanceChargeType | quote }}
+  internetChargeType: {{ $machineClass.internetChargeType | quote }}
   internetMaxBandwidthIn: {{ $machineClass.internetMaxBandwidthIn }}
-  spotStrategy: {{ $machineClass.spotStrategy }}
-  keyPairName: {{ $machineClass.keyPairName }}
+  spotStrategy: {{ $machineClass.spotStrategy | quote }}
+  keyPairName: {{ $machineClass.keyPairName | quote }}
   tags:
 {{ toYaml $machineClass.tags | indent 4 }}
 secretRef:
