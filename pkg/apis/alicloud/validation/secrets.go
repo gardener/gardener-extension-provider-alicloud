@@ -51,11 +51,10 @@ func ValidateCloudProviderSecret(secret *corev1.Secret) error {
 	if len(secretAccessKey) < accessKeySecretMinLen {
 		return fmt.Errorf("field %q in secret %s must have at least %d characters", alicloud.AccessKeySecret, secretRef, accessKeySecretMinLen)
 	}
-	// accessKeySecret must not contain leading or trailing new lines, as they are known to cause issues
-	// Other whitespace characters such as spaces are intentionally not checked for,
-	// since there is no documentation indicating that they would not be valid
-	if strings.Trim(string(secretAccessKey), "\n\r") != string(secretAccessKey) {
-		return fmt.Errorf("field %q in secret %s must not contain leading or traling new lines", alicloud.AccessKeySecret, secretRef)
+	// accessKeySecret must not contain new lines anywhere, as they are known to cause issues
+	// when writing the credentials file.
+	if strings.ContainsAny(string(secretAccessKey), "\n\r") {
+		return fmt.Errorf("field %q in secret %s must not contain new lines", alicloud.AccessKeySecret, secretRef)
 	}
 
 	return nil

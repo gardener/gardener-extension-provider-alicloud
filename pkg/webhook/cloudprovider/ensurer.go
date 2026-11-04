@@ -17,6 +17,7 @@ package cloudprovider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/webhook/cloudprovider"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
@@ -48,10 +49,17 @@ func (e *ensurer) EnsureCloudProviderSecret(_ context.Context, _ gcontext.Garden
 	}
 
 	e.logger.V(5).Info("mutate cloudprovider secret", "namespace", newSecret.Namespace, "name", newSecret.Name)
+
+	accessKey := string(newSecret.Data[alicloud.AccessKeyID])
+	accessKeySecret := string(newSecret.Data[alicloud.AccessKeySecret])
+	if strings.ContainsAny(accessKeySecret, "\n\r") {
+		return fmt.Errorf("field %q in secret %s/%s must not contain new lines", alicloud.AccessKeySecret, newSecret.Namespace, newSecret.Name)
+	}
+
 	newSecret.Data[alicloud.CredentialsFile] = []byte("[default]\n" +
 		"type = access_key\n" +
-		fmt.Sprintf("access_key_id = %s\n", string(newSecret.Data[alicloud.AccessKeyID])) +
-		fmt.Sprintf("access_key_secret = %s", string(newSecret.Data[alicloud.AccessKeySecret])),
+		fmt.Sprintf("access_key_id = %s\n", accessKey) +
+		fmt.Sprintf("access_key_secret = %s", accessKeySecret),
 	)
 
 	return nil
