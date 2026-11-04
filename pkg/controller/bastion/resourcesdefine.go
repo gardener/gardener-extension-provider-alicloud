@@ -10,6 +10,7 @@ import (
 
 func ingressAllowSSH(securityGroupId string, perm IngressPermission) *ecs.AuthorizeSecurityGroupRequest {
 	request := ecs.CreateAuthorizeSecurityGroupRequest()
+	request.SetScheme("HTTPS")
 	request.SecurityGroupId = securityGroupId
 	request.Description = "SSH access for Bastion"
 	request.IpProtocol = "TCP"
@@ -26,6 +27,7 @@ func ingressAllowSSH(securityGroupId string, perm IngressPermission) *ecs.Author
 
 func egressAllowSSHToWorker(sourceCidrIp, securityGroupId, destSecurityGroupId string) *ecs.AuthorizeSecurityGroupEgressRequest {
 	request := ecs.CreateAuthorizeSecurityGroupEgressRequest()
+	request.SetScheme("HTTPS")
 	request.SecurityGroupId = securityGroupId
 	request.Description = "Allow Bastion egress to Shoot workers"
 	request.IpProtocol = "TCP"
@@ -37,6 +39,7 @@ func egressAllowSSHToWorker(sourceCidrIp, securityGroupId, destSecurityGroupId s
 
 func egressDenyAll(securityGroupId string) *ecs.AuthorizeSecurityGroupEgressRequest {
 	request := ecs.CreateAuthorizeSecurityGroupEgressRequest()
+	request.SetScheme("HTTPS")
 	request.SecurityGroupId = securityGroupId
 	request.Description = "Bastion egress deny"
 	request.IpProtocol = "TCP"
@@ -48,6 +51,7 @@ func egressDenyAll(securityGroupId string) *ecs.AuthorizeSecurityGroupEgressRequ
 
 func revokeSecurityGroupRequest(securityGroupId, ipProtocol, portRange, sourceCidrIp, ipv6SourceCidrIp string) *ecs.RevokeSecurityGroupRequest {
 	request := ecs.CreateRevokeSecurityGroupRequest()
+	request.SetScheme("HTTPS")
 	request.SecurityGroupId = securityGroupId
 	request.IpProtocol = ipProtocol
 	request.PortRange = portRange
@@ -58,6 +62,7 @@ func revokeSecurityGroupRequest(securityGroupId, ipProtocol, portRange, sourceCi
 
 func revokeSecurityGroupEgressRequest(securityGroupId, ipProtocol, portRange string) *ecs.RevokeSecurityGroupEgressRequest {
 	request := ecs.CreateRevokeSecurityGroupEgressRequest()
+	request.SetScheme("HTTPS")
 	request.SecurityGroupId = securityGroupId
 	request.IpProtocol = ipProtocol
 	request.PortRange = portRange
@@ -66,6 +71,7 @@ func revokeSecurityGroupEgressRequest(securityGroupId, ipProtocol, portRange str
 
 func describeSecurityGroupAttributeRequest(securityGroupId, direction string) *ecs.DescribeSecurityGroupAttributeRequest {
 	request := ecs.CreateDescribeSecurityGroupAttributeRequest()
+	request.SetScheme("HTTPS")
 	request.SecurityGroupId = securityGroupId
 	request.Direction = direction
 	return request

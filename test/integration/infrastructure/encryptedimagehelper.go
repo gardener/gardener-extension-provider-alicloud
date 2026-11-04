@@ -156,6 +156,7 @@ func deleteEncryptedImageStackIfExists(ctx context.Context, clientFactory aliclo
 	}
 
 	deleteRequest := ros.CreateDeleteStackRequest()
+	deleteRequest.SetScheme("HTTPS")
 	deleteRequest.StackId = response.Stacks[0].StackId
 	deleteRequest.RegionId = *region
 
