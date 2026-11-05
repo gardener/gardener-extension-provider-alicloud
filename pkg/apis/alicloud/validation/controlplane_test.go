@@ -50,10 +50,20 @@ var _ = Describe("ControlPlaneConfig validation", func() {
 	})
 
 	Describe("#ValidateCSIForWorkloadIdentity", func() {
-		It("should return no errors when enableLabeler is true", func() {
+		It("should return no errors when enableLabeler is true and enableADController is nil (defaults to true)", func() {
 			cp := &apisalicloud.ControlPlaneConfig{
 				CSI: &apisalicloud.CSI{
 					EnableLabeler: ptr.To(true),
+				},
+			}
+			Expect(ValidateCSIForWorkloadIdentity(cp, fldPath)).To(BeEmpty())
+		})
+
+		It("should return no errors when both enableADController and enableLabeler are true", func() {
+			cp := &apisalicloud.ControlPlaneConfig{
+				CSI: &apisalicloud.CSI{
+					EnableADController: ptr.To(true),
+					EnableLabeler:      ptr.To(true),
 				},
 			}
 			Expect(ValidateCSIForWorkloadIdentity(cp, fldPath)).To(BeEmpty())
@@ -101,6 +111,33 @@ var _ = Describe("ControlPlaneConfig validation", func() {
 			}
 			errorList := ValidateCSIForWorkloadIdentity(cp, fldPath)
 			Expect(errorList).NotTo(BeEmpty())
+		})
+
+		It("should return an error when enableADController is explicitly false", func() {
+			cp := &apisalicloud.ControlPlaneConfig{
+				CSI: &apisalicloud.CSI{
+					EnableADController: ptr.To(false),
+					EnableLabeler:      ptr.To(true),
+				},
+			}
+			errorList := ValidateCSIForWorkloadIdentity(cp, fldPath)
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("csi.enableADController"),
+				})),
+			))
+		})
+
+		It("should return two errors when both enableADController is false and enableLabeler is not true", func() {
+			cp := &apisalicloud.ControlPlaneConfig{
+				CSI: &apisalicloud.CSI{
+					EnableADController: ptr.To(false),
+					EnableLabeler:      ptr.To(false),
+				},
+			}
+			errorList := ValidateCSIForWorkloadIdentity(cp, fldPath)
+			Expect(errorList).To(HaveLen(2))
 		})
 	})
 })

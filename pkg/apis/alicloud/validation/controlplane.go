@@ -22,16 +22,31 @@ func ValidateControlPlaneConfig(controlPlaneConfig *apisalicloud.ControlPlaneCon
 	return allErrs
 }
 
-// ValidateCSIForWorkloadIdentity validates that csi.enableLabeler is true when WorkloadIdentity is used.
+// ValidateCSIForWorkloadIdentity validates that the CSI configuration is compatible with WorkloadIdentity.
+// When WI is used, useLabeler = enableADController && enableLabeler must be true so that the node
+// plugin runs without cloud API access. enableADController defaults to true (nil is acceptable);
+// enableLabeler must be explicitly set to true.
 func ValidateCSIForWorkloadIdentity(controlPlaneConfig *apisalicloud.ControlPlaneConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+	csiPath := fldPath.Child("csi")
+
+	// enableADController defaults to true when nil; only invalid if explicitly set to false.
+	if controlPlaneConfig != nil &&
+		controlPlaneConfig.CSI != nil &&
+		controlPlaneConfig.CSI.EnableADController != nil &&
+		!*controlPlaneConfig.CSI.EnableADController {
+		allErrs = append(allErrs, field.Invalid(csiPath.Child("enableADController"), false,
+			"must not be false when WorkloadIdentity is used for the shoot"))
+	}
+
 	labelerEnabled := controlPlaneConfig != nil &&
 		controlPlaneConfig.CSI != nil &&
 		controlPlaneConfig.CSI.EnableLabeler != nil &&
 		*controlPlaneConfig.CSI.EnableLabeler
 	if !labelerEnabled {
-		allErrs = append(allErrs, field.Required(fldPath.Child("csi", "enableLabeler"),
+		allErrs = append(allErrs, field.Required(csiPath.Child("enableLabeler"),
 			"must be true when WorkloadIdentity is used for the shoot"))
 	}
+
 	return allErrs
 }
