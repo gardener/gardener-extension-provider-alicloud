@@ -479,20 +479,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 	}
 
 	if !useLabeler {
-		var csiCredential map[string]interface{}
-		if authConfig.WorkloadIdentity != nil {
-			csiCredential = map[string]interface{}{
-				"useWorkloadIdentity": true,
-				"oidcProviderARN":     authConfig.WorkloadIdentity.OIDCProviderARN,
-				"roleARN":             authConfig.WorkloadIdentity.RoleARN,
-				"token":               base64.StdEncoding.EncodeToString(authConfig.WorkloadIdentity.Token),
-			}
-		} else {
-			csiCredential = map[string]interface{}{
-				"credentialsFile": base64.StdEncoding.EncodeToString([]byte(authConfig.CredentialsFile)),
-			}
+		csiValues["credential"] = map[string]interface{}{
+			"credentialsFile": base64.StdEncoding.EncodeToString([]byte(authConfig.CredentialsFile)),
 		}
-		csiValues["credential"] = csiCredential
 	}
 
 	values := map[string]interface{}{

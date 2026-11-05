@@ -6,10 +6,6 @@ images:
 
 credential:
   credentialsFile: file
-  useWorkloadIdentity: false
-  oidcProviderARN: ""
-  roleARN: ""
-  token: ""
 
 enableADController: true
 
