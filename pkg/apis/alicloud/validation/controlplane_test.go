@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
@@ -45,6 +46,61 @@ var _ = Describe("ControlPlaneConfig validation", func() {
 					"Field": Equal("cloudControllerManager.featureGates.Foo"),
 				})),
 			))
+		})
+	})
+
+	Describe("#ValidateCSIForWorkloadIdentity", func() {
+		It("should return no errors when enableLabeler is true", func() {
+			cp := &apisalicloud.ControlPlaneConfig{
+				CSI: &apisalicloud.CSI{
+					EnableLabeler: ptr.To(true),
+				},
+			}
+			Expect(ValidateCSIForWorkloadIdentity(cp, fldPath)).To(BeEmpty())
+		})
+
+		It("should return an error when controlPlaneConfig is nil", func() {
+			errorList := ValidateCSIForWorkloadIdentity(nil, fldPath)
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("csi.enableLabeler"),
+				})),
+			))
+		})
+
+		It("should return an error when CSI is nil", func() {
+			cp := &apisalicloud.ControlPlaneConfig{}
+			errorList := ValidateCSIForWorkloadIdentity(cp, fldPath)
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("csi.enableLabeler"),
+				})),
+			))
+		})
+
+		It("should return an error when enableLabeler is false", func() {
+			cp := &apisalicloud.ControlPlaneConfig{
+				CSI: &apisalicloud.CSI{
+					EnableLabeler: ptr.To(false),
+				},
+			}
+			errorList := ValidateCSIForWorkloadIdentity(cp, fldPath)
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("csi.enableLabeler"),
+				})),
+			))
+		})
+
+		It("should return an error when enableLabeler is nil", func() {
+			cp := &apisalicloud.ControlPlaneConfig{
+				CSI: &apisalicloud.CSI{},
+			}
+			errorList := ValidateCSIForWorkloadIdentity(cp, fldPath)
+			Expect(errorList).NotTo(BeEmpty())
 		})
 	})
 })

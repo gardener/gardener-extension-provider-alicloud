@@ -71,7 +71,7 @@ func (s *shoot) Validate(ctx context.Context, newObject, oldObject client.Object
 	return s.validateShootCreation(ctx, shoot)
 }
 
-func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
+func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot, infraConfig *alicloud.InfrastructureConfig, cpConfig *alicloud.ControlPlaneConfig) error {
 	if infraConfig != nil {
 		// Provider validation
 		if errList := alicloudvalidation.ValidateInfrastructureConfig(infraConfig, shoot.Spec.Networking, shoot.Spec.Region); len(errList) != 0 {
@@ -88,7 +88,28 @@ func (s *shoot) validateShoot(_ context.Context, shoot *core.Shoot, infraConfig 
 		}
 	}
 
+	isWI, err := s.isShootUsingWorkloadIdentity(ctx, shoot)
+	if err != nil {
+		return err
+	}
+	if isWI {
+		if errList := alicloudvalidation.ValidateCSIForWorkloadIdentity(cpConfig, cpConfigFldPath); len(errList) != 0 {
+			return errList.ToAggregate()
+		}
+	}
+
 	return nil
+}
+
+func (s *shoot) isShootUsingWorkloadIdentity(ctx context.Context, shoot *core.Shoot) (bool, error) {
+	if shoot.Spec.CredentialsBindingName == nil {
+		return false, nil
+	}
+	cb := &securityv1alpha1.CredentialsBinding{}
+	if err := s.apiReader.Get(ctx, client.ObjectKey{Namespace: shoot.Namespace, Name: *shoot.Spec.CredentialsBindingName}, cb); err != nil {
+		return false, err
+	}
+	return cb.CredentialsRef.Kind == "WorkloadIdentity", nil
 }
 
 func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.Shoot) error {

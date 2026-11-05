@@ -19,6 +19,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 )
 
 // fakeReader implements client.Reader by storing objects keyed by namespace/name.
@@ -175,5 +177,89 @@ var _ = Describe("shoot.validateDNS", func() {
 		errs := sv.validateDNS(ctx, sh)
 		Expect(errs).To(HaveLen(1))
 		Expect(errs[0].Type).To(Equal(field.ErrorTypeNotSupported))
+	})
+})
+
+var _ = Describe("shoot WorkloadIdentity CSI validation", func() {
+	const (
+		cbName    = "my-cb"
+		shootNS   = "garden-test"
+	)
+
+	var (
+		ctx context.Context
+		sv  *shoot
+	)
+
+	BeforeEach(func() {
+		ctx = context.TODO()
+	})
+
+	wiCredentialsBinding := func() *securityv1alpha1.CredentialsBinding {
+		return &securityv1alpha1.CredentialsBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: cbName, Namespace: shootNS},
+			CredentialsRef: corev1.ObjectReference{Kind: "WorkloadIdentity", Name: "my-wi"},
+		}
+	}
+
+	akCredentialsBinding := func() *securityv1alpha1.CredentialsBinding {
+		return &securityv1alpha1.CredentialsBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: cbName, Namespace: shootNS},
+			CredentialsRef: corev1.ObjectReference{Kind: "Secret", Name: "my-secret"},
+		}
+	}
+
+	wiShoot := func() *core.Shoot {
+		return &core.Shoot{
+			ObjectMeta: metav1.ObjectMeta{Namespace: shootNS},
+			Spec: core.ShootSpec{
+				CredentialsBindingName: ptr.To(cbName),
+			},
+		}
+	}
+
+	It("should pass when shoot uses WorkloadIdentity and enableLabeler is true", func() {
+		sv = &shoot{apiReader: newFakeReader(wiCredentialsBinding())}
+		cpConfig := &apisalicloud.ControlPlaneConfig{
+			CSI: &apisalicloud.CSI{
+				EnableLabeler: ptr.To(true),
+			},
+		}
+		err := sv.validateShoot(ctx, wiShoot(), nil, cpConfig)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should fail when shoot uses WorkloadIdentity and enableLabeler is false", func() {
+		sv = &shoot{apiReader: newFakeReader(wiCredentialsBinding())}
+		cpConfig := &apisalicloud.ControlPlaneConfig{
+			CSI: &apisalicloud.CSI{
+				EnableLabeler: ptr.To(false),
+			},
+		}
+		err := sv.validateShoot(ctx, wiShoot(), nil, cpConfig)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("should fail when shoot uses WorkloadIdentity and cpConfig is nil", func() {
+		sv = &shoot{apiReader: newFakeReader(wiCredentialsBinding())}
+		err := sv.validateShoot(ctx, wiShoot(), nil, nil)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("should pass when shoot uses AK/SK (not WorkloadIdentity) regardless of enableLabeler", func() {
+		sv = &shoot{apiReader: newFakeReader(akCredentialsBinding())}
+		cpConfig := &apisalicloud.ControlPlaneConfig{}
+		err := sv.validateShoot(ctx, wiShoot(), nil, cpConfig)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should pass when shoot has no credentialsBindingName", func() {
+		sv = &shoot{apiReader: newFakeReader()}
+		sh := &core.Shoot{
+			ObjectMeta: metav1.ObjectMeta{Namespace: shootNS},
+			Spec:       core.ShootSpec{},
+		}
+		err := sv.validateShoot(ctx, sh, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
 	})
 })

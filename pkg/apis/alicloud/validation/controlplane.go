@@ -21,3 +21,17 @@ func ValidateControlPlaneConfig(controlPlaneConfig *apisalicloud.ControlPlaneCon
 
 	return allErrs
 }
+
+// ValidateCSIForWorkloadIdentity validates that csi.enableLabeler is true when WorkloadIdentity is used.
+func ValidateCSIForWorkloadIdentity(controlPlaneConfig *apisalicloud.ControlPlaneConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	labelerEnabled := controlPlaneConfig != nil &&
+		controlPlaneConfig.CSI != nil &&
+		controlPlaneConfig.CSI.EnableLabeler != nil &&
+		*controlPlaneConfig.CSI.EnableLabeler
+	if !labelerEnabled {
+		allErrs = append(allErrs, field.Required(fldPath.Child("csi", "enableLabeler"),
+			"must be true when WorkloadIdentity is used for the shoot"))
+	}
+	return allErrs
+}
