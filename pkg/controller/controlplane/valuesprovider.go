@@ -273,13 +273,18 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	_ secretsmanager.Reader,
 	_ map[string]string,
 ) (map[string]interface{}, error) {
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
+	}
+
 	cpConfig, err := vp.decodeControlPlaneConfig(cp)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get control plane shoot chart values
-	return vp.getControlPlaneShootChartValues(ctx, cp, cpConfig, cluster)
+	return vp.getControlPlaneShootChartValues(cpConfig, authConfig, cluster)
 }
 
 // cloudConfig wraps the settings for the Alicloud provider.
@@ -328,7 +333,7 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 	}
 
 	// Get credentials from the referenced secret
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
 		return "", fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
@@ -346,8 +351,11 @@ func (vp *valuesProvider) getCloudControllerManagerConfigFileContent(
 	cfg.Global.VpcID = infraStatus.VPC.ID
 	cfg.Global.ZoneID = vswitch.Zone
 	cfg.Global.VswitchID = vswitch.ID
-	cfg.Global.AccessKeyID = base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeyID))
-	cfg.Global.AccessKeySecret = base64.StdEncoding.EncodeToString([]byte(credentials.AccessKeySecret))
+	if authConfig.AccessKey != nil {
+		cfg.Global.AccessKeyID = base64.StdEncoding.EncodeToString([]byte(authConfig.AccessKey.ID))
+		cfg.Global.AccessKeySecret = base64.StdEncoding.EncodeToString([]byte(authConfig.AccessKey.Secret))
+	}
+	// WI mode: AccessKeyID/AccessKeySecret left empty; CCM reads RRSA via env vars injected by B7 chart
 	cfg.Global.Region = cp.Spec.Region
 
 	// Set route table ID so the CCM uses this specific table instead of auto-discovering
@@ -377,38 +385,55 @@ func (vp *valuesProvider) getControlPlaneChartValues(
 		return nil, fmt.Errorf("could not build cloud controller config file content for controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
 	}
 
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, fmt.Errorf("could not read auth config for controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
+	}
+
 	ccmNetworkFalg := "public"
 	if cluster.Seed != nil && cluster.Seed.Spec.Provider.Type == alicloud.Type && cluster.Shoot != nil && cluster.Seed.Spec.Provider.Region == cluster.Shoot.Spec.Region {
 		ccmNetworkFalg = "vpc"
 	}
+
+	ccmValues := map[string]interface{}{
+		"replicas":    extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+		"clusterName": cp.Namespace,
+		"podNetwork":  strings.Join(extensionscontroller.GetPodNetwork(cluster), ","),
+		"podLabels": map[string]interface{}{
+			v1beta1constants.LabelPodMaintenanceRestart: "true",
+		},
+		"cloudConfig":    ccmConfig,
+		"ccmNetworkFalg": ccmNetworkFalg,
+	}
+	csiValues := map[string]interface{}{
+		"regionID":           cp.Spec.Region,
+		"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+		"enableADController": vp.enableCSIADController(cpConfig),
+		"runLabeler":         vp.enableCSIADController(cpConfig) && vp.enableCSILabeler(cpConfig),
+		"csiPluginController": map[string]interface{}{
+			"snapshotPrefix":         cluster.Shoot.Name,
+			"persistentVolumePrefix": cluster.Shoot.Name,
+			"podAnnotations": map[string]interface{}{
+				"checksum/secret-cloudprovider": checksums[v1beta1constants.SecretNameCloudProvider],
+			},
+		},
+		"csiSnapshotController": map[string]interface{}{},
+	}
+
+	if authConfig.WorkloadIdentity != nil {
+		wiValues := map[string]interface{}{
+			"enabled": true,
+		}
+		ccmValues["workloadIdentity"] = wiValues
+		csiValues["workloadIdentity"] = wiValues
+	}
+
 	values := map[string]interface{}{
 		"global": map[string]interface{}{
 			"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
 		},
-		"alicloud-cloud-controller-manager": map[string]interface{}{
-			"replicas":    extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
-			"clusterName": cp.Namespace,
-			"podNetwork":  strings.Join(extensionscontroller.GetPodNetwork(cluster), ","),
-			"podLabels": map[string]interface{}{
-				v1beta1constants.LabelPodMaintenanceRestart: "true",
-			},
-			"cloudConfig":    ccmConfig,
-			"ccmNetworkFalg": ccmNetworkFalg,
-		},
-		"csi-alicloud": map[string]interface{}{
-			"regionID":           cp.Spec.Region,
-			"replicas":           extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
-			"enableADController": vp.enableCSIADController(cpConfig),
-			"runLabeler":         vp.enableCSIADController(cpConfig) && vp.enableCSILabeler(cpConfig),
-			"csiPluginController": map[string]interface{}{
-				"snapshotPrefix":         cluster.Shoot.Name,
-				"persistentVolumePrefix": cluster.Shoot.Name,
-				"podAnnotations": map[string]interface{}{
-					"checksum/secret-cloudprovider": checksums[v1beta1constants.SecretNameCloudProvider],
-				},
-			},
-			"csiSnapshotController": map[string]interface{}{},
-		},
+		"alicloud-cloud-controller-manager": ccmValues,
+		"csi-alicloud":                      csiValues,
 	}
 
 	if cpConfig.CloudControllerManager != nil {
@@ -428,9 +453,8 @@ func (vp *valuesProvider) enableCSILabeler(cpConfig *apisalicloud.ControlPlaneCo
 
 // getControlPlaneShootChartValues collects and returns the control plane shoot chart values.
 func (vp *valuesProvider) getControlPlaneShootChartValues(
-	ctx context.Context,
-	cp *extensionsv1alpha1.ControlPlane,
 	cpConfig *apisalicloud.ControlPlaneConfig,
+	authConfig *alicloud.AuthConfig,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 	overlayEnabled, err := networking.IsOverlayEnabled(cluster.Shoot.Spec.Networking)
@@ -455,12 +479,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(
 	}
 
 	if !useLabeler {
-		credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
-		if err != nil {
-			return nil, fmt.Errorf("could not read credentials from secret referred by controlplane '%s': %w", client.ObjectKeyFromObject(cp), err)
-		}
 		csiValues["credential"] = map[string]interface{}{
-			"credentialsFile": base64.StdEncoding.EncodeToString([]byte(credentials.CredentialsFile)),
+			"credentialsFile": base64.StdEncoding.EncodeToString([]byte(authConfig.CredentialsFile)),
 		}
 	}
 

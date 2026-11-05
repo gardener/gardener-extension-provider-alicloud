@@ -10,6 +10,7 @@ import (
 	"net"
 	"strings"
 
+	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -53,18 +54,25 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		return allErrs
 	}
 
-	credentials, err := alicloud.ReadCredentialsFromSecretRef(ctx, c.mgr.GetClient(), &infra.Spec.SecretRef)
+	infraStatus, err := infraStatusOrNil(infra)
+	if err != nil {
+		allErrs = append(allErrs, field.InternalError(nil, fmt.Errorf("could not parse infrastructure status: %+v", err)))
+		return allErrs
+	}
+
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, c.mgr.GetClient(), &infra.Spec.SecretRef)
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, fmt.Errorf("could not get Alicloud credentials: %+v", err)))
 		return allErrs
 	}
-	actor, err := c.factory.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
+	actor, err := c.factory.NewActorFromAuthConfig(*authConfig, infra.Spec.Region, alicloud.BuildSessionName(infra.Namespace))
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(nil, fmt.Errorf("create aliclient actor failed: %+v", err)))
 		return allErrs
 	}
 
 	isBYOMode := len(config.Networks.Zones) > 0 && config.Networks.Zones[0].WorkersVSwitchID != nil
+	isCreate := infra.Status.LastOperation != nil && infra.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeCreate
 
 	// Validate infrastructure config
 	createManagedNATGateway := true
@@ -86,33 +94,41 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 			allErrs = append(allErrs, c.validateVpcIPv6(ctx, actor, *config.Networks.VPC.ID, field.NewPath("networks", "vpc", "id"))...)
 		}
 
-		// BYO VSwitch validations run on every reconcile so that a deleted VSwitch is detected promptly.
-		// WorkersVSwitchID can be updated when the old VSwitch is gone, so blocking reconcile here is recoverable.
+		zonesPath := field.NewPath("networks", "zones")
 		if isBYOMode {
 			logger.Info("Validating BYO vswitch IDs")
-			allErrs = append(allErrs, c.validateBYOVSwitches(ctx, actor, config, *config.Networks.VPC.ID, field.NewPath("networks", "zones"))...)
-		}
+			allErrs = append(allErrs, c.validateBYOVSwitches(ctx, actor, config, *config.Networks.VPC.ID, zonesPath)...)
+			allErrs = append(allErrs, c.validateBYOVSwitchChange(ctx, actor, infraStatus, config, infra.Namespace, zonesPath)...)
+		} else {
+			var newZones []apisalicloud.Zone
+			if infraStatus != nil {
+				newZones = detectNewZones(infraStatus, config.Networks.Zones)
+			}
 
-		if infra.Status.LastOperation != nil && infra.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeCreate {
-			vswitches, err := actor.FindVSwitchesByVPC(ctx, *config.Networks.VPC.ID)
-			if err != nil {
-				allErrs = append(allErrs, field.InternalError(field.NewPath("networks", "vpc", "id"),
-					fmt.Errorf("FindVSwitchesByVPC %s failed: %+v", *config.Networks.VPC.ID, err)))
-			} else {
-				if !isBYOMode {
-					logger.Info("Validating multi-shoot VPC sharing constraints for new shoot")
-					allErrs = append(allErrs, c.validateMultiShootVPC(vswitches, infra.Namespace, config.Networks.VPC.GardenerManagedNATGateway, config.Networks.VPC.UseCustomRouteTable, field.NewPath("networks", "vpc"))...)
+			if isCreate || len(newZones) > 0 {
+				vswitches, err := actor.FindVSwitchesByVPC(ctx, *config.Networks.VPC.ID)
+				if err != nil {
+					allErrs = append(allErrs, field.InternalError(field.NewPath("networks", "vpc", "id"),
+						fmt.Errorf("FindVSwitchesByVPC %s failed: %+v", *config.Networks.VPC.ID, err)))
+				} else {
+					if isCreate {
+						logger.Info("Validating multi-shoot VPC sharing constraints for new shoot")
+						allErrs = append(allErrs, c.validateMultiShootVPC(vswitches, infra.Namespace, config.Networks.VPC.GardenerManagedNATGateway, config.Networks.VPC.UseCustomRouteTable, field.NewPath("networks", "vpc"))...)
 
-					logger.Info("Validating vswitch CIDR conflicts for new shoot")
-					allErrs = append(allErrs, c.validateVSwitchCIDRConflict(vswitches, *config.Networks.VPC.ID, infra.Namespace, config.Networks.Zones)...)
-				}
-
-				// nodesSecurityGroupID is immutable; validate only on create
-				if config.Networks.NodesSecurityGroupID != nil {
-					logger.Info("Validating nodesSecurityGroupID")
-					allErrs = append(allErrs, c.validateNodesSecurityGroup(ctx, actor, *config.Networks.NodesSecurityGroupID, *config.Networks.VPC.ID, field.NewPath("networks", "nodesSecurityGroupID"))...)
+						logger.Info("Validating vswitch CIDR conflicts for new shoot")
+						allErrs = append(allErrs, c.validateVSwitchCIDRConflict(vswitches, *config.Networks.VPC.ID, infra.Namespace, config.Networks.Zones, 0)...)
+					} else {
+						logger.Info("Validating vswitch CIDR conflicts for newly added zones")
+						startIdx := len(config.Networks.Zones) - len(newZones)
+						allErrs = append(allErrs, c.validateVSwitchCIDRConflict(vswitches, *config.Networks.VPC.ID, infra.Namespace, newZones, startIdx)...)
+					}
 				}
 			}
+		}
+
+		if isCreate && config.Networks.NodesSecurityGroupID != nil {
+			logger.Info("Validating nodesSecurityGroupID")
+			allErrs = append(allErrs, c.validateNodesSecurityGroup(ctx, actor, *config.Networks.NodesSecurityGroupID, *config.Networks.VPC.ID, field.NewPath("networks", "nodesSecurityGroupID"))...)
 		}
 	}
 
@@ -357,11 +373,10 @@ func (c *configValidator) validateNodesSecurityGroup(ctx context.Context, actor 
 	return allErrs
 }
 
-// vswitches already existing in the VPC that are not owned by this shoot.
-// Called only on create, but create may be retried after partial failure, so vswitches whose name
-// starts with "<namespace>-" (the naming convention used by this extension) are excluded to avoid
-// false positives on retry.
-func (c *configValidator) validateVSwitchCIDRConflict(vswitches []*aliclient.VSwitch, vpcID string, namespace string, zones []apisalicloud.Zone) field.ErrorList {
+// validateVSwitchCIDRConflict checks worker CIDRs in zones[startIdx:] against foreign vswitches in the VPC.
+// Called only on create (startIdx=0, all zones) or when new zones are detected (startIdx = index of first new zone).
+// vswitches owned by this shoot (name-prefixed with "<namespace>-") are excluded to avoid false positives on retry.
+func (c *configValidator) validateVSwitchCIDRConflict(vswitches []*aliclient.VSwitch, vpcID string, namespace string, zones []apisalicloud.Zone, startIdx int) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	ownPrefix := namespace + "-"
@@ -381,7 +396,7 @@ func (c *configValidator) validateVSwitchCIDRConflict(vswitches []*aliclient.VSw
 		if workerCIDR == "" {
 			continue
 		}
-		fldPath := zonesPath.Index(i).Child("workers")
+		fldPath := zonesPath.Index(startIdx + i).Child("workers")
 		_, netA, err := net.ParseCIDR(workerCIDR)
 		if err != nil {
 			continue
@@ -395,6 +410,107 @@ func (c *configValidator) validateVSwitchCIDRConflict(vswitches []*aliclient.VSw
 				allErrs = append(allErrs, field.Invalid(fldPath, workerCIDR,
 					fmt.Sprintf("conflicts with existing vswitch %s (%s) in VPC %s", vsw.VSwitchId, vsw.CidrBlock, vpcID)))
 			}
+		}
+	}
+	return allErrs
+}
+
+// infraStatusOrNil parses the provider status from infra; returns nil (no error) when no status has been recorded yet.
+func infraStatusOrNil(infra *extensionsv1alpha1.Infrastructure) (*apisalicloud.InfrastructureStatus, error) {
+	if infra.Status.ProviderStatus == nil {
+		return nil, nil
+	}
+	return helper.InfrastructureStatusFromRaw(infra.Status.ProviderStatus)
+}
+
+// detectNewZones returns the subset of zones that do not yet appear in infraStatus.VPC.VSwitches
+// (i.e. zones added since the last successful reconcile). Only call with non-nil infraStatus.
+func detectNewZones(infraStatus *apisalicloud.InfrastructureStatus, zones []apisalicloud.Zone) []apisalicloud.Zone {
+	existing := sets.New[string]()
+	for _, vsw := range infraStatus.VPC.VSwitches {
+		if vsw.Purpose == apisalicloud.PurposeNodes {
+			existing.Insert(vsw.Zone)
+		}
+	}
+	var newZones []apisalicloud.Zone
+	for _, z := range zones {
+		if !existing.Has(z.Name) {
+			newZones = append(newZones, z)
+		}
+	}
+	return newZones
+}
+
+// validateBYOVSwitchChange detects WorkersVSwitchID changes by comparing infraStatus (old state) with
+// config (new state). If an ID changed and the old VSwitch still exists, the change is rejected only
+// when the zone is actively referenced by a worker pool — preserving the original admission semantic
+// that unreferenced zones may freely change their VSwitch ID.
+func (c *configValidator) validateBYOVSwitchChange(
+	ctx context.Context,
+	actor aliclient.Actor,
+	infraStatus *apisalicloud.InfrastructureStatus,
+	config *apisalicloud.InfrastructureConfig,
+	namespace string,
+	fldPath *field.Path,
+) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if infraStatus == nil {
+		return allErrs
+	}
+
+	oldByZone := make(map[string]string)
+	for _, vsw := range infraStatus.VPC.VSwitches {
+		if vsw.Purpose == apisalicloud.PurposeNodes {
+			oldByZone[vsw.Zone] = vsw.ID
+		}
+	}
+
+	var cluster *extensioncontroller.Cluster // fetched lazily, at most once
+
+	for i, zone := range config.Networks.Zones {
+		// admission enforces all-or-nothing BYO, so WorkersVSwitchID should always be
+		// set here; guard anyway to avoid nil dereference at *zone.WorkersVSwitchID below.
+		if zone.WorkersVSwitchID == nil {
+			continue
+		}
+		oldID, ok := oldByZone[zone.Name]
+		if !ok || oldID == *zone.WorkersVSwitchID {
+			continue
+		}
+		zonePath := fldPath.Index(i).Child("workersVSwitchID")
+		vsw, err := actor.GetVSwitch(ctx, oldID)
+		if err != nil {
+			allErrs = append(allErrs, field.InternalError(zonePath,
+				fmt.Errorf("GetVSwitch %s failed: %+v", oldID, err)))
+			continue
+		}
+		if vsw == nil {
+			continue
+		}
+		// Old VSwitch still exists; fetch the cluster once to check worker zone references.
+		if cluster == nil {
+			cluster, err = extensioncontroller.GetCluster(ctx, c.mgr.GetClient(), namespace)
+			if err != nil {
+				allErrs = append(allErrs, field.InternalError(zonePath,
+					fmt.Errorf("GetCluster failed: %+v", err)))
+				return allErrs
+			}
+		}
+		zoneUsed := false
+		for _, w := range cluster.Shoot.Spec.Provider.Workers {
+			for _, z := range w.Zones {
+				if z == zone.Name {
+					zoneUsed = true
+					break
+				}
+			}
+			if zoneUsed {
+				break
+			}
+		}
+		if zoneUsed {
+			allErrs = append(allErrs, field.Forbidden(zonePath,
+				fmt.Sprintf("cannot change workersVSwitchID while old VSwitch %s still exists and zone %s is referenced by worker pools", oldID, zone.Name)))
 		}
 	}
 	return allErrs

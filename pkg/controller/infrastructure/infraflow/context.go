@@ -73,10 +73,11 @@ type FlowContext struct {
 }
 
 // NewFlowContext creates a new FlowContext object
-func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
+func NewFlowContext(log logr.Logger, auth alicloud.AuthConfig,
 	infra *extensionsv1alpha1.Infrastructure, config *aliapi.InfrastructureConfig,
 	oldState shared.FlatMap, persistor shared.FlowStatePersistor, cluster *extensioncontroller.Cluster) (*FlowContext, error) {
-	actor, err := aliclient.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
+	sessionName := alicloud.BuildSessionName(infra.Namespace)
+	actor, err := aliclient.NewActorFromAuthConfig(auth, infra.Spec.Region, sessionName)
 	if err != nil {
 		return nil, err
 	}

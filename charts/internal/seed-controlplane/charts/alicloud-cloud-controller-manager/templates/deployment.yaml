@@ -54,6 +54,21 @@ spec:
         - --configure-cloud-routes=true
         - --network={{ .Values.ccmNetworkFalg }}
         {{- include "cloud-controller-manager.featureGates" . | trimSuffix "," | indent 8 }}
+{{- if .Values.workloadIdentity.enabled }}
+        env:
+        - name: ALIBABA_CLOUD_ROLE_ARN
+          valueFrom:
+            secretKeyRef:
+              name: cloudprovider
+              key: roleARN
+        - name: ALIBABA_CLOUD_OIDC_PROVIDER_ARN
+          valueFrom:
+            secretKeyRef:
+              name: cloudprovider
+              key: oidcProviderARN
+        - name: ALIBABA_CLOUD_OIDC_TOKEN_FILE
+          value: {{ printf "%s/token" .Values.workloadIdentity.tokenMountPath }}
+{{- end }}
         livenessProbe:
           httpGet:
             path: /healthz
@@ -82,6 +97,11 @@ spec:
           readOnly: true
         - name: cloud-provider-config
           mountPath: /etc/kubernetes/cloudprovider
+{{- if .Values.workloadIdentity.enabled }}
+        - name: workload-identity
+          mountPath: {{ .Values.workloadIdentity.tokenMountPath }}
+          readOnly: true
+{{- end }}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -106,3 +126,14 @@ spec:
       - name: cloud-provider-config
         secret:
           secretName: cloud-provider-config
+{{- if .Values.workloadIdentity.enabled }}
+      - name: workload-identity
+        projected:
+          defaultMode: 420
+          sources:
+          - secret:
+              name: cloudprovider
+              items:
+              - key: token
+                path: token
+{{- end }}

@@ -17,6 +17,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	alicloudclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
@@ -43,22 +44,23 @@ func (a *actuator) ensureImagesForShootProviderAccount(ctx context.Context, log 
 		machineImages []apisalicloud.MachineImage
 	)
 
-	_, shootCloudProviderCredentials, err := a.getConfigAndCredentialsForInfra(ctx, infra)
+	_, shootAuthConfig, err := a.getConfigAndCredentialsForInfra(ctx, infra)
+	if err != nil {
+		return nil, err
+	}
+	sessionName := alicloud.BuildSessionName(infra.Namespace)
+
+	shootAlicloudECSClient, err := a.newClientFactory.NewECSClientFromAuthConfig(infra.Spec.Region, *shootAuthConfig, sessionName)
 	if err != nil {
 		return nil, err
 	}
 
-	shootAlicloudECSClient, err := a.newClientFactory.NewECSClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
+	shootAlicloudROSClient, err := a.newClientFactory.NewROSClientFromAuthConfig(infra.Spec.Region, *shootAuthConfig, sessionName)
 	if err != nil {
 		return nil, err
 	}
 
-	shootAlicloudROSClient, err := a.newClientFactory.NewROSClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
-	if err != nil {
-		return nil, err
-	}
-
-	shootAlicloudSTSClient, err := a.newClientFactory.NewSTSClient(infra.Spec.Region, shootCloudProviderCredentials.AccessKeyID, shootCloudProviderCredentials.AccessKeySecret)
+	shootAlicloudSTSClient, err := a.newClientFactory.NewSTSClientFromAuthConfig(infra.Spec.Region, *shootAuthConfig, sessionName)
 	if err != nil {
 		return nil, err
 	}

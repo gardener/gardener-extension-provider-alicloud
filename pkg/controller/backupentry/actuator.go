@@ -38,7 +38,11 @@ func (a *actuator) GetETCDSecretData(_ context.Context, _ logr.Logger, be *exten
 }
 
 func (a *actuator) Delete(ctx context.Context, _ logr.Logger, be *extensionsv1alpha1.BackupEntry) error {
-	cli, err := alicloudclient.NewClientFactory().NewOSSClientFromSecretRef(ctx, a.client, &be.Spec.SecretRef, be.Spec.Region)
+	authConfig, err := alicloud.ReadAuthConfigFromSecretRef(ctx, a.client, &be.Spec.SecretRef)
+	if err != nil {
+		return util.DetermineError(err, helper.KnownCodes)
+	}
+	cli, err := alicloudclient.NewClientFactory().NewOSSClientFromAuthConfig(alicloudclient.ComputeStorageEndpoint(be.Spec.Region), *authConfig, alicloud.BuildSessionName(be.Namespace))
 	if err != nil {
 		return util.DetermineError(err, helper.KnownCodes)
 	}

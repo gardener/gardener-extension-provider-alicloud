@@ -7,6 +7,7 @@ package validation
 import (
 	"fmt"
 
+	securityv1alpha1 "github.com/gardener/gardener/pkg/apis/security/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -15,10 +16,11 @@ import (
 )
 
 var (
-	secretGVK = corev1.SchemeGroupVersion.WithKind("Secret")
+	secretGVK           = corev1.SchemeGroupVersion.WithKind("Secret")
+	workloadIdentityGVK = securityv1alpha1.SchemeGroupVersion.WithKind("WorkloadIdentity")
 
-	allowedGVKs = sets.New(secretGVK)
-	validGVKs   = []string{secretGVK.String()}
+	allowedGVKs = sets.New(secretGVK, workloadIdentityGVK)
+	validGVKs   = []string{secretGVK.String(), workloadIdentityGVK.String()}
 )
 
 // ValidateBackupBucketConfig validates a BackupBucketConfig object.

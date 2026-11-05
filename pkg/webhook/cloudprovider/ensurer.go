@@ -21,10 +21,12 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/webhook/cloudprovider"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
+	securityv1alpha1constants "github.com/gardener/gardener/pkg/apis/security/v1alpha1/constants"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	alicloudhelper "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 )
 
 // NewEnsurer creates cloudprovider ensurer.
@@ -41,22 +43,44 @@ type ensurer struct {
 // EnsureCloudProviderSecret ensures that cloudprovider secret contains
 // the shared credentials file.
 func (e *ensurer) EnsureCloudProviderSecret(_ context.Context, _ gcontext.GardenContext, newSecret, _ *corev1.Secret) error {
-	if _, ok := newSecret.Data[alicloud.AccessKeyID]; !ok {
+	if newSecret.Labels != nil && newSecret.Labels[securityv1alpha1constants.LabelWorkloadIdentityProvider] == "alicloud" {
+		return e.ensureWorkloadIdentitySecret(newSecret)
+	}
+	return e.ensureStaticCredentialsSecret(newSecret)
+}
+
+func (e *ensurer) ensureWorkloadIdentitySecret(secret *corev1.Secret) error {
+	if _, ok := secret.Data[securityv1alpha1constants.DataKeyConfig]; !ok {
+		return fmt.Errorf("cloudprovider secret is missing a %q data key", securityv1alpha1constants.DataKeyConfig)
+	}
+	config, err := alicloudhelper.WorkloadIdentityConfigFromBytes(secret.Data[securityv1alpha1constants.DataKeyConfig])
+	if err != nil {
+		return fmt.Errorf("could not decode %q as WorkloadIdentityConfig: %w", securityv1alpha1constants.DataKeyConfig, err)
+	}
+	tokenFilePath := alicloud.WorkloadIdentityMountPath + "/token"
+	secret.Data[alicloud.OIDCProviderARNKey] = []byte(config.OIDCProviderARN)
+	secret.Data[alicloud.RoleARNKey] = []byte(config.RoleARN)
+	secret.Data[alicloud.OIDCTokenFileKey] = []byte(tokenFilePath)
+	return nil
+}
+
+func (e *ensurer) ensureStaticCredentialsSecret(secret *corev1.Secret) error {
+	if _, ok := secret.Data[alicloud.AccessKeyID]; !ok {
 		return fmt.Errorf("could not mutate cloudprovider secret as %q field is missing", alicloud.AccessKeyID)
 	}
-	if _, ok := newSecret.Data[alicloud.AccessKeySecret]; !ok {
+	if _, ok := secret.Data[alicloud.AccessKeySecret]; !ok {
 		return fmt.Errorf("could not mutate cloudprovider secret as %q field is missing", alicloud.AccessKeySecret)
 	}
 
-	e.logger.V(5).Info("mutate cloudprovider secret", "namespace", newSecret.Namespace, "name", newSecret.Name)
+	e.logger.V(5).Info("mutate cloudprovider secret", "namespace", secret.Namespace, "name", secret.Name)
 
-	accessKey := string(newSecret.Data[alicloud.AccessKeyID])
-	accessKeySecret := string(newSecret.Data[alicloud.AccessKeySecret])
+	accessKey := string(secret.Data[alicloud.AccessKeyID])
+	accessKeySecret := string(secret.Data[alicloud.AccessKeySecret])
 	if strings.ContainsAny(accessKeySecret, "\n\r") {
-		return fmt.Errorf("field %q in secret %s/%s must not contain new lines", alicloud.AccessKeySecret, newSecret.Namespace, newSecret.Name)
+		return fmt.Errorf("field %q in secret %s/%s must not contain new lines", alicloud.AccessKeySecret, secret.Namespace, secret.Name)
 	}
 
-	newSecret.Data[alicloud.CredentialsFile] = []byte("[default]\n" +
+	secret.Data[alicloud.CredentialsFile] = []byte("[default]\n" +
 		"type = access_key\n" +
 		fmt.Sprintf("access_key_id = %s\n", accessKey) +
 		fmt.Sprintf("access_key_secret = %s", accessKeySecret),

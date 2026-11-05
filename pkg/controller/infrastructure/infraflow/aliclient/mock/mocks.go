@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	alicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
 	aliclient "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -1046,4 +1047,19 @@ func (m *MockFactory) NewActor(accessKeyID, secretAccessKey, region string) (ali
 func (mr *MockFactoryMockRecorder) NewActor(accessKeyID, secretAccessKey, region any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewActor", reflect.TypeOf((*MockFactory)(nil).NewActor), accessKeyID, secretAccessKey, region)
+}
+
+// NewActorFromAuthConfig mocks base method.
+func (m *MockFactory) NewActorFromAuthConfig(auth alicloud.AuthConfig, region, sessionName string) (aliclient.Actor, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewActorFromAuthConfig", auth, region, sessionName)
+	ret0, _ := ret[0].(aliclient.Actor)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewActorFromAuthConfig indicates an expected call of NewActorFromAuthConfig.
+func (mr *MockFactoryMockRecorder) NewActorFromAuthConfig(auth, region, sessionName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewActorFromAuthConfig", reflect.TypeOf((*MockFactory)(nil).NewActorFromAuthConfig), auth, region, sessionName)
 }
