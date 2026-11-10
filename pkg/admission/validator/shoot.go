@@ -216,6 +216,10 @@ func (s *shoot) computeGoneVSwitches(ctx context.Context, shoot *core.Shoot, old
 			break
 		}
 		oldZone, newZone := oldConfig.Networks.Zones[i], newConfig.Networks.Zones[i]
+		// Retirement freezes the resource configuration; an API lookup cannot permit this change.
+		if oldZone.Disabled || newZone.Disabled {
+			continue
+		}
 		if oldZone.WorkersVSwitchID == nil || newZone.WorkersVSwitchID == nil {
 			continue
 		}
