@@ -137,3 +137,73 @@ func TestRetirementDoesNotLookUpFrozenBYOVSwitch(t *testing.T) {
 		}
 	}
 }
+
+func TestShootCreationRejectsDisabledZones(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := api.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	if err := apiv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	s := &shoot{decoder: serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()}
+	for _, mode := range []string{"managed NGW", "user NGW", "BYO"} {
+		for _, tc := range []struct {
+			name          string
+			disabledIndex int
+			explicitFalse bool
+		}{
+			{name: "omitted", disabledIndex: -1},
+			{name: "explicit false", disabledIndex: -1, explicitFalse: true},
+			{name: "first zone disabled", disabledIndex: 0},
+			{name: "second zone disabled", disabledIndex: 1},
+		} {
+			t.Run(mode+"/"+tc.name, func(t *testing.T) {
+				vpc := map[string]any{"cidr": "10.0.0.0/16"}
+				zones := []map[string]any{{"name": "zone1", "workers": "10.0.1.0/24"}, {"name": "zone2", "workers": "10.0.2.0/24"}}
+				if mode != "managed NGW" {
+					vpc = map[string]any{"id": "vpc-user"}
+				}
+				if mode == "BYO" {
+					for i, zone := range zones {
+						delete(zone, "workers")
+						zone["workersVSwitchID"] = "vsw-" + zones[i]["name"].(string)
+					}
+				}
+				if tc.explicitFalse {
+					for _, zone := range zones {
+						zone["disabled"] = false
+					}
+				}
+				if tc.disabledIndex >= 0 {
+					zones[tc.disabledIndex]["disabled"] = true
+				}
+				raw, err := json.Marshal(map[string]any{
+					"apiVersion": apiv1alpha1.SchemeGroupVersion.String(), "kind": "InfrastructureConfig",
+					"networks": map[string]any{"vpc": vpc, "zones": zones},
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				obj := &core.Shoot{Spec: core.ShootSpec{
+					Region:     "cn-hangzhou",
+					Networking: &core.Networking{Nodes: ptr.To("10.0.0.0/16"), Pods: ptr.To("192.168.0.0/16"), Services: ptr.To("172.16.0.0/16")},
+					Provider: core.Provider{InfrastructureConfig: &runtime.RawExtension{Raw: raw}, Workers: []core.Worker{
+						{Name: "pool", Zones: []string{"zone1"}, Volume: &core.Volume{Type: ptr.To("cloud_essd"), VolumeSize: "40Gi"}},
+					}},
+				}}
+				err = s.validateShootCreation(context.Background(), obj)
+				if tc.disabledIndex < 0 {
+					if err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					path := infraConfigFldPath.Child("networks", "zones").Index(tc.disabledIndex).Child("disabled").String()
+					if err == nil || !strings.Contains(err.Error(), path) || !strings.Contains(err.Error(), "zone cannot be disabled at shoot creation") {
+						t.Fatalf("expected creation rejection at %s, got %v", path, err)
+					}
+				}
+			})
+		}
+	}
+}

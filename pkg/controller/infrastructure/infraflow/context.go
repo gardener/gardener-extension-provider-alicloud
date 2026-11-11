@@ -180,20 +180,30 @@ func (c *FlowContext) getZoneSuffix(zoneName string) string {
 	}
 }
 
-func (c *FlowContext) getAllVSwitchids() []string {
+// getActiveVSwitchIDs returns only configured, enabled VSwitches in configuration order.
+// Historical state is retained separately and must not become a reconciliation candidate.
+func (c *FlowContext) getActiveVSwitchIDs() []string {
 	ids := []string{}
-	firstZoneName := c.config.Networks.Zones[0].Name
-	firstZone := c.getZoneChild(firstZoneName)
-	if switchId := firstZone.Get(IdentifierZoneVSwitch); switchId != nil {
-		ids = append(ids, *switchId)
+	seen := sets.New[string]()
+	for _, zone := range c.config.Networks.Zones {
+		if zone.Disabled {
+			continue
+		}
+		if id := c.getZoneChild(zone.Name).Get(IdentifierZoneVSwitch); id != nil && !seen.Has(*id) {
+			ids = append(ids, *id)
+			seen.Insert(*id)
+		}
 	}
+	return ids
+}
+
+// getTrackedVSwitchIDs includes disabled and historical entries, for resource discovery and deletion.
+func (c *FlowContext) getTrackedVSwitchIDs() []string {
+	ids := []string{}
 	zones := c.state.GetChild(ChildIdZones)
-	for _, key := range zones.GetChildrenKeys() {
-		if key != firstZoneName {
-			theChild := zones.GetChild(key)
-			if switchId := theChild.Get(IdentifierZoneVSwitch); switchId != nil {
-				ids = append(ids, *switchId)
-			}
+	for _, name := range zones.GetChildrenKeys() {
+		if id := zones.GetChild(name).Get(IdentifierZoneVSwitch); id != nil {
+			ids = append(ids, *id)
 		}
 	}
 	return ids

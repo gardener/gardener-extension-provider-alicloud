@@ -176,6 +176,18 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 		return err
 	}
 
+	// Retirement is requested by updating an existing Shoot, not during creation.
+	var retirementErrs field.ErrorList
+	for i, zone := range infraConfig.Networks.Zones {
+		if zone.Disabled {
+			retirementErrs = append(retirementErrs, field.Forbidden(infraConfigFldPath.Child("networks", "zones").Index(i).Child("disabled"),
+				"zone cannot be disabled at shoot creation; create the shoot with the zone enabled and request retirement in a later update"))
+		}
+	}
+	if len(retirementErrs) > 0 {
+		return retirementErrs.ToAggregate()
+	}
+
 	// Decode the controlplane config
 	var cpConfig *alicloud.ControlPlaneConfig
 	if shoot.Spec.Provider.ControlPlaneConfig != nil {
