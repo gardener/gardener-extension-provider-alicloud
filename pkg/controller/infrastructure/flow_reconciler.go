@@ -327,7 +327,16 @@ func (f *FlowReconciler) createFlowContext(ctx context.Context, infrastructure *
 		oldFlatState = oldState.ToFlatMap()
 	}
 
-	return infraflow.NewFlowContext(f.log, shootCloudProviderCredentials, infrastructure, infrastructureConfig, oldFlatState, persistor, cluster)
+	return infraflow.NewFlowContext(
+		f.log,
+		shootCloudProviderCredentials,
+		infrastructure,
+		infrastructureConfig,
+		oldFlatState,
+		persistor,
+		cluster,
+		newMachineUsageObserver(f.actuator.apiReader),
+	)
 }
 
 func (f *FlowReconciler) getFlowStateFromInfraStatus(infrastructure *extensionsv1alpha1.Infrastructure) (*infraflow.PersistentState, error) {

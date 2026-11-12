@@ -61,21 +61,24 @@ const (
 // FlowContext contains the logic to reconcile or delete the AWS infrastructure.
 type FlowContext struct {
 	shared.BasicFlowContext
-	state      shared.Whiteboard
-	namespace  string
-	infraSpec  extensionsv1alpha1.InfrastructureSpec
-	config     *aliapi.InfrastructureConfig
-	commonTags aliclient.Tags
-	updater    aliclient.Updater
-	actor      aliclient.Actor
-	cluster    *extensioncontroller.Cluster
-	canDelete  bool
+	state              shared.Whiteboard
+	namespace          string
+	infraSpec          extensionsv1alpha1.InfrastructureSpec
+	config             *aliapi.InfrastructureConfig
+	commonTags         aliclient.Tags
+	updater            aliclient.Updater
+	actor              aliclient.Actor
+	cluster            *extensioncontroller.Cluster
+	retirementObserver ZoneRetirementObserver
+	canDelete          bool
 }
 
 // NewFlowContext creates a new FlowContext object
 func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 	infra *extensionsv1alpha1.Infrastructure, config *aliapi.InfrastructureConfig,
-	oldState shared.FlatMap, persistor shared.FlowStatePersistor, cluster *extensioncontroller.Cluster) (*FlowContext, error) {
+	oldState shared.FlatMap, persistor shared.FlowStatePersistor, cluster *extensioncontroller.Cluster,
+	retirementObserver ZoneRetirementObserver,
+) (*FlowContext, error) {
 	actor, err := aliclient.NewActor(credentials.AccessKeyID, credentials.AccessKeySecret, infra.Spec.Region)
 	if err != nil {
 		return nil, err
@@ -91,15 +94,16 @@ func NewFlowContext(log logr.Logger, credentials *alicloud.Credentials,
 	}
 
 	flowContext := &FlowContext{
-		BasicFlowContext: *shared.NewBasicFlowContext(log, whiteboard, persistor),
-		state:            whiteboard,
-		namespace:        infra.Namespace,
-		infraSpec:        infra.Spec,
-		config:           config,
-		updater:          updater,
-		actor:            actor,
-		cluster:          cluster,
-		canDelete:        canDelete,
+		BasicFlowContext:   *shared.NewBasicFlowContext(log, whiteboard, persistor),
+		state:              whiteboard,
+		namespace:          infra.Namespace,
+		infraSpec:          infra.Spec,
+		config:             config,
+		updater:            updater,
+		actor:              actor,
+		cluster:            cluster,
+		retirementObserver: retirementObserver,
+		canDelete:          canDelete,
 	}
 	flowContext.commonTags = aliclient.Tags{
 		flowContext.tagKeyCluster(): TagValueCluster,
@@ -140,6 +144,14 @@ func (c *FlowContext) isOwnedByAnotherShoot(tags aliclient.Tags) bool {
 		}
 	}
 	return false
+}
+
+func (c *FlowContext) isOwnedByCurrentShoot(tags aliclient.Tags, resourceName, expectedName string) bool {
+	if c.isOwnedByAnotherShoot(tags) {
+		return false
+	}
+	_, exists := tags[c.tagKeyCluster()]
+	return exists || expectedName != "" && resourceName == expectedName
 }
 
 func (c *FlowContext) dualStackEnabled() bool {
