@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	// IdentifierZoneRetirementCompleted marks a disabled zone whose managed resources have been handled.
+	// IdentifierZoneRetirementCompleted marks a retired zone whose managed resources have been handled.
 	IdentifierZoneRetirementCompleted = "RetirementCompleted"
 	// ZoneRetirementCompletedValue is the persisted value of IdentifierZoneRetirementCompleted.
 	ZoneRetirementCompletedValue = "true"
@@ -267,7 +267,7 @@ func (c *FlowContext) completeZoneRetirement(target zoneRetirementTarget) flow.T
 func (c *FlowContext) activeZoneReferencesEIP(eipID string) bool {
 	for i := range c.config.Networks.Zones {
 		zone := &c.config.Networks.Zones[i]
-		if zone.Disabled {
+		if zone.Retired {
 			continue
 		}
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil && *zone.NatGateway.EIPAllocationID == eipID {

@@ -1201,14 +1201,14 @@ string
 </tr>
 <tr>
 <td>
-<code>disabled</code></br>
+<code>retired</code></br>
 <em>
 boolean
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Disabled requests retirement of this zone. Defaults to false and cannot be reverted once true.<br />Keep the zone entry and its resource configuration when retiring it.</p>
+<p>Retired marks this zone for retirement. Defaults to false and cannot be reverted once true.<br />Keep the zone entry and its resource configuration when retiring it.</p>
 </td>
 </tr>
 <tr>

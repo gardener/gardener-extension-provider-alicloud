@@ -39,7 +39,7 @@ func TestBuildZoneRetirementTargetsRequiresObserverOnlyForRetirement(t *testing.
 		t.Fatalf("targets=%v err=%v", targets, err)
 	}
 
-	fc.config.Networks.Zones[1].Disabled = false
+	fc.config.Networks.Zones[1].Retired = false
 	targets, err = fc.buildZoneRetirementTargets(context.Background())
 	if err != nil || targets != nil {
 		t.Fatalf("targets=%v err=%v", targets, err)
@@ -211,7 +211,7 @@ func TestUserNatGatewayAndBYORetirementTargetsDoNotApplyManagedLocationCheck(t *
 
 	t.Run("BYO VSwitch", func(t *testing.T) {
 		config := byoConfig(byoZone("zone1", "vsw-active"), byoZone("zone2", "vsw-retired"))
-		config.Networks.Zones[1].Disabled = true
+		config.Networks.Zones[1].Retired = true
 		state := shared.FlatMap{
 			IdentifierVPC: "vpc-123", "Zones/zone1/VSwitch": "vsw-active", "Zones/zone2/VSwitch": "vsw-retired",
 		}

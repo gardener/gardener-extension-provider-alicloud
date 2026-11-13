@@ -260,8 +260,8 @@ func TestZoneRetirementProcessesZonesSerially(t *testing.T) {
 		byoZone("zone2", "vsw-second"),
 		byoZone("zone3", "vsw-third"),
 	)
-	config.Networks.Zones[1].Disabled = true
-	config.Networks.Zones[2].Disabled = true
+	config.Networks.Zones[1].Retired = true
+	config.Networks.Zones[2].Retired = true
 	state := shared.FlatMap{
 		IdentifierVPC: "vpc-123", "Zones/zone2/VSwitch": "vsw-second", "Zones/zone3/VSwitch": "vsw-third",
 	}
@@ -293,7 +293,7 @@ func TestZoneRetirementProcessesZonesSerially(t *testing.T) {
 func TestBYOZoneRetirementOnlyClearsShootReference(t *testing.T) {
 	ctx := context.Background()
 	config := byoConfig(byoZone("zone1", "vsw-active"), byoZone("zone2", "vsw-retired"))
-	config.Networks.Zones[1].Disabled = true
+	config.Networks.Zones[1].Retired = true
 	state := shared.FlatMap{IdentifierVPC: "vpc-123", "Zones/zone2/VSwitch": "vsw-retired"}
 	fc, _ := newBYOTestContext(gomock.NewController(t), config, state)
 	setRetirementTestPersistor(fc, nil)

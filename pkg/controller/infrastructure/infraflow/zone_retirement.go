@@ -18,7 +18,7 @@ type ZoneRetirementObserver interface {
 	EnsureVSwitchUnused(ctx context.Context, namespace, vSwitchID string) error
 }
 
-// zoneRetirementTarget identifies the resources belonging to one disabled zone.
+// zoneRetirementTarget identifies the resources belonging to one retired zone.
 type zoneRetirementTarget struct {
 	ZoneName string
 	// VSwitchID is empty when neither state nor Alicloud contains a VSwitch owned by this Shoot.
@@ -32,7 +32,7 @@ func (c *FlowContext) buildZoneRetirementTargets(ctx context.Context) ([]zoneRet
 	var targets []zoneRetirementTarget
 	for i := range c.config.Networks.Zones {
 		zone := &c.config.Networks.Zones[i]
-		if !zone.Disabled {
+		if !zone.Retired {
 			continue
 		}
 		if c.isZoneRetirementCompleted(zone.Name) {

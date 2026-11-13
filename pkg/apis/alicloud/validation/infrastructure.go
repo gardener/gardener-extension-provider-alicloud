@@ -300,7 +300,7 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 }
 
 // validateZoneRetirementConfig checks the retirement rules shared by creation and updates.
-// Disabled entries still reserve their name, CIDRs, and IPv6 index.
+// Retired entries still reserve their name, CIDRs, and IPv6 index.
 func validateZoneRetirementConfig(config *apisalicloud.InfrastructureConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	active := 0
@@ -310,16 +310,16 @@ func validateZoneRetirementConfig(config *apisalicloud.InfrastructureConfig, fld
 			allErrs = append(allErrs, field.Duplicate(fldPath.Index(i).Child("name"), zone.Name))
 		}
 		names.Insert(zone.Name)
-		if !zone.Disabled {
+		if !zone.Retired {
 			active++
 		}
 	}
 	if len(config.Networks.Zones) > 0 && active == 0 {
-		allErrs = append(allErrs, field.Forbidden(fldPath, "at least one zone must remain enabled"))
+		allErrs = append(allErrs, field.Forbidden(fldPath, "at least one zone must remain active"))
 	}
-	if len(config.Networks.Zones) > 0 && config.Networks.Zones[0].Disabled && alicloudhelper.IsManagedNATGatewayConfig(config) {
-		allErrs = append(allErrs, field.Forbidden(fldPath.Index(0).Child("disabled"),
-			"the first zone cannot be disabled when Gardener manages the NAT gateway; keep it enabled and retire another zone"))
+	if len(config.Networks.Zones) > 0 && config.Networks.Zones[0].Retired && alicloudhelper.IsManagedNATGatewayConfig(config) {
+		allErrs = append(allErrs, field.Forbidden(fldPath.Index(0).Child("retired"),
+			"the first zone cannot be retired when Gardener manages the NAT gateway; keep it active and retire another zone"))
 	}
 	return allErrs
 }
@@ -343,13 +343,13 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, workers 
 	for i := range oldZones {
 		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Name, newZones[i].Name, fldPath.Index(i))...)
 
-		if oldZones[i].Disabled && !newZones[i].Disabled {
-			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i).Child("disabled"),
-				"a disabled zone cannot be re-enabled; append a new zone instead"))
+		if oldZones[i].Retired && !newZones[i].Retired {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i).Child("retired"),
+				"a retired zone cannot be restored; append a new zone instead"))
 		}
-		if oldZones[i].Disabled || newZones[i].Disabled {
+		if oldZones[i].Retired || newZones[i].Retired {
 			oldZone, newZone := oldZones[i], newZones[i]
-			oldZone.Disabled, newZone.Disabled = false, false
+			oldZone.Retired, newZone.Retired = false, false
 			allErrs = append(allErrs, apivalidation.ValidateImmutableField(newZone, oldZone, fldPath.Index(i))...)
 			continue
 		}
@@ -399,9 +399,9 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, workers 
 	}
 
 	for i, zone := range newZones {
-		if zone.Disabled && ZoneReferencedByWorkers(zone.Name, workers) {
-			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i).Child("disabled"),
-				"zone is still referenced by a worker pool; migrate the workers and remove the old pool before disabling the zone"))
+		if zone.Retired && ZoneReferencedByWorkers(zone.Name, workers) {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i).Child("retired"),
+				"zone is still referenced by a worker pool; migrate the workers and remove the old pool before retiring the zone"))
 		}
 		if zone.WorkersVSwitchID == nil {
 			allErrs = append(allErrs, ValidateNatGatewayConfig(zone.NatGateway, fldPath.Index(i).Child("natGateway"))...)

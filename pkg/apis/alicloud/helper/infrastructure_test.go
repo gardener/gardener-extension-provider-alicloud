@@ -29,7 +29,7 @@ func TestIsManagedNATGatewayConfig(t *testing.T) {
 		{name: "BYO does not manage NAT even with invalid true flag", vpc: api.VPC{ID: ptr.To("vpc-user"), GardenerManagedNATGateway: ptr.To(true)}, byo: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			config := &api.InfrastructureConfig{Networks: api.Networks{VPC: tc.vpc, Zones: []api.Zone{{Name: "zone1", Disabled: true}, {Name: "zone2"}}}}
+			config := &api.InfrastructureConfig{Networks: api.Networks{VPC: tc.vpc, Zones: []api.Zone{{Name: "zone1", Retired: true}, {Name: "zone2"}}}}
 			if tc.byo {
 				for i := range config.Networks.Zones {
 					config.Networks.Zones[i].WorkersVSwitchID = ptr.To("vsw-user")

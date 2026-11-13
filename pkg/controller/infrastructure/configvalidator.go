@@ -113,7 +113,7 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		}
 	}
 
-	if createManagedNATGateway && len(config.Networks.Zones) > 0 && !config.Networks.Zones[0].Disabled {
+	if createManagedNATGateway && len(config.Networks.Zones) > 0 && !config.Networks.Zones[0].Retired {
 		logger.Info("Validating infrastructure networks.zones[0].name")
 		allErrs = append(allErrs, c.validateEnhancedNatGatewayZone(ctx, actor, config.Networks.Zones[0].Name, infra.Spec.Region, field.NewPath("networks", "zones[0]", "name"))...)
 	}
@@ -121,7 +121,7 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 	if !isBYOMode {
 		eipIds := sets.New[string]()
 		for _, zone := range config.Networks.Zones {
-			if zone.Disabled {
+			if zone.Retired {
 				continue
 			}
 			if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
@@ -290,7 +290,7 @@ func (c *configValidator) validateBYOVSwitches(ctx context.Context, actor alicli
 	allErrs := field.ErrorList{}
 
 	for i, zone := range config.Networks.Zones {
-		if zone.Disabled {
+		if zone.Retired {
 			continue
 		}
 		if zone.WorkersVSwitchID == nil {
@@ -377,7 +377,7 @@ func (c *configValidator) validateVSwitchCIDRConflict(vswitches []*aliclient.VSw
 
 	zonesPath := field.NewPath("networks", "zones")
 	for i, zone := range zones {
-		if zone.Disabled {
+		if zone.Retired {
 			continue
 		}
 		workerCIDR := zone.Workers

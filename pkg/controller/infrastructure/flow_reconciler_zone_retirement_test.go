@@ -20,15 +20,15 @@ func TestZoneRetirementProviderOutputs(t *testing.T) {
 	config := &aliapi.InfrastructureConfig{Networks: aliapi.Networks{
 		VPC: aliapi.VPC{ID: ptr.To("vpc-123")},
 		Zones: []aliapi.Zone{
-			{Name: "zone-disabled", Disabled: true},
+			{Name: "zone-retired", Retired: true},
 			{Name: "zone-active"},
 		},
 	}}
 	state := infraflow.NewPersistentStateFromFlatMap(shared.FlatMap{
-		"Zones/zone-disabled/VSwitch":                    "vsw-disabled",
-		"Zones/zone-disabled/NATGatewayElasticIPAddress": "192.0.2.1",
-		"Zones/zone-active/VSwitch":                      "vsw-active",
-		"Zones/zone-active/NATGatewayElasticIPAddress":   "192.0.2.2",
+		"Zones/zone-retired/VSwitch":                    "vsw-retired",
+		"Zones/zone-retired/NATGatewayElasticIPAddress": "192.0.2.1",
+		"Zones/zone-active/VSwitch":                     "vsw-active",
+		"Zones/zone-active/NATGatewayElasticIPAddress":  "192.0.2.2",
 	})
 
 	status, err := computeProviderStatusFromFlowState(config, state)
@@ -42,8 +42,8 @@ func TestZoneRetirementProviderOutputs(t *testing.T) {
 		t.Fatalf("pending retirement egress CIDRs: %v", got)
 	}
 
-	state.Data["Zones/zone-disabled/"+infraflow.IdentifierZoneRetirementCompleted] = infraflow.ZoneRetirementCompletedValue
-	state.Data["Zones/zone-disabled/NATGatewayElasticIPAddress"] = "<deleted>"
+	state.Data["Zones/zone-retired/"+infraflow.IdentifierZoneRetirementCompleted] = infraflow.ZoneRetirementCompletedValue
+	state.Data["Zones/zone-retired/NATGatewayElasticIPAddress"] = "<deleted>"
 	if got := getEgressIpCidrs(state); !reflect.DeepEqual(got, []string{"192.0.2.2/32"}) {
 		t.Fatalf("completed retirement egress CIDRs: %v", got)
 	}

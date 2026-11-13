@@ -30,11 +30,11 @@ func TestZoneRetirementSerialization(t *testing.T) {
 	decoder := serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 	for _, tc := range []struct {
 		name, field string
-		disabled    bool
+		retired     bool
 	}{
 		{name: "old config"},
-		{name: "explicit false", field: ",\"disabled\":false"},
-		{name: "retirement request", field: ",\"disabled\":true", disabled: true},
+		{name: "explicit false", field: ",\"retired\":false"},
+		{name: "retirement request", field: ",\"retired\":true", retired: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := &runtime.RawExtension{Raw: []byte("{\"apiVersion\":\"alicloud.provider.extensions.gardener.cloud/v1alpha1\",\"kind\":\"InfrastructureConfig\",\"networks\":{\"vpc\":{\"cidr\":\"10.0.0.0/16\"},\"zones\":[{\"name\":\"zone1\",\"workers\":\"10.0.1.0/24\"" + tc.field + "}]}}")}
@@ -42,12 +42,12 @@ func TestZoneRetirementSerialization(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if config.Networks.Zones[0].Disabled != tc.disabled {
-				t.Fatalf("decoded disabled = %v", config.Networks.Zones[0].Disabled)
+			if config.Networks.Zones[0].Retired != tc.retired {
+				t.Fatalf("decoded retired = %v", config.Networks.Zones[0].Retired)
 			}
 			copied := config.DeepCopy()
-			if copied.Networks.Zones[0].Disabled != tc.disabled {
-				t.Fatal("deepcopy lost disabled")
+			if copied.Networks.Zones[0].Retired != tc.retired {
+				t.Fatal("deepcopy lost retired")
 			}
 			external := &apiv1alpha1.InfrastructureConfig{}
 			if err := scheme.Convert(copied, external, nil); err != nil {
@@ -63,26 +63,26 @@ func TestZoneRetirementSerialization(t *testing.T) {
 			if err := json.Unmarshal(encoded, &jsonConfig); err != nil {
 				t.Fatal(err)
 			}
-			value, exists := jsonConfig.Networks.Zones[0]["disabled"]
-			if exists != tc.disabled {
-				t.Fatalf("disabled presence = %v, JSON: %s", exists, encoded)
+			value, exists := jsonConfig.Networks.Zones[0]["retired"]
+			if exists != tc.retired {
+				t.Fatalf("retired presence = %v, JSON: %s", exists, encoded)
 			}
 			if exists && string(value) != "true" {
-				t.Fatalf("disabled = %s", value)
+				t.Fatalf("retired = %s", value)
 			}
 			// Direct Zone conversion must also preserve the flag, independently of slice conversion.
 			internalZone := api.Zone{}
 			if err := scheme.Convert(&external.Networks.Zones[0], &internalZone, nil); err != nil {
 				t.Fatal(err)
 			}
-			if internalZone.Disabled != tc.disabled {
-				t.Fatal("Zone conversion lost disabled")
+			if internalZone.Retired != tc.retired {
+				t.Fatal("Zone conversion lost retired")
 			}
 		})
 	}
 }
 
-func TestShootRejectsDisabledWorkerWithUnchangedInfrastructure(t *testing.T) {
+func TestShootRejectsRetiredWorkerWithUnchangedInfrastructure(t *testing.T) {
 	scheme := runtime.NewScheme()
 	if err := api.AddToScheme(scheme); err != nil {
 		t.Fatal(err)
@@ -94,7 +94,7 @@ func TestShootRejectsDisabledWorkerWithUnchangedInfrastructure(t *testing.T) {
 		decoder:        serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder(),
 		lenientDecoder: serializer.NewCodecFactory(scheme).UniversalDecoder(),
 	}
-	raw := []byte(`{"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1","kind":"InfrastructureConfig","networks":{"vpc":{"cidr":"10.0.0.0/16"},"zones":[{"name":"zone1","workers":"10.0.1.0/24"},{"name":"zone2","workers":"10.0.2.0/24","disabled":true}]}}`)
+	raw := []byte(`{"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1","kind":"InfrastructureConfig","networks":{"vpc":{"cidr":"10.0.0.0/16"},"zones":[{"name":"zone1","workers":"10.0.1.0/24"},{"name":"zone2","workers":"10.0.2.0/24","retired":true}]}}`)
 	old := &core.Shoot{Spec: core.ShootSpec{
 		Region:     "cn-hangzhou",
 		Networking: &core.Networking{Nodes: ptr.To("10.0.0.0/16"), Pods: ptr.To("192.168.0.0/16"), Services: ptr.To("172.16.0.0/16")},
@@ -116,7 +116,7 @@ func TestShootRejectsDisabledWorkerWithUnchangedInfrastructure(t *testing.T) {
 			if (err != nil) != tc.wantErr {
 				t.Fatalf("validation error: %v", err)
 			}
-			if tc.wantErr && !strings.Contains(err.Error(), "zone is disabled") {
+			if tc.wantErr && !strings.Contains(err.Error(), "zone is retired") {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})
@@ -125,10 +125,10 @@ func TestShootRejectsDisabledWorkerWithUnchangedInfrastructure(t *testing.T) {
 
 func TestRetirementDoesNotLookUpFrozenBYOVSwitch(t *testing.T) {
 	old := &api.InfrastructureConfig{Networks: api.Networks{Zones: []api.Zone{{Name: "zone1", WorkersVSwitchID: ptr.To("vsw-old")}}}}
-	for _, alreadyDisabled := range []bool{false, true} {
-		old.Networks.Zones[0].Disabled = alreadyDisabled
+	for _, alreadyRetired := range []bool{false, true} {
+		old.Networks.Zones[0].Retired = alreadyRetired
 		config := old.DeepCopy()
-		config.Networks.Zones[0].Disabled = true
+		config.Networks.Zones[0].Retired = true
 		config.Networks.Zones[0].WorkersVSwitchID = ptr.To("vsw-new")
 		// No cloud client or credential reader: frozen changes must reach static validation without I/O.
 		gone, err := (&shoot{}).computeGoneVSwitches(context.Background(), &core.Shoot{}, old, config)
@@ -138,7 +138,7 @@ func TestRetirementDoesNotLookUpFrozenBYOVSwitch(t *testing.T) {
 	}
 }
 
-func TestShootCreationRejectsDisabledZones(t *testing.T) {
+func TestShootCreationRejectsRetiredZones(t *testing.T) {
 	scheme := runtime.NewScheme()
 	if err := api.AddToScheme(scheme); err != nil {
 		t.Fatal(err)
@@ -150,13 +150,13 @@ func TestShootCreationRejectsDisabledZones(t *testing.T) {
 	for _, mode := range []string{"managed NGW", "user NGW", "BYO"} {
 		for _, tc := range []struct {
 			name          string
-			disabledIndex int
+			retiredIndex  int
 			explicitFalse bool
 		}{
-			{name: "omitted", disabledIndex: -1},
-			{name: "explicit false", disabledIndex: -1, explicitFalse: true},
-			{name: "first zone disabled", disabledIndex: 0},
-			{name: "second zone disabled", disabledIndex: 1},
+			{name: "omitted", retiredIndex: -1},
+			{name: "explicit false", retiredIndex: -1, explicitFalse: true},
+			{name: "first zone retired", retiredIndex: 0},
+			{name: "second zone retired", retiredIndex: 1},
 		} {
 			t.Run(mode+"/"+tc.name, func(t *testing.T) {
 				vpc := map[string]any{"cidr": "10.0.0.0/16"}
@@ -172,11 +172,11 @@ func TestShootCreationRejectsDisabledZones(t *testing.T) {
 				}
 				if tc.explicitFalse {
 					for _, zone := range zones {
-						zone["disabled"] = false
+						zone["retired"] = false
 					}
 				}
-				if tc.disabledIndex >= 0 {
-					zones[tc.disabledIndex]["disabled"] = true
+				if tc.retiredIndex >= 0 {
+					zones[tc.retiredIndex]["retired"] = true
 				}
 				raw, err := json.Marshal(map[string]any{
 					"apiVersion": apiv1alpha1.SchemeGroupVersion.String(), "kind": "InfrastructureConfig",
@@ -193,13 +193,13 @@ func TestShootCreationRejectsDisabledZones(t *testing.T) {
 					}},
 				}}
 				err = s.validateShootCreation(context.Background(), obj)
-				if tc.disabledIndex < 0 {
+				if tc.retiredIndex < 0 {
 					if err != nil {
 						t.Fatal(err)
 					}
 				} else {
-					path := infraConfigFldPath.Child("networks", "zones").Index(tc.disabledIndex).Child("disabled").String()
-					if err == nil || !strings.Contains(err.Error(), path) || !strings.Contains(err.Error(), "zone cannot be disabled at shoot creation") {
+					path := infraConfigFldPath.Child("networks", "zones").Index(tc.retiredIndex).Child("retired").String()
+					if err == nil || !strings.Contains(err.Error(), path) || !strings.Contains(err.Error(), "zone cannot be retired at shoot creation") {
 						t.Fatalf("expected creation rejection at %s, got %v", path, err)
 					}
 				}

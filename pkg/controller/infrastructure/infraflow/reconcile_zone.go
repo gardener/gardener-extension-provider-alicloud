@@ -34,7 +34,7 @@ func (c *FlowContext) ensureZones(ctx context.Context) error {
 	eipIntenetChargeType := c.getEipInternetChargeType(ctx)
 	processedZones := sets.New[string]()
 	for _, zone := range c.config.Networks.Zones {
-		if zone.Disabled {
+		if zone.Retired {
 			continue
 		}
 		if processedZones.Has(zone.Name) {
@@ -87,7 +87,7 @@ func (c *FlowContext) ensureBYOZones(ctx context.Context) error {
 	seenRT := sets.New[string]()
 	var rtIDs []string
 	for _, zone := range c.config.Networks.Zones {
-		if zone.Disabled {
+		if zone.Retired {
 			continue
 		}
 		if zone.WorkersVSwitchID == nil {
@@ -108,7 +108,7 @@ func (c *FlowContext) ensureBYOZones(ctx context.Context) error {
 		}
 	}
 
-	// A valid BYO configuration always has an enabled zone, and every VPC has a
+	// A valid BYO configuration always has an active zone, and every VPC has a
 	// system route table as fallback. Keep the previous state if the cloud API
 	// unexpectedly returns no usable route table.
 	if len(rtIDs) > 0 {
@@ -124,7 +124,7 @@ func (c *FlowContext) getEipInternetChargeType(ctx context.Context) string {
 	var eipId *string
 	eipId = nil
 	for _, zone := range c.config.Networks.Zones {
-		// Keep disabled zones in this lookup. The configured EIP is user-owned and its
+		// Keep retired zones in this lookup. The configured EIP is user-owned and its
 		// charge type is used as Shoot-wide input when allocating a managed EIP.
 		// Existing managed EIPs are not changed by this value.
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
@@ -440,7 +440,7 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 			CidrBlock: cidrBlock,
 			ZoneId:    zone.Name,
 		})
-		if zone.Disabled {
+		if zone.Retired {
 			continue
 		}
 
@@ -477,7 +477,7 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 	identity := func(item *aliclient.VSwitch) string {
 		return item.ZoneId + "-" + item.CidrBlock
 	}
-	// Generic deletion compares current resources with every configured zone. A disabled
+	// Generic deletion compares current resources with every configured zone. A retired
 	// zone is still configured and is handled later by the retirement flow. Creation and
 	// maintenance, however, only use the active desired set.
 	toBeDeleted, _, _ := diffByID(configured, current, identity)
@@ -857,7 +857,7 @@ func (c *FlowContext) deleteRetiringZoneResiduals(ctx context.Context, currentVS
 		existingVSwitchIDs.Insert(vSwitch.VSwitchId)
 	}
 	for _, zoneConfig := range c.config.Networks.Zones {
-		if !zoneConfig.Disabled {
+		if !zoneConfig.Retired {
 			continue
 		}
 		if !zones.HasChild(zoneConfig.Name) {

@@ -27,7 +27,7 @@ var _ = Describe("Zone retirement validation", func() {
 		func(vpc api.VPC, byo, allowed bool) {
 			config := retirementConfig()
 			config.Networks.VPC = vpc
-			config.Networks.Zones[0].Disabled = true
+			config.Networks.Zones[0].Retired = true
 			if byo {
 				for i := range config.Networks.Zones {
 					config.Networks.Zones[i].Workers = ""
@@ -40,8 +40,8 @@ var _ = Describe("Zone retirement validation", func() {
 				Expect(errs).To(BeEmpty())
 				Expect(updateErrs).To(BeEmpty())
 			} else {
-				Expect(errs.ToAggregate().Error()).To(ContainSubstring("networks.zones[0].disabled"))
-				Expect(updateErrs.ToAggregate().Error()).To(ContainSubstring("networks.zones[0].disabled"))
+				Expect(errs.ToAggregate().Error()).To(ContainSubstring("networks.zones[0].retired"))
+				Expect(updateErrs.ToAggregate().Error()).To(ContainSubstring("networks.zones[0].retired"))
 			}
 		},
 		Entry("created VPC defaults to managed NAT", api.VPC{CIDR: ptr.To("10.0.0.0/16")}, false, false),
@@ -55,39 +55,39 @@ var _ = Describe("Zone retirement validation", func() {
 	It("allows retiring a non-first managed zone", func() {
 		old := retirementConfig()
 		config := old.DeepCopy()
-		config.Networks.Zones[1].Disabled = true
+		config.Networks.Zones[1].Retired = true
 		Expect(ValidateInfrastructureConfig(config, nil, "cn-hangzhou")).To(BeEmpty())
 		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil)).To(BeEmpty())
 	})
 
-	It("requires an enabled zone even with user NAT", func() {
+	It("requires an active zone even with user NAT", func() {
 		old := retirementConfig()
 		old.Networks.VPC = api.VPC{ID: ptr.To("vpc-user")}
 		config := old.DeepCopy()
 		for i := range config.Networks.Zones {
-			config.Networks.Zones[i].Disabled = true
+			config.Networks.Zones[i].Retired = true
 		}
-		Expect(ValidateInfrastructureConfig(config, nil, "cn-hangzhou").ToAggregate().Error()).To(ContainSubstring("at least one zone must remain enabled"))
-		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil).ToAggregate().Error()).To(ContainSubstring("at least one zone must remain enabled"))
+		Expect(ValidateInfrastructureConfig(config, nil, "cn-hangzhou").ToAggregate().Error()).To(ContainSubstring("at least one zone must remain active"))
+		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil).ToAggregate().Error()).To(ContainSubstring("at least one zone must remain active"))
 	})
 
-	It("does not allow re-enabling a zone", func() {
+	It("does not allow restoring a retired zone", func() {
 		old := retirementConfig()
-		old.Networks.Zones[1].Disabled = true
+		old.Networks.Zones[1].Retired = true
 		config := old.DeepCopy()
-		config.Networks.Zones[1].Disabled = false
-		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil).ToAggregate().Error()).To(ContainSubstring("cannot be re-enabled"))
+		config.Networks.Zones[1].Retired = false
+		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil).ToAggregate().Error()).To(ContainSubstring("cannot be restored"))
 	})
 
 	DescribeTable("freezes resource fields when requesting and after requesting retirement",
 		func(mutate func(*api.Zone)) {
-			for _, alreadyDisabled := range []bool{false, true} {
+			for _, alreadyRetired := range []bool{false, true} {
 				old := retirementConfig()
-				old.Networks.Zones[1].Disabled = alreadyDisabled
+				old.Networks.Zones[1].Retired = alreadyRetired
 				old.Networks.Zones[1].Ipv6CidrBlock = ptr.To(1)
 				old.Networks.Zones[1].NatGateway = &api.NatGatewayConfig{EIPAllocationID: ptr.To("eip-old")}
 				config := old.DeepCopy()
-				config.Networks.Zones[1].Disabled = true
+				config.Networks.Zones[1].Retired = true
 				mutate(&config.Networks.Zones[1])
 				errs := ValidateInfrastructureConfigUpdate(old, config, nil, nil)
 				Expect(errs).NotTo(BeEmpty())
@@ -105,16 +105,16 @@ var _ = Describe("Zone retirement validation", func() {
 	)
 
 	It("freezes a BYO VSwitch even if unreferenced or gone", func() {
-		for _, alreadyDisabled := range []bool{false, true} {
+		for _, alreadyRetired := range []bool{false, true} {
 			old := retirementConfig()
 			old.Networks.VPC = api.VPC{ID: ptr.To("vpc-user")}
 			for i := range old.Networks.Zones {
 				old.Networks.Zones[i].Workers = ""
 				old.Networks.Zones[i].WorkersVSwitchID = ptr.To("vsw-" + old.Networks.Zones[i].Name)
 			}
-			old.Networks.Zones[1].Disabled = alreadyDisabled
+			old.Networks.Zones[1].Retired = alreadyRetired
 			config := old.DeepCopy()
-			config.Networks.Zones[1].Disabled = true
+			config.Networks.Zones[1].Retired = true
 			config.Networks.Zones[1].WorkersVSwitchID = ptr.To("vsw-new")
 			Expect(ValidateInfrastructureConfigUpdate(old, config, nil, []string{"vsw-zone2"})).NotTo(BeEmpty())
 		}
@@ -126,13 +126,13 @@ var _ = Describe("Zone retirement validation", func() {
 		config := old.DeepCopy()
 		config.Networks.Zones[0].Ipv6CidrBlock = ptr.To(3)
 		config.Networks.Zones[0].NatGateway = &api.NatGatewayConfig{EIPAllocationID: ptr.To("eip-new")}
-		config.Networks.Zones[1].Disabled = true
+		config.Networks.Zones[1].Retired = true
 		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil)).To(BeEmpty())
 	})
 
-	It("keeps disabled names reserved when appending zones", func() {
+	It("keeps retired names reserved when appending zones", func() {
 		old := retirementConfig()
-		old.Networks.Zones[1].Disabled = true
+		old.Networks.Zones[1].Retired = true
 		config := old.DeepCopy()
 		config.Networks.Zones = append(config.Networks.Zones, api.Zone{Name: "zone2", Workers: "10.0.3.0/24"})
 		Expect(ValidateInfrastructureConfig(config, nil, "cn-hangzhou").ToAggregate().Error()).To(ContainSubstring("networks.zones[2].name"))
@@ -142,9 +142,9 @@ var _ = Describe("Zone retirement validation", func() {
 		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil)).To(BeEmpty())
 	})
 
-	It("does not allow removing or reordering disabled entries", func() {
+	It("does not allow removing or reordering retired entries", func() {
 		old := retirementConfig()
-		old.Networks.Zones[1].Disabled = true
+		old.Networks.Zones[1].Retired = true
 		config := old.DeepCopy()
 		config.Networks.Zones = config.Networks.Zones[:1]
 		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil)).NotTo(BeEmpty())
@@ -153,9 +153,9 @@ var _ = Describe("Zone retirement validation", func() {
 		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil)).NotTo(BeEmpty())
 	})
 
-	It("does not reuse disabled IPv4 CIDRs or default IPv6 indices", func() {
+	It("does not reuse retired IPv4 CIDRs or default IPv6 indices", func() {
 		config := retirementConfig()
-		config.Networks.Zones[1].Disabled = true
+		config.Networks.Zones[1].Retired = true
 		config.Networks.Zones = append(config.Networks.Zones, api.Zone{Name: "zone3", Workers: "10.0.2.0/24"})
 		Expect(ValidateInfrastructureConfig(config, nil, "cn-hangzhou")).NotTo(BeEmpty())
 		config.Networks.Zones[2].Workers = "10.0.3.0/24"
@@ -167,7 +167,7 @@ var _ = Describe("Zone retirement validation", func() {
 	It("does not permit route table mode changes along with retirement", func() {
 		old := retirementConfig()
 		config := old.DeepCopy()
-		config.Networks.Zones[1].Disabled = true
+		config.Networks.Zones[1].Retired = true
 		config.Networks.VPC.UseCustomRouteTable = ptr.To(true)
 		Expect(ValidateInfrastructureConfigUpdate(old, config, nil, nil).ToAggregate().Error()).To(ContainSubstring("useCustomRouteTable"))
 		config.Networks.VPC.UseCustomRouteTable = ptr.To(false)
@@ -177,7 +177,7 @@ var _ = Describe("Zone retirement validation", func() {
 	It("requires workers to stop referencing the target zone", func() {
 		old := retirementConfig()
 		config := old.DeepCopy()
-		config.Networks.Zones[1].Disabled = true
+		config.Networks.Zones[1].Retired = true
 		workers := []core.Worker{{Name: "pool", Zones: []string{"zone2"}}}
 		Expect(ValidateInfrastructureConfigUpdate(old, config, workers, nil).ToAggregate().Error()).To(ContainSubstring("migrate the workers"))
 	})
@@ -185,7 +185,7 @@ var _ = Describe("Zone retirement validation", func() {
 	DescribeTable("worker references are checked even without an infrastructure update",
 		func(workerZone string, allowed bool) {
 			config := retirementConfig()
-			config.Networks.Zones[1].Disabled = true
+			config.Networks.Zones[1].Retired = true
 			workers := []core.Worker{{Name: "pool", Zones: []string{workerZone}, Volume: &core.Volume{Type: ptr.To("cloud_essd"), VolumeSize: "40Gi"}}}
 			errs := ValidateWorkers(workers, config.Networks.Zones, field.NewPath("spec", "provider", "workers"))
 			if allowed {
@@ -194,12 +194,12 @@ var _ = Describe("Zone retirement validation", func() {
 				Expect(errs).To(HaveLen(1))
 				Expect(errs[0].Field).To(Equal("spec.provider.workers[0].zones[0]"))
 				if workerZone == "zone2" {
-					Expect(errs[0].Detail).To(ContainSubstring("zone is disabled"))
+					Expect(errs[0].Detail).To(ContainSubstring("zone is retired"))
 				}
 			}
 		},
 		Entry("active", "zone1", true),
-		Entry("disabled", "zone2", false),
+		Entry("retired", "zone2", false),
 		Entry("unknown", "zone3", false),
 	)
 })

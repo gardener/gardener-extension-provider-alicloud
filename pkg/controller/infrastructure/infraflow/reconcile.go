@@ -64,15 +64,15 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		c.ensureZones,
 		Timeout(defaultLongTimeout), Dependencies(ensureNatGateway, ensureRouteTable))
 
-	_ = c.AddTask(g, "retire disabled zones",
-		c.retireDisabledZones,
+	_ = c.AddTask(g, "retire zones",
+		c.retireZones,
 		Dependencies(ensureZones))
 
 	return g
 }
 
-// retireDisabledZones checks every pending target before running the first destructive cleanup task.
-func (c *FlowContext) retireDisabledZones(ctx context.Context) error {
+// retireZones checks every pending target before running the first destructive cleanup task.
+func (c *FlowContext) retireZones(ctx context.Context) error {
 	targets, err := c.buildZoneRetirementTargets(ctx)
 	if err != nil {
 		return err

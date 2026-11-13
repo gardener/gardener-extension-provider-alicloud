@@ -179,9 +179,9 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 	// Retirement is requested by updating an existing Shoot, not during creation.
 	var retirementErrs field.ErrorList
 	for i, zone := range infraConfig.Networks.Zones {
-		if zone.Disabled {
-			retirementErrs = append(retirementErrs, field.Forbidden(infraConfigFldPath.Child("networks", "zones").Index(i).Child("disabled"),
-				"zone cannot be disabled at shoot creation; create the shoot with the zone enabled and request retirement in a later update"))
+		if zone.Retired {
+			retirementErrs = append(retirementErrs, field.Forbidden(infraConfigFldPath.Child("networks", "zones").Index(i).Child("retired"),
+				"zone cannot be retired at shoot creation; create the shoot with the zone active and request retirement in a later update"))
 		}
 	}
 	if len(retirementErrs) > 0 {
@@ -229,7 +229,7 @@ func (s *shoot) computeGoneVSwitches(ctx context.Context, shoot *core.Shoot, old
 		}
 		oldZone, newZone := oldConfig.Networks.Zones[i], newConfig.Networks.Zones[i]
 		// Retirement freezes the resource configuration; an API lookup cannot permit this change.
-		if oldZone.Disabled || newZone.Disabled {
+		if oldZone.Retired || newZone.Retired {
 			continue
 		}
 		if oldZone.WorkersVSwitchID == nil || newZone.WorkersVSwitchID == nil {

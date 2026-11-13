@@ -198,7 +198,7 @@ func (c *FlowContext) getActiveVSwitchIDs() []string {
 	ids := []string{}
 	seen := sets.New[string]()
 	for _, zone := range c.config.Networks.Zones {
-		if zone.Disabled {
+		if zone.Retired {
 			continue
 		}
 		if id := c.getZoneChild(zone.Name).Get(IdentifierZoneVSwitch); id != nil && !seen.Has(*id) {
@@ -209,7 +209,7 @@ func (c *FlowContext) getActiveVSwitchIDs() []string {
 	return ids
 }
 
-// getTrackedVSwitchIDs includes disabled and historical entries, for resource discovery and deletion.
+// getTrackedVSwitchIDs includes retired and historical entries, for resource discovery and deletion.
 func (c *FlowContext) getTrackedVSwitchIDs() []string {
 	ids := []string{}
 	zones := c.state.GetChild(ChildIdZones)

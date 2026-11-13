@@ -264,7 +264,7 @@ func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, sta
 					continue
 				}
 				if parts[2] == infraflow.IdentifierZoneVSwitch {
-					if isZoneDisabled(config, parts[1]) {
+					if isZoneRetired(config, parts[1]) {
 						continue
 					}
 					vswitches = append(vswitches, aliv1alpha1.VSwitch{
@@ -295,10 +295,10 @@ func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, sta
 	return status, nil
 }
 
-func isZoneDisabled(config *aliapi.InfrastructureConfig, zoneName string) bool {
+func isZoneRetired(config *aliapi.InfrastructureConfig, zoneName string) bool {
 	for _, zone := range config.Networks.Zones {
 		if zone.Name == zoneName {
-			return zone.Disabled
+			return zone.Retired
 		}
 	}
 	return false

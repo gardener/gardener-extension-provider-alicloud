@@ -99,10 +99,10 @@ type SecurityGroup struct {
 type Zone struct {
 	// Name is the name of a zone.
 	Name string
-	// Disabled requests retirement of this zone. Defaults to false and cannot be reverted once true.
+	// Retired marks this zone for retirement. Defaults to false and cannot be reverted once true.
 	// Keep the zone entry and its resource configuration when retiring it.
 	// +optional
-	Disabled bool
+	Retired bool
 	// Worker specifies the worker CIDR to use.
 	// Deprecated - use `workers` instead.
 	Worker string

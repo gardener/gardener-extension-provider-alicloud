@@ -50,7 +50,7 @@ func (o *rejectVSwitchRetirementObserver) EnsureVSwitchUnused(_ context.Context,
 func retirementFlowConfig() *api.InfrastructureConfig {
 	return &api.InfrastructureConfig{Networks: api.Networks{
 		VPC:   api.VPC{CIDR: ptr.To("10.0.0.0/16")},
-		Zones: []api.Zone{{Name: "zone1", Workers: "10.0.1.0/24"}, {Name: "zone2", Workers: "10.0.2.0/24", Disabled: true}},
+		Zones: []api.Zone{{Name: "zone1", Workers: "10.0.1.0/24"}, {Name: "zone2", Workers: "10.0.2.0/24", Retired: true}},
 	}}
 }
 
@@ -66,7 +66,7 @@ func retirementFlowState() shared.FlatMap {
 
 func TestActiveAndTrackedVSwitchIDs(t *testing.T) {
 	config := retirementFlowConfig()
-	config.Networks.Zones[0].Disabled, config.Networks.Zones[1].Disabled = true, false
+	config.Networks.Zones[0].Retired, config.Networks.Zones[1].Retired = true, false
 	config.Networks.Zones = append(config.Networks.Zones, api.Zone{Name: "zone3"}, api.Zone{Name: "zone4"})
 	state := retirementFlowState()
 	state["Zones/zone3/VSwitch"] = "vsw-third"
@@ -94,7 +94,7 @@ func TestReconcileRunsZoneRetirementAfterActiveBYOZones(t *testing.T) {
 		byoZone("zone-active", "vsw-active"),
 		byoZone("zone-retired", "vsw-retired"),
 	)
-	config.Networks.Zones[1].Disabled = true
+	config.Networks.Zones[1].Retired = true
 	config.Networks.NodesSecurityGroupID = ptr.To("sg-user")
 	fc, actor := newBYOTestContext(gomock.NewController(t), config, shared.FlatMap{
 		IdentifierVPC:                                "vpc-123",
@@ -112,34 +112,34 @@ func TestReconcileRunsZoneRetirementAfterActiveBYOZones(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !fc.isZoneRetirementCompleted("zone-retired") {
-		t.Fatal("disabled BYO zone was not retired by the main reconcile graph")
+		t.Fatal("retired BYO zone was not retired by the main reconcile graph")
 	}
 }
 
-func TestRetireDisabledZonesChecksAllTargetsBeforeCleanup(t *testing.T) {
+func TestRetireZonesChecksAllTargetsBeforeCleanup(t *testing.T) {
 	config := byoConfig(
 		byoZone("zone-active", "vsw-active"),
-		byoZone("zone-disabled-a", "vsw-disabled-a"),
-		byoZone("zone-disabled-b", "vsw-disabled-b"),
+		byoZone("zone-retired-a", "vsw-retired-a"),
+		byoZone("zone-retired-b", "vsw-retired-b"),
 	)
-	config.Networks.Zones[1].Disabled = true
-	config.Networks.Zones[2].Disabled = true
+	config.Networks.Zones[1].Retired = true
+	config.Networks.Zones[2].Retired = true
 	state := shared.FlatMap{
-		IdentifierVPC:                   "vpc-123",
-		"Zones/zone-disabled-a/VSwitch": "vsw-disabled-a",
-		"Zones/zone-disabled-b/VSwitch": "vsw-disabled-b",
+		IdentifierVPC:                  "vpc-123",
+		"Zones/zone-retired-a/VSwitch": "vsw-retired-a",
+		"Zones/zone-retired-b/VSwitch": "vsw-retired-b",
 	}
 	fc, _ := newBYOTestContext(gomock.NewController(t), config, state)
-	fc.retirementObserver = &rejectVSwitchRetirementObserver{rejectedID: "vsw-disabled-b"}
+	fc.retirementObserver = &rejectVSwitchRetirementObserver{rejectedID: "vsw-retired-b"}
 
-	err := fc.retireDisabledZones(context.Background())
-	if err == nil || !strings.Contains(err.Error(), "vsw-disabled-b is still used") {
+	err := fc.retireZones(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "vsw-retired-b is still used") {
 		t.Fatalf("unexpected preflight result: %v", err)
 	}
-	if got := fc.getZoneChild("zone-disabled-a").Get(IdentifierZoneVSwitch); got == nil || *got != "vsw-disabled-a" {
+	if got := fc.getZoneChild("zone-retired-a").Get(IdentifierZoneVSwitch); got == nil || *got != "vsw-retired-a" {
 		t.Fatalf("first target was changed before all preflights passed: %v", got)
 	}
-	if fc.isZoneRetirementCompleted("zone-disabled-a") {
+	if fc.isZoneRetirementCompleted("zone-retired-a") {
 		t.Fatal("first target was completed before the later preflight failed")
 	}
 }
@@ -382,7 +382,7 @@ func TestBYORetirementKeepsStateAndRecomputesRoutes(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			config := byoConfig(byoZone("zone2", "vsw-retired"), byoZone("zone1", "vsw-active"))
-			config.Networks.Zones[0].Disabled = true
+			config.Networks.Zones[0].Retired = true
 			state := retirementFlowState()
 			state[IdentifierRouteTable] = "rt-retired"
 			fc, actor := newBYOTestContext(gomock.NewController(t), config, state)
