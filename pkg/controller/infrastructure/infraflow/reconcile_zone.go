@@ -842,7 +842,56 @@ func (c *FlowContext) deleteZones(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := c.deleteRetiringZoneResiduals(ctx, current); err != nil {
+		return err
+	}
 	return c.DeleteZoneByVSwitches(ctx, current)
+}
+
+// deleteRetiringZoneResiduals removes EIP associations and managed EIPs left after retirement deleted a VSwitch.
+// It runs before the regular whole-Shoot deletion because an associated EIP can block NGW deletion.
+func (c *FlowContext) deleteRetiringZoneResiduals(ctx context.Context, currentVSwitches []*aliclient.VSwitch) error {
+	zones := c.state.GetChild(ChildIdZones)
+	existingVSwitchIDs := sets.New[string]()
+	for _, vSwitch := range currentVSwitches {
+		existingVSwitchIDs.Insert(vSwitch.VSwitchId)
+	}
+	for _, zoneConfig := range c.config.Networks.Zones {
+		if !zoneConfig.Disabled {
+			continue
+		}
+		if !zones.HasChild(zoneConfig.Name) {
+			continue
+		}
+		zone := zones.GetChild(zoneConfig.Name)
+		recordedVSwitchID := zone.Get(IdentifierZoneVSwitch)
+		vSwitchDeleted := zone.IsAlreadyDeleted(IdentifierZoneVSwitch) ||
+			recordedVSwitchID != nil && !existingVSwitchIDs.Has(*recordedVSwitchID)
+		if !vSwitchDeleted {
+			continue
+		}
+		managedEIPID := zone.Get(IdentifierZoneNATGWElasticIP)
+		if managedEIPID != nil && !c.activeZoneReferencesEIP(*managedEIPID) {
+			if err := c.deleteEipAssociation(zoneConfig.Name)(ctx); err != nil {
+				return err
+			}
+			if err := c.deleteElasticIP(zoneConfig.Name)(ctx); err != nil {
+				return err
+			}
+		}
+		if zoneConfig.NatGateway != nil && zoneConfig.NatGateway.EIPAllocationID != nil &&
+			(managedEIPID == nil || *zoneConfig.NatGateway.EIPAllocationID != *managedEIPID) {
+			target := zoneRetirementTarget{ZoneName: zoneConfig.Name}
+			if err := c.cleanupRetirementEIPAssociation(ctx, target, *zoneConfig.NatGateway.EIPAllocationID, false); err != nil {
+				return err
+			}
+		}
+		zones.CleanChild(zoneConfig.Name)
+		if err := c.PersistState(ctx, true); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *FlowContext) getZoneConfig(zoneName string) *alicloud.Zone {

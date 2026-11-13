@@ -6,6 +6,7 @@ package infraflow
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -17,6 +18,34 @@ import (
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
 )
+
+type stateCheckingRetirementObserver struct {
+	flowContext *FlowContext
+}
+
+func (o *stateCheckingRetirementObserver) EnsureVSwitchUnused(_ context.Context, _, vSwitchID string) error {
+	if vSwitchID != "vsw-retired" {
+		return fmt.Errorf("unexpected retirement target %s", vSwitchID)
+	}
+	if got := o.flowContext.getZoneChild("zone-active").Get(IdentifierZoneVSwitch); got == nil || *got != "vsw-active" {
+		return fmt.Errorf("active zone was not reconciled before retirement")
+	}
+	if got := o.flowContext.state.Get(IdentifierRouteTable); got == nil || *got != "rt-system" {
+		return fmt.Errorf("active route table was not reconciled before retirement")
+	}
+	return nil
+}
+
+type rejectVSwitchRetirementObserver struct {
+	rejectedID string
+}
+
+func (o *rejectVSwitchRetirementObserver) EnsureVSwitchUnused(_ context.Context, _, vSwitchID string) error {
+	if vSwitchID == o.rejectedID {
+		return fmt.Errorf("VSwitch %s is still used", vSwitchID)
+	}
+	return nil
+}
 
 func retirementFlowConfig() *api.InfrastructureConfig {
 	return &api.InfrastructureConfig{Networks: api.Networks{
@@ -56,6 +85,62 @@ func TestActiveAndTrackedVSwitchIDs(t *testing.T) {
 	fc.config.Networks.Zones = nil
 	if got := fc.getActiveVSwitchIDs(); len(got) != 0 {
 		t.Fatalf("empty config: %v", got)
+	}
+}
+
+func TestReconcileRunsZoneRetirementAfterActiveBYOZones(t *testing.T) {
+	ctx := context.Background()
+	config := byoConfig(
+		byoZone("zone-active", "vsw-active"),
+		byoZone("zone-retired", "vsw-retired"),
+	)
+	config.Networks.Zones[1].Disabled = true
+	config.Networks.NodesSecurityGroupID = ptr.To("sg-user")
+	fc, actor := newBYOTestContext(gomock.NewController(t), config, shared.FlatMap{
+		IdentifierVPC:                                "vpc-123",
+		"Zones/zone-retired/VSwitch":                 "vsw-retired",
+		"Zones/zone-retired/" + IdentifierZoneSuffix: "z1",
+	})
+	fc.retirementObserver = &stateCheckingRetirementObserver{flowContext: fc}
+
+	actor.EXPECT().GetVpc(gomock.Any(), "vpc-123").Return(&aliclient.VPC{VpcId: "vpc-123"}, nil)
+	actor.EXPECT().ListRouteTablesByVPC(gomock.Any(), "vpc-123").Return([]*aliclient.RouteTable{{
+		RouteTableId: "rt-system", RouteTableType: "System",
+	}}, nil)
+
+	if err := fc.Reconcile(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if !fc.isZoneRetirementCompleted("zone-retired") {
+		t.Fatal("disabled BYO zone was not retired by the main reconcile graph")
+	}
+}
+
+func TestRetireDisabledZonesChecksAllTargetsBeforeCleanup(t *testing.T) {
+	config := byoConfig(
+		byoZone("zone-active", "vsw-active"),
+		byoZone("zone-disabled-a", "vsw-disabled-a"),
+		byoZone("zone-disabled-b", "vsw-disabled-b"),
+	)
+	config.Networks.Zones[1].Disabled = true
+	config.Networks.Zones[2].Disabled = true
+	state := shared.FlatMap{
+		IdentifierVPC:                   "vpc-123",
+		"Zones/zone-disabled-a/VSwitch": "vsw-disabled-a",
+		"Zones/zone-disabled-b/VSwitch": "vsw-disabled-b",
+	}
+	fc, _ := newBYOTestContext(gomock.NewController(t), config, state)
+	fc.retirementObserver = &rejectVSwitchRetirementObserver{rejectedID: "vsw-disabled-b"}
+
+	err := fc.retireDisabledZones(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "vsw-disabled-b is still used") {
+		t.Fatalf("unexpected preflight result: %v", err)
+	}
+	if got := fc.getZoneChild("zone-disabled-a").Get(IdentifierZoneVSwitch); got == nil || *got != "vsw-disabled-a" {
+		t.Fatalf("first target was changed before all preflights passed: %v", got)
+	}
+	if fc.isZoneRetirementCompleted("zone-disabled-a") {
+		t.Fatal("first target was completed before the later preflight failed")
 	}
 }
 

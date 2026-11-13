@@ -35,6 +35,9 @@ func (c *FlowContext) buildZoneRetirementTargets(ctx context.Context) ([]zoneRet
 		if !zone.Disabled {
 			continue
 		}
+		if c.isZoneRetirementCompleted(zone.Name) {
+			continue
+		}
 		if c.retirementObserver == nil {
 			return nil, fmt.Errorf("zone retirement observer is nil")
 		}
@@ -104,7 +107,11 @@ func (c *FlowContext) buildZoneRetirementTarget(ctx context.Context, zone *aliap
 
 func (c *FlowContext) resolveManagedRetirementVSwitch(ctx context.Context, zoneName, vpcID, cidrBlock string) (string, error) {
 	expectedName := c.namespace + "-" + zoneName + "-vsw"
-	recordedID := c.getZoneChild(zoneName).Get(IdentifierZoneVSwitch)
+	zoneState := c.getZoneChild(zoneName)
+	if zoneState.IsAlreadyDeleted(IdentifierZoneVSwitch) {
+		return "", nil
+	}
+	recordedID := zoneState.Get(IdentifierZoneVSwitch)
 	if recordedID != nil {
 		found, err := c.actor.ListVSwitches(ctx, []string{*recordedID})
 		if err != nil {
