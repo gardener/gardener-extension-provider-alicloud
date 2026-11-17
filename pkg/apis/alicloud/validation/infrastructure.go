@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	alicloudhelper "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 )
 
 // nlbSupportedRegions lists Alicloud regions that support NLB (last updated: 2026-04).
@@ -72,6 +73,7 @@ func ValidateInfrastructureConfig(infra *apisalicloud.InfrastructureConfig, netw
 	if len(infra.Networks.Zones) == 0 {
 		allErrs = append(allErrs, field.Required(networksPath.Child("zones"), "must specify at least the network for one zone"))
 	}
+	allErrs = append(allErrs, validateZoneRetirementConfig(infra, networksPath.Child("zones"))...)
 
 	var (
 		cidrs       = make([]cidrvalidation.CIDR, 0, len(infra.Networks.Zones))
@@ -284,6 +286,7 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 	)...)
 
 	allErrs = append(allErrs, ValidateNetworkZonesConfig(newConfig.Networks.Zones, oldConfig.Networks.Zones, workers, goneVSwitches, networksPath.Child("zones"))...)
+	allErrs = append(allErrs, validateZoneRetirementConfig(newConfig, networksPath.Child("zones"))...)
 
 	// DualStack.Enabled can be enabled but not disabled once set
 	oldEnabled := oldConfig.DualStack != nil && oldConfig.DualStack.Enabled
@@ -293,6 +296,31 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apisalicloud.Infra
 			"dualStack cannot be disabled once enabled"))
 	}
 
+	return allErrs
+}
+
+// validateZoneRetirementConfig checks the retirement rules shared by creation and updates.
+// Retired entries still reserve their name, CIDRs, and IPv6 index.
+func validateZoneRetirementConfig(config *apisalicloud.InfrastructureConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	active := 0
+	names := sets.New[string]()
+	for i, zone := range config.Networks.Zones {
+		if names.Has(zone.Name) {
+			allErrs = append(allErrs, field.Duplicate(fldPath.Index(i).Child("name"), zone.Name))
+		}
+		names.Insert(zone.Name)
+		if !zone.Retired {
+			active++
+		}
+	}
+	if len(config.Networks.Zones) > 0 && active == 0 {
+		allErrs = append(allErrs, field.Forbidden(fldPath, "at least one zone must remain active"))
+	}
+	if len(config.Networks.Zones) > 0 && config.Networks.Zones[0].Retired && alicloudhelper.IsManagedNATGatewayConfig(config) {
+		allErrs = append(allErrs, field.Forbidden(fldPath.Index(0).Child("retired"),
+			"the first zone cannot be retired when Gardener manages the NAT gateway; keep it active and retire another zone"))
+	}
 	return allErrs
 }
 
@@ -314,6 +342,17 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, workers 
 
 	for i := range oldZones {
 		allErrs = append(allErrs, apivalidation.ValidateImmutableField(oldZones[i].Name, newZones[i].Name, fldPath.Index(i))...)
+
+		if oldZones[i].Retired && !newZones[i].Retired {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i).Child("retired"),
+				"a retired zone cannot be restored; append a new zone instead"))
+		}
+		if oldZones[i].Retired || newZones[i].Retired {
+			oldZone, newZone := oldZones[i], newZones[i]
+			oldZone.Retired, newZone.Retired = false, false
+			allErrs = append(allErrs, apivalidation.ValidateImmutableField(newZone, oldZone, fldPath.Index(i))...)
+			continue
+		}
 
 		oldIsBYO := oldZones[i].WorkersVSwitchID != nil
 		newIsBYO := newZones[i].WorkersVSwitchID != nil
@@ -360,6 +399,10 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, workers 
 	}
 
 	for i, zone := range newZones {
+		if zone.Retired && ZoneReferencedByWorkers(zone.Name, workers) {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i).Child("retired"),
+				"zone is still referenced by a worker pool; migrate the workers and remove the old pool before retiring the zone"))
+		}
 		if zone.WorkersVSwitchID == nil {
 			allErrs = append(allErrs, ValidateNatGatewayConfig(zone.NatGateway, fldPath.Index(i).Child("natGateway"))...)
 		}

@@ -67,12 +67,9 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 	isBYOMode := len(config.Networks.Zones) > 0 && config.Networks.Zones[0].WorkersVSwitchID != nil
 
 	// Validate infrastructure config
-	createManagedNATGateway := true
+	createManagedNATGateway := helper.IsManagedNATGatewayConfig(config)
 	if config.Networks.VPC.ID != nil {
 		logger.Info("Validating infrastructure networks.vpc.id")
-		if config.Networks.VPC.GardenerManagedNATGateway == nil || !*config.Networks.VPC.GardenerManagedNATGateway {
-			createManagedNATGateway = false
-		}
 
 		// In BYO mode, skip NAT Gateway existence check: user manages routing
 		if !isBYOMode {
@@ -116,7 +113,7 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 		}
 	}
 
-	if !isBYOMode && createManagedNATGateway {
+	if createManagedNATGateway && len(config.Networks.Zones) > 0 && !config.Networks.Zones[0].Retired {
 		logger.Info("Validating infrastructure networks.zones[0].name")
 		allErrs = append(allErrs, c.validateEnhancedNatGatewayZone(ctx, actor, config.Networks.Zones[0].Name, infra.Spec.Region, field.NewPath("networks", "zones[0]", "name"))...)
 	}
@@ -124,6 +121,9 @@ func (c *configValidator) Validate(ctx context.Context, infra *extensionsv1alpha
 	if !isBYOMode {
 		eipIds := sets.New[string]()
 		for _, zone := range config.Networks.Zones {
+			if zone.Retired {
+				continue
+			}
 			if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
 				logger.Info("Validating infrastructure networks.zones[].natGateway.eipAllocationID")
 				fldPath := field.NewPath("networks", "zones[]", "natGateway", "eipAllocationID")
@@ -290,6 +290,9 @@ func (c *configValidator) validateBYOVSwitches(ctx context.Context, actor alicli
 	allErrs := field.ErrorList{}
 
 	for i, zone := range config.Networks.Zones {
+		if zone.Retired {
+			continue
+		}
 		if zone.WorkersVSwitchID == nil {
 			continue
 		}
@@ -374,6 +377,9 @@ func (c *configValidator) validateVSwitchCIDRConflict(vswitches []*aliclient.VSw
 
 	zonesPath := field.NewPath("networks", "zones")
 	for i, zone := range zones {
+		if zone.Retired {
+			continue
+		}
 		workerCIDR := zone.Workers
 		if workerCIDR == "" {
 			workerCIDR = zone.Worker

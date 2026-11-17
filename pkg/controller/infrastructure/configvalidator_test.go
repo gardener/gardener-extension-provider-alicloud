@@ -729,6 +729,46 @@ var _ = Describe("ConfigValidator", func() {
 		})
 	})
 
+	It("skips retired BYO VSwitches and preserves active zone error indices", func() {
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{Networks: apisalicloud.Networks{
+			VPC: apisalicloud.VPC{ID: ptr.To(vpcID)},
+			Zones: []apisalicloud.Zone{
+				{Name: "zone_old", WorkersVSwitchID: ptr.To("vsw-retired"), Retired: true},
+				{Name: "zone_active", WorkersVSwitchID: ptr.To("vsw-active")},
+			},
+		}})
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{VpcId: vpcID}, nil)
+		actor.EXPECT().GetVSwitch(ctx, "vsw-active").Return(nil, nil)
+		// Retired VSwitch absence must not block reconcile; the active absence still does.
+		errs := cv.Validate(ctx, infra)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Field).To(Equal("networks.zones[1].workersVSwitchID"))
+	})
+
+	It("skips configured EIPs of retired managed zones", func() {
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{Networks: apisalicloud.Networks{
+			VPC: apisalicloud.VPC{CIDR: ptr.To("10.0.0.0/16")},
+			Zones: []apisalicloud.Zone{
+				{Name: "zone_active", NatGateway: &apisalicloud.NatGatewayConfig{EIPAllocationID: ptr.To("eip-active")}},
+				{Name: "zone_old", Retired: true, NatGateway: &apisalicloud.NatGatewayConfig{EIPAllocationID: ptr.To("eip-retired")}},
+			},
+		}})
+		actor.EXPECT().ListEnhanhcedNatGatewayAvailableZones(ctx, region).Return([]string{"zone_active"}, nil)
+		actor.EXPECT().GetEIP(ctx, "eip-active").Return(&aliclient.EIP{}, nil)
+		Expect(cv.Validate(ctx, infra)).To(BeEmpty())
+	})
+
+	It("does not validate enhanced NGW zone placement when user NGW first zone is retired", func() {
+		infra.Spec.ProviderConfig.Raw = encode(&apisalicloud.InfrastructureConfig{Networks: apisalicloud.Networks{
+			VPC:   apisalicloud.VPC{ID: ptr.To(vpcID)},
+			Zones: []apisalicloud.Zone{{Name: "zone_old", Retired: true}, {Name: "zone_active"}},
+		}})
+		actor.EXPECT().GetVpc(ctx, vpcID).Return(&aliclient.VPC{VpcId: vpcID}, nil)
+		actor.EXPECT().ListNatGatewaysByVPC(ctx, vpcID).Return([]*aliclient.NatGateway{{NatGatewayId: "ngw-user"}}, nil)
+		actor.EXPECT().GetNatGatewayTags(ctx, []string{"ngw-user"}).Return(map[string]aliclient.Tags{"ngw-user": {}}, nil)
+		Expect(cv.Validate(ctx, infra)).To(BeEmpty())
+	})
+
 })
 
 func encode(obj runtime.Object) []byte {

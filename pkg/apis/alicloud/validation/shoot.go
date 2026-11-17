@@ -72,10 +72,15 @@ func ValidateNetworking(networking *core.Networking, fldPath *field.Path) field.
 func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	alicloudZones := sets.New[string]()
+	retiredZones := sets.New[string]()
 	dataDiskNameRegexp := regexp.MustCompile(dataDiskNameFmt)
 
 	for _, alicloudZone := range zones {
-		alicloudZones.Insert(alicloudZone.Name)
+		if !alicloudZone.Retired {
+			alicloudZones.Insert(alicloudZone.Name)
+		} else {
+			retiredZones.Insert(alicloudZone.Name)
+		}
 	}
 
 	for i, worker := range workers {
@@ -103,7 +108,7 @@ func ValidateWorkers(workers []core.Worker, zones []apisalicloud.Zone, fldPath *
 			continue
 		}
 
-		allErrs = append(allErrs, validateZones(worker.Zones, alicloudZones, fldPath.Index(i).Child("zones"))...)
+		allErrs = append(allErrs, validateZones(worker.Zones, alicloudZones, retiredZones, fldPath.Index(i).Child("zones"))...)
 	}
 
 	return allErrs
@@ -136,10 +141,12 @@ func ValidateWorkersUpdate(oldWorkers, newWorkers []core.Worker, fldPath *field.
 	return allErrs
 }
 
-func validateZones(zones []string, allowedZones sets.Set[string], fldPath *field.Path) field.ErrorList {
+func validateZones(zones []string, allowedZones, retiredZones sets.Set[string], fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	for i, workerZone := range zones {
-		if !allowedZones.Has(workerZone) {
+		if retiredZones.Has(workerZone) {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i), "zone is retired; use an active zone and finish worker migration before requesting retirement"))
+		} else if !allowedZones.Has(workerZone) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Index(i), workerZone, fmt.Sprintf("supported values %v", allowedZones.UnsortedList())))
 		}
 	}

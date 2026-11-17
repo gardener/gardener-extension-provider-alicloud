@@ -15,6 +15,7 @@ import (
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud/client"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
+	alicloudhelper "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
 )
@@ -33,6 +34,9 @@ func (c *FlowContext) ensureZones(ctx context.Context) error {
 	eipIntenetChargeType := c.getEipInternetChargeType(ctx)
 	processedZones := sets.New[string]()
 	for _, zone := range c.config.Networks.Zones {
+		if zone.Retired {
+			continue
+		}
 		if processedZones.Has(zone.Name) {
 			continue
 		}
@@ -83,6 +87,9 @@ func (c *FlowContext) ensureBYOZones(ctx context.Context) error {
 	seenRT := sets.New[string]()
 	var rtIDs []string
 	for _, zone := range c.config.Networks.Zones {
+		if zone.Retired {
+			continue
+		}
 		if zone.WorkersVSwitchID == nil {
 			continue
 		}
@@ -101,6 +108,9 @@ func (c *FlowContext) ensureBYOZones(ctx context.Context) error {
 		}
 	}
 
+	// A valid BYO configuration always has an active zone, and every VPC has a
+	// system route table as fallback. Keep the previous state if the cloud API
+	// unexpectedly returns no usable route table.
 	if len(rtIDs) > 0 {
 		// Multiple route tables are supported: CCM's getRouteTables parses comma-separated values.
 		c.state.Set(IdentifierRouteTable, strings.Join(rtIDs, ","))
@@ -114,6 +124,9 @@ func (c *FlowContext) getEipInternetChargeType(ctx context.Context) string {
 	var eipId *string
 	eipId = nil
 	for _, zone := range c.config.Networks.Zones {
+		// Keep retired zones in this lookup. The configured EIP is user-owned and its
+		// charge type is used as Shoot-wide input when allocating a managed EIP.
+		// Existing managed EIPs are not changed by this value.
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil {
 			eipId = zone.NatGateway.EIPAllocationID
 			break
@@ -408,7 +421,10 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 		return fmt.Errorf("IdentifierVPC is nil")
 	}
 	log := c.LogFromContext(ctx)
-	var desired []*aliclient.VSwitch
+	var (
+		configured []*aliclient.VSwitch
+		desired    []*aliclient.VSwitch
+	)
 	processedZones := sets.New[string]()
 	for _, zone := range c.config.Networks.Zones {
 		if processedZones.Has(zone.Name) {
@@ -416,12 +432,20 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 		}
 		processedZones.Insert(zone.Name)
 
-		zoneSuffix := c.getZoneSuffix(zone.Name)
-		workerSuffix := fmt.Sprintf("nodes-%s", zoneSuffix)
 		cidrBlock := zone.Workers
 		if cidrBlock == "" {
 			cidrBlock = zone.Worker
 		}
+		configured = append(configured, &aliclient.VSwitch{
+			CidrBlock: cidrBlock,
+			ZoneId:    zone.Name,
+		})
+		if zone.Retired {
+			continue
+		}
+
+		zoneSuffix := c.getZoneSuffix(zone.Name)
+		workerSuffix := fmt.Sprintf("nodes-%s", zoneSuffix)
 		desired = append(desired,
 			&aliclient.VSwitch{
 				Name:      c.namespace + "-" + zone.Name + "-vsw",
@@ -450,9 +474,14 @@ func (c *FlowContext) ensureVSwitches(ctx context.Context) error {
 		}
 	}
 
-	toBeDeleted, toBeCreated, toBeChecked := diffByID_Ex(desired, current, filteredVpcVsw, func(item *aliclient.VSwitch) string {
+	identity := func(item *aliclient.VSwitch) string {
 		return item.ZoneId + "-" + item.CidrBlock
-	})
+	}
+	// Generic deletion compares current resources with every configured zone. A retired
+	// zone is still configured and is handled later by the retirement flow. Creation and
+	// maintenance, however, only use the active desired set.
+	toBeDeleted, _, _ := diffByID(configured, current, identity)
+	_, toBeCreated, toBeChecked := diffByID_Ex(desired, current, filteredVpcVsw, identity)
 
 	if len(toBeDeleted) > 0 && !c.canDelete {
 		var details []string
@@ -533,7 +562,7 @@ func (c *FlowContext) DeleteZoneByVSwitches(ctx context.Context, toBeDeleted []*
 	if len(toBeDeleted) == 0 {
 		return nil // Return immediately if there is nothing to delete
 	}
-	needDeleteNatGateway := c.config.Networks.VPC.ID == nil || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
+	needDeleteNatGateway := alicloudhelper.IsManagedNATGatewayConfig(c.config)
 	g := flow.NewGraph("Alicloud infrastructure deletion: zones")
 
 	toBeDeletedZones := sets.New[string]()
@@ -813,7 +842,56 @@ func (c *FlowContext) deleteZones(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := c.deleteRetiringZoneResiduals(ctx, current); err != nil {
+		return err
+	}
 	return c.DeleteZoneByVSwitches(ctx, current)
+}
+
+// deleteRetiringZoneResiduals removes EIP associations and managed EIPs left after retirement deleted a VSwitch.
+// It runs before the regular whole-Shoot deletion because an associated EIP can block NGW deletion.
+func (c *FlowContext) deleteRetiringZoneResiduals(ctx context.Context, currentVSwitches []*aliclient.VSwitch) error {
+	zones := c.state.GetChild(ChildIdZones)
+	existingVSwitchIDs := sets.New[string]()
+	for _, vSwitch := range currentVSwitches {
+		existingVSwitchIDs.Insert(vSwitch.VSwitchId)
+	}
+	for _, zoneConfig := range c.config.Networks.Zones {
+		if !zoneConfig.Retired {
+			continue
+		}
+		if !zones.HasChild(zoneConfig.Name) {
+			continue
+		}
+		zone := zones.GetChild(zoneConfig.Name)
+		recordedVSwitchID := zone.Get(IdentifierZoneVSwitch)
+		vSwitchDeleted := zone.IsAlreadyDeleted(IdentifierZoneVSwitch) ||
+			recordedVSwitchID != nil && !existingVSwitchIDs.Has(*recordedVSwitchID)
+		if !vSwitchDeleted {
+			continue
+		}
+		managedEIPID := zone.Get(IdentifierZoneNATGWElasticIP)
+		if managedEIPID != nil && !c.activeZoneReferencesEIP(*managedEIPID) {
+			if err := c.deleteEipAssociation(zoneConfig.Name)(ctx); err != nil {
+				return err
+			}
+			if err := c.deleteElasticIP(zoneConfig.Name)(ctx); err != nil {
+				return err
+			}
+		}
+		if zoneConfig.NatGateway != nil && zoneConfig.NatGateway.EIPAllocationID != nil &&
+			(managedEIPID == nil || *zoneConfig.NatGateway.EIPAllocationID != *managedEIPID) {
+			target := zoneRetirementTarget{ZoneName: zoneConfig.Name}
+			if err := c.cleanupRetirementEIPAssociation(ctx, target, *zoneConfig.NatGateway.EIPAllocationID, false); err != nil {
+				return err
+			}
+		}
+		zones.CleanChild(zoneConfig.Name)
+		if err := c.PersistState(ctx, true); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *FlowContext) getZoneConfig(zoneName string) *alicloud.Zone {

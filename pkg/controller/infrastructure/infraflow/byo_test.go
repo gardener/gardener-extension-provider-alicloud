@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 
+	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -41,6 +43,7 @@ func newBYOTestContext(
 		config:           config,
 		actor:            mockActor,
 		updater:          aliclient.NewUpdater(mockActor),
+		cluster:          &extensioncontroller.Cluster{Shoot: &gardencorev1beta1.Shoot{}},
 		commonTags: aliclient.Tags{
 			"kubernetes.io/cluster/test-ns": TagValueCluster,
 			TagKeyName:                      "test-ns",

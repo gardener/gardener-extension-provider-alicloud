@@ -194,11 +194,15 @@ func (f *FlowReconciler) updateStatusProvider(ctx context.Context, infra *extens
 
 	patch := client.MergeFrom(infra.DeepCopy())
 	infra.Status.ProviderStatus = &runtime.RawExtension{Object: infrastructureStatus}
-	egressCidrs := getEgressIpCidrs(state)
-	if egressCidrs != nil {
-		infra.Status.EgressCIDRs = egressCidrs
-	}
+	infra.Status.EgressCIDRs = egressCIDRsForStatus(state)
 	return f.client.Status().Patch(ctx, infra, patch)
+}
+
+func egressCIDRsForStatus(state *infraflow.PersistentState) []string {
+	if cidrs := getEgressIpCidrs(state); cidrs != nil {
+		return cidrs
+	}
+	return []string{}
 }
 
 func getEgressIpCidrs(state *infraflow.PersistentState) []string {
@@ -260,6 +264,9 @@ func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, sta
 					continue
 				}
 				if parts[2] == infraflow.IdentifierZoneVSwitch {
+					if isZoneRetired(config, parts[1]) {
+						continue
+					}
 					vswitches = append(vswitches, aliv1alpha1.VSwitch{
 						ID:      v,
 						Purpose: aliv1alpha1.PurposeNodes,
@@ -286,6 +293,15 @@ func computeProviderStatusFromFlowState(config *aliapi.InfrastructureConfig, sta
 	}
 
 	return status, nil
+}
+
+func isZoneRetired(config *aliapi.InfrastructureConfig, zoneName string) bool {
+	for _, zone := range config.Networks.Zones {
+		if zone.Name == zoneName {
+			return zone.Retired
+		}
+	}
+	return false
 }
 
 func (f *FlowReconciler) decodeInfrastructureConfig(infrastructure *extensionsv1alpha1.Infrastructure) (*aliapi.InfrastructureConfig, error) {
@@ -327,7 +343,16 @@ func (f *FlowReconciler) createFlowContext(ctx context.Context, infrastructure *
 		oldFlatState = oldState.ToFlatMap()
 	}
 
-	return infraflow.NewFlowContext(f.log, shootCloudProviderCredentials, infrastructure, infrastructureConfig, oldFlatState, persistor, cluster)
+	return infraflow.NewFlowContext(
+		f.log,
+		shootCloudProviderCredentials,
+		infrastructure,
+		infrastructureConfig,
+		oldFlatState,
+		persistor,
+		cluster,
+		newMachineUsageObserver(f.actuator.apiReader),
+	)
 }
 
 func (f *FlowReconciler) getFlowStateFromInfraStatus(infrastructure *extensionsv1alpha1.Infrastructure) (*infraflow.PersistentState, error) {

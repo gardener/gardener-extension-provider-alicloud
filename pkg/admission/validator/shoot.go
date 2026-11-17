@@ -176,6 +176,18 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 		return err
 	}
 
+	// Retirement is requested by updating an existing Shoot, not during creation.
+	var retirementErrs field.ErrorList
+	for i, zone := range infraConfig.Networks.Zones {
+		if zone.Retired {
+			retirementErrs = append(retirementErrs, field.Forbidden(infraConfigFldPath.Child("networks", "zones").Index(i).Child("retired"),
+				"zone cannot be retired at shoot creation; create the shoot with the zone active and request retirement in a later update"))
+		}
+	}
+	if len(retirementErrs) > 0 {
+		return retirementErrs.ToAggregate()
+	}
+
 	// Decode the controlplane config
 	var cpConfig *alicloud.ControlPlaneConfig
 	if shoot.Spec.Provider.ControlPlaneConfig != nil {
@@ -216,6 +228,10 @@ func (s *shoot) computeGoneVSwitches(ctx context.Context, shoot *core.Shoot, old
 			break
 		}
 		oldZone, newZone := oldConfig.Networks.Zones[i], newConfig.Networks.Zones[i]
+		// Retirement freezes the resource configuration; an API lookup cannot permit this change.
+		if oldZone.Retired || newZone.Retired {
+			continue
+		}
 		if oldZone.WorkersVSwitchID == nil || newZone.WorkersVSwitchID == nil {
 			continue
 		}
