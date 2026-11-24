@@ -10,7 +10,6 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	alicloudvalidation "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
@@ -31,15 +30,12 @@ func (s *secret) Validate(_ context.Context, newObj, oldObj client.Object) error
 	}
 
 	if oldObj != nil {
-		oldSecret, ok := oldObj.(*corev1.Secret)
-		if !ok {
+		if _, ok := oldObj.(*corev1.Secret); !ok {
 			return fmt.Errorf("wrong object type %T for old object", oldObj)
-		}
-
-		if equality.Semantic.DeepEqual(secret.Data, oldSecret.Data) {
-			return nil
 		}
 	}
 
+	// Metadata-only updates can bring previously unvalidated secrets into scope.
+	// Revalidate credentials even when the data has not changed.
 	return alicloudvalidation.ValidateCloudProviderSecret(secret)
 }

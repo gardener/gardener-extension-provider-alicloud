@@ -17,7 +17,6 @@ package cloudprovider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/webhook/cloudprovider"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
@@ -25,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
+	"github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/validation"
 )
 
 // NewEnsurer creates cloudprovider ensurer.
@@ -41,20 +41,16 @@ type ensurer struct {
 // EnsureCloudProviderSecret ensures that cloudprovider secret contains
 // the shared credentials file.
 func (e *ensurer) EnsureCloudProviderSecret(_ context.Context, _ gcontext.GardenContext, newSecret, _ *corev1.Secret) error {
-	if _, ok := newSecret.Data[alicloud.AccessKeyID]; !ok {
-		return fmt.Errorf("could not mutate cloudprovider secret as %q field is missing", alicloud.AccessKeyID)
-	}
-	if _, ok := newSecret.Data[alicloud.AccessKeySecret]; !ok {
-		return fmt.Errorf("could not mutate cloudprovider secret as %q field is missing", alicloud.AccessKeySecret)
+	// Validate both credential values at the sink, including secrets that predate
+	// or bypass admission, before writing any tenant-controlled bytes to the INI file.
+	if err := validation.ValidateCloudProviderSecret(newSecret); err != nil {
+		return fmt.Errorf("could not mutate cloudprovider secret: %w", err)
 	}
 
 	e.logger.V(5).Info("mutate cloudprovider secret", "namespace", newSecret.Namespace, "name", newSecret.Name)
 
 	accessKey := string(newSecret.Data[alicloud.AccessKeyID])
 	accessKeySecret := string(newSecret.Data[alicloud.AccessKeySecret])
-	if strings.ContainsAny(accessKeySecret, "\n\r") {
-		return fmt.Errorf("field %q in secret %s/%s must not contain new lines", alicloud.AccessKeySecret, newSecret.Namespace, newSecret.Name)
-	}
 
 	newSecret.Data[alicloud.CredentialsFile] = []byte("[default]\n" +
 		"type = access_key\n" +
