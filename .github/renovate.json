@@ -1,3 +1,4 @@
 {
+  "enabledManagers": ["github-actions"],
   "extends": ["helpers:pinGitHubActionDigests"]
 }
