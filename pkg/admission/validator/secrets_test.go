@@ -53,6 +53,7 @@ var _ = Describe("Secret validator", func() {
 
 	DescribeTable("should reject credential injection on create and data-changing update",
 		func(separator string) {
+			secret.Labels = map[string]string{"provider.shoot.gardener.cloud/alicloud": "true"}
 			oldSecret := secret.DeepCopy()
 			secret.Data[alicloud.AccessKeySecret] = []byte(strings.Repeat("b", 30) + separator + "type = ecs_ram_role" + separator + "role_name =")
 			Expect(secretValidator.Validate(ctx, secret, nil)).To(MatchError(ContainSubstring("must not contain control characters")))
@@ -63,21 +64,37 @@ var _ = Describe("Secret validator", func() {
 		Entry("CRLF", "\r\n"),
 	)
 
-	DescribeTable("should revalidate unchanged invalid credentials on metadata-only updates",
-		func(alreadyLabeled bool, value string) {
+	DescribeTable("should validate unchanged invalid credentials when the provider label is added or enabled",
+		func(oldLabels map[string]string, value string) {
 			secret.Data[alicloud.AccessKeySecret] = []byte(value)
-			if alreadyLabeled {
-				secret.Labels = map[string]string{"provider.shoot.gardener.cloud/alicloud": "true"}
-			}
+			secret.Labels = oldLabels
 			oldSecret := secret.DeepCopy()
 			secret.Labels = map[string]string{"provider.shoot.gardener.cloud/alicloud": "true"}
 			secret.Annotations = map[string]string{"test": "metadata-only-update"}
 			Expect(secretValidator.Validate(ctx, secret, oldSecret)).To(HaveOccurred())
 		},
-		Entry("label added to an injected secret", false, strings.Repeat("b", 30)+"\ntype = ecs_ram_role\nrole_name ="),
-		Entry("already labeled injected secret", true, strings.Repeat("b", 30)+"\ntype = ecs_ram_role\nrole_name ="),
-		Entry("label added to a short secret", false, "too-short"),
-		Entry("already labeled short secret", true, "too-short"),
+		Entry("label added to an injected secret", nil, strings.Repeat("b", 30)+"\ntype = ecs_ram_role\nrole_name ="),
+		Entry("label added to a short secret", nil, "too-short"),
+		Entry("label changed from false to true", map[string]string{"provider.shoot.gardener.cloud/alicloud": "false"}, "too-short"),
+		Entry("label changed from empty to true", map[string]string{"provider.shoot.gardener.cloud/alicloud": ""}, "too-short"),
+		Entry("only extension provider label present", map[string]string{"provider.extensions.gardener.cloud/alicloud": "true"}, "too-short"),
+	)
+
+	DescribeTable("should allow metadata-only updates to already provider-labeled secrets with unchanged invalid credentials",
+		func(value string, removeLabel bool) {
+			secret.Data[alicloud.AccessKeySecret] = []byte(value)
+			secret.Labels = map[string]string{"provider.shoot.gardener.cloud/alicloud": "true"}
+			oldSecret := secret.DeepCopy()
+			secret.Annotations = map[string]string{"test": "metadata-only-update"}
+			if removeLabel {
+				delete(secret.Labels, "provider.shoot.gardener.cloud/alicloud")
+			}
+			Expect(secretValidator.Validate(ctx, secret, oldSecret)).To(Succeed())
+		},
+		Entry("annotation added to an injected secret", strings.Repeat("b", 30)+"\ntype = ecs_ram_role\nrole_name =", false),
+		Entry("annotation added to a short secret", "too-short", false),
+		Entry("provider label removed from an injected secret", strings.Repeat("b", 30)+"\ntype = ecs_ram_role\nrole_name =", true),
+		Entry("provider label removed from a short secret", "too-short", true),
 	)
 
 	It("should allow replacing previously invalid credentials with valid credentials", func() {
