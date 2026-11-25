@@ -19,6 +19,8 @@ const (
 	Name = "validator"
 	// SecretsValidatorName is the name of the secrets validator.
 	SecretsValidatorName = "secrets." + Name
+
+	shootProviderLabel = "provider.shoot.gardener.cloud/alicloud"
 )
 
 var logger = log.Log.WithName("alicloud-validator-webhook")
@@ -58,7 +60,7 @@ func NewSecretsWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) 
 		},
 		Target: extensionswebhook.TargetSeed,
 		ObjectSelector: &metav1.LabelSelector{
-			MatchLabels: map[string]string{"provider.shoot.gardener.cloud/alicloud": "true"},
+			MatchLabels: map[string]string{shootProviderLabel: "true"},
 		},
 	})
 }

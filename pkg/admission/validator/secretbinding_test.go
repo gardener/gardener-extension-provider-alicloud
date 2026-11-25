@@ -86,6 +86,18 @@ var _ = Describe("SecretBinding validator", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
+		It("should reject a Secret containing an injected RAM role profile", func() {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+				Data: map[string][]byte{
+					alicloud.AccessKeyID:     []byte(strings.Repeat("a", 16)),
+					alicloud.AccessKeySecret: []byte(strings.Repeat("b", 30) + "\ntype = ecs_ram_role\nrole_name ="),
+				},
+			}
+			secretBindingValidator = newValidator(secret)
+			Expect(secretBindingValidator.Validate(ctx, secretBinding, nil)).To(MatchError(ContainSubstring("must not contain control characters")))
+		})
+
 		It("should return nil when the corresponding Secret is valid", func() {
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
