@@ -319,7 +319,7 @@ func validateZoneRetirementConfig(config *apisalicloud.InfrastructureConfig, fld
 	}
 	if len(config.Networks.Zones) > 0 && config.Networks.Zones[0].Retired && alicloudhelper.IsManagedNATGatewayConfig(config) {
 		allErrs = append(allErrs, field.Forbidden(fldPath.Index(0).Child("retired"),
-			"the first zone cannot be retired when Gardener manages the NAT gateway; keep it active and retire another zone"))
+			"the first zone cannot be retired when Gardener manages the NAT gateway"))
 	}
 	return allErrs
 }
@@ -345,7 +345,7 @@ func ValidateNetworkZonesConfig(newZones, oldZones []apisalicloud.Zone, workers 
 
 		if oldZones[i].Retired && !newZones[i].Retired {
 			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i).Child("retired"),
-				"a retired zone cannot be restored; append a new zone instead"))
+				"a retired zone cannot be restored or added again"))
 		}
 		if oldZones[i].Retired || newZones[i].Retired {
 			oldZone, newZone := oldZones[i], newZones[i]

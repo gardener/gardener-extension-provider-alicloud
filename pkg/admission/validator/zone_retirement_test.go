@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/gardener/gardener/pkg/apis/core"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
@@ -118,6 +119,89 @@ func TestShootRejectsRetiredWorkerWithUnchangedInfrastructure(t *testing.T) {
 			}
 			if tc.wantErr && !strings.Contains(err.Error(), "zone is retired") {
 				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestShootRequiresWorkerMigrationToFinishBeforeRetirement(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := api.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	if err := apiv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	s := &shoot{
+		decoder:        serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder(),
+		lenientDecoder: serializer.NewCodecFactory(scheme).UniversalDecoder(),
+	}
+	activeConfig := []byte(`{"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1","kind":"InfrastructureConfig","networks":{"vpc":{"cidr":"10.0.0.0/16"},"zones":[{"name":"zone1","workers":"10.0.1.0/24"},{"name":"zone2","workers":"10.0.2.0/24"}]}}`)
+	retiredConfig := []byte(`{"apiVersion":"alicloud.provider.extensions.gardener.cloud/v1alpha1","kind":"InfrastructureConfig","networks":{"vpc":{"cidr":"10.0.0.0/16"},"zones":[{"name":"zone1","workers":"10.0.1.0/24"},{"name":"zone2","workers":"10.0.2.0/24","retired":true}]}}`)
+	worker := func(name, zone string) core.Worker {
+		return core.Worker{Name: name, Zones: []string{zone}, Volume: &core.Volume{Type: ptr.To("cloud_essd"), VolumeSize: "40Gi"}}
+	}
+	stableShoot := func() *core.Shoot {
+		return &core.Shoot{
+			ObjectMeta: metav1.ObjectMeta{Generation: 7},
+			Spec: core.ShootSpec{
+				Region:     "cn-hangzhou",
+				Networking: &core.Networking{Nodes: ptr.To("10.0.0.0/16"), Pods: ptr.To("192.168.0.0/16"), Services: ptr.To("172.16.0.0/16")},
+				Provider:   core.Provider{InfrastructureConfig: &runtime.RawExtension{Raw: activeConfig}, Workers: []core.Worker{worker("active", "zone1")}},
+			},
+			Status: core.ShootStatus{
+				ObservedGeneration: 7,
+				LastOperation:      &core.LastOperation{State: core.LastOperationStateSucceeded},
+			},
+		}
+	}
+
+	for _, tc := range []struct {
+		name      string
+		mutateOld func(*core.Shoot)
+		wantErr   string
+	}{
+		{
+			name: "worker migration and retirement in one update",
+			mutateOld: func(shoot *core.Shoot) {
+				shoot.Spec.Provider.Workers = append(shoot.Spec.Provider.Workers, worker("retiring", "zone2"))
+			},
+			wantErr: "remove worker pools using this zone in an earlier update",
+		},
+		{
+			name: "previous worker migration not observed",
+			mutateOld: func(shoot *core.Shoot) {
+				shoot.Status.ObservedGeneration = 6
+			},
+			wantErr: "previous Shoot reconciliation",
+		},
+		{
+			name: "previous worker migration still processing",
+			mutateOld: func(shoot *core.Shoot) {
+				shoot.Status.LastOperation.State = core.LastOperationStateProcessing
+			},
+			wantErr: "previous Shoot reconciliation",
+		},
+		{name: "previous worker migration completed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			oldShoot := stableShoot()
+			if tc.mutateOld != nil {
+				tc.mutateOld(oldShoot)
+			}
+			newShoot := oldShoot.DeepCopy()
+			newShoot.Spec.Provider.InfrastructureConfig = &runtime.RawExtension{Raw: retiredConfig}
+			newShoot.Spec.Provider.Workers = []core.Worker{worker("active", "zone1")}
+
+			err := s.validateShootUpdate(context.Background(), oldShoot, newShoot)
+			if tc.wantErr == "" {
+				if err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("expected %q, got %v", tc.wantErr, err)
 			}
 		})
 	}

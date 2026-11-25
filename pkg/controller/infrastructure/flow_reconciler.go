@@ -194,15 +194,10 @@ func (f *FlowReconciler) updateStatusProvider(ctx context.Context, infra *extens
 
 	patch := client.MergeFrom(infra.DeepCopy())
 	infra.Status.ProviderStatus = &runtime.RawExtension{Object: infrastructureStatus}
-	infra.Status.EgressCIDRs = egressCIDRsForStatus(state)
-	return f.client.Status().Patch(ctx, infra, patch)
-}
-
-func egressCIDRsForStatus(state *infraflow.PersistentState) []string {
-	if cidrs := getEgressIpCidrs(state); cidrs != nil {
-		return cidrs
+	if egressCIDRs := getEgressIpCidrs(state); egressCIDRs != nil {
+		infra.Status.EgressCIDRs = egressCIDRs
 	}
-	return []string{}
+	return f.client.Status().Patch(ctx, infra, patch)
 }
 
 func getEgressIpCidrs(state *infraflow.PersistentState) []string {

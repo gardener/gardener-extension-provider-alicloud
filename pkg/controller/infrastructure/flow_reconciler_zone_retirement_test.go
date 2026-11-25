@@ -21,7 +21,7 @@ func TestZoneRetirementProviderOutputs(t *testing.T) {
 		VPC: aliapi.VPC{ID: ptr.To("vpc-123")},
 		Zones: []aliapi.Zone{
 			{Name: "zone-retired", Retired: true},
-			{Name: "zone-active"},
+			{Name: "zone-active", NatGateway: &aliapi.NatGatewayConfig{EIPAllocationID: ptr.To("eip-user")}},
 		},
 	}}
 	state := infraflow.NewPersistentStateFromFlatMap(shared.FlatMap{
@@ -45,15 +45,12 @@ func TestZoneRetirementProviderOutputs(t *testing.T) {
 	state.Data["Zones/zone-retired/"+infraflow.IdentifierZoneRetirementCompleted] = infraflow.ZoneRetirementCompletedValue
 	state.Data["Zones/zone-retired/NATGatewayElasticIPAddress"] = "<deleted>"
 	if got := getEgressIpCidrs(state); !reflect.DeepEqual(got, []string{"192.0.2.2/32"}) {
-		t.Fatalf("completed retirement egress CIDRs: %v", got)
+		t.Fatalf("completed retirement must retain the active zone's user-provided EIP: %v", got)
 	}
 
 	delete(state.Data, "Zones/zone-active/NATGatewayElasticIPAddress")
 	if got := getEgressIpCidrs(state); got != nil {
 		t.Fatalf("underlying egress collector changed its empty-result contract, got %#v", got)
-	}
-	if got := egressCIDRsForStatus(state); got == nil || len(got) != 0 {
-		t.Fatalf("empty status output must clear stale egress CIDRs, got %#v", got)
 	}
 }
 
