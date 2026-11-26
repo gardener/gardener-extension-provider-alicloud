@@ -74,8 +74,8 @@ func (c *FlowContext) runZoneRetirementSubgraph(ctx context.Context, target zone
 	// Publish Completed only after all cloud resources have reached their desired state.
 	_ = c.AddTask(
 		g,
-		"complete zone retirement",
-		c.completeZoneRetirement(target),
+		"finalize zone retirement state",
+		c.finalizeZoneRetirementState(target),
 		Dependencies(releaseManagedEIP),
 	)
 
@@ -263,8 +263,11 @@ func (c *FlowContext) unassociateRetirementRouteTable(target zoneRetirementTarge
 // the custom route table association first. The target identity was verified during preflight.
 func (c *FlowContext) deleteRetirementVSwitch(target zoneRetirementTarget) flow.TaskFn {
 	return func(ctx context.Context) error {
+		if !target.ManagedVSwitch {
+			return nil
+		}
 		child := c.getZoneChild(target.ZoneName)
-		if target.ManagedVSwitch && target.VSwitchID != "" {
+		if target.VSwitchID != "" {
 			vSwitch, err := c.actor.GetVSwitch(ctx, target.VSwitchID)
 			if err != nil {
 				return err
@@ -280,11 +283,13 @@ func (c *FlowContext) deleteRetirementVSwitch(target zoneRetirementTarget) flow.
 	}
 }
 
-// completeZoneRetirement runs only after both the VSwitch and its managed residuals are handled.
-func (c *FlowContext) completeZoneRetirement(target zoneRetirementTarget) flow.TaskFn {
+// finalizeZoneRetirementState publishes the final state only after both the VSwitch and its managed residuals are handled.
+func (c *FlowContext) finalizeZoneRetirementState(target zoneRetirementTarget) flow.TaskFn {
 	return func(_ context.Context) error {
 		zone := c.getZoneChild(target.ZoneName)
-		zone.SetAsDeleted(ZoneNATGWElasticIPAddress)
+		if target.ManagedVSwitch {
+			zone.SetAsDeleted(ZoneNATGWElasticIPAddress)
+		}
 		zone.Set(IdentifierZoneRetirementCompleted, ZoneRetirementCompletedValue)
 		return nil
 	}

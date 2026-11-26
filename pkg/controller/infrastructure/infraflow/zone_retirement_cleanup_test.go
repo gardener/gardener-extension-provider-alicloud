@@ -290,7 +290,7 @@ func TestZoneRetirementProcessesZonesSerially(t *testing.T) {
 	}
 }
 
-func TestBYOZoneRetirementOnlyClearsShootReference(t *testing.T) {
+func TestBYOZoneRetirementOnlyRecordsCompletion(t *testing.T) {
 	ctx := context.Background()
 	config := byoConfig(byoZone("zone1", "vsw-active"), byoZone("zone2", "vsw-retired"))
 	config.Networks.Zones[1].Retired = true
@@ -303,11 +303,14 @@ func TestBYOZoneRetirementOnlyClearsShootReference(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	if !fc.getZoneChild("zone2").IsAlreadyDeleted(IdentifierZoneVSwitch) {
-		t.Fatal("BYO VSwitch reference was not cleared")
+	if got := fc.getZoneChild("zone2").Get(IdentifierZoneVSwitch); got == nil || *got != "vsw-retired" {
+		t.Fatalf("BYO VSwitch state changed: %v", got)
 	}
 	if !fc.isZoneRetirementCompleted("zone2") {
 		t.Fatal("BYO retirement was not marked completed")
+	}
+	if _, exists := fc.ExportState()["Zones/zone2/"+ZoneNATGWElasticIPAddress]; exists {
+		t.Fatal("BYO retirement created an EIP tombstone")
 	}
 }
 
