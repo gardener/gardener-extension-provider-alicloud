@@ -151,6 +151,40 @@ You can freely choose these CIDR and it is your responsibility to properly desig
 
 If you want to use multiple availability zones then add a second, third, ... entry to the `networks.zones[]` list and properly specify the AZ name in `networks.zones[].name`.
 
+### Retiring a zone (`networks.zones[].retired`)
+
+An existing zone can be retired by setting `retired: true` on its entry:
+
+```yaml
+networks:
+  zones:
+  - name: cn-hangzhou-h
+    workers: 10.250.1.0/24
+  - name: cn-hangzhou-i
+    workers: 10.250.2.0/24
+    retired: true
+```
+
+Retirement is permanent. The zone entry remains in the configuration to reserve its name, CIDR, IPv6 index, and resource identity. It cannot be reactivated, removed, reordered, or changed after retirement has been requested. At least one zone must remain active. A shoot cannot be created with an entry already marked as retired.
+
+Before setting `retired: true`:
+
+1. Create replacement worker pools in active zones and migrate the workloads.
+2. Delete every worker pool that references the target zone.
+3. Wait until its Machines and cloud instances have been deleted.
+4. Set `retired: true` without changing any other field of that zone entry.
+
+Setting the field does not drain or delete worker nodes. Gardener stops publishing the VSwitch for new workers, but resource cleanup remains blocked while a worker pool or Machine still uses the target VSwitch. Once the preconditions are met, Gardener cleans up the zone-specific managed network resources. Failures are retried without recreating resources that have already been retired.
+
+The following ownership rules apply:
+
+* Gardener-managed VSwitches, SNAT entries, route-table associations, and zone-specific managed EIPs are cleaned up.
+* An EIP referenced through `eipAllocationID` is not released during zone retirement.
+* A VSwitch supplied through `workersVSwitchID` is not deleted. Gardener only stops referencing it.
+* A user-managed NAT Gateway is not deleted.
+
+When Gardener manages the NAT Gateway, the first configured zone cannot be retired because it hosts the gateway in the currently supported layout. Retiring the first zone is supported only with a user-managed NAT Gateway or complete BYO VSwitch configuration.
+
 Apart from the VPC and the subnets the Alicloud extension will also create a NAT gateway (only if a new VPC is created), a key pair, elastic IPs, VSwitches, a SNAT table entry, and security groups.
 
 By default, the Alicloud extension will create a corresponding Elastic IP that it attaches to this NAT gateway and which is used for egress traffic.

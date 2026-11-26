@@ -61,6 +61,7 @@ func NewActuatorWithDeps(
 ) (infrastructure.Actuator, error) {
 	a := &actuator{
 		client:     mgr.GetClient(),
+		apiReader:  mgr.GetAPIReader(),
 		scheme:     mgr.GetScheme(),
 		restConfig: mgr.GetConfig(),
 		decoder:    serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
@@ -93,6 +94,7 @@ func NewActuatorWithDeps(
 
 type actuator struct {
 	client     client.Client
+	apiReader  client.Reader
 	scheme     *runtime.Scheme
 	decoder    runtime.Decoder
 	restConfig *rest.Config

@@ -12,6 +12,7 @@ import (
 
 	"github.com/gardener/gardener/pkg/utils/flow"
 
+	alicloudhelper "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud/helper"
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/aliclient"
 	. "github.com/gardener/gardener-extension-provider-alicloud/pkg/controller/infrastructure/infraflow/shared"
 )
@@ -59,11 +60,24 @@ func (c *FlowContext) buildReconcileGraph() *flow.Graph {
 		c.ensureRouteTable,
 		DoIf(!isBYO), Timeout(defaultTimeout), Dependencies(ensureNatGateway, ensureIpv6Gateway))
 
-	_ = c.AddTask(g, "ensure zones",
+	ensureZones := c.AddTask(g, "ensure zones",
 		c.ensureZones,
 		Timeout(defaultLongTimeout), Dependencies(ensureNatGateway, ensureRouteTable))
 
+	_ = c.AddTask(g, "retire zones",
+		c.retireZones,
+		Dependencies(ensureZones))
+
 	return g
+}
+
+// retireZones checks every pending target before running the first destructive cleanup task.
+func (c *FlowContext) retireZones(ctx context.Context) error {
+	targets, err := c.buildZoneRetirementTargets(ctx)
+	if err != nil {
+		return err
+	}
+	return c.runZoneRetirementCleanup(ctx, targets)
 }
 
 func (c *FlowContext) ensureSecurityGroup(ctx context.Context) error {
@@ -297,14 +311,10 @@ func (c *FlowContext) ensureManagedVpc(ctx context.Context) error {
 }
 
 func (c *FlowContext) collectExistingVSwitches(ctx context.Context) ([]*aliclient.VSwitch, error) {
-	child := c.state.GetChild(ChildIdZones)
-	var ids []string
-	for _, zoneKey := range child.GetChildrenKeys() {
-		zoneChild := child.GetChild(zoneKey)
-		if id := zoneChild.Get(IdentifierZoneVSwitch); id != nil {
-			ids = append(ids, *id)
-		}
-	}
+	return c.collectVSwitches(ctx, c.getTrackedVSwitchIDs())
+}
+
+func (c *FlowContext) collectVSwitches(ctx context.Context, ids []string) ([]*aliclient.VSwitch, error) {
 	var current []*aliclient.VSwitch
 	if len(ids) > 0 {
 		found, err := c.actor.ListVSwitches(ctx, ids)
@@ -331,7 +341,7 @@ outer:
 
 // ensureNatGateway creates or reconciles the NAT Gateway. Not called for BYO shoots.
 func (c *FlowContext) ensureNatGateway(ctx context.Context) error {
-	createNatGateway := c.config.Networks.VPC.ID == nil || (c.config.Networks.VPC.GardenerManagedNATGateway != nil && *c.config.Networks.VPC.GardenerManagedNATGateway)
+	createNatGateway := alicloudhelper.IsManagedNATGatewayConfig(c.config)
 
 	if !createNatGateway {
 		return c.ensureExistingNatGateway(ctx)
@@ -395,7 +405,7 @@ func (c *FlowContext) ensureManagedNatGateway(ctx context.Context) error {
 	log := c.LogFromContext(ctx)
 	log.Info("using managed NatGateway")
 
-	availableVSwitches := c.getAllVSwitchids()
+	availableVSwitches := c.getActiveVSwitchIDs()
 	if len(availableVSwitches) == 0 {
 		return fmt.Errorf("no available VSwitch can found for natgateway")
 	}
@@ -619,7 +629,7 @@ func (c *FlowContext) ensureCustomRouteTable(ctx context.Context) error {
 	}
 
 	// Associate all vswitches that are not yet bound to this route table
-	for _, vswId := range c.getAllVSwitchids() {
+	for _, vswId := range c.getActiveVSwitchIDs() {
 		if !contains(current.VSwitchIds, vswId) {
 			if err := c.actor.AssociateRouteTable(ctx, current.RouteTableId, vswId); err != nil {
 				if !isAlreadyAssociatedError(err) {

@@ -141,6 +141,9 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 		if errList := alicloudvalidation.ValidateInfrastructureConfigUpdate(oldInfraConfig, infraConfig, shoot.Spec.Provider.Workers, goneVSwitches); len(errList) != 0 {
 			return errList.ToAggregate()
 		}
+		if errList := validateZoneRetirementSequence(oldShoot, oldInfraConfig, infraConfig); len(errList) != 0 {
+			return errList.ToAggregate()
+		}
 	}
 
 	if errList := alicloudvalidation.ValidateWorkersUpdate(oldShoot.Spec.Provider.Workers, shoot.Spec.Provider.Workers, providerFldPath.Child("workers")); len(errList) != 0 {
@@ -169,11 +172,53 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 	return nil
 }
 
+// validateZoneRetirementSequence prevents an irreversible retirement request from blocking the
+// worker reconciliation that must remove the target zone's Machines first.
+func validateZoneRetirementSequence(oldShoot *core.Shoot, oldConfig, newConfig *alicloud.InfrastructureConfig) field.ErrorList {
+	allErrs := field.ErrorList{}
+	zonesPath := infraConfigFldPath.Child("networks", "zones")
+	previousReconciliationSucceeded :=
+		oldShoot.Status.ObservedGeneration == oldShoot.Generation &&
+			oldShoot.Status.LastOperation != nil &&
+			oldShoot.Status.LastOperation.State == core.LastOperationStateSucceeded
+
+	for i := range oldConfig.Networks.Zones {
+		if i >= len(newConfig.Networks.Zones) || oldConfig.Networks.Zones[i].Retired || !newConfig.Networks.Zones[i].Retired {
+			continue
+		}
+
+		zoneName := oldConfig.Networks.Zones[i].Name
+		path := zonesPath.Index(i).Child("retired")
+		if alicloudvalidation.ZoneReferencedByWorkers(zoneName, oldShoot.Spec.Provider.Workers) {
+			allErrs = append(allErrs, field.Forbidden(path,
+				"remove worker pools using this zone in an earlier update and wait for reconciliation to complete before retiring it"))
+			continue
+		}
+		if !previousReconciliationSucceeded {
+			allErrs = append(allErrs, field.Forbidden(path,
+				"wait for the previous Shoot reconciliation to complete successfully before retiring a zone"))
+		}
+	}
+	return allErrs
+}
+
 func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) error {
 	// Decode the infrastructure config
 	infraConfig, err := checkAndDecodeInfrastructureConfig(s.decoder, shoot.Spec.Provider.InfrastructureConfig, infraConfigFldPath)
 	if err != nil {
 		return err
+	}
+
+	// Retirement is requested by updating an existing Shoot, not during creation.
+	var retirementErrs field.ErrorList
+	for i, zone := range infraConfig.Networks.Zones {
+		if zone.Retired {
+			retirementErrs = append(retirementErrs, field.Forbidden(infraConfigFldPath.Child("networks", "zones").Index(i).Child("retired"),
+				"zone cannot be retired at shoot creation; create the shoot with the zone active and request retirement in a later update"))
+		}
+	}
+	if len(retirementErrs) > 0 {
+		return retirementErrs.ToAggregate()
 	}
 
 	// Decode the controlplane config
@@ -216,6 +261,10 @@ func (s *shoot) computeGoneVSwitches(ctx context.Context, shoot *core.Shoot, old
 			break
 		}
 		oldZone, newZone := oldConfig.Networks.Zones[i], newConfig.Networks.Zones[i]
+		// Retirement freezes the resource configuration; an API lookup cannot permit this change.
+		if oldZone.Retired || newZone.Retired {
+			continue
+		}
 		if oldZone.WorkersVSwitchID == nil || newZone.WorkersVSwitchID == nil {
 			continue
 		}
