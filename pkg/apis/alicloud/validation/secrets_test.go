@@ -131,6 +131,30 @@ var _ = Describe("Secret validation", func() {
 		),
 	)
 
+	DescribeTable("should enforce the secret access key maximum length in bytes without exposing credentials",
+		func(value string, tooLong bool) {
+			secret := &corev1.Secret{Data: map[string][]byte{
+				alicloud.AccessKeyID:     []byte(strings.Repeat("a", 16)),
+				alicloud.AccessKeySecret: []byte(value),
+			}}
+			secret.Namespace = "garden-test"
+			secret.Name = "credentials"
+
+			err := ValidateCloudProviderSecret(secret)
+			if tooLong {
+				Expect(err).To(MatchError(`field "accessKeySecret" in secret garden-test/credentials cannot be longer than 128 bytes`))
+				Expect(err.Error()).NotTo(ContainSubstring(value))
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("one byte below the maximum", strings.Repeat("b", 127), false),
+		Entry("exactly the maximum", strings.Repeat("b", 128), false),
+		Entry("one byte above the maximum", strings.Repeat("b", 129), true),
+		Entry("multibyte characters exactly at the maximum", strings.Repeat("é", 64), false),
+		Entry("multibyte characters exceeding the maximum", strings.Repeat("é", 64)+"b", true),
+	)
+
 	It("should reject every control character and line separator anywhere in the secret access key", func() {
 		characters := []rune{'\u2028', '\u2029'}
 		for r := rune(0); r <= '\u009f'; r++ {

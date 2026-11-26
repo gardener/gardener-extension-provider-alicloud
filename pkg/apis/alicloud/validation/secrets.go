@@ -19,6 +19,8 @@ const (
 	accessKeyIDMinLen     = 16
 	accessKeyIDMaxLen     = 128
 	accessKeySecretMinLen = 30
+	// accessKeySecretMaxLen is an extension-side size limit, not a documented Alibaba Cloud maximum.
+	accessKeySecretMaxLen = 128
 )
 
 var (
@@ -51,6 +53,9 @@ func ValidateCloudProviderSecret(secret *corev1.Secret) error {
 	}
 	if len(secretAccessKey) < accessKeySecretMinLen {
 		return fmt.Errorf("field %q in secret %s must have at least %d characters", alicloud.AccessKeySecret, secretRef, accessKeySecretMinLen)
+	}
+	if len(secretAccessKey) > accessKeySecretMaxLen {
+		return fmt.Errorf("field %q in secret %s cannot be longer than %d bytes", alicloud.AccessKeySecret, secretRef, accessKeySecretMaxLen)
 	}
 	// These values are interpolated into an INI credentials file. Reject characters
 	// that can introduce new directives, sections, or comments anywhere in the value.
