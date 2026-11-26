@@ -165,38 +165,64 @@ func (c *FlowContext) cleanupRetirementEIPAssociation(ctx context.Context, targe
 	}
 	for _, entry := range entries {
 		if snatUsesIPAddress(entry.IpAddress, eip.IpAddress) {
-			if managed {
-				return fmt.Errorf("managed EIP %s is still used by SNAT entry %s", eipID, entry.SnatEntryId)
-			}
+			// The EIP is shared with another zone (or with a user-managed SNAT entry).
+			// Keep the NGW association; this zone can still finish retirement.
 			return nil
 		}
 	}
 	return c.actor.UnAssociateEIP(ctx, eip)
 }
 
-// releaseRetirementManagedEIP expects association cleanup to have made an unreferenced EIP available.
-// An EIP explicitly referenced by an active zone has been handed over and must not be released.
+// releaseRetirementManagedEIP releases only an unused EIP without an explicit zone reference.
+// A deferred release keeps the managed EIP state so a later Shoot deletion can still reclaim it.
+// Remaining SNAT usage does not block this zone's retirement.
 func (c *FlowContext) releaseRetirementManagedEIP(target zoneRetirementTarget) flow.TaskFn {
 	return func(ctx context.Context) error {
 		if target.ManagedEIPID == "" {
 			return nil
 		}
 		zone := c.getZoneChild(target.ZoneName)
-		if c.activeZoneReferencesEIP(target.ManagedEIPID) {
-			zone.SetAsDeleted(IdentifierZoneNATGWElasticIP)
+		if c.zoneConfigReferencesEIP(target.ManagedEIPID) {
 			return nil
 		}
 		eip, err := c.actor.GetEIP(ctx, target.ManagedEIPID)
 		if err != nil {
 			return err
 		}
-		if eip != nil {
-			if eip.Status == nil || *eip.Status != "Available" {
-				return fmt.Errorf("managed EIP %s is still in use", target.ManagedEIPID)
+		if eip == nil {
+			zone.SetAsDeleted(IdentifierZoneNATGWElasticIP)
+			return nil
+		}
+		if eip.Status == nil {
+			return fmt.Errorf("managed EIP %s has no status", target.ManagedEIPID)
+		}
+		if *eip.Status == "InUse" {
+			if eip.InstanceId == nil || eip.InstanceType == nil {
+				return fmt.Errorf("managed EIP %s is in use without association details", target.ManagedEIPID)
 			}
-			if err := c.actor.DeleteEIP(ctx, target.ManagedEIPID); err != nil {
+			ngwID, err := c.retirementNatGatewayID(target.ZoneName)
+			if err != nil {
 				return err
 			}
+			if *eip.InstanceId != ngwID {
+				return fmt.Errorf("managed EIP %s is associated with unexpected resource %s", target.ManagedEIPID, *eip.InstanceId)
+			}
+			entries, err := c.actor.FindSNatEntriesByNatGateway(ctx, ngwID)
+			if err != nil {
+				return err
+			}
+			for _, entry := range entries {
+				if snatUsesIPAddress(entry.IpAddress, eip.IpAddress) {
+					return nil
+				}
+			}
+			return fmt.Errorf("managed EIP %s is still associated after its SNAT usage was removed", target.ManagedEIPID)
+		}
+		if *eip.Status != "Available" {
+			return fmt.Errorf("managed EIP %s has unsupported status %s", target.ManagedEIPID, *eip.Status)
+		}
+		if err := c.actor.DeleteEIP(ctx, target.ManagedEIPID); err != nil {
+			return err
 		}
 		zone.SetAsDeleted(IdentifierZoneNATGWElasticIP)
 		return nil
@@ -270,6 +296,16 @@ func (c *FlowContext) activeZoneReferencesEIP(eipID string) bool {
 		if zone.Retired {
 			continue
 		}
+		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil && *zone.NatGateway.EIPAllocationID == eipID {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *FlowContext) zoneConfigReferencesEIP(eipID string) bool {
+	for i := range c.config.Networks.Zones {
+		zone := &c.config.Networks.Zones[i]
 		if zone.NatGateway != nil && zone.NatGateway.EIPAllocationID != nil && *zone.NatGateway.EIPAllocationID == eipID {
 			return true
 		}

@@ -139,8 +139,8 @@ func TestZoneRetirementKeepsEIPReferencedByActiveZone(t *testing.T) {
 	if err := fc.releaseRetirementManagedEIP(zoneRetirementTarget{ZoneName: "zone2", ManagedEIPID: "eip-retired"})(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if got := fc.getZoneChild("zone2").Get(IdentifierZoneNATGWElasticIP); got != nil {
-		t.Fatalf("retired zone still references shared EIP: %s", *got)
+	if got := fc.getZoneChild("zone2").Get(IdentifierZoneNATGWElasticIP); got == nil || *got != "eip-retired" {
+		t.Fatalf("managed EIP ownership was not retained: %v", got)
 	}
 	if got := config.Networks.Zones[0].NatGateway.EIPAllocationID; got == nil || *got != "eip-retired" {
 		t.Fatalf("active zone configuration changed: %v", got)
@@ -356,14 +356,13 @@ func TestZoneRetirementRejectsEIPWithoutStatus(t *testing.T) {
 	}
 }
 
-func TestZoneRetirementHandlesUnknownSNATUsingEIPByOwnership(t *testing.T) {
+func TestZoneRetirementKeepsEIPUsedByUnknownSNAT(t *testing.T) {
 	ctx := context.Background()
 	for _, test := range []struct {
 		name    string
 		managed bool
-		wantErr bool
 	}{
-		{name: "managed EIP blocks retirement", managed: true, wantErr: true},
+		{name: "managed EIP remains associated", managed: true},
 		{name: "user EIP remains associated"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -378,12 +377,6 @@ func TestZoneRetirementHandlesUnknownSNATUsingEIPByOwnership(t *testing.T) {
 			}}, nil)
 
 			err := fc.cleanupRetirementEIPAssociation(ctx, zoneRetirementTarget{ZoneName: "zone2"}, "eip-retired", test.managed)
-			if test.wantErr {
-				if err == nil || !strings.Contains(err.Error(), "managed EIP eip-retired is still used by SNAT entry snat-unknown") {
-					t.Fatalf("expected managed EIP usage error, got %v", err)
-				}
-				return
-			}
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -391,13 +384,75 @@ func TestZoneRetirementHandlesUnknownSNATUsingEIPByOwnership(t *testing.T) {
 	}
 }
 
-func TestDeleteRetiringZoneResidualsCleansManagedEIPAfterRetirementDeletedVSwitch(t *testing.T) {
+func TestZoneRetirementHandsSharedManagedEIPToAnotherRetiringZone(t *testing.T) {
 	ctx := context.Background()
+	config := retirementFlowConfig()
+	config.Networks.Zones = append(config.Networks.Zones, api.Zone{
+		Name: "zone3", Workers: "10.0.3.0/24", Retired: true,
+		NatGateway: &api.NatGatewayConfig{EIPAllocationID: ptr.To("eip-retired")},
+	})
+	fc, actor := newBYOTestContext(gomock.NewController(t), config, retirementFlowState())
+	eip := &aliclient.EIP{
+		EipId: "eip-retired", IpAddress: "192.0.2.2", Status: ptr.To("InUse"),
+		InstanceId: ptr.To("ngw-123"), InstanceType: ptr.To("Nat"),
+	}
+	zone3Entry := &aliclient.SNATEntry{SnatEntryId: "snat-zone3", IpAddress: "192.0.2.2"}
+
+	// zone2 owns the managed EIP. Its cleanup must not wait for the later zone3 cleanup.
+	actor.EXPECT().GetEIP(ctx, "eip-retired").Return(eip, nil)
+	actor.EXPECT().FindSNatEntriesByNatGateway(ctx, "ngw-123").Return([]*aliclient.SNATEntry{zone3Entry}, nil)
+	if err := fc.cleanupRetirementEIPAssociation(ctx, zoneRetirementTarget{ZoneName: "zone2"}, "eip-retired", true); err != nil {
+		t.Fatal(err)
+	}
+	if err := fc.releaseRetirementManagedEIP(zoneRetirementTarget{ZoneName: "zone2", ManagedEIPID: "eip-retired"})(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := fc.getZoneChild("zone2").Get(IdentifierZoneNATGWElasticIP); got == nil || *got != "eip-retired" {
+		t.Fatalf("zone2 lost ownership of deferred managed EIP: %v", got)
+	}
+
+	// After zone3 removes its own SNAT, it may unbind the user-owned EIP but must not release it.
+	actor.EXPECT().GetEIP(ctx, "eip-retired").Return(eip, nil)
+	actor.EXPECT().FindSNatEntriesByNatGateway(ctx, "ngw-123").Return(nil, nil)
+	actor.EXPECT().UnAssociateEIP(ctx, eip).Return(nil)
+	if err := fc.cleanupRetirementEIPAssociation(ctx, zoneRetirementTarget{ZoneName: "zone3"}, "eip-retired", false); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestZoneRetirementRetainsManagedEIPUsedByUnknownSNAT(t *testing.T) {
+	ctx := context.Background()
+	fc, actor := newBYOTestContext(gomock.NewController(t), retirementFlowConfig(), retirementFlowState())
+	eip := &aliclient.EIP{
+		EipId: "eip-retired", IpAddress: "192.0.2.2", Status: ptr.To("InUse"),
+		InstanceId: ptr.To("ngw-123"), InstanceType: ptr.To("Nat"),
+	}
+	actor.EXPECT().GetEIP(ctx, "eip-retired").Return(eip, nil)
+	actor.EXPECT().FindSNatEntriesByNatGateway(ctx, "ngw-123").Return([]*aliclient.SNATEntry{{
+		SnatEntryId: "snat-user", IpAddress: "192.0.2.2",
+	}}, nil)
+
+	if err := fc.releaseRetirementManagedEIP(zoneRetirementTarget{ZoneName: "zone2", ManagedEIPID: "eip-retired"})(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := fc.getZoneChild("zone2").Get(IdentifierZoneNATGWElasticIP); got == nil || *got != "eip-retired" {
+		t.Fatalf("zone2 lost ownership of externally used EIP: %v", got)
+	}
+}
+
+func TestDeleteRetiringZoneResidualsCleansDeferredSharedManagedEIP(t *testing.T) {
+	ctx := context.Background()
+	config := retirementFlowConfig()
+	config.Networks.Zones = append(config.Networks.Zones, api.Zone{
+		Name: "zone3", Workers: "10.0.3.0/24", Retired: true,
+		NatGateway: &api.NatGatewayConfig{EIPAllocationID: ptr.To("eip-retired")},
+	})
 	state := retirementFlowState()
 	state["Zones/zone2/VSwitch"] = "<deleted>"
+	state["Zones/zone2/RetirementCompleted"] = ZoneRetirementCompletedValue
 	delete(state, "Zones/zone1/VSwitch")
 	delete(state, "Zones/zone1/Suffix")
-	fc, actor := newBYOTestContext(gomock.NewController(t), retirementFlowConfig(), state)
+	fc, actor := newBYOTestContext(gomock.NewController(t), config, state)
 	available := &aliclient.EIP{EipId: "eip-retired", Status: ptr.To("Available")}
 
 	actor.EXPECT().GetEIP(ctx, "eip-retired").Return(available, nil)

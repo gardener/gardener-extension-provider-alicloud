@@ -179,7 +179,7 @@ Setting the field does not drain or delete worker nodes. Gardener stops publishi
 The following ownership rules apply:
 
 * Gardener-managed VSwitches, SNAT entries, route-table associations, and zone-specific managed EIPs are cleaned up.
-* A configured `eipAllocationID` is treated as user-provided: its association may be removed, but the EIP allocation is not released.
+* An EIP referenced through `eipAllocationID` is not released during zone retirement.
 * A VSwitch supplied through `workersVSwitchID` is not deleted. Gardener only stops referencing it.
 * A user-managed NAT Gateway is not deleted.
 
