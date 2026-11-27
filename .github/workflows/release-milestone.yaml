@@ -22,7 +22,7 @@ jobs:
         echo "::set-output name=version::$(cat ./VERSION)"
 
     - name: Block merge if release milestone is missing
-      uses: actions/github-script@v4
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
