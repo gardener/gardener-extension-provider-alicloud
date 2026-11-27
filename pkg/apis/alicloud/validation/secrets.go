@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -18,6 +19,8 @@ const (
 	accessKeyIDMinLen     = 16
 	accessKeyIDMaxLen     = 128
 	accessKeySecretMinLen = 30
+	// accessKeySecretMaxLen is an extension-side size limit, not a documented Alibaba Cloud maximum.
+	accessKeySecretMaxLen = 128
 )
 
 var (
@@ -51,10 +54,18 @@ func ValidateCloudProviderSecret(secret *corev1.Secret) error {
 	if len(secretAccessKey) < accessKeySecretMinLen {
 		return fmt.Errorf("field %q in secret %s must have at least %d characters", alicloud.AccessKeySecret, secretRef, accessKeySecretMinLen)
 	}
-	// accessKeySecret must not contain new lines anywhere, as they are known to cause issues
-	// when writing the credentials file.
-	if strings.ContainsAny(string(secretAccessKey), "\n\r") {
-		return fmt.Errorf("field %q in secret %s must not contain new lines", alicloud.AccessKeySecret, secretRef)
+	if len(secretAccessKey) > accessKeySecretMaxLen {
+		return fmt.Errorf("field %q in secret %s cannot be longer than %d bytes", alicloud.AccessKeySecret, secretRef, accessKeySecretMaxLen)
+	}
+	// These values are interpolated into an INI credentials file. Reject characters
+	// that can introduce new directives, sections, or comments anywhere in the value.
+	if strings.ContainsFunc(string(secretAccessKey), func(r rune) bool {
+		return unicode.IsControl(r) || r == '\u2028' || r == '\u2029'
+	}) {
+		return fmt.Errorf("field %q in secret %s must not contain control characters or line separators", alicloud.AccessKeySecret, secretRef)
+	}
+	if strings.ContainsAny(string(secretAccessKey), "#;") {
+		return fmt.Errorf("field %q in secret %s must not contain INI comment characters [#;]", alicloud.AccessKeySecret, secretRef)
 	}
 
 	return nil
