@@ -13,7 +13,7 @@ jobs:
     name: Check Release Milestone
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2
       with:
         path: './'
 
@@ -22,7 +22,7 @@ jobs:
         echo "::set-output name=version::$(cat ./VERSION)"
 
     - name: Block merge if release milestone is missing
-      uses: actions/github-script@v4
+      uses: actions/github-script@10b53a9ec6c222bb4ce97aa6bd2b5f739696b536 # v4
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
